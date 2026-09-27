@@ -143,14 +143,14 @@ export default function AiLabExplainPage() {
       />
 
       {/* ── 2. Select Lab Report Stage ─────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FlaskConical size={18} className="text-sky-600" />
+            <h2 className="t-card-title text-text flex items-center gap-2">
+              <FlaskConical size={18} className="text-brand" aria-hidden />
               <span>Choose a Lab Report to Analyze</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Select an existing pathology file from your electronic health record.
             </p>
           </div>
@@ -158,27 +158,27 @@ export default function AiLabExplainPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/patient/records/new"
-              className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
             >
-              <Upload size={12} />
-              <span>Upload New PDF</span>
+              <Upload size={12} aria-hidden />
+              Upload New PDF
             </Link>
             <Link
               href="/patient/records/scan"
-              className="text-xs font-bold text-slate-700 hover:text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-ghost h-8 px-3 text-xs"
             >
-              <Camera size={12} />
-              <span>Scan Paper</span>
+              <Camera size={12} aria-hidden />
+              Scan Paper
             </Link>
           </div>
         </div>
 
         {records.isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[1, 2].map((i) => (
+                {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
@@ -192,29 +192,30 @@ export default function AiLabExplainPage() {
                   type="button"
                   onClick={() => setSelectedRecordId(r.id)}
                   className={cn(
-                    "p-4 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group shadow-2xs",
+                    "p-4 rounded-xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group shadow-2xs",
                     isSelected
-                      ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
-                      : "bg-white border-slate-200 hover:border-sky-300 hover:bg-slate-50/80",
+                      ? "bg-brand-soft/40 border-brand shadow-card"
+                      : "bg-surface border-border hover:border-border-strong",
                   )}
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <div
                       className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                        "grid h-10 w-10 place-items-center rounded-md shrink-0 shadow-2xs",
                         isSelected
-                          ? "bg-sky-600 text-white border-sky-600 shadow-2xs"
-                          : "bg-slate-100 text-slate-500 border-slate-200",
+                          ? "bg-ink text-white"
+                          : "bg-surface-2 text-text-muted",
                       )}
+                      aria-hidden
                     >
                       <FileText size={18} />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                      <h4 className="font-bold text-xs sm:text-sm text-text truncate group-hover:text-brand transition-colors">
                         {r.title}
                       </h4>
-                      <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                        <Calendar size={11} />
+                      <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
+                        <Calendar size={11} aria-hidden />
                         <span>{r.date}</span>
                       </p>
                     </div>
@@ -222,11 +223,12 @@ export default function AiLabExplainPage() {
 
                   <div
                     className={cn(
-                      "h-5 w-5 rounded-full border flex items-center justify-center shrink-0 mt-1",
+                      "grid h-5 w-5 place-items-center rounded-full border shrink-0 mt-1",
                       isSelected
-                        ? "bg-sky-600 border-sky-600 text-white"
-                        : "border-slate-300 bg-white",
+                        ? "bg-brand border-brand text-white"
+                        : "border-border bg-surface",
                     )}
+                    aria-hidden
                   >
                     {isSelected && <Check size={11} strokeWidth={3} />}
                   </div>
@@ -236,16 +238,16 @@ export default function AiLabExplainPage() {
           </div>
         ) : (
           /* ── Zero-State when no lab reports are in EHR ──────────────────── */
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 sm:p-8 flex flex-col items-center text-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-white border border-slate-200 text-sky-600 flex items-center justify-center shadow-xs">
+          <div className="rounded-xl border border-border bg-surface-2/50 p-6 sm:p-8 flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-surface text-brand shadow-xs" aria-hidden>
               <FlaskConical size={24} />
             </div>
 
             <div className="max-w-md">
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+              <h3 className="t-card-title text-text">
                 No Lab Reports Uploaded Yet
               </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs text-text-soft mt-1 leading-relaxed">
                 You can upload a digital laboratory PDF from your hospital patient portal, photograph a physical paper report, or try our sample panel below.
               </p>
             </div>
@@ -254,16 +256,16 @@ export default function AiLabExplainPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mt-2 text-left">
               <Link
                 href="/patient/records/new"
-                className="p-4 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:shadow-xs transition-all flex flex-col gap-2 group cursor-pointer"
+                className="p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:shadow-card transition-all flex flex-col gap-2 group cursor-pointer"
               >
-                <div className="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
                   <Upload size={15} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-slate-900 group-hover:text-sky-700 transition-colors">
+                  <h4 className="font-bold text-xs text-text group-hover:text-brand transition-colors">
                     Upload Lab PDF
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-text-muted mt-0.5">
                     Direct hospital e-results
                   </p>
                 </div>
@@ -271,16 +273,16 @@ export default function AiLabExplainPage() {
 
               <Link
                 href="/patient/records/scan"
-                className="p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col gap-2 group cursor-pointer"
+                className="p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:shadow-card transition-all flex flex-col gap-2 group cursor-pointer"
               >
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-success-soft text-success" aria-hidden>
                   <Scan size={15} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  <h4 className="font-bold text-xs text-text group-hover:text-success transition-colors">
                     Scan Paper Copy
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-text-muted mt-0.5">
                     Camera OCR recognition
                   </p>
                 </div>
@@ -292,16 +294,16 @@ export default function AiLabExplainPage() {
                   setSelectedRecordId("sample-report");
                   void explain();
                 }}
-                className="p-4 rounded-xl bg-sky-50/70 border border-sky-200 hover:border-sky-400 hover:bg-sky-50 hover:shadow-xs transition-all flex flex-col gap-2 group cursor-pointer"
+                className="p-4 rounded-xl bg-ink text-white hover:brightness-110 transition-all flex flex-col gap-2 group cursor-pointer text-left"
               >
-                <div className="h-8 w-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-white/10 text-white" aria-hidden>
                   <Sparkles size={15} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-sky-900">
+                  <h4 className="font-bold text-xs">
                     Try Sample Panel
                   </h4>
-                  <p className="text-[11px] text-sky-600 mt-0.5">
+                  <p className="text-[11px] text-white/70 mt-0.5">
                     Metabolic &amp; Lipid demo
                   </p>
                 </div>
@@ -311,38 +313,35 @@ export default function AiLabExplainPage() {
         )}
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-            <AlertCircle size={15} className="text-rose-600 shrink-0" />
+          <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0" aria-hidden />
             <span>{error}</span>
           </div>
         )}
 
         {/* Explain Button */}
         {labRecords.length > 0 && (
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-2 border-t border-border flex items-center justify-between">
             <button
               type="button"
               onClick={explain}
               disabled={!selectedRecordId || busy}
-              className="px-6 py-3 rounded-xl text-xs font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary h-11 px-6 text-xs disabled:opacity-50"
             >
               {busy ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Synthesizing Plain English Analysis…</span>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  Synthesizing Plain English Analysis…
                 </>
               ) : (
                 <>
-                  <Sparkles size={14} />
-                  <span>Generate Plain-English Explanation</span>
+                  <Sparkles size={14} aria-hidden />
+                  Generate Plain-English Explanation
                 </>
               )}
             </button>
 
-            <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            <span className="text-xs text-text-muted font-medium hidden sm:inline">
               Cached 24h for instant retrieval
             </span>
           </div>
@@ -351,17 +350,17 @@ export default function AiLabExplainPage() {
 
       {/* ── 3. Generated Plain-English Explanation Card ────────────────────── */}
       {explanation && (
-        <section className="rounded-2xl border border-sky-200 bg-white p-6 sm:p-7 shadow-md flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <section className="rounded-xl border border-brand/25 bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+              <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success" aria-hidden>
                 <CheckCircle2 size={18} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">
+                <h3 className="t-card-title text-text">
                   Plain-English Lab Summary
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-text-soft">
                   AI-translated clinical pathology readout
                 </p>
               </div>
@@ -371,17 +370,17 @@ export default function AiLabExplainPage() {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
               >
                 {copied ? (
                   <>
-                    <Check size={12} className="text-emerald-600" />
-                    <span className="text-emerald-600">Copied</span>
+                    <Check size={12} className="text-success" aria-hidden />
+                    Copied
                   </>
                 ) : (
                   <>
-                    <Copy size={12} />
-                    <span>Copy Summary</span>
+                    <Copy size={12} aria-hidden />
+                    Copy Summary
                   </>
                 )}
               </button>
@@ -391,20 +390,20 @@ export default function AiLabExplainPage() {
                   "Help me understand my lab results in more detail: " +
                     explanation.slice(0, 150),
                 )}`}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1 cursor-pointer"
+                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
               >
-                <MessageSquare size={12} />
-                <span>Ask AI Follow-Up</span>
+                <MessageSquare size={12} aria-hidden />
+                Ask AI Follow-Up
               </Link>
             </div>
           </div>
 
-          <div className="prose prose-sm max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 font-normal">
+          <div className="prose prose-sm max-w-none text-text text-xs sm:text-sm leading-relaxed p-4 rounded-lg bg-surface-2 font-normal">
             <div className="whitespace-pre-wrap">{explanation}</div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-[11px] text-slate-500">
-            <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-lg bg-surface-2 border border-border flex items-start gap-2.5 text-[11px] text-text-soft">
+            <Info size={14} className="text-text-muted shrink-0 mt-0.5" aria-hidden />
             <span>
               This explanation is generated by clinical language models for patient educational understanding. It does not constitute a diagnostic prescription. Always discuss anomalous numbers with your primary care doctor.
             </span>
