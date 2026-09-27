@@ -257,22 +257,22 @@ export default function EmergencyPage() {
 
       {/* SOS Feedback Alert */}
       {sent && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center gap-3 shadow-xs">
-          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-success-soft border border-success/25 text-xs font-bold text-success flex items-center gap-3 shadow-xs">
+          <CheckCircle2 size={18} className="shrink-0" aria-hidden />
           <span>{sent}</span>
         </div>
       )}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-900 flex items-center gap-3 shadow-xs">
-          <AlertCircle size={18} className="text-rose-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-danger-soft border border-danger/25 text-xs font-bold text-danger flex items-center gap-3 shadow-xs">
+          <AlertCircle size={18} className="shrink-0" aria-hidden />
           <span>{error}</span>
         </div>
       )}
 
       {/* ── 2. Official Emergency Medical ID Card ───────────────────────────── */}
-      <section className="rounded-2xl border-2 border-slate-200/90 bg-white shadow-md overflow-hidden">
+      <section className="rounded-xl border border-border bg-surface shadow-card overflow-hidden">
         {/* Card Header Strip */}
-        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 px-5 sm:px-7 py-3.5 text-white flex items-center justify-between flex-wrap gap-2">
+        <div className="bg-ink-card px-5 sm:px-7 py-3.5 text-white flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-lg bg-rose-600 flex items-center justify-center text-white shadow-2xs">
               <HeartPulse size={16} />
@@ -312,7 +312,7 @@ export default function EmergencyPage() {
         {/* Card Body */}
         <div className="p-5 sm:p-7 flex flex-col md:flex-row items-center md:items-start gap-6">
           {/* High Res QR Frame */}
-          <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-2xs">
+          <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-xl bg-surface-2 border border-border shadow-2xs">
             {qrUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -320,47 +320,47 @@ export default function EmergencyPage() {
                 alt="Emergency QR Pass"
                 width={200}
                 height={200}
-                className="rounded-xl border border-slate-200 bg-white p-1"
+                className="rounded-lg border border-border bg-white p-1"
               />
             ) : (
-              <div className="flex h-[200px] w-[200px] items-center justify-center text-xs text-slate-400">
+              <div className="flex h-[200px] w-[200px] items-center justify-center text-xs text-text-muted">
                 Generating QR…
               </div>
             )}
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">
+            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider text-center">
               Scan Without Passcode
             </p>
           </div>
 
           {/* Patient Vitals & Identification */}
           <div className="flex-1 flex flex-col gap-4 w-full">
-            <div className="flex items-start justify-between gap-4 flex-wrap pb-3 border-b border-slate-100">
+            <div className="flex items-start justify-between gap-4 flex-wrap pb-3 border-b border-border">
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                <h2 className="t-display text-xl sm:text-2xl text-text leading-tight">
                   {profileName}
                 </h2>
-                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium">
+                <div className="flex items-center gap-3 mt-1 text-xs text-text-soft font-medium">
                   {phone ? (
                     <span className="flex items-center gap-1">
-                      <Phone size={12} className="text-slate-400" />
-                      <a href={`tel:${phone}`} className="font-bold text-sky-700 hover:underline">
+                      <Phone size={12} className="text-text-muted" aria-hidden />
+                      <a href={`tel:${phone}`} className="font-bold text-brand hover:underline">
                         {phone}
                       </a>
                     </span>
                   ) : null}
                   <span>·</span>
-                  <span className="text-slate-600">ID: HealthHub-LK</span>
+                  <span className="text-text-soft">ID: HealthHub-LK</span>
                 </div>
               </div>
 
               {/* Prominent Blood Group Badge */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-rose-50 border-2 border-rose-300 shadow-2xs">
-                <Heart size={18} className="text-rose-600 fill-rose-600" />
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-danger-soft border border-danger/30 shadow-2xs">
+                <Heart size={18} className="text-danger fill-danger" aria-hidden />
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-danger">
                     Blood Group
                   </p>
-                  <p className="text-lg font-black text-rose-950 leading-none">
+                  <p className="pt-metric text-lg text-danger leading-none">
                     {bloodType}
                   </p>
                 </div>
@@ -369,9 +369,9 @@ export default function EmergencyPage() {
 
             {/* Critical Clinical Snapshot Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <ShieldAlert size={12} className="text-rose-600" />
+              <div className="p-3 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
+                  <ShieldAlert size={12} className="text-danger" aria-hidden />
                   Known Allergies
                 </span>
                 {allergies.length > 0 ? (
@@ -379,22 +379,22 @@ export default function EmergencyPage() {
                     {allergies.map((a) => (
                       <span
                         key={a}
-                        className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200"
+                        className="px-2 py-0.5 rounded-md text-xs font-bold bg-danger-soft text-danger"
                       >
                         {a}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  <p className="text-xs text-text-soft font-medium mt-0.5">
                     No confirmed drug allergies on file
                   </p>
                 )}
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <Activity size={12} className="text-sky-600" />
+              <div className="p-3 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
+                  <Activity size={12} className="text-brand" aria-hidden />
                   Chronic Conditions
                 </span>
                 {conditions.length > 0 ? (
@@ -402,22 +402,22 @@ export default function EmergencyPage() {
                     {conditions.map((c) => (
                       <span
                         key={c}
-                        className="px-2 py-0.5 rounded-md text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200"
+                        className="px-2 py-0.5 rounded-md text-xs font-bold bg-brand-soft text-brand"
                       >
                         {c}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  <p className="text-xs text-text-soft font-medium mt-0.5">
                     No chronic medical conditions listed
                   </p>
                 )}
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1 sm:col-span-2">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <Pill size={12} className="text-emerald-600" />
+              <div className="p-3 rounded-lg bg-surface-2 border border-border flex flex-col gap-1 sm:col-span-2">
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
+                  <Pill size={12} className="text-success" aria-hidden />
                   Active Medications &amp; Dosages
                 </span>
                 {currentMeds.length > 0 ? (
@@ -425,17 +425,17 @@ export default function EmergencyPage() {
                     {currentMeds.map((m, i) => (
                       <span
                         key={i}
-                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-success-soft text-success flex items-center gap-1"
                       >
                         <span className="font-bold">{m.name}</span>
                         {m.dosage ? (
-                          <span className="text-emerald-600">({m.dosage})</span>
+                          <span className="opacity-80">({m.dosage})</span>
                         ) : null}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  <p className="text-xs text-text-soft font-medium mt-0.5">
                     No active medications recorded
                   </p>
                 )}
@@ -447,79 +447,79 @@ export default function EmergencyPage() {
 
       {/* ── 3. National Emergency Speed Dials ───────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-          <Siren size={15} className="text-rose-600" />
-          <span>National Emergency Services &amp; Hotlines</span>
-        </h3>
+          <h3 className="pt-kicker flex items-center gap-2">
+            <Siren size={15} className="text-danger" aria-hidden />
+            <span>National Emergency Services &amp; Hotlines</span>
+          </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {EMERGENCY_SERVICES.map((srv) => (
-            <a
-              key={srv.number}
-              href={`tel:${srv.number}`}
-              className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-rose-300 transition-all flex flex-col justify-between gap-3 group"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 group-hover:bg-rose-50 group-hover:text-rose-700 transition-colors">
-                    {srv.badge}
-                  </span>
-                  <PhoneCall size={14} className="text-slate-400 group-hover:text-rose-600 transition-colors" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {EMERGENCY_SERVICES.map((srv) => (
+              <a
+                key={srv.number}
+                href={`tel:${srv.number}`}
+                className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-danger/40 transition-all flex flex-col justify-between gap-3 group"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-surface-2 text-text-soft group-hover:bg-danger-soft group-hover:text-danger transition-colors">
+                      {srv.badge}
+                    </span>
+                    <PhoneCall size={14} className="text-text-muted group-hover:text-danger transition-colors" aria-hidden />
+                  </div>
+                  <h4 className="font-bold text-text text-sm mt-2">
+                    {srv.name}
+                  </h4>
+                  <p className="text-[11px] text-text-soft mt-0.5 leading-snug">
+                    {srv.desc}
+                  </p>
                 </div>
-                <h4 className="font-bold text-slate-900 text-sm mt-2">
-                  {srv.name}
-                </h4>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                  {srv.desc}
-                </p>
-              </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <span className="text-base font-black text-rose-700 tracking-tight">
-                  {srv.number}
-                </span>
-                <span className="text-xs font-bold text-slate-600 group-hover:text-rose-700 transition-colors">
-                  Tap to Call →
-                </span>
-              </div>
-            </a>
-          ))}
-        </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <span className="pt-metric text-base text-danger tracking-tight">
+                    {srv.number}
+                  </span>
+                  <span className="text-xs font-bold text-text-soft group-hover:text-danger transition-colors">
+                    Tap to Call →
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
       </section>
 
       {/* ── 4. In Case of Emergency (ICE) Contacts ──────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-              <PhoneCall size={16} className="text-sky-600" />
+            <h3 className="pt-kicker flex items-center gap-2">
+              <PhoneCall size={16} className="text-brand" aria-hidden />
               <span>In Case of Emergency (ICE) Contacts</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               These contacts receive immediate SMS and push notification alerts when you trigger the SOS alarm.
             </p>
           </div>
 
           <Link
             href="/patient/family"
-            className="text-xs font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1"
+            className="text-xs font-bold text-brand hover:underline flex items-center gap-1 shrink-0"
           >
             <span>Manage Contacts</span>
-            <ChevronRight size={13} />
+            <ChevronRight size={13} aria-hidden />
           </Link>
         </div>
 
         {contacts.length === 0 ? (
-          <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="p-6 rounded-lg bg-surface-2 border border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <div className="grid h-10 w-10 place-items-center rounded-md bg-warn-soft text-warn shrink-0" aria-hidden>
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-800">
+                <p className="text-xs font-bold text-text">
                   No Emergency Contacts Configured
                 </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-text-soft mt-0.5">
                   Designate a family member or primary doctor as your emergency contact so responders can notify them.
                 </p>
               </div>
@@ -527,7 +527,7 @@ export default function EmergencyPage() {
 
             <Link
               href="/patient/family"
-              className="px-4 py-2 rounded-xl text-xs font-bold text-sky-800 bg-white border border-sky-200/80 hover:bg-sky-50 transition-colors shrink-0"
+              className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
             >
               + Add ICE Contact
             </Link>
@@ -537,13 +537,13 @@ export default function EmergencyPage() {
             {contacts.map((c, i) => (
               <div
                 key={i}
-                className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3"
+                className="p-4 rounded-lg bg-surface-2 border border-border flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <p className="font-bold text-slate-900 text-sm truncate">
+                  <p className="font-bold text-text text-sm truncate">
                     {c.name}
                   </p>
-                  <p className="text-[11px] text-slate-500 truncate capitalize">
+                  <p className="text-[11px] text-text-soft truncate capitalize">
                     {c.relationship || "Emergency Contact"}
                   </p>
                 </div>
@@ -551,10 +551,10 @@ export default function EmergencyPage() {
                 {c.phone ? (
                   <a
                     href={`tel:${c.phone}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-2xs transition-colors shrink-0"
+                    className="pt-btn pt-btn-primary h-8 px-3 text-xs shrink-0"
                   >
-                    <Phone size={12} />
-                    <span>Call</span>
+                    <Phone size={12} aria-hidden />
+                    Call
                   </a>
                 ) : null}
               </div>
@@ -564,16 +564,16 @@ export default function EmergencyPage() {
       </section>
 
       {/* ── 5. Responder Security & Encryption Notice ──────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Paramedic Scannable Without Passcode
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Your Emergency QR can be scanned directly from your lock screen wallpaper by paramedics and ER teams to access critical blood type and allergy data safely.
             </p>
           </div>
@@ -581,10 +581,10 @@ export default function EmergencyPage() {
 
         <Link
           href="/patient/health-id"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-sky-700" />
-          <span>Health ID Pass</span>
+          <ExternalLink size={13} aria-hidden />
+          Health ID Pass
         </Link>
       </section>
     </div>
