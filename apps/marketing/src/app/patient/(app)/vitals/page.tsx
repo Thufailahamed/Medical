@@ -117,7 +117,7 @@ export default function VitalsPage() {
         <article className="patient-card p-5 flex flex-col justify-between gap-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100 shadow-2xs">
+              <div className="grid h-11 w-11 place-items-center rounded-md bg-danger-soft text-danger shrink-0 shadow-2xs" aria-hidden>
                 <Heart size={20} />
               </div>
               <div>
@@ -131,16 +131,16 @@ export default function VitalsPage() {
             <button
               type="button"
               onClick={() => openAddVital("heart_rate")}
-              className="text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary h-7 px-2.5 text-[11px]"
             >
-              <Plus size={11} />
-              <span>Record</span>
+              <Plus size={11} aria-hidden />
+              Record
             </button>
           </div>
 
           <div className="flex items-baseline justify-between pt-2 border-t border-border">
             <div>
-              <span className="text-3xl font-black tracking-tight text-text">
+              <span className="pt-metric text-3xl text-text">
                 {lastHr != null ? Math.round(lastHr) : "—"}
               </span>
               <span className="ml-1.5 text-xs font-semibold text-text-muted">BPM</span>
@@ -150,7 +150,7 @@ export default function VitalsPage() {
               {hrPoints.length > 1 ? (
                 <Sparkline data={hrPoints.map((p) => p.value)} />
               ) : (
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-success bg-success-soft px-2 py-0.5 rounded-md">
                   Normal Range
                 </span>
               )}
@@ -162,7 +162,7 @@ export default function VitalsPage() {
         <article className="patient-card p-5 flex flex-col justify-between gap-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100 shadow-2xs">
+              <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs" aria-hidden>
                 <Stethoscope size={20} />
               </div>
               <div>
@@ -176,16 +176,16 @@ export default function VitalsPage() {
             <button
               type="button"
               onClick={() => openAddVital("blood_pressure")}
-              className="text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary h-7 px-2.5 text-[11px]"
             >
-              <Plus size={11} />
-              <span>Record</span>
+              <Plus size={11} aria-hidden />
+              Record
             </button>
           </div>
 
           <div className="flex items-baseline justify-between pt-2 border-t border-border">
             <div>
-              <span className="text-3xl font-black tracking-tight text-text">
+              <span className="pt-metric text-3xl text-text">
                 {lastBpSys != null ? Math.round(lastBpSys) : "—"}
                 <span className="text-xl font-bold text-text-muted">
                   /{lastBpDia ? Math.round(lastBpDia) : "—"}
@@ -198,7 +198,7 @@ export default function VitalsPage() {
               {bpPoints.length > 1 ? (
                 <Sparkline data={bpPoints.map((p) => p.value)} />
               ) : (
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-success bg-success-soft px-2 py-0.5 rounded-md">
                   Optimal
                 </span>
               )}
@@ -210,7 +210,7 @@ export default function VitalsPage() {
         <article className="patient-card p-5 flex flex-col justify-between gap-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 border border-cyan-100 shadow-2xs">
+              <div className="grid h-11 w-11 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0 shadow-2xs" aria-hidden>
                 <Wind size={20} />
               </div>
               <div>
@@ -224,16 +224,16 @@ export default function VitalsPage() {
             <button
               type="button"
               onClick={() => openAddVital("spo2")}
-              className="text-[11px] font-bold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-2.5 py-1 rounded-lg border border-cyan-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary h-7 px-2.5 text-[11px]"
             >
-              <Plus size={11} />
-              <span>Record</span>
+              <Plus size={11} aria-hidden />
+              Record
             </button>
           </div>
 
           <div className="flex items-baseline justify-between pt-2 border-t border-border">
             <div>
-              <span className="text-3xl font-black tracking-tight text-text">
+              <span className="pt-metric text-3xl text-text">
                 {lastSpo2 != null ? Math.round(lastSpo2) : "—"}
               </span>
               <span className="ml-1.5 text-xs font-semibold text-text-muted">% SpO2</span>
@@ -243,7 +243,7 @@ export default function VitalsPage() {
               {spo2Points.length > 1 ? (
                 <Sparkline data={spo2Points.map((p) => p.value)} />
               ) : (
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-success bg-success-soft px-2 py-0.5 rounded-md">
                   Good Oxygen
                 </span>
               )}
@@ -256,7 +256,7 @@ export default function VitalsPage() {
       <section className="patient-card p-5 sm:p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-warn-soft text-warn" aria-hidden>
               <AlertTriangle size={16} />
             </div>
             <div>
@@ -271,10 +271,10 @@ export default function VitalsPage() {
 
           <span
             className={cn(
-              "px-2.5 py-0.5 rounded-full text-xs font-bold border",
+              "px-2.5 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wider",
               alertItems.length === 0
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-amber-50 text-amber-700 border-amber-200",
+                ? "bg-success-soft text-success"
+                : "bg-warn-soft text-warn",
             )}
           >
             {alertItems.length === 0 ? "0 Alerts · Stable" : `${alertItems.length} Warnings`}
@@ -284,13 +284,13 @@ export default function VitalsPage() {
         {alerts.isLoading ? (
           <div className="h-16 rounded-xl patient-shimmer" />
         ) : alertItems.length === 0 ? (
-          <div className="p-6 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-start gap-3 text-emerald-900">
-            <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+          <div className="p-6 rounded-xl bg-success-soft/40 border border-success/25 flex items-start gap-3 text-success">
+            <CheckCircle2 size={18} className="shrink-0 mt-0.5" aria-hidden />
             <div>
-              <h4 className="font-bold text-xs sm:text-sm text-emerald-900">
+              <h4 className="font-bold text-xs sm:text-sm">
                 All Vitals Within Target Reference Range
               </h4>
-              <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+              <p className="text-xs mt-0.5 leading-relaxed opacity-80">
                 No out-of-range systolic excursions, bradycardia, or hypoxia events were recorded in your 30-day telemetry log.
               </p>
             </div>
@@ -303,7 +303,7 @@ export default function VitalsPage() {
                 className="p-3.5 rounded-xl shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                  <span className="h-2 w-2 rounded-full bg-danger shrink-0" aria-hidden />
                   <div>
                     <p className="font-bold text-text text-xs sm:text-sm">
                       {VITAL_REGISTRY[a.type]?.label ?? a.type}: {a.value}
@@ -314,7 +314,7 @@ export default function VitalsPage() {
                   </div>
                 </div>
 
-                <span className="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-warn-soft text-warn">
                   {a.classification}
                 </span>
               </div>
@@ -327,7 +327,7 @@ export default function VitalsPage() {
       <section className="patient-card p-5 sm:p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-violet-50 text-violet-600" aria-hidden>
               <Activity size={16} />
             </div>
             <div>
@@ -341,10 +341,10 @@ export default function VitalsPage() {
           <button
             type="button"
             onClick={() => setSymptomSheetOpen(true)}
-            className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
           >
-            <Plus size={13} />
-            <span>Log Symptom</span>
+            <Plus size={13} aria-hidden />
+            Log Symptom
           </button>
         </div>
 
@@ -364,10 +364,10 @@ export default function VitalsPage() {
             <button
               type="button"
               onClick={() => setSymptomSheetOpen(true)}
-              className="mt-1 text-xs font-bold text-sky-700 hover:text-sky-800 bg-surface px-3.5 py-1.5 rounded-lg border border-border shadow-none flex items-center gap-1 cursor-pointer"
+              className="pt-btn pt-btn-secondary mt-1 h-8 px-3.5 text-xs"
             >
-              <Plus size={12} />
-              <span>Record First Symptom</span>
+              <Plus size={12} aria-hidden />
+              Record First Symptom
             </button>
           </div>
         ) : (
@@ -384,12 +384,12 @@ export default function VitalsPage() {
                     </h4>
                     <span
                       className={cn(
-                        "px-2 py-0.2 rounded-full text-[10px] font-bold uppercase border",
+                        "px-2 py-0.2 rounded-md text-[10px] font-semibold uppercase",
                         row.severity === "severe"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          ? "bg-danger-soft text-danger"
                           : row.severity === "moderate"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-sky-50 text-sky-700 border-sky-200",
+                            ? "bg-warn-soft text-warn"
+                            : "bg-brand-soft text-brand",
                       )}
                     >
                       {row.severity}
