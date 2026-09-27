@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
-  CheckCircle2,
-  Pause,
   Search,
   ShieldCheck,
   Stethoscope,
@@ -21,6 +19,7 @@ import { usePatientProfile } from "@/patient/hooks";
 import { humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { StatusDots } from "@/patient/components/primitives/StatusDots";
 
 interface CareTeamMember {
   id: string;
@@ -303,23 +302,10 @@ export default function CareTeamPage() {
 
                   {/* Right Column: Status & Consent Management Actions */}
                   <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-border shrink-0">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
-                        isActive
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                          : isPaused
-                          ? "bg-amber-50 text-amber-800 border-amber-200/80"
-                          : "bg-surface-2 text-text-soft border-border",
-                      )}
-                    >
-                      {isActive ? (
-                        <CheckCircle2 size={12} className="text-emerald-600" />
-                      ) : (
-                        <Pause size={12} className="text-amber-600" />
-                      )}
-                      <span>{isActive ? "Active Access" : isPaused ? "Paused" : "Revoked"}</span>
-                    </span>
+                    <StatusDots
+                      status={isActive ? "confirmed" : isPaused ? "pending" : "cancelled"}
+                      label={isActive ? "Active Access" : isPaused ? "Paused" : "Revoked"}
+                    />
 
                     {member.status !== "revoked" ? (
                       <div className="flex items-center gap-1.5">

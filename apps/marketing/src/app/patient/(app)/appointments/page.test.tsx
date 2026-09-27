@@ -55,4 +55,9 @@ describe("AppointmentsPage", () => {
     const { container } = render(<AppointmentsPage />);
     expect(container.innerHTML).not.toContain("__pending__");
   });
+
+  it("renders appointment statuses as text, not color-only", () => {
+    const { container } = render(<AppointmentsPage />);
+    expect(container.textContent).toMatch(/Confirmed|Scheduled|Completed|Cancelled|In progress|Missed|Pending/);
+  });
 });

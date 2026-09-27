@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  AlertCircle,
   Building2,
   Calendar,
-  CheckCircle2,
   ChevronRight,
   Clock,
   Plus,
@@ -14,62 +12,35 @@ import {
   User,
   Video,
   X,
-  XCircle,
 } from "lucide-react";
 
 import { useAppointments } from "@/patient/hooks";
 import { formatTime, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { StatusDots } from "@/patient/components/primitives/StatusDots";
+import type { ClinicalStatus } from "@/patient/components/primitives/StatusDots";
 import { teleconsultApi } from "@/portal/lib/api";
 import type { VisitBucket } from "@healthcare/shared/visit-lifecycle";
 
 type TabFilter = "all" | VisitBucket;
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string): { label: string; tone: ClinicalStatus } {
   switch (status) {
     case "confirmed":
-      return {
-        label: "Confirmed",
-        className: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
-        icon: CheckCircle2,
-      };
+      return { label: "Confirmed", tone: "confirmed" };
     case "completed":
-      return {
-        label: "Completed",
-        className: "bg-blue-50 text-blue-700 border-blue-200/70",
-        icon: CheckCircle2,
-      };
+      return { label: "Completed", tone: "completed" };
     case "in_progress":
-      return {
-        label: "In Progress",
-        className: "bg-amber-50 text-amber-800 border-amber-200/70 animate-pulse",
-        icon: Clock,
-      };
+      return { label: "In Progress", tone: "in_progress" };
     case "scheduled":
-      return {
-        label: "Scheduled",
-        className: "bg-sky-50 text-sky-700 border-sky-200/70",
-        icon: Calendar,
-      };
+      return { label: "Scheduled", tone: "scheduled" };
     case "no_show":
-      return {
-        label: "Missed",
-        className: "bg-rose-50 text-rose-700 border-rose-200/70",
-        icon: AlertCircle,
-      };
+      return { label: "Missed", tone: "missed" };
     case "cancelled":
-      return {
-        label: "Cancelled",
-        className: "bg-surface-2 text-text-soft border-border",
-        icon: XCircle,
-      };
+      return { label: "Cancelled", tone: "cancelled" };
     default:
-      return {
-        label: humanize(status),
-        className: "bg-surface-2 text-text-soft border-border",
-        icon: Calendar,
-      };
+      return { label: humanize(status), tone: "pending" };
   }
 }
 
@@ -311,7 +282,6 @@ export default function AppointmentsPage() {
           <div className="flex flex-col gap-3">
             {filteredAppointments.map((a) => {
               const badge = getStatusBadge(a.status);
-              const BadgeIcon = badge.icon;
               const isVideo = a.mode === "video";
               const isUpcoming = a.bucket === "upcoming" || a.bucket === "today";
 
@@ -390,15 +360,7 @@ export default function AppointmentsPage() {
 
                   {/* Right Column: Status Badge & Actions */}
                   <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-border shrink-0">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
-                        badge.className,
-                      )}
-                    >
-                      <BadgeIcon size={13} />
-                      <span>{badge.label}</span>
-                    </span>
+                    <StatusDots status={badge.tone} label={badge.label} />
 
                     <div className="flex items-center gap-2">
                       {isVideo && a.isLive && activeSession?.appointmentId === a.id ? (

@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Star, MapPin, Shield, ChevronRight, BadgeCheck } from "lucide-react";
+import { Search, Star, MapPin, ChevronRight } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
 import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
+import { PhotoCard } from "@/patient/components/primitives/PhotoCard";
 import { useMarketplace } from "@/patient/hooks/marketplace";
 
 export default function MarketplacePage() {
@@ -65,74 +66,57 @@ export default function MarketplacePage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {query.data?.caretakers.map((c) => (
-          <Link
+          <PhotoCard
             key={c.id}
             href={`/patient/marketplace/${c.id}`}
-            className="group flex flex-col gap-3 rounded-inner border border-[color:var(--color-border)] bg-surface-1 p-4 transition-all hover:border-brand hover:shadow-md"
-          >
-            <div className="flex items-start gap-3">
-              {c.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={c.photoUrl}
-                  alt=""
-                  className="h-14 w-14 rounded-pill object-cover"
-                />
-              ) : (
-                <div
-                  className="grid h-14 w-14 place-items-center text-base font-bold text-white"
-                  style={{
-                    borderRadius: "var(--radius-pill)",
-                    background:
-                      "linear-gradient(145deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-                  }}
-                  aria-hidden
-                >
-                  {c.name?.[0]?.toUpperCase() ?? "?"}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="truncate text-sm font-semibold text-text">
-                    {c.name}
-                  </h3>
-                  {c.verified ? (
-                    <BadgeCheck size={14} aria-hidden className="text-success" />
-                  ) : null}
-                </div>
+            imageSrc={c.photoUrl}
+            fallbackInitials={c.name?.[0]?.toUpperCase() ?? "?"}
+            alt={`${c.name} portrait`}
+            badge={
+              c.verified ? (
+                <StatusPill tone="success">Verified</StatusPill>
+              ) : undefined
+            }
+            title={c.name}
+            meta={
+              <>
                 {c.city ? (
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-text-soft">
+                  <span className="inline-flex items-center gap-1">
                     <MapPin size={11} aria-hidden /> {c.city}
-                  </p>
-                ) : null}
+                  </span>
+                ) : null}{" "}
                 {c.rating ? (
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
+                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
                     <Star size={11} aria-hidden /> {c.rating.toFixed(1)} · {c.reviewCount} reviews
+                  </span>
+                ) : null}
+                {c.services.length > 0 ? (
+                  <span className="mt-1.5 flex flex-wrap gap-1.5">
+                    {c.services.slice(0, 3).map((s) => (
+                      <StatusPill key={s} tone="info">
+                        {s.replace(/_/g, " ")}
+                      </StatusPill>
+                    ))}
+                  </span>
+                ) : null}
+              </>
+            }
+            footer={
+              <>
+                {c.hourlyRate ? (
+                  <p className="flex items-baseline justify-between">
+                    <span className="pt-metric text-xl text-text">
+                      LKR {c.hourlyRate.toLocaleString()}
+                    </span>
+                    <span className="t-micro">per hour</span>
                   </p>
                 ) : null}
-              </div>
-              {c.hourlyRate ? (
-                <div className="text-right">
-                  <p className="text-base font-extrabold text-text">
-                    LKR {c.hourlyRate.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-text-muted">per hour</p>
-                </div>
-              ) : null}
-            </div>
-            {c.services.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {c.services.slice(0, 3).map((s) => (
-                  <StatusPill key={s} tone="info">
-                    {s.replace(/_/g, " ")}
-                  </StatusPill>
-                ))}
-              </div>
-            ) : null}
-            {c.bio ? (
-              <p className="line-clamp-2 text-xs text-text-soft">{c.bio}</p>
-            ) : null}
-          </Link>
+                {c.bio ? (
+                  <p className="mt-1 line-clamp-2 text-xs text-text-soft">{c.bio}</p>
+                ) : null}
+              </>
+            }
+          />
         ))}
       </div>
 
