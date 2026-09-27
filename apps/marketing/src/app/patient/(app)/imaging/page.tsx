@@ -64,24 +64,24 @@ function getModalityBadge(modality?: string) {
   if (m.includes("MR")) {
     return {
       label: "MRI Scan",
-      bg: "bg-purple-50 text-purple-700 border-purple-200/80",
+      bg: "bg-violet-50 text-violet-600",
     };
   }
   if (m.includes("CT")) {
     return {
       label: "CT Scan",
-      bg: "bg-sky-50 text-sky-700 border-sky-200/80",
+      bg: "bg-brand-soft text-brand",
     };
   }
   if (m.includes("US")) {
     return {
       label: "Ultrasound",
-      bg: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+      bg: "bg-success-soft text-success",
     };
   }
   return {
     label: "X-Ray (DICOM)",
-    bg: "bg-amber-50 text-amber-800 border-amber-200/80",
+    bg: "bg-warn-soft text-warn",
   };
 }
 
@@ -165,7 +165,7 @@ export default function PatientImagingPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl shadow-card">
         {/* Modality Tabs */}
         <SegmentedTabs
           ariaLabel="Modality filters"
@@ -185,7 +185,7 @@ export default function PatientImagingPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by study UID, organ, or modality..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
@@ -206,18 +206,18 @@ export default function PatientImagingPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-28 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                className="h-28 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredStudies.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-8 sm:p-10 shadow-xs flex flex-col items-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shadow-2xs">
+          <div className="rounded-xl border border-border bg-surface p-8 sm:p-10 shadow-card flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
               <ScanLine size={28} />
             </div>
 
             <div className="max-w-md">
-              <h3 className="text-base font-bold text-text">
+              <h3 className="t-card-title text-text">
                 {search ? "No scans match your search" : "No Radiology Imaging Studies On File"}
               </h3>
               <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
@@ -230,17 +230,14 @@ export default function PatientImagingPage() {
             <div className="flex flex-wrap items-center justify-center gap-2.5 mt-1">
               <Link
                 href="/patient/diagnostic-tests"
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
+                className="pt-btn pt-btn-primary h-9 px-4 text-xs"
               >
-                <FlaskConical size={14} />
-                <span>Book Diagnostic Scan</span>
+                <FlaskConical size={14} aria-hidden />
+                Book Diagnostic Scan
               </Link>
               <Link
                 href="/patient/records"
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-text bg-surface-2 hover:bg-surface-3 transition-colors"
+                className="pt-btn pt-btn-secondary h-9 px-4 text-xs"
               >
                 View General Records
               </Link>
@@ -261,21 +258,21 @@ export default function PatientImagingPage() {
               return (
                 <article
                   key={study.studyInstanceUid}
-                  className="group rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="group rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                    <div className="h-12 w-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-700 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                    <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
                       <ScanLine size={22} />
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
                           {title}
                         </h3>
                         <span
                           className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[11px] font-bold border",
+                            "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                             badge.bg,
                           )}
                         >
@@ -313,14 +310,11 @@ export default function PatientImagingPage() {
                   {/* Open Viewer CTA Button */}
                   <Link
                     href={`/patient/imaging/${encodeURIComponent(study.studyInstanceUid)}`}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 self-start sm:self-auto"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
+                    className="pt-btn pt-btn-primary h-9 px-4 text-xs shrink-0 self-start sm:self-auto"
                   >
-                    <Eye size={14} />
-                    <span>Open DICOM Viewer</span>
-                    <ChevronRight size={13} />
+                    <Eye size={14} aria-hidden />
+                    Open DICOM Viewer
+                    <ChevronRight size={13} aria-hidden />
                   </Link>
                 </article>
               );
@@ -330,9 +324,9 @@ export default function PatientImagingPage() {
       </section>
 
       {/* ── 4. Web DICOM Features & Capability Callout ───────────────────────── */}
-      <section className="rounded-2xl border border-border bg-surface p-5 shadow-xs flex flex-col gap-3">
-        <h4 className="text-sm font-bold text-text flex items-center gap-2">
-          <Sparkles size={16} className="text-sky-600" />
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col gap-3">
+        <h4 className="t-card-title text-text flex items-center gap-2">
+          <Sparkles size={16} className="text-brand" aria-hidden />
           <span>Diagnostic DICOM Viewer Capabilities</span>
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-text-soft">

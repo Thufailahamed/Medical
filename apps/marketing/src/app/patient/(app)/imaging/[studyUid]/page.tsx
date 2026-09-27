@@ -85,11 +85,11 @@ export default function PatientImagingStudyPage({
       />
 
       {isLoading ? (
-        <Card padding={false} className="overflow-hidden rounded-2xl">
+        <Card padding={false} className="overflow-hidden">
           <Skeleton className="h-[480px] w-full" />
         </Card>
       ) : !data ? (
-        <Card padding={false} className="rounded-2xl">
+        <Card padding={false}>
           <Empty title={t("imaging.studyNotFound")} className="py-12" />
         </Card>
       ) : (
