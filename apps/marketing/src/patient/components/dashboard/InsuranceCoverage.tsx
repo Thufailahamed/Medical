@@ -169,7 +169,7 @@ export function InsuranceCoverage({ className }: { className?: string }) {
         </span>
         <Link
           href="/patient/insurance"
-          className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+          className="text-xs font-semibold text-brand hover:underline"
         >
           View digital card →
         </Link>

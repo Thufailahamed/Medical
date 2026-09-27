@@ -257,16 +257,16 @@ export function MedicationsToday({ className }: { className?: string }) {
                         </span>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-blue-50/60 border border-blue-100 px-3.5 py-2.5">
+                      <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-soft/40 border border-brand/20 px-3.5 py-2.5">
                         <div className="flex items-center gap-2">
-                          <Info size={14} className="text-blue-600 shrink-0" />
+                          <Info size={14} className="text-brand shrink-0" aria-hidden />
                           <span className="text-xs text-text font-medium">
                             No pending doses scheduled for today · Take as needed
                           </span>
                         </div>
                         <Link
                           href="/patient/medications"
-                          className="shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                          className="shrink-0 text-xs font-semibold text-brand hover:underline"
                         >
                           Manage
                         </Link>
@@ -297,8 +297,8 @@ export function MedicationsToday({ className }: { className?: string }) {
                         total === 0
                           ? "text-text-soft bg-surface-2 border-border"
                           : pendingCount === 0
-                            ? "text-emerald-700 bg-emerald-50 border-emerald-200/80"
-                            : "text-amber-700 bg-amber-50 border-amber-200/80";
+                            ? "text-success bg-success-soft"
+                            : "text-warn bg-warn-soft";
 
                       return (
                         <li
