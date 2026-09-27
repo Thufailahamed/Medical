@@ -16,7 +16,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
-import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
+import { IslandTabBar, useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useRealtime } from "@/hooks/useRealtime";
 
 export default function CaretakerLayout() {
@@ -29,6 +29,7 @@ export default function CaretakerLayout() {
   return (
     <Tabs
       screenOptions={tabOptions}
+      tabBar={(props) => <IslandTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"

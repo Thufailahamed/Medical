@@ -42,8 +42,9 @@ export function NextActionCard({
   accessibilityHint,
   style,
 }: Props) {
-  const { colors, spacing, radius, typography } = useTheme();
-  const { bg, fg, bgStrong } = useTone(iconTone);
+  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
+  const { fg, bgStrong } = useTone(iconTone);
+  const isDark = scheme === "dark";
 
   const inner = (
     <View
@@ -56,9 +57,10 @@ export function NextActionCard({
           padding: spacing.md + 2,
           gap: spacing.md,
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.separator,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
           opacity: disabled ? 0.5 : 1,
         },
+        isDark ? null : shadow.card,
         style,
       ]}
     >
@@ -66,26 +68,25 @@ export function NextActionCard({
         <View
           style={[
             styles.iconDisc,
-            {
-              borderRadius: radius.lg,
-              overflow: "hidden",
-            },
+            { borderRadius: 18, borderCurve: "continuous" },
+            isDark ? null : { ...shadow.primary, shadowColor: bgStrong, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
           ]}
         >
-          <LinearGradient
-            colors={[bgStrong, fg]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                alignItems: "center",
-                justifyContent: "center",
-              },
-            ]}
-          >
-            <Icon size={26} color={colors.onPrimary} strokeWidth={2.25} />
-          </LinearGradient>
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 18, borderCurve: "continuous", overflow: "hidden" }]}>
+            <LinearGradient
+              colors={[bgStrong, fg]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <LinearGradient
+              colors={["rgba(255,255,255,0.28)", "rgba(255,255,255,0)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+          <Icon size={26} color={colors.onPrimary} strokeWidth={2.1} />
         </View>
       ) : null}
 
@@ -132,10 +133,10 @@ export function NextActionCard({
         <View
           style={[
             styles.chev,
-            { backgroundColor: colors.surfaceMuted, borderRadius: 999 },
+            { backgroundColor: colors.well, borderRadius: 999 },
           ]}
         >
-          <ChevronRight size={18} color={colors.textMuted} strokeWidth={2.5} />
+          <ChevronRight size={17} color={colors.textMuted} strokeWidth={2.5} />
         </View>
       ) : null)}
     </View>
@@ -166,6 +167,8 @@ const styles = StyleSheet.create({
   iconDisc: {
     width: 56,
     height: 56,
+    alignItems: "center",
+    justifyContent: "center",
   },
   text: {
     flex: 1,

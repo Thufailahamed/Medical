@@ -1,17 +1,19 @@
 import React from "react";
-import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
-import { ChevronRight } from "lucide-react-native";
+import { View, Text, type StyleProp, type ViewStyle } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Pressable } from "./Pressable";
+import { PillAction } from "./PillAction";
 
 type Props = {
   title: string;
+  /** Wide-tracked eyebrow shown above the title. */
+  kicker?: string;
   count?: number;
   action?: { label: string; onPress: () => void };
   style?: StyleProp<ViewStyle>;
 };
 
-export function SectionHeader({ title, count, action, style }: Props) {
+/** Overline + title + optional "See all" capsule — heads every content block. */
+export function SectionHeader({ title, kicker, count, action, style }: Props) {
   const { colors, spacing, typography } = useTheme();
 
   return (
@@ -19,38 +21,48 @@ export function SectionHeader({ title, count, action, style }: Props) {
       style={[
         {
           flexDirection: "row",
-          alignItems: "center",
+          alignItems: "flex-end",
           justifyContent: "space-between",
-          paddingHorizontal: spacing.xs,
+          gap: spacing.md,
+          paddingHorizontal: 2,
           paddingTop: spacing.xl,
           paddingBottom: spacing.md,
         },
         style,
       ]}
     >
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm }}>
-        <Text style={[typography.title.lg, { color: colors.text }]}>{title}</Text>
-        {typeof count === "number" ? (
-          <Text style={[typography.title.sm, { color: colors.textSubtle }]}>{count}</Text>
-        ) : null}
-      </View>
-      {action ? (
-        <Pressable
-          onPress={action.onPress}
-          haptic="light"
-          accessibilityRole="button"
-          accessibilityLabel={action.label}
-          hitSlop={8}
-          style={{ paddingHorizontal: spacing.xs, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 1 }}
-        >
-          <Text style={[typography.label.lg, { color: colors.primary }]}>
-            {action.label}
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        {kicker ? (
+          <Text style={[typography.kicker, { color: colors.primary, textTransform: "uppercase" }]} numberOfLines={1}>
+            {kicker}
           </Text>
-          <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
-        </Pressable>
-      ) : null}
+        ) : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <Text
+            style={[typography.title.lg, { color: colors.text, flexShrink: 1 }]}
+            numberOfLines={1}
+            accessibilityRole="header"
+          >
+            {title}
+          </Text>
+          {typeof count === "number" ? (
+            <View
+              style={{
+                minWidth: 22,
+                height: 20,
+                paddingHorizontal: 6,
+                borderRadius: 10,
+                backgroundColor: colors.fill,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={[typography.label.xs, { color: colors.textMuted }]}>{count}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      {action ? <PillAction label={action.label} onPress={action.onPress} /> : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({});

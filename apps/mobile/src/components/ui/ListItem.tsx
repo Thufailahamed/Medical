@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { ChevronRight } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -89,10 +90,10 @@ export function ListItem({
           borderRadius: radius_,
           borderCurve: "continuous",
           borderWidth: showBorder ? StyleSheet.hairlineWidth : 0,
-          borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
           opacity: disabled ? 0.5 : 1,
         },
-        showBorder && scheme !== "dark" ? shadow.xs : null,
+        showBorder && scheme !== "dark" ? shadow.sm : null,
         style,
       ]}
     >
@@ -103,17 +104,27 @@ export function ListItem({
           style={{
             width: iconBox,
             height: iconBox,
-            borderRadius: variant === "contact" ? 999 : compact || settingsTile ? 9 : 12,
+            borderRadius: variant === "contact" ? 999 : Math.round(iconBox * 0.32),
             borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
             backgroundColor: iconBg ?? (settingsTile ? palette.bgStrong : palette.bg),
           }}
         >
+          {settingsTile && !iconBg ? (
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(255,255,255,0.26)", "rgba(255,255,255,0)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null}
           <Icon
             size={settingsTile ? iconSize - 1 : iconSize}
             color={iconFg ?? (settingsTile ? palette.onBgStrong : palette.fg)}
-            strokeWidth={2.25}
+            strokeWidth={2.1}
           />
         </View>
       ) : null}
@@ -159,12 +170,19 @@ export function ListItem({
       {rightSlot ? <View>{rightSlot}</View> : null}
       {trailing}
       {showChevron && onPress && !rightSlot ? (
-        <ChevronRight
-          size={18}
-          color={colors.textSubtle}
-          strokeWidth={2.5}
-          style={{ marginRight: -4 }}
-        />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+            marginRight: -2,
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       ) : null}
     </View>
   );
@@ -174,6 +192,8 @@ export function ListItem({
       <Pressable
         onPress={onPress}
         haptic="light"
+        pressedScale={0.985}
+        pressedOpacity={0.92}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? title}
         accessibilityHint={accessibilityHint}

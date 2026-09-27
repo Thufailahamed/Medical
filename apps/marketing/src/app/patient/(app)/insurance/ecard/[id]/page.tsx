@@ -142,7 +142,7 @@ export default function EcardPage({
             </div>
           </div>
 
-          <div className="mt-6 bg-white rounded-2xl p-4 flex flex-col items-center">
+          <div className="mt-6 bg-surface rounded-2xl p-4 flex flex-col items-center">
             {qrUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

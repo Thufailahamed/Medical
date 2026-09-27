@@ -47,6 +47,7 @@ import {
   Scale,
   Shield,
   ShieldCheck,
+  ArrowUpRight,
 } from "lucide-react-native";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
@@ -82,6 +83,11 @@ import {
   DoseRing,
   BottomSheet,
   useToast,
+  IconButton,
+  IconTile,
+  PillAction,
+  QuickAction,
+  Pressable as Touchable,
 } from "@/components/ui";
 
 type TimingKey = "morning" | "afternoon" | "evening" | "night";
@@ -122,8 +128,6 @@ export default function HomeScreen() {
   const toast = useToast();
   // Presentation helpers: soft shadow in light, hairline-only in dark.
   const isDark = scheme === "dark";
-  const cardShadow = isDark ? null : shadow.sm;
-  const hairline = isDark ? colors.borderStrong : colors.separator;
 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = usePatientProfile();
   const { data: medsData, isLoading: medsLoading, refetch: refetchMeds } = useTodayMedicines();
@@ -329,63 +333,39 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("home.a11y.profile")}
           >
-            {userPhoto ? (
-              <View>
+            <View style={isDark ? null : shadow.sm}>
+              <LinearGradient
+                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: 46, height: 46, borderRadius: 23, padding: 2 }}
+              >
                 <Image
-                  source={{ uri: userPhoto }}
+                  source={userPhoto ? { uri: userPhoto } : HOME_ASSETS.avatar}
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
                     backgroundColor: colors.surfaceMuted,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: hairline,
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
-                    backgroundColor: colors.success,
                     borderWidth: 2,
                     borderColor: colors.bg,
                   }}
                 />
-              </View>
-            ) : (
-              <View>
-                <Image
-                  source={HOME_ASSETS.avatar}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.surfaceMuted,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: hairline,
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
-                    backgroundColor: colors.success,
-                    borderWidth: 2,
-                    borderColor: colors.bg,
-                  }}
-                />
-              </View>
-            )}
+              </LinearGradient>
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  width: 13,
+                  height: 13,
+                  borderRadius: 6.5,
+                  backgroundColor: colors.success,
+                  borderWidth: 2.5,
+                  borderColor: colors.bg,
+                }}
+              />
+            </View>
           </Pressable>
 
           <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
@@ -404,67 +384,21 @@ export default function HomeScreen() {
             <ActiveMemberPill />
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-            <Pressable
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <IconButton
+              icon={Plus}
+              variant="surface"
+              tint={colors.primary}
               onPress={() => setFabOpen(true)}
-              accessibilityRole="button"
               accessibilityLabel={t("home.a11y.quickAdd")}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.94 : 1 }],
-                backgroundColor: colors.surface,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: hairline,
-                ...(isDark ? null : shadow.xs),
-              })}
-            >
-              <Plus size={20} color={colors.primary} strokeWidth={2.4} />
-            </Pressable>
-
-            <Pressable
+            />
+            <IconButton
+              icon={Bell}
+              variant="surface"
+              badge={unread?.count ?? 0}
               onPress={() => router.push("/(app)/notifications")}
-              accessibilityRole="button"
               accessibilityLabel={t("home.a11y.notifications")}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.94 : 1 }],
-                backgroundColor: colors.surface,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: hairline,
-                ...(isDark ? null : shadow.xs),
-              })}
-            >
-              <Bell size={19} color={colors.text} strokeWidth={2} />
-              {unread?.count ? (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 9,
-                    width: 9,
-                    height: 9,
-                    borderRadius: 4.5,
-                    backgroundColor: colors.danger,
-                    borderWidth: 1.5,
-                    borderColor: colors.surface,
-                  }}
-                />
-              ) : null}
-            </Pressable>
+            />
           </View>
         </View>
 
@@ -475,6 +409,8 @@ export default function HomeScreen() {
             borderRadius: 30,
             borderCurve: "continuous",
             overflow: "hidden",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.14)",
             ...(isDark ? null : shadow.hero),
           }}
         >
@@ -483,6 +419,15 @@ export default function HomeScreen() {
             colors={["#0A2A5E", "#0B5E93", "#0A8A9A"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1.1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Material sheen — lit top-left falling off to the base */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0)", "rgba(45,212,191,0.10)"]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
 
@@ -816,7 +761,7 @@ export default function HomeScreen() {
         >
           {/* Quick Actions */}
           <View style={{ gap: spacing.md }}>
-            <SectionLabel title={t("home.sectionQuickActions")} />
+            <SectionLabel kicker={t("home.kicker.shortcuts", "Shortcuts")} title={t("home.sectionQuickActions")} />
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
                 image={HOME_ASSETS.medicines}
@@ -853,89 +798,57 @@ export default function HomeScreen() {
                 onPress={() => router.push("/(app)/emergency")}
               />
             </View>
-            <View
-              style={{
-                marginTop: spacing.xs,
-                borderRadius: radius.card,
-                borderCurve: "continuous",
-                backgroundColor: colors.surface,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: hairline,
-                paddingVertical: spacing.md,
-                paddingLeft: spacing.sm,
-                ...cardShadow,
-              }}
-            >
+            <Card padded={false} style={{ marginTop: spacing.xs, paddingTop: spacing.md + 2, paddingBottom: spacing.md }}>
               <Text
                 style={[
-                  typography.overline,
+                  typography.kicker,
                   {
                     color: colors.textSubtle,
-                    paddingHorizontal: spacing.sm,
-                    marginBottom: spacing.sm,
+                    textTransform: "uppercase",
+                    paddingHorizontal: spacing.lg,
+                    marginBottom: spacing.md,
                   },
                 ]}
               >
-                {t("home.moreActions").toUpperCase()}
+                {t("home.moreActions")}
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
-                  gap: spacing.sm,
-                  paddingRight: spacing.md,
-                  paddingBottom: 2,
+                  gap: spacing.xs,
+                  paddingHorizontal: spacing.sm,
+                  paddingTop: 4,
+                  paddingBottom: 6,
                 }}
               >
-                <SmallAction
-                  icon={ClipboardList}
-                  label={t("myPrescriptions.title", "Prescriptions")}
-                  tone="primary"
-                  onPress={() => router.push("/(app)/prescriptions")}
-                />
-                <SmallAction
-                  icon={FlaskConical}
-                  label={t("home.bookTest", "Book a Test")}
-                  tone="info"
-                  onPress={() => router.push("/(app)/test-catalog")}
-                />
-                <SmallAction
-                  icon={FileSearch}
-                  label={t("home.testBookings", "Test Bookings")}
-                  tone="neutral"
-                  onPress={() => router.push("/(app)/test-bookings")}
-                />
-                <SmallAction
-                  icon={Shield}
-                  label={t("home.insurance", "Insurance")}
-                  tone="primary"
-                  onPress={() => router.push("/(app)/insurance")}
-                />
-                <SmallAction
-                  icon={FileText}
-                  label={t("home.healthSummary", "Health Summary")}
-                  tone="info"
-                  onPress={() => router.push("/(app)/health-summary")}
-                />
-                <SmallAction
-                  icon={StickyNote}
-                  label={t("home.notes", "Notes")}
-                  tone="warning"
-                  onPress={() => router.push("/(app)/notes")}
-                />
-                <SmallAction
-                  icon={Heart}
-                  label={t("home.vitalsShort", "Vitals")}
-                  tone="danger"
-                  onPress={() => router.push("/(app)/vitals")}
-                />
+                {[
+                  { icon: ClipboardList, label: t("myPrescriptions.title", "Prescriptions"), tone: "primary", href: "/(app)/prescriptions" },
+                  { icon: FlaskConical, label: t("home.bookTest", "Book a Test"), tone: "info", href: "/(app)/test-catalog" },
+                  { icon: FileSearch, label: t("home.testBookings", "Test Bookings"), tone: "neutral", href: "/(app)/test-bookings" },
+                  { icon: Shield, label: t("home.insurance", "Insurance"), tone: "accent", href: "/(app)/insurance" },
+                  { icon: FileText, label: t("home.healthSummary", "Health Summary"), tone: "info", href: "/(app)/health-summary" },
+                  { icon: StickyNote, label: t("home.notes", "Notes"), tone: "warning", href: "/(app)/notes" },
+                  { icon: Heart, label: t("home.vitalsShort", "Vitals"), tone: "danger", href: "/(app)/vitals" },
+                ].map((a) => (
+                  <QuickAction
+                    key={a.href}
+                    icon={a.icon}
+                    label={a.label}
+                    tone={a.tone as Tone}
+                    size={54}
+                    style={{ flex: 0, width: 78 }}
+                    onPress={() => router.push(a.href as any)}
+                  />
+                ))}
               </ScrollView>
-            </View>
+            </Card>
           </View>
 
           {/* Featured Health Checkup Packages (with real images) */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel
+              kicker={t("home.kicker.checkups", "Preventive care")}
               title={t("home.healthPackages", "Health Packages")}
               action={{
                 label: (t("home.seeAll", "See All") || "See All") + " →",
@@ -945,144 +858,31 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -spacing.lg, marginVertical: -spacing.md }}
               contentContainerStyle={{
                 gap: spacing.md,
-                paddingRight: spacing.lg,
-                paddingBottom: 4,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
               }}
             >
               {CURATED_PACKAGES.map((pkg) => {
                 const effectivePrice = pkg.discountPrice ?? pkg.price;
                 const pct = Math.round(((pkg.price - effectivePrice) / pkg.price) * 100);
-
                 return (
-                  <Pressable
+                  <OfferCard
                     key={pkg.id}
+                    image={packageImage(pkg)}
+                    fallbackIcon={FlaskConical}
+                    fallbackTone="primary"
+                    tag={pkg.tag}
+                    tagIcon={Sparkles}
+                    ribbon={pct > 0 ? `${pct}% OFF` : undefined}
+                    title={pkg.name}
+                    description={pkg.description}
+                    price={`Rs. ${effectivePrice.toLocaleString("en-LK")}`}
+                    strikePrice={pkg.discountPrice ? `Rs. ${pkg.price.toLocaleString("en-LK")}` : undefined}
                     onPress={() => router.push(`/(app)/test-package-detail/${pkg.slug}`)}
-                    style={({ pressed }) => ({
-                      width: 248,
-                      borderRadius: radius.card,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.surface,
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: colors.separator,
-                      overflow: "hidden",
-                      opacity: pressed ? 0.85 : 1,
-                      ...shadow.sm,
-                    })}
-                  >
-                    {/* Image Banner */}
-                    <View style={{ height: 115, width: "100%", position: "relative", backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" }}>
-                      <FlaskConical size={36} color={colors.primary} />
-                      <Image
-                        source={packageImage(pkg)}
-                        resizeMode="cover"
-                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 115 }}
-                      />
-                      {/* Badge */}
-                      <View
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          backgroundColor: "#0284C7",
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          borderRadius: 8,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <Sparkles size={10} color="#FFFFFF" />
-                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.5 }}>
-                          {pkg.tag}
-                        </Text>
-                      </View>
-
-                      {pct > 0 && (
-                        <View
-                          style={{
-                            position: "absolute",
-                            bottom: 8,
-                            right: 8,
-                            backgroundColor: "#059669",
-                            paddingHorizontal: 8,
-                            paddingVertical: 2,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <Text style={{ fontSize: 10, fontWeight: "800", color: "#FFFFFF" }}>
-                            {pct}% OFF
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Card Content */}
-                    <View style={{ padding: 12, gap: 4 }}>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "700",
-                          color: colors.text,
-                        }}
-                      >
-                        {pkg.name}
-                      </Text>
-                      <Text
-                        numberOfLines={2}
-                        style={{
-                          fontSize: 11,
-                          color: colors.textMuted,
-                          lineHeight: 15,
-                        }}
-                      >
-                        {pkg.description}
-                      </Text>
-
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginTop: 8,
-                          paddingTop: 8,
-                          borderTopWidth: 1,
-                          borderTopColor: colors.border,
-                        }}
-                      >
-                        <View>
-                          <Text style={{ fontSize: 15, fontWeight: "800", color: colors.text }}>
-                            Rs. {effectivePrice.toLocaleString("en-LK")}
-                          </Text>
-                          {pkg.discountPrice ? (
-                            <Text style={{ fontSize: 10, color: colors.textMuted, textDecorationLine: "line-through" }}>
-                              Rs. {pkg.price.toLocaleString("en-LK")}
-                            </Text>
-                          ) : null}
-                        </View>
-
-                        <View
-                          style={{
-                            backgroundColor: colors.primary + "15",
-                            paddingHorizontal: 10,
-                            paddingVertical: 5,
-                            borderRadius: 8,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Text style={{ fontSize: 11, fontWeight: "700", color: colors.primary }}>
-                            View
-                          </Text>
-                          <ChevronRight size={12} color={colors.primary} />
-                        </View>
-                      </View>
-                    </View>
-                  </Pressable>
+                  />
                 );
               })}
             </ScrollView>
@@ -1091,6 +891,7 @@ export default function HomeScreen() {
           {/* Featured Health Insurance Plans (with real images) */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel
+              kicker={t("home.kicker.coverage", "Coverage")}
               title={t("home.insurancePlans", "Health Insurance Plans")}
               action={{
                 label: (t("home.seeAll", "See All") || "See All") + " →",
@@ -1100,225 +901,38 @@ export default function HomeScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -spacing.lg, marginVertical: -spacing.md }}
               contentContainerStyle={{
                 gap: spacing.md,
-                paddingRight: spacing.lg,
-                paddingBottom: 4,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
               }}
             >
-              {CURATED_INSURANCE_PLANS.map((plan) => {
-                const planImg = insurancePlanImage(plan.planType);
-
-                return (
-                  <Pressable
-                    key={plan.id}
-                    onPress={() => router.push(`/insurance/plans/${plan.id}`)}
-                    style={({ pressed }) => ({
-                      width: 248,
-                      borderRadius: radius.card,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.surface,
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: colors.separator,
-                      overflow: "hidden",
-                      opacity: pressed ? 0.85 : 1,
-                      ...shadow.sm,
-                    })}
-                  >
-                    {/* Image Banner */}
-                    <View
-                      style={{
-                        height: 115,
-                        width: "100%",
-                        position: "relative",
-                        backgroundColor: colors.successSoft,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <ShieldCheck size={36} color={colors.success} />
-                      {planImg ? (
-                        <Image
-                          source={planImg}
-                          resizeMode="cover"
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: 115,
-                          }}
-                        />
-                      ) : null}
-                      {/* Badge */}
-                      <View
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          backgroundColor: "#0369A1",
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          borderRadius: 8,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <ShieldCheck size={10} color="#FFFFFF" />
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            fontWeight: "800",
-                            color: "#FFFFFF",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          {plan.tag}
-                        </Text>
-                      </View>
-
-                      {plan.annualDiscountPct > 0 && (
-                        <View
-                          style={{
-                            position: "absolute",
-                            bottom: 8,
-                            right: 8,
-                            backgroundColor: "#059669",
-                            paddingHorizontal: 8,
-                            paddingVertical: 2,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: "800",
-                              color: "#FFFFFF",
-                            }}
-                          >
-                            SAVE {plan.annualDiscountPct}%
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Card Content */}
-                    <View style={{ padding: 12, gap: 4 }}>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "700",
-                          color: colors.text,
-                        }}
-                      >
-                        {plan.name}
-                      </Text>
-                      <Text
-                        numberOfLines={2}
-                        style={{
-                          fontSize: 11,
-                          color: colors.textMuted,
-                          lineHeight: 15,
-                        }}
-                      >
-                        {plan.description}
-                      </Text>
-
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                          marginTop: 4,
-                        }}
-                      >
-                        <ShieldCheck size={12} color={colors.success} />
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            fontWeight: "700",
-                            color: colors.text,
-                          }}
-                        >
-                          Cover up to LKR {plan.coverageSummaryLkr.toLocaleString("en-LK")}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginTop: 6,
-                          paddingTop: 8,
-                          borderTopWidth: 1,
-                          borderTopColor: colors.border,
-                        }}
-                      >
-                        <View>
-                          <Text
-                            style={{
-                              fontSize: 15,
-                              fontWeight: "800",
-                              color: colors.primary,
-                            }}
-                          >
-                            Rs. {plan.monthlyPremiumLkr.toLocaleString("en-LK")}
-                            <Text
-                              style={{
-                                fontSize: 10,
-                                fontWeight: "600",
-                                color: colors.textMuted,
-                              }}
-                            >
-                              /mo
-                            </Text>
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              color: colors.textMuted,
-                            }}
-                          >
-                            Rs. {plan.annualPremiumLkr.toLocaleString("en-LK")}/yr
-                          </Text>
-                        </View>
-
-                        <View
-                          style={{
-                            backgroundColor: colors.primary + "15",
-                            paddingHorizontal: 10,
-                            paddingVertical: 5,
-                            borderRadius: 8,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              fontWeight: "700",
-                              color: colors.primary,
-                            }}
-                          >
-                            View
-                          </Text>
-                          <ChevronRight size={12} color={colors.primary} />
-                        </View>
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              })}
+              {CURATED_INSURANCE_PLANS.map((plan) => (
+                <OfferCard
+                  key={plan.id}
+                  image={insurancePlanImage(plan.planType)}
+                  fallbackIcon={ShieldCheck}
+                  fallbackTone="success"
+                  tag={plan.tag}
+                  tagIcon={ShieldCheck}
+                  ribbon={plan.annualDiscountPct > 0 ? `SAVE ${plan.annualDiscountPct}%` : undefined}
+                  title={plan.name}
+                  description={plan.description}
+                  meta={`Cover up to LKR ${plan.coverageSummaryLkr.toLocaleString("en-LK")}`}
+                  price={`Rs. ${plan.monthlyPremiumLkr.toLocaleString("en-LK")}`}
+                  priceSuffix="/mo"
+                  subPrice={`Rs. ${plan.annualPremiumLkr.toLocaleString("en-LK")}/yr`}
+                  onPress={() => router.push(`/insurance/plans/${plan.id}`)}
+                />
+              ))}
             </ScrollView>
           </View>
 
           {/* AI Section (Modern Clinical AI Assistant) */}
           <View style={{ gap: spacing.sm }}>
             <SectionLabel
+              kicker={t("home.kicker.ai", "Assistant")}
               title={t("home.sectionAi")}
               action={{
                 label: "Chat Now",
@@ -1330,9 +944,9 @@ export default function HomeScreen() {
                 borderRadius: radius.card,
                 borderCurve: "continuous",
                 overflow: "hidden",
-                ...(isDark ? null : { ...shadow.md, shadowColor: "#4F46E5", shadowOpacity: 0.08 }),
+                ...(isDark ? null : { ...shadow.md, shadowColor: "#4F46E5", shadowOpacity: 0.1 }),
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : "rgba(99, 102, 241, 0.22)",
+                borderColor: isDark ? colors.borderStrong : "rgba(99, 102, 241, 0.16)",
                 backgroundColor: colors.surface,
               }}
             >
@@ -1569,6 +1183,7 @@ export default function HomeScreen() {
           {upcomingAppointments.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
               <SectionLabel
+                kicker={t("home.kicker.schedule", "Schedule")}
                 title={t("home.sectionComingUp")}
                 action={{
                   label: t("home.allVisits"),
@@ -1750,9 +1365,11 @@ function GlassPill({ label, dot }: { label: string; dot?: boolean }) {
 // ─── Section heading ────────────────────────────────────────────────────
 function SectionLabel({
   title,
+  kicker,
   action,
 }: {
   title: string;
+  kicker?: string;
   action?: { label: string; onPress: () => void };
 }) {
   const { colors, typography, spacing } = useTheme();
@@ -1760,38 +1377,31 @@ function SectionLabel({
     <View
       style={{
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-end",
         justifyContent: "space-between",
-        paddingHorizontal: spacing.xs,
+        gap: spacing.md,
+        paddingHorizontal: 2,
         paddingTop: spacing.xs,
       }}
     >
-      <Text
-        numberOfLines={1}
-        style={[typography.title.lg, { color: colors.text, flexShrink: 1 }]}
-        accessibilityRole="header"
-      >
-        {title}
-      </Text>
-      {action ? (
-        <Pressable
-          onPress={action.onPress}
-          hitSlop={8}
-          accessibilityRole="link"
-          accessibilityLabel={action.label}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text style={[typography.label.lg, { color: colors.primary }]}>
-            {action.label.replace(/\s*[→›>]\s*$/, "")}
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        {kicker ? (
+          <Text
+            numberOfLines={1}
+            style={[typography.kicker, { color: colors.primary, textTransform: "uppercase" }]}
+          >
+            {kicker}
           </Text>
-          <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
-        </Pressable>
-      ) : null}
+        ) : null}
+        <Text
+          numberOfLines={1}
+          style={[typography.title.lg, { color: colors.text, flexShrink: 1 }]}
+          accessibilityRole="header"
+        >
+          {title}
+        </Text>
+      </View>
+      {action ? <PillAction label={action.label} onPress={action.onPress} /> : null}
     </View>
   );
 }
@@ -1814,16 +1424,29 @@ function QuickTile({
   badge?: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography, fontFamily, radius, scheme } = useTheme();
+  const { colors, spacing, typography, fontFamily, radius, scheme, shadow } = useTheme();
   const palette = useTone(tone);
   const isEmergency = tone === "danger";
 
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
+      haptic="light"
+      pressedScale={0.97}
+      pressedOpacity={0.96}
       accessibilityRole="button"
       accessibilityLabel={hint ? `${label}. ${hint}` : label}
-      style={({ pressed }) => ({
+      wrapperStyle={
+        scheme === "dark"
+          ? null
+          : [
+              isEmergency
+                ? { ...shadow.card, shadowColor: "#EF4444", shadowOpacity: 0.16 }
+                : shadow.card,
+              { borderRadius: radius.card },
+            ]
+      }
+      style={{
         flexBasis: "48%",
         flexGrow: 1,
         borderRadius: radius.card,
@@ -1831,23 +1454,12 @@ function QuickTile({
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: isEmergency
-          ? "rgba(239, 68, 68, 0.35)"
+          ? "rgba(239, 68, 68, 0.3)"
           : scheme === "dark"
           ? colors.borderStrong
-          : colors.separator,
+          : colors.hairline,
         overflow: "hidden",
-        opacity: pressed ? 0.94 : 1,
-        transform: [{ scale: pressed ? 0.97 : 1 }],
-        ...(scheme === "dark"
-          ? null
-          : {
-              shadowColor: isEmergency ? "#EF4444" : colors.shadow,
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: isEmergency ? 0.14 : 0.06,
-              shadowRadius: 16,
-              elevation: 3,
-            }),
-      })}
+      }}
     >
       {/* Full width hero image at top */}
       <View
@@ -1874,27 +1486,37 @@ function QuickTile({
           />
         )}
 
+        {/* Soft scrim so chips read over any illustration */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(11,18,32,0.16)", "rgba(11,18,32,0)"]}
+          locations={[0, 0.6]}
+          style={StyleSheet.absoluteFill}
+        />
+
         {/* Floating Icon Chip on Top-Left */}
         <View
           style={{
             position: "absolute",
             top: 10,
             left: 10,
-            width: 36,
-            height: 36,
-            borderRadius: 11,
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             borderCurve: "continuous",
-            backgroundColor: "rgba(255, 255, 255, 0.94)",
+            backgroundColor: "rgba(255, 255, 255, 0.96)",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.9)",
             alignItems: "center",
             justifyContent: "center",
             shadowColor: "#0B1B3A",
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.14,
-            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.16,
+            shadowRadius: 10,
             elevation: 3,
           }}
         >
-          <Icon size={19} color={palette.fg} strokeWidth={2.4} />
+          <Icon size={19} color={palette.fg} strokeWidth={2.3} />
         </View>
 
         {/* Optional Badge on Top-Right (e.g. SOS for Emergency) */}
@@ -1981,20 +1603,19 @@ function QuickTile({
           </Text>
           <View
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              borderCurve: "continuous",
-              backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.12)" : colors.surfaceMuted,
+              width: 26,
+              height: 26,
+              borderRadius: 13,
               alignItems: "center",
               justifyContent: "center",
               marginLeft: 4,
+              backgroundColor: isEmergency ? "rgba(239, 68, 68, 0.12)" : colors.well,
             }}
           >
-            <ChevronRight
-              size={13}
-              color={isEmergency ? palette.fg : colors.textSubtle}
-              strokeWidth={2.5}
+            <ArrowUpRight
+              size={14}
+              color={isEmergency ? palette.fg : colors.textMuted}
+              strokeWidth={2.4}
             />
           </View>
         </View>
@@ -2013,7 +1634,177 @@ function QuickTile({
           </Text>
         ) : null}
       </View>
-    </Pressable>
+    </Touchable>
+  );
+}
+
+// ─── Offer card (health packages / insurance plans) ────────────────────
+function OfferCard({
+  image,
+  fallbackIcon: FallbackIcon,
+  fallbackTone,
+  tag,
+  tagIcon: TagIcon,
+  ribbon,
+  title,
+  description,
+  meta,
+  price,
+  priceSuffix,
+  subPrice,
+  strikePrice,
+  onPress,
+}: {
+  image?: any;
+  fallbackIcon: React.ComponentType<any>;
+  fallbackTone: Tone;
+  tag?: string;
+  tagIcon: React.ComponentType<any>;
+  ribbon?: string;
+  title: string;
+  description?: string;
+  meta?: string;
+  price: string;
+  priceSuffix?: string;
+  subPrice?: string;
+  strikePrice?: string;
+  onPress: () => void;
+}) {
+  const { colors, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const palette = useTone(fallbackTone);
+
+  return (
+    <Touchable
+      onPress={onPress}
+      haptic="light"
+      pressedScale={0.975}
+      pressedOpacity={0.96}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${price}${priceSuffix ?? ""}`}
+      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.card }]}
+      style={{
+        width: 256,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        backgroundColor: colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        overflow: "hidden",
+      }}
+    >
+      <View style={{ height: 128, backgroundColor: palette.bg, alignItems: "center", justifyContent: "center" }}>
+        <FallbackIcon size={36} color={palette.fg} />
+        {image ? (
+          <Image source={image} resizeMode="cover" style={StyleSheet.absoluteFill as any} />
+        ) : null}
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(11,18,32,0.28)", "rgba(11,18,32,0)", "rgba(11,18,32,0.38)"]}
+          locations={[0, 0.4, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        {tag ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              paddingHorizontal: 9,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: "rgba(11,18,32,0.5)",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: "rgba(255,255,255,0.25)",
+            }}
+          >
+            <TagIcon size={11} color="#FFFFFF" strokeWidth={2.4} />
+            <Text style={[typography.label.xs, { color: "#FFFFFF", letterSpacing: 0.6 }]} numberOfLines={1}>
+              {tag}
+            </Text>
+          </View>
+        ) : null}
+        {ribbon ? (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 10,
+              right: 10,
+              paddingHorizontal: 9,
+              height: 22,
+              borderRadius: 11,
+              justifyContent: "center",
+              backgroundColor: colors.success,
+            }}
+          >
+            <Text style={[typography.label.xs, { color: "#FFFFFF", letterSpacing: 0.4 }]}>{ribbon}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ padding: 14, gap: 4 }}>
+        <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text, fontFamily: typography.title.md.fontFamily }]}>
+          {title}
+        </Text>
+        {description ? (
+          <Text numberOfLines={2} style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>
+            {description}
+          </Text>
+        ) : null}
+        {meta ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
+            <ShieldCheck size={12} color={colors.success} strokeWidth={2.4} />
+            <Text numberOfLines={1} style={[typography.label.sm, { color: colors.text, flexShrink: 1 }]}>
+              {meta}
+            </Text>
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 10,
+            paddingTop: 12,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: isDark ? colors.borderStrong : colors.separator,
+          }}
+        >
+          <View style={{ flexShrink: 1 }}>
+            <Text numberOfLines={1} style={{ fontFamily: typography.metric.fontFamily, fontSize: 17, letterSpacing: -0.5, color: colors.text }}>
+              {price}
+              {priceSuffix ? (
+                <Text style={[typography.caption, { color: colors.textMuted }]}>{priceSuffix}</Text>
+              ) : null}
+            </Text>
+            {strikePrice ? (
+              <Text style={[typography.caption, { fontSize: 11, color: colors.textSubtle, textDecorationLine: "line-through" }]}>
+                {strikePrice}
+              </Text>
+            ) : subPrice ? (
+              <Text style={[typography.caption, { fontSize: 11, color: colors.textSubtle }]}>{subPrice}</Text>
+            ) : null}
+          </View>
+          <View
+            style={[
+              { width: 36, height: 36, borderRadius: 18, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+            ]}
+          >
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <ArrowUpRight size={17} color={colors.onPrimary} strokeWidth={2.4} />
+          </View>
+        </View>
+      </View>
+    </Touchable>
   );
 }
 
@@ -2033,40 +1824,33 @@ function AiToolCard({
   bgColor: string;
   onPress: () => void;
 }) {
-  const { colors, typography, scheme } = useTheme();
+  const { colors, typography, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
+      haptic="light"
+      pressedScale={0.97}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${desc}`}
-      style={({ pressed }) => ({
+      wrapperStyle={isDark ? null : [shadow.sm, { borderRadius: 18 }]}
+      style={{
         flexBasis: "48%",
         flexGrow: 1,
         padding: 14,
         borderRadius: 18,
         borderCurve: "continuous",
-        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+        backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
-        gap: 12,
-        transform: [{ scale: pressed ? 0.97 : 1 }],
-        ...(isDark
-          ? null
-          : {
-              shadowColor: colors.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.04,
-              shadowRadius: 6,
-              elevation: 1,
-            }),
-      })}
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        gap: 14,
+      }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View
           style={{
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             borderRadius: 12,
             borderCurve: "continuous",
             backgroundColor: bgColor,
@@ -2074,20 +1858,19 @@ function AiToolCard({
             justifyContent: "center",
           }}
         >
-          <Icon size={18} color={iconColor} strokeWidth={2.4} />
+          <Icon size={18} color={iconColor} strokeWidth={2.2} />
         </View>
         <View
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            backgroundColor: colors.fill,
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: colors.well,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.5} />
+          <ArrowUpRight size={14} color={colors.textMuted} strokeWidth={2.4} />
         </View>
       </View>
       <View style={{ gap: 2 }}>
@@ -2104,7 +1887,7 @@ function AiToolCard({
           {desc}
         </Text>
       </View>
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -2118,90 +1901,48 @@ function AiChip({
   label: string;
   onPress: () => void;
 }) {
-  const { colors, typography, scheme } = useTheme();
+  const { colors, typography, scheme, shadow } = useTheme();
+  const isDark = scheme === "dark";
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        flexShrink: 0,
-        gap: 6,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-        backgroundColor: pressed ? "rgba(99, 102, 241, 0.12)" : colors.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
-      })}
-    >
-      <Icon size={13} color="#6366F1" strokeWidth={2.2} />
-      <Text style={[typography.label.sm, { color: colors.text }]}>
-        {label}
-      </Text>
-      <ChevronRight size={11} color={colors.textSubtle} strokeWidth={2.2} />
-    </Pressable>
-  );
-}
-
-// ─── Small action chip (for horizontal scroll under Quick Actions) ─────
-function SmallAction({
-  icon: Icon,
-  label,
-  tone,
-  onPress,
-}: {
-  icon: React.ComponentType<any>;
-  label: string;
-  tone: Tone;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  const palette = useTone(tone);
-  return (
-    <Pressable
-      onPress={onPress}
+      haptic="light"
+      pressedScale={0.94}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingLeft: 5,
-        paddingRight: 14,
-        paddingVertical: 5,
-        borderRadius: 999,
-        backgroundColor: pressed ? palette.bg : colors.surfaceMuted,
-        borderWidth: 1,
-        borderColor: pressed ? palette.border : colors.border,
-        minHeight: 40,
-      })}
+      style={[
+        {
+          flexDirection: "row",
+          alignItems: "center",
+          flexShrink: 0,
+          gap: 6,
+          height: 34,
+          paddingLeft: 6,
+          paddingRight: 12,
+          borderRadius: 999,
+          backgroundColor: colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
+        },
+        isDark ? null : shadow.xs,
+      ]}
     >
       <View
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 15,
-          borderCurve: "continuous",
-          backgroundColor: palette.bgStrong,
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          backgroundColor: "rgba(99, 102, 241, 0.12)",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={14} color={palette.onBgStrong} strokeWidth={2.5} />
+        <Icon size={12} color="#6366F1" strokeWidth={2.3} />
       </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          fontSize: 12.5,
-          fontWeight: "700",
-          color: colors.text,
-          letterSpacing: -0.1,
-        }}
-      >
+      <Text style={[typography.label.sm, { color: colors.text }]}>
         {label}
       </Text>
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -2232,7 +1973,7 @@ function ScheduleCard({
         borderCurve: "continuous",
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.separator,
+        borderColor: colors.hairline,
         alignItems: "center",
         gap: 4,
         position: "relative",
@@ -2974,6 +2715,7 @@ function VitalsGlanceCard() {
   return (
     <View style={{ gap: spacing.sm }}>
       <SectionLabel
+        kicker={t("home.kicker.vitals", "Last 7 days")}
         title={t("home.vitalsGlance.title")}
         action={{
           label: t("home.viewAll"),
@@ -3015,7 +2757,7 @@ function VitalsGlanceCard() {
                 borderCurve: "continuous",
                 backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.separator,
+                borderColor: colors.hairline,
                 gap: spacing.sm,
                 opacity: pressed ? 0.92 : 1,
                 ...themeShadow.sm,
@@ -3125,7 +2867,7 @@ function AppointmentTimelineRow({
   const router = useRouter();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { colors, spacing, typography, radius, shadow: themeShadow } = useTheme();
+  const { colors, spacing, typography, radius, shadow: themeShadow, scheme } = useTheme();
   const dateLabel = item?.date ? formatDate(t, locale, item.date) : "—";
   const timeLabel = item?.time ? formatClock(item.time) : "";
 
@@ -3154,15 +2896,12 @@ function AppointmentTimelineRow({
   }
 
   return (
-    <Pressable
+    <Touchable
       onPress={() => router.push("/(app)/appointments")}
+      haptic="light"
+      pressedScale={0.98}
       accessibilityRole="button"
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.95 : 1,
-        borderRadius: 18,
-        borderCurve: "continuous",
-        ...(pressed ? { backgroundColor: colors.surfaceMuted } : null),
-      })}
+      accessibilityLabel={`${title}, ${dateLabel}${timeLabel ? ` ${timeLabel}` : ""}`}
     >
       <View
         style={{
@@ -3170,12 +2909,12 @@ function AppointmentTimelineRow({
           alignItems: "center",
           gap: spacing.md,
           padding: 14,
-          borderRadius: 18,
+          borderRadius: radius.xl,
           borderCurve: "continuous",
           backgroundColor: colors.surface,
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.separator,
-          ...themeShadow.sm,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+          ...(scheme === "dark" ? null : themeShadow.card),
         }}
       >
         <LinearGradient
@@ -3258,13 +2997,20 @@ function AppointmentTimelineRow({
             </Text>
           </View>
         ) : null}
-        <ChevronRight
-          size={16}
-          color={colors.textSubtle}
-          strokeWidth={2.25}
-        />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: colors.well,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       </View>
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -3282,7 +3028,6 @@ function FabAction({
   onPress: () => void;
 }) {
   const { colors, spacing, radius, typography } = useTheme();
-  const palette = useTone(tone);
   return (
     <Pressable
       onPress={onPress}
@@ -3298,19 +3043,7 @@ function FabAction({
         backgroundColor: pressed ? colors.surfaceMuted : "transparent",
       })}
     >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          borderCurve: "continuous",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: palette.bg,
-        }}
-      >
-        <Icon size={20} color={palette.fg} strokeWidth={2.25} />
-      </View>
+      <IconTile icon={Icon} tone={tone} size={44} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={1}
@@ -3325,7 +3058,18 @@ function FabAction({
           {description}
         </Text>
       </View>
-      <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.25} />
+      <View
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          backgroundColor: colors.well,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+      </View>
     </Pressable>
   );
 }

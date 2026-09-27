@@ -68,7 +68,7 @@ export default function DoctorCareTeamScreen() {
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const hairline = isDark ? colors.borderStrong : colors.hairline;
   const chipStyle = (active: boolean) => ({
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -393,7 +393,7 @@ export default function DoctorCareTeamScreen() {
                   borderWidth: StyleSheet.hairlineWidth,
                   borderColor: hairline,
                   padding: 16,
-                  ...(isDark ? {} : shadow.sm),
+                  ...(isDark ? {} : shadow.card),
                   opacity: pressed ? 0.94 : 1,
                   transform: [{ scale: pressed ? 0.99 : 1 }],
                 })}

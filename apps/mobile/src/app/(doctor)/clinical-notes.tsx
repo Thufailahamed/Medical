@@ -178,8 +178,8 @@ export default function DoctorClinicalNotesScreen() {
                   borderCurve: "continuous",
                   padding: spacing.md,
                   borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDark ? colors.borderStrong : colors.separator,
-                  ...(isDark ? {} : shadow.xs),
+                  borderColor: isDark ? colors.borderStrong : colors.hairline,
+                  ...(isDark ? {} : shadow.sm),
                 })}
               >
                 <View

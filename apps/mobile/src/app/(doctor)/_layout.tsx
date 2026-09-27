@@ -18,7 +18,7 @@ import {
 import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
-import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
+import { IslandTabBar, useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useLocaleStore } from "@/stores/locale";
 import DoctorWaitingBanner from "@/components/teleconsult/DoctorWaitingBanner";
 
@@ -58,6 +58,7 @@ export default function DoctorLayout() {
       <DoctorWaitingBanner />
       <Tabs
       screenOptions={tabOptions}
+      tabBar={(props) => <IslandTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"

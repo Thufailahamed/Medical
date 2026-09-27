@@ -255,7 +255,7 @@ export default function ExportScreen() {
           style={{
             backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
+            borderColor: colors.hairline,
             borderRadius: 16,
             borderCurve: "continuous",
             paddingHorizontal: spacing.md,
@@ -437,7 +437,7 @@ export default function ExportScreen() {
           style={{
             backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
+            borderColor: colors.hairline,
             borderRadius: 16,
             borderCurve: "continuous",
             padding: 14,

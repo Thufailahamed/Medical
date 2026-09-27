@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,7 +20,7 @@ import { useMyPrescriptions } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDateLong } from "@/lib/format";
-import { Card, Skeleton, Pressable } from "@/components/ui";
+import { Card, Skeleton, Pressable, PillAction } from "@/components/ui";
 
 function formatDate(iso: string | null | undefined, locale: any): string {
   if (!iso) return "—";
@@ -32,7 +32,7 @@ function formatDate(iso: string | null | undefined, locale: any): string {
 export function HomePrescriptionsSection() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const locale = useLocaleStore((s) => s.locale);
 
@@ -45,36 +45,32 @@ export function HomePrescriptionsSection() {
       <View
         style={{
           flexDirection: "row",
-          alignItems: "center",
+          alignItems: "flex-end",
           justifyContent: "space-between",
-          paddingHorizontal: spacing.xs,
+          gap: spacing.md,
+          paddingHorizontal: 2,
+          paddingTop: spacing.xs,
         }}
       >
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.overline,
-            { color: colors.textSubtle, letterSpacing: 1.4, fontWeight: "700" },
-          ]}
-        >
-          {t("myPrescriptions.title", "My Prescriptions").toUpperCase()}
-        </Text>
-
-        <Pressable
-          onPress={() => router.push("/(app)/prescriptions")}
-          hitSlop={8}
-          accessibilityRole="link"
-          accessibilityLabel={t("home.seeAll", "See All")}
-        >
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text
-            style={[
-              typography.label.md,
-              { color: colors.primary, fontWeight: "700" },
-            ]}
+            numberOfLines={1}
+            style={[typography.kicker, { color: colors.primary, textTransform: "uppercase" }]}
           >
-            {(t("home.seeAll", "See All") || "See All") + " →"}
+            {t("home.kicker.prescriptions", "e-Prescriptions")}
           </Text>
-        </Pressable>
+          <Text
+            numberOfLines={1}
+            accessibilityRole="header"
+            style={[typography.title.lg, { color: colors.text }]}
+          >
+            {t("myPrescriptions.title", "My Prescriptions")}
+          </Text>
+        </View>
+        <PillAction
+          label={t("home.seeAll", "See All")}
+          onPress={() => router.push("/(app)/prescriptions")}
+        />
       </View>
 
       {/* Content */}
@@ -86,14 +82,8 @@ export function HomePrescriptionsSection() {
       ) : prescriptions.length === 0 ? (
         <Card
           style={{
-            padding: spacing.md,
+            padding: spacing.md + 2,
             borderRadius: radius.xl,
-            borderCurve: "continuous",
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.border,
-            backgroundColor: isDark
-              ? "rgba(59, 130, 246, 0.08)"
-              : colors.primarySoft,
           }}
         >
           <View
@@ -183,21 +173,18 @@ export function HomePrescriptionsSection() {
                     params: { id: r.id },
                   } as any)
                 }
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                haptic="light"
+                pressedScale={0.98}
+                pressedOpacity={0.96}
+                wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.xl }]}
+                style={{
+                  backgroundColor: colors.surface,
                   borderRadius: radius.xl,
                   borderCurve: "continuous",
-                  padding: spacing.md,
-                  borderWidth: 1,
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.08)"
-                    : colors.border,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDark ? 0 : 0.03,
-                  shadowRadius: 5,
-                  elevation: 1,
-                })}
+                  padding: spacing.md + 2,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: isDark ? colors.borderStrong : colors.hairline,
+                }}
               >
                 {/* Header row: Icon + Diagnosis Title + Status Badge */}
                 <View
@@ -407,11 +394,9 @@ export function HomePrescriptionsSection() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     marginTop: spacing.sm,
-                    paddingTop: spacing.xs,
-                    borderTopWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.06)"
-                      : colors.border,
+                    paddingTop: spacing.sm,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderColor: isDark ? colors.borderStrong : colors.separator,
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
@@ -479,7 +464,18 @@ export function HomePrescriptionsSection() {
                         </Text>
                       </Pressable>
                     )}
-                    <ChevronRight size={15} color={colors.textSubtle} strokeWidth={2.4} />
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: colors.well,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+                    </View>
                   </View>
                 </View>
               </Pressable>

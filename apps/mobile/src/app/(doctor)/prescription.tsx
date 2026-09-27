@@ -158,7 +158,7 @@ export default function PrescriptionScreen() {
   const navigation = useNavigation();
   const { spacing, colors, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const hairline = isDark ? colors.borderStrong : colors.hairline;
   const chipStyle = (active: boolean) => ({
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -646,7 +646,7 @@ export default function PrescriptionScreen() {
             borderColor: hairline,
             flexDirection: "row",
             alignItems: "center",
-            ...(isDark ? {} : shadow.sm),
+            ...(isDark ? {} : shadow.card),
           }}
         >
           <Avatar
@@ -1312,7 +1312,7 @@ export default function PrescriptionScreen() {
                   borderWidth: StyleSheet.hairlineWidth,
                   borderColor: hairline,
                   padding: 14,
-                  ...(isDark ? {} : shadow.xs),
+                  ...(isDark ? {} : shadow.sm),
                   opacity: pressed ? 0.92 : 1,
                   transform: [{ scale: pressed ? 0.99 : 1 }],
                 })}

@@ -23,6 +23,7 @@ import { api } from "@/portal/lib/api";
 import { useT } from "@/portal/i18n";
 import { formatDate, formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 interface Enrollment {
   id: string;
@@ -77,7 +78,7 @@ function statusBadge(status: string) {
     case "submitted":
       return {
         label: "Submitted",
-        className: "bg-sky-50 text-sky-700 border-sky-200/80",
+        className: "bg-brand-soft text-brand border-brand/25",
       };
     case "under_review":
       return {
@@ -97,7 +98,7 @@ function statusBadge(status: string) {
     default:
       return {
         label: status.replace(/_/g, " "),
-        className: "bg-slate-100 text-slate-700 border-slate-200",
+        className: "bg-surface-2 text-text border-border",
       };
   }
 }
@@ -132,137 +133,38 @@ export default function InsurancePage() {
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Sparkles size={12} className="text-sky-300" />
-                Healthcare Coverage &amp; Insurance Marketplace
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Health Insurance &amp; Policy Management
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Compare certified medical plans, track cashless hospital network coverage, and file instant reimbursement claims.
-              </p>
-            </div>
-
-            {/* Header Actions (Clean Tailwind Buttons) */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/insurance/coverage-check"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Activity size={13} />
-                <span>Coverage Check</span>
-              </Link>
-              <Link
-                href="/patient/insurance/marketplace"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-              >
-                <Search size={14} className="text-sky-700" />
-                <span>Browse Plans</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <Link
-              href="/patient/insurance/marketplace"
-              className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition-all"
-            >
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Building2 size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Partner Insurers
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {catalogQ.data?.providers?.length ?? 6} Providers
-                </p>
-              </div>
+      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
+      <PageHero
+        icon={<Sparkles size={13} />}
+        kicker="Healthcare Coverage & Insurance Marketplace"
+        title="Health Insurance & Policy Management"
+        description="Compare certified medical plans, track cashless hospital network coverage, and file instant reimbursement claims."
+        actions={
+          <>
+            <Link href="/patient/insurance/coverage-check" className={heroSecondaryAction}>
+              <Activity size={13} />
+              <span>Coverage Check</span>
             </Link>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active Policies
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {activeEnrollments.length} Active
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/patient/insurance/claims"
-              className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition-all"
-            >
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Pending Claims
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {pendingClaims.length} Claims
-                </p>
-              </div>
+            <Link href="/patient/insurance/marketplace" className={heroPrimaryAction}>
+              <Search size={14} />
+              <span>Browse Plans</span>
             </Link>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <Zap size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Cashless Network
-                </p>
-                <p className="text-base font-extrabold text-white">100+ Hospitals</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        footer={
+          <>
+            <span>{catalogQ.data?.providers?.length ?? 6} partner insurers</span>
+            <span>{activeEnrollments.length} active policies</span>
+            <span>{pendingClaims.length} pending claims</span>
+            <span>Cashless network · 100+ hospitals</span>
+          </>
+        }
+      />
 
       {/* ── 2. Active Policies Section ─────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <h2 className="text-base font-bold text-text flex items-center gap-2">
             <span>Your Active Policies</span>
             {activeEnrollments.length > 0 ? (
               <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -272,7 +174,7 @@ export default function InsurancePage() {
           </h2>
           <Link
             href="/patient/insurance/marketplace"
-            className="text-xs font-bold text-sky-700 hover:text-sky-800 inline-flex items-center gap-1"
+            className="text-xs font-bold text-brand hover:text-brand inline-flex items-center gap-1"
           >
             <span>Browse Plans</span>
             <ArrowRight size={13} />
@@ -281,30 +183,30 @@ export default function InsurancePage() {
 
         {enrollmentsQ.isLoading ? (
           <div className="space-y-2.5">
-            <div className="h-20 w-full rounded-2xl bg-slate-100 animate-pulse border border-slate-200" />
-            <div className="h-20 w-full rounded-2xl bg-slate-100 animate-pulse border border-slate-200" />
+            <div className="h-20 w-full rounded-2xl bg-surface-2 animate-pulse border border-border" />
+            <div className="h-20 w-full rounded-2xl bg-surface-2 animate-pulse border border-border" />
           </div>
         ) : activeEnrollments.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+              <div className="h-12 w-12 rounded-2xl bg-brand-soft border-border flex items-center justify-center text-brand shrink-0">
                 <Shield size={24} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-text">
                   No Active Health Insurance Policy Connected
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-lg leading-relaxed">
+                <p className="text-xs sm:text-sm text-text-soft mt-1 max-w-lg leading-relaxed">
                   Protect yourself and your family against unforeseen hospitalization and medical expenses. Enroll in a certified health plan with cashless hospital admissions in minutes.
                 </p>
-                <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-slate-600 font-medium">
+                <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-text-soft font-medium">
                   <span className="inline-flex items-center gap-1 text-emerald-700">
                     <CheckCircle2 size={13} className="text-emerald-600" />
                     Instant Cashless Approval
                   </span>
                   <span>·</span>
-                  <span className="inline-flex items-center gap-1 text-sky-700">
-                    <CheckCircle2 size={13} className="text-sky-600" />
+                  <span className="inline-flex items-center gap-1 text-brand">
+                    <CheckCircle2 size={13} className="text-brand" />
                     Up to LKR 5,000,000 Cover
                   </span>
                   <span>·</span>
@@ -335,7 +237,7 @@ export default function InsurancePage() {
                 <Link
                   key={e.id}
                   href={`/patient/insurance/policy/${e.id}`}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-center justify-between gap-4"
+                  className="group rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="h-11 w-11 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
@@ -343,7 +245,7 @@ export default function InsurancePage() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
                           {e.planName ?? e.policyNumber ?? `Policy ${e.id.slice(0, 8)}`}
                         </h3>
                         <span
@@ -355,9 +257,9 @@ export default function InsurancePage() {
                           {badge.label}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <div className="text-xs text-text-soft font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         {e.providerName ? (
-                          <span className="text-slate-700 font-semibold">
+                          <span className="text-text font-semibold">
                             {e.providerName}
                           </span>
                         ) : null}
@@ -374,7 +276,7 @@ export default function InsurancePage() {
                       ) : null}
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               );
             })}
@@ -384,63 +286,63 @@ export default function InsurancePage() {
 
       {/* ── 3. Quick Actions Grid ──────────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-bold text-slate-900">
+        <h2 className="text-base font-bold text-text">
           Insurance Services &amp; Tools
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           <Link
             href="/patient/insurance/marketplace"
-            className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-start gap-3.5"
+            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
           >
-            <div className="h-10 w-10 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-xl bg-brand-soft border-border text-brand flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Search size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
+              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
                 Browse Insurance Plans
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
                 Compare individual, family floater, and senior citizen plans from certified insurers.
               </p>
             </div>
-            <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform mt-0.5" />
+            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
           </Link>
 
           <Link
             href="/patient/insurance/coverage-check"
-            className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-start gap-3.5"
+            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
           >
             <div className="h-10 w-10 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Activity size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
+              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
                 Instant Coverage Check
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
                 Estimate out-of-pocket expenses for surgeries, procedures, or hospital stays.
               </p>
             </div>
-            <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform mt-0.5" />
+            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
           </Link>
 
           <Link
             href="/patient/insurance/claims"
-            className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-start gap-3.5"
+            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
           >
             <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <FileText size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
+              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
                 Claims &amp; Reimbursements
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
                 Submit bills, upload hospital discharge sheets, and track live payout status.
               </p>
             </div>
-            <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-0.5 transition-transform mt-0.5" />
+            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
           </Link>
         </div>
       </section>
@@ -449,7 +351,7 @@ export default function InsurancePage() {
       {pendingClaims.length > 0 ? (
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
               <span>Active Reimbursement Claims</span>
               <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                 {pendingClaims.length} Pending
@@ -457,7 +359,7 @@ export default function InsurancePage() {
             </h2>
             <Link
               href="/patient/insurance/claims"
-              className="text-xs font-bold text-sky-700 hover:text-sky-800"
+              className="text-xs font-bold text-brand hover:text-brand"
             >
               View All Claims
             </Link>
@@ -470,7 +372,7 @@ export default function InsurancePage() {
                 <Link
                   key={c.id}
                   href={`/patient/insurance/claims`}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-center justify-between gap-4"
+                  className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center shrink-0">
@@ -478,7 +380,7 @@ export default function InsurancePage() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900 text-sm group-hover:text-sky-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors truncate">
                           {c.claimNumber ?? `Claim #${c.id.slice(0, 8)}`}
                         </h3>
                         <span
@@ -490,8 +392,8 @@ export default function InsurancePage() {
                           {badge.label}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="text-slate-900 font-bold">
+                      <div className="text-xs text-text-soft font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="text-text font-bold">
                           {formatLkr(c.amountRequestedLkr)} requested
                         </span>
                         {c.amountApprovedLkr != null ? (
@@ -504,7 +406,7 @@ export default function InsurancePage() {
                       </div>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               );
             })}
@@ -516,12 +418,12 @@ export default function InsurancePage() {
       {providers.length > 0 ? (
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
               <span>Accredited Insurance Partners</span>
             </h2>
             <Link
               href="/patient/insurance/marketplace"
-              className="text-xs font-bold text-sky-700 hover:text-sky-800 inline-flex items-center gap-1"
+              className="text-xs font-bold text-brand hover:text-brand inline-flex items-center gap-1"
             >
               <span>Compare All</span>
               <ArrowRight size={12} />
@@ -533,11 +435,11 @@ export default function InsurancePage() {
               <Link
                 key={p.id}
                 href={`/patient/insurance/marketplace`}
-                className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between gap-3"
+                className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-sky-50 border border-sky-100 text-sky-700 flex items-center justify-center font-black text-sm">
+                    <div className="h-10 w-10 rounded-xl bg-brand-soft border-border text-brand flex items-center justify-center font-black text-sm">
                       <Building2 size={18} />
                     </div>
                     {p.claimSettlementRatioPct != null ? (
@@ -548,24 +450,24 @@ export default function InsurancePage() {
                     ) : null}
                   </div>
 
-                  <h3 className="font-bold text-sm text-slate-900 group-hover:text-sky-700 transition-colors truncate">
+                  <h3 className="font-bold text-sm text-text group-hover:text-brand transition-colors truncate">
                     {p.name}
                   </h3>
                   {p.tagline ? (
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                    <p className="text-xs text-text-soft mt-0.5 line-clamp-1">
                       {p.tagline}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1 font-semibold text-slate-700">
+                <div className="pt-2.5 border-t border-border flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1 font-semibold text-text">
                     <Star size={12} className="text-amber-500 fill-amber-500" />
                     <span>{p.ratingAvg.toFixed(1)}</span>
-                    <span className="text-slate-400 font-normal">({p.ratingCount})</span>
+                    <span className="text-text-muted font-normal">({p.ratingCount})</span>
                   </div>
 
-                  <span className="font-bold text-sky-700 group-hover:underline flex items-center gap-0.5">
+                  <span className="font-bold text-brand group-hover:underline flex items-center gap-0.5">
                     View Plans
                     <ChevronRight size={13} />
                   </span>

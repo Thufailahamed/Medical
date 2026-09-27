@@ -285,7 +285,7 @@ export default function AppearanceScreen() {
                   borderRadius: 16,
                   borderCurve: "continuous",
                   borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: colors.separator,
+                  borderColor: colors.hairline,
                 }}
               >
                 <View

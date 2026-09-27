@@ -11,7 +11,7 @@ import {
 } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
-import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
+import { IslandTabBar, useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { AdminStepUpSheet } from "@/components/admin/AdminStepUpSheet";
 import { useAdminApprovals, useAdminDoctors } from "@/hooks/useAdminApi";
 
@@ -60,6 +60,7 @@ export default function AdminLayout() {
       <AdminStepUpSheet />
       <Tabs
         screenOptions={tabOptions}
+        tabBar={(props) => <IslandTabBar {...props} />}
       >
         <Tabs.Screen
           name="index"

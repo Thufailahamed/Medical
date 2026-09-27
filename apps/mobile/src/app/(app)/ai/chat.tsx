@@ -60,6 +60,8 @@ import {
   ErrorState,
   Skeleton,
   Pill as PillCmp,
+  SectionHeader,
+  IconTile,
   useToast,
 } from "@/components/ui";
 
@@ -103,6 +105,7 @@ const SUGGESTED_TOPICS = [
     icon: FlaskConical,
     iconColor: palette.sky[600],
     iconBg: palette.sky[100],
+    gradient: [palette.sky[400], palette.sky[600]],
   },
   {
     id: "medications",
@@ -112,6 +115,7 @@ const SUGGESTED_TOPICS = [
     icon: Pill,
     iconColor: palette.emerald[600],
     iconBg: palette.emerald[100],
+    gradient: [palette.emerald[400], palette.emerald[600]],
   },
   {
     id: "doctor_prep",
@@ -121,6 +125,7 @@ const SUGGESTED_TOPICS = [
     icon: Stethoscope,
     iconColor: palette.amber[600],
     iconBg: palette.amber[100],
+    gradient: [palette.amber[400], palette.amber[600]],
   },
   {
     id: "trends",
@@ -130,6 +135,7 @@ const SUGGESTED_TOPICS = [
     icon: TrendingUp,
     iconColor: palette.coral[600],
     iconBg: palette.coral[100],
+    gradient: [palette.coral[400], palette.coral[600]],
   },
 ];
 
@@ -137,7 +143,7 @@ export default function AiChatScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, fontFamily, shadow, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
 
@@ -565,6 +571,7 @@ export default function AiChatScreen() {
   }
 
   // ─── SESSION LIST ────────────────────────────────────────
+  const busy = send.isPending || createSession.isPending;
   return (
     <Screen padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
@@ -572,436 +579,314 @@ export default function AiChatScreen() {
         onBack={() => router.back()}
         title={t("aiChat.listTitle")}
         subtitle={t("aiChat.listSubtitle")}
-        right={
-          <PillCmp icon={Sparkles} label={t("aiChat.aiPill")} tone="accent" size="sm" />
-        }
       />
 
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: spacing.xl * 1.5,
-          gap: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxxl,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero AI Assistant Card */}
-        <LinearGradient
-          colors={[palette.sky[800], palette.sky[600], palette.cyan[500]]}
-          locations={[0, 0.62, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 28,
-            borderCurve: "continuous",
-            padding: spacing.xl,
-            gap: spacing.lg,
-            overflow: "hidden",
-            shadowColor: palette.sky[700],
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.24,
-            shadowRadius: 22,
-            elevation: 7,
-          }}
-        >
-          <View
-            style={{
-              position: "absolute",
-              width: 180,
-              height: 180,
-              borderRadius: 90,
-              right: -70,
-              top: -82,
-              backgroundColor: colors.glassOnPrimary,
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              width: 110,
-              height: 110,
-              borderRadius: 55,
-              left: -46,
-              bottom: -58,
-              backgroundColor: colors.glassOnPrimary,
-            }}
-          />
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
+        {/* Hero */}
+        <View style={{ borderRadius: 30, borderCurve: "continuous", ...shadow.hero }}>
+          <View style={{ borderRadius: 30, borderCurve: "continuous", overflow: "hidden", padding: spacing.xl }}>
+            <LinearGradient
+              colors={[palette.sky[900], palette.sky[700], palette.cyan[600]]}
+              locations={[0, 0.55, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View
+              pointerEvents="none"
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 17,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: colors.glassOnPrimary,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
+                position: "absolute",
+                width: 260,
+                height: 260,
+                borderRadius: 130,
+                right: -110,
+                top: -130,
+                backgroundColor: "rgba(125, 211, 252, 0.22)",
               }}
-            >
-              <Sparkles size={25} color={palette.white} strokeWidth={2.2} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                <Text style={[typography.title.lg, { color: palette.white, fontWeight: "700" }]}>
-                  {t("aiChat.heroTitle", "Health Assistant")}
-                </Text>
-                <View
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 4,
-                    backgroundColor: palette.emerald[300],
-                    shadowColor: palette.emerald[300],
-                    shadowOpacity: 0.8,
-                    shadowRadius: 5,
-                  }}
-                />
-              </View>
-              <Text style={[typography.body.sm, { color: colors.glassOnPrimarySoft, lineHeight: 19 }]}>
-                {t("aiChat.heroSubtitle", "Personalized answers grounded in your private medical records")}
-              </Text>
-            </View>
-          </View>
+            />
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.6 }}
+              style={StyleSheet.absoluteFill}
+            />
 
-          {/* Context & Privacy Tags */}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingHorizontal: 11,
-                paddingVertical: 7,
-                borderRadius: 999,
-                backgroundColor: colors.glassOnPrimary,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
-              }}
-            >
-              <Lock size={12} color={palette.white} strokeWidth={2.4} />
-              <Text style={{ fontSize: 11, fontWeight: "600", color: palette.white }}>
-                {t("aiChat.privacyPill", "Private & Encrypted")}
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingHorizontal: 11,
-                paddingVertical: 7,
-                borderRadius: 999,
-                backgroundColor: colors.glassOnPrimary,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
-              }}
-            >
-              <Bot size={12} color={palette.white} strokeWidth={2.4} />
-              <Text style={{ fontSize: 11, fontWeight: "600", color: palette.white }}>
-                {t("aiChat.recordsPill", "Records-Aware AI")}
-              </Text>
-            </View>
-          </View>
-
-          {/* Hero CTA Button */}
-          <Pressable
-            onPress={startNew}
-            disabled={createSession.isPending}
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              backgroundColor: palette.white,
-              minHeight: 52,
-              paddingHorizontal: spacing.md,
-              borderRadius: 17,
-              borderCurve: "continuous",
-              opacity: pressed || createSession.isPending ? 0.88 : 1,
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-            })}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 10,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 15,
                   borderCurve: "continuous",
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: palette.sky[100],
+                  backgroundColor: "rgba(255,255,255,0.16)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.35)",
                 }}
               >
+                <Sparkles size={24} color={palette.white} strokeWidth={1.9} />
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 10,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                }}
+              >
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.emerald[300] }} />
+                <Text style={{ fontSize: 11.5, fontFamily: fontFamily.bodySemibold, color: palette.white }}>
+                  {t("aiChat.statusOnline", "Online")}
+                </Text>
+              </View>
+            </View>
+
+            <Text
+              style={{
+                marginTop: spacing.lg,
+                fontSize: 26,
+                lineHeight: 31,
+                letterSpacing: -0.7,
+                fontFamily: fontFamily.displayBold,
+                color: palette.white,
+              }}
+            >
+              {t("aiChat.heroTitle", "Health Assistant")}
+            </Text>
+            <Text
+              style={{
+                marginTop: 6,
+                fontSize: 14.5,
+                lineHeight: 20,
+                fontFamily: fontFamily.body,
+                color: "rgba(255,255,255,0.78)",
+                maxWidth: 300,
+              }}
+            >
+              {t("aiChat.heroSubtitle", "Personalized answers grounded in your private medical records")}
+            </Text>
+
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 14, marginTop: spacing.md }}>
+              <TrustItem icon={Lock} label={t("aiChat.privacyPill", "Private & Encrypted")} />
+              <TrustItem icon={Bot} label={t("aiChat.recordsPill", "Records-Aware AI")} />
+            </View>
+
+            {/* Composer-style CTA */}
+            <Pressable
+              onPress={startNew}
+              disabled={createSession.isPending}
+              accessibilityRole="button"
+              accessibilityLabel={t("aiChat.startNew", "Start new chat")}
+              style={({ pressed }) => ({
+                marginTop: spacing.xl,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                height: 54,
+                paddingLeft: spacing.lg,
+                paddingRight: 7,
+                borderRadius: 27,
+                backgroundColor: palette.white,
+                opacity: createSession.isPending ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+                ...shadow.sm,
+              })}
+            >
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 15, fontFamily: fontFamily.bodyMedium, color: palette.slate[500] }}
+              >
+                {t("aiChat.inputPlaceholder", "Ask a health question…")}
+              </Text>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LinearGradient
+                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
                 {createSession.isPending ? (
-                  <ActivityIndicator size="small" color={palette.sky[600]} />
+                  <ActivityIndicator size="small" color={palette.white} />
                 ) : (
-                  <Plus size={17} color={palette.sky[600]} strokeWidth={2.7} />
+                  <Plus size={20} color={palette.white} strokeWidth={2.4} />
                 )}
               </View>
-              <Text style={{ color: palette.slate[900], fontSize: 15, fontWeight: "700" }}>
-                {t("aiChat.startNew", "Start new chat")}
-              </Text>
-            </View>
-            <ArrowUpRight size={19} color={palette.sky[600]} strokeWidth={2.4} />
-          </Pressable>
-        </LinearGradient>
-
-        {/* Suggested Topics Section */}
-        <View style={{ gap: spacing.sm }}>
-          <View style={{ gap: 2 }}>
-            <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
-              {t("aiChat.suggestedTitle", "Suggested Topics")}
-            </Text>
-            <Text style={[typography.body.xs, { color: colors.textMuted }]}>
-              {t("aiChat.suggestedSubtitle", "Tap any topic to ask with your context")}
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {SUGGESTED_TOPICS.map((topic) => {
-              const IconCmp = topic.icon;
-              return (
-                <Pressable
-                  key={topic.id}
-                  onPress={() => handleSend(topic.prompt)}
-                  disabled={send.isPending || createSession.isPending}
-                  accessibilityRole="button"
-                  style={({ pressed }) => ({
-                    flexBasis: "48%",
-                    flexGrow: 1,
-                    minHeight: 144,
-                    backgroundColor: colors.surface,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: pressed ? topic.iconColor : colors.border,
-                    padding: spacing.md,
-                    justifyContent: "space-between",
-                    overflow: "hidden",
-                    opacity: send.isPending || createSession.isPending ? 0.55 : 1,
-                    transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.985 : 1 }],
-                    shadowColor: palette.slate[900],
-                    shadowOffset: { width: 0, height: 5 },
-                    shadowOpacity: 0.06,
-                    shadowRadius: 12,
-                    elevation: 2,
-                  })}
-                >
-                  <View
-                    style={{
-                      position: "absolute",
-                      width: 72,
-                      height: 72,
-                      borderRadius: 36,
-                      borderCurve: "continuous",
-                      right: -26,
-                      top: -25,
-                      backgroundColor: topic.iconBg,
-                      opacity: 0.58,
-                    }}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <View
-                      style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 14,
-                        borderCurve: "continuous",
-                        backgroundColor: topic.iconBg,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <IconCmp size={20} color={topic.iconColor} strokeWidth={2.2} />
-                    </View>
-                    <View
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        borderCurve: "continuous",
-                        backgroundColor: colors.surface,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: colors.separator,
-                      }}
-                    >
-                      <ArrowUpRight size={14} color={topic.iconColor} strokeWidth={2.3} />
-                    </View>
-                  </View>
-                  <View style={{ gap: 3 }}>
-                    <Text numberOfLines={2} style={{ fontSize: 14, lineHeight: 19, fontWeight: "700", color: colors.text }}>
-                      {topic.title}
-                    </Text>
-                    <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 16, color: colors.textMuted }}>
-                      {topic.desc}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      position: "absolute",
-                      left: spacing.md,
-                      right: spacing.md,
-                      bottom: 0,
-                      height: 3,
-                      borderRadius: 2,
-                      backgroundColor: topic.iconColor,
-                      opacity: 0.85,
-                    }}
-                  />
-                </Pressable>
-              );
-            })}
+            </Pressable>
           </View>
         </View>
 
-        {/* Recent Conversations Section */}
-        <View style={{ gap: spacing.sm }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
-                {t("aiChat.recentTitle", "Recent Conversations")}
-              </Text>
-              {list.length > 0 ? (
-                <View
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: 999,
-                    backgroundColor: colors.primarySoft,
-                  }}
-                >
-                  <Text
+        {/* Suggested topics */}
+        <SectionHeader
+          kicker={t("aiChat.suggestedKicker", "Get started")}
+          title={t("aiChat.suggestedTitle", "Suggested Topics")}
+        />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing.md }}>
+          {SUGGESTED_TOPICS.map((topic) => {
+            const IconCmp = topic.icon;
+            return (
+              <Pressable
+                key={topic.id}
+                onPress={() => handleSend(topic.prompt)}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={topic.title}
+                style={({ pressed }) => ({
+                  width: "48%",
+                  borderRadius: 24,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.surface,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+                  padding: spacing.lg,
+                  minHeight: 150,
+                  justifyContent: "space-between",
+                  opacity: busy ? 0.55 : 1,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                  ...(scheme === "dark" ? null : shadow.card),
+                })}
+              >
+                <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <View
                     style={{
-                      fontSize: 11,
-                      fontWeight: "700",
-                      color: colors.primary,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      borderCurve: "continuous",
+                      overflow: "hidden",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {list.length}
+                    <LinearGradient
+                      colors={topic.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <IconCmp size={21} color={palette.white} strokeWidth={2.1} />
+                  </View>
+                  <View
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      backgroundColor: colors.well,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ArrowUpRight size={14} color={colors.textMuted} strokeWidth={2.3} />
+                  </View>
+                </View>
+                <View style={{ gap: 3, marginTop: spacing.lg }}>
+                  <Text numberOfLines={2} style={[typography.title.sm, { color: colors.text }]}>
+                    {topic.title}
+                  </Text>
+                  <Text numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 17, fontFamily: fontFamily.body, color: colors.textMuted }}>
+                    {topic.desc}
                   </Text>
                 </View>
-              ) : null}
-            </View>
-          </View>
-
-          {sessions.isLoading ? (
-            <View style={{ gap: spacing.sm }}>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} height={68} radius={16} />
-              ))}
-            </View>
-          ) : sessions.isError ? (
-            <ErrorState
-              title={t("common.errorTitle")}
-              message={t("common.errorLoad")}
-              actionLabel={t("common.retry")}
-              onAction={() => sessions.refetch?.()}
-            />
-          ) : list.length === 0 ? (
-            <Card padded>
-              <View style={{ alignItems: "center", paddingVertical: spacing.md, gap: spacing.xs }}>
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 4,
-                  }}
-                >
-                  <MessageSquare size={22} color={colors.primary} strokeWidth={2} />
-                </View>
-                <Text style={[typography.title.sm, { color: colors.text, fontWeight: "600" }]}>
-                  {t("aiChat.listEmptyTitle")}
-                </Text>
-                <Text
-                  style={[
-                    typography.body.xs,
-                    { color: colors.textMuted, textAlign: "center", maxWidth: 260 },
-                  ]}
-                >
-                  {t("aiChat.listEmptyBody")}
-                </Text>
-              </View>
-            </Card>
-          ) : (
-            <View style={{ gap: spacing.sm }}>
-              {list.map((s) => (
-                <SessionRow
-                  key={s.id}
-                  title={s.title || t("aiChat.sessionFallbackTitle")}
-                  when={
-                    s.updatedAt
-                      ? fmtWhen(t, s.updatedAt, locale)
-                      : t("aiChat.sessionFallbackWhen")
-                  }
-                  onPress={() => setActiveId(s.id)}
-                  onDelete={() => promptDelete(s.id)}
-                />
-              ))}
-            </View>
-          )}
+              </Pressable>
+            );
+          })}
         </View>
 
-        {/* Clinical Disclaimer & Grounding Card */}
-        <LinearGradient
-          colors={[colors.primarySoft, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        {/* Recent conversations */}
+        <SectionHeader
+          kicker={t("aiChat.recentKicker", "History")}
+          title={t("aiChat.recentTitle", "Recent Conversations")}
+          count={list.length > 0 ? list.length : undefined}
+        />
+        {sessions.isLoading ? (
+          <View style={{ gap: spacing.sm }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} height={64} radius={18} />
+            ))}
+          </View>
+        ) : sessions.isError ? (
+          <ErrorState
+            title={t("common.errorTitle")}
+            message={t("common.errorLoad")}
+            actionLabel={t("common.retry")}
+            onAction={() => sessions.refetch?.()}
+          />
+        ) : list.length === 0 ? (
+          <Card padded>
+            <View style={{ alignItems: "center", paddingVertical: spacing.md, gap: spacing.xs }}>
+              <IconTile icon={MessageSquare} tone="primary" size={48} style={{ marginBottom: 6 }} />
+              <Text style={[typography.title.sm, { color: colors.text }]}>
+                {t("aiChat.listEmptyTitle")}
+              </Text>
+              <Text style={[typography.body.xs, { color: colors.textMuted, textAlign: "center", maxWidth: 260 }]}>
+                {t("aiChat.listEmptyBody")}
+              </Text>
+            </View>
+          </Card>
+        ) : (
+          <Card padded={false}>
+            {list.map((s, i) => (
+              <SessionRow
+                key={s.id}
+                first={i === 0}
+                title={s.title || t("aiChat.sessionFallbackTitle")}
+                when={s.updatedAt ? fmtWhen(t, s.updatedAt, locale) : t("aiChat.sessionFallbackWhen")}
+                onPress={() => setActiveId(s.id)}
+                onDelete={() => promptDelete(s.id)}
+              />
+            ))}
+          </Card>
+        )}
+
+        {/* Disclaimer footnote */}
+        <View
           style={{
             flexDirection: "row",
             alignItems: "flex-start",
-            gap: 12,
-            padding: spacing.md,
-            borderRadius: 18,
-            borderCurve: "continuous",
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
+            justifyContent: "center",
+            gap: 6,
+            marginTop: spacing.xl,
+            paddingHorizontal: spacing.lg,
           }}
         >
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 11,
-              borderCurve: "continuous",
-              backgroundColor: colors.surface,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: colors.separator,
-              marginTop: 1,
-            }}
-          >
-            <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.text }}>
-              Clinically Grounded AI
-            </Text>
-            <Text style={{ fontSize: 11, lineHeight: 16, color: colors.textMuted }}>
-              {t("aiChat.disclaimer")}
-            </Text>
-          </View>
-        </LinearGradient>
+          <ShieldCheck size={13} color={colors.textSubtle} strokeWidth={2.2} style={{ marginTop: 1 }} />
+          <Text style={{ flexShrink: 1, fontSize: 11.5, lineHeight: 16, color: colors.textSubtle, textAlign: "center", fontFamily: fontFamily.body }}>
+            {t("aiChat.disclaimer")}
+          </Text>
+        </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+function TrustItem({ icon: Icon, label }: { icon: any; label: string }) {
+  const { fontFamily } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+      <Icon size={12} color="rgba(255,255,255,0.85)" strokeWidth={2.3} />
+      <Text style={{ fontSize: 12, fontFamily: fontFamily.bodyMedium, color: "rgba(255,255,255,0.85)" }}>{label}</Text>
+    </View>
   );
 }
 
@@ -1160,101 +1045,70 @@ function Bubble({
 function SessionRow({
   title,
   when,
+  first,
   onPress,
   onDelete,
 }: {
   title: string;
   when: string;
+  first: boolean;
   onPress: () => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
   const { spacing, colors, typography } = useTheme();
 
-  const ICON_SIZE = 44;
-
   return (
-    <Card
-      padded={false}
+    <Pressable
       onPress={onPress}
-      style={{ borderRadius: 20, borderColor: colors.borderStrong }}
+      onLongPress={onDelete}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => ({ backgroundColor: pressed ? colors.fill : "transparent" })}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.md,
-          paddingHorizontal: spacing.md,
-          paddingVertical: 13,
-        }}
-      >
-        <LinearGradient
-          colors={[colors.primarySoft, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingLeft: spacing.lg }}>
+        <IconTile icon={MessageSquare} tone="primary" size={38} />
+        <View
           style={{
-            width: ICON_SIZE,
-            height: ICON_SIZE,
-            borderRadius: 14,
-            borderCurve: "continuous",
+            flex: 1,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
+            gap: spacing.sm,
+            paddingVertical: 14,
+            paddingRight: spacing.md,
+            borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
           }}
         >
-          <MessageSquare size={20} color={colors.primary} strokeWidth={2.2} />
-        </LinearGradient>
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <Text
-            numberOfLines={1}
-            style={[typography.title.sm, { color: colors.text, fontWeight: "600" }]}
-          >
-            {title}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Clock size={11} color={colors.textMuted} strokeWidth={2} />
-            <Text
-              numberOfLines={1}
-              style={[typography.caption, { color: colors.textMuted }]}
-            >
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
+              {title}
+            </Text>
+            <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
               {when}
             </Text>
           </View>
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Pressable
             onPress={onDelete}
-            hitSlop={8}
+            hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel={t("aiChat.sessionDeleteA11y")}
             style={({ pressed }) => ({
-              width: 32,
-              height: 32,
-              borderRadius: 11,
-              borderCurve: "continuous",
+              width: 30,
+              height: 30,
+              borderRadius: 15,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: pressed ? colors.dangerSoft : colors.surfaceMuted,
+              backgroundColor: pressed ? colors.dangerSoft : "transparent",
             })}
           >
-            <Trash2 size={15} color={colors.danger} strokeWidth={2.1} />
+            {({ pressed }) => (
+              <Trash2 size={16} color={pressed ? colors.danger : colors.textSubtle} strokeWidth={2} />
+            )}
           </Pressable>
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              borderCurve: "continuous",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.primarySoft,
-            }}
-          >
-            <ChevronRight size={16} color={colors.primary} strokeWidth={2.2} />
-          </View>
+          <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.2} />
         </View>
       </View>
-    </Card>
+    </Pressable>
   );
 }

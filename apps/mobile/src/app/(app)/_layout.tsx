@@ -7,7 +7,7 @@ import { useUnreadCount, usePatientConversations } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useTheme } from "@/theme/ThemeProvider";
 import { TabIcon } from "@/components/ui";
-import { useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
+import { IslandTabBar, useFloatingTabBarOptions } from "@/components/ui/FloatingTabBar";
 import { useLocaleStore } from "@/stores/locale";
 import TeleconsultWaitingBanner from "@/components/teleconsult/TeleconsultWaitingBanner";
 
@@ -48,6 +48,7 @@ export default function AppLayout() {
       <Tabs
         backBehavior="history"
         screenOptions={tabOptions}
+        tabBar={(props) => <IslandTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"

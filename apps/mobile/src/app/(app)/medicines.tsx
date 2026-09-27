@@ -1483,7 +1483,7 @@ function PremiumEmptyState({
         padding: 32,
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.separator,
+        borderColor: colors.hairline,
         alignItems: "center",
         overflow: "hidden",
         position: "relative",

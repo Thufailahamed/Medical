@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone } from "@/theme/tone";
 import { Pressable } from "./Pressable";
+import { withOpacity } from "@/constants/theme";
 
 export type PillTone =
   | "neutral"
@@ -45,8 +46,8 @@ export function Pill({ label, children, tone = "neutral", icon: Icon, size = "md
     alignItems: "center",
     gap: 4,
     backgroundColor: outlined ? "transparent" : bg,
-    borderColor: fg,
-    borderWidth: outlined ? 1 : 0,
+    borderColor: outlined ? fg : withOpacity(fg, 0.18),
+    borderWidth: outlined ? 1 : StyleSheet.hairlineWidth * 2,
     borderRadius: radius.full,
     borderCurve: "continuous",
     alignSelf: "flex-start",

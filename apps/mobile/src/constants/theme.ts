@@ -127,6 +127,10 @@ type ColorScheme = {
   fill: string;
   fillStrong: string;
   separator: string;
+  /** Whisper-light edge for cards floating on the grouped canvas. */
+  hairline: string;
+  /** Soft neutral well behind chevrons / secondary glyphs inside cards. */
+  well: string;
   text: string;
   textMuted: string;
   textSecondary: string;
@@ -201,6 +205,8 @@ const lightColors: ColorScheme = {
   fill: "rgba(118, 118, 128, 0.10)",
   fillStrong: "rgba(118, 118, 128, 0.18)",
   separator: "rgba(60, 60, 67, 0.14)",
+  hairline: "rgba(11, 27, 58, 0.07)",
+  well: "#F1F4F8",
   text: "#0B1220",
   textMuted: "#586174",
   textSecondary: "#586174",
@@ -275,6 +281,8 @@ const darkColors: ColorScheme = {
   fill: "rgba(118, 118, 128, 0.24)",
   fillStrong: "rgba(118, 118, 128, 0.36)",
   separator: "rgba(84, 84, 88, 0.60)",
+  hairline: "rgba(255, 255, 255, 0.08)",
+  well: "rgba(255, 255, 255, 0.07)",
   text: "#F5F7FA",
   textMuted: "#A9B0BC",
   textSecondary: "#A9B0BC",
@@ -435,6 +443,10 @@ export const typography = {
   },
   caption: t(fontFamily.bodyMedium, 12, 16, 0),
   overline: t(fontFamily.bodyBold, 11, 14, 0.8),
+  /** Wide-tracked uppercase eyebrow that sits above section titles. */
+  kicker: t(fontFamily.bodyBold, 10.5, 14, 1.6),
+  /** Tabular metric numerals for KPI tiles. */
+  metric: t(fontFamily.heavy, 26, 30, -0.9),
 } as const;
 
 // ---------- Shadow / elevation ----------
@@ -449,7 +461,9 @@ type ShadowStyle = {
 
 const SHADOW_INK = "#0B1B3A";
 
-// Soft, wide, low-opacity shadows: iOS cards float, they don't cast.
+// Soft, wide, low-opacity shadows: cards lift off the canvas with depth
+// rather than hard outlines. Tuned to read like layered (ambient + key)
+// shadows within RN's single-shadow model.
 export const shadow = {
   none: {
     shadowColor: "transparent",
@@ -460,31 +474,38 @@ export const shadow = {
   } as ShadowStyle,
   xs: {
     shadowColor: SHADOW_INK,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 1,
   } as ShadowStyle,
   sm: {
     shadowColor: SHADOW_INK,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 3,
+  } as ShadowStyle,
+  card: {
+    shadowColor: SHADOW_INK,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.075,
+    shadowRadius: 22,
+    elevation: 3,
   } as ShadowStyle,
   md: {
     shadowColor: SHADOW_INK,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.07,
-    shadowRadius: 24,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 5,
   } as ShadowStyle,
   lg: {
     shadowColor: SHADOW_INK,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.12,
-    shadowRadius: 40,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 22 },
+    shadowOpacity: 0.16,
+    shadowRadius: 44,
+    elevation: 10,
   } as ShadowStyle,
   hero: {
     shadowColor: palette.sky[700],

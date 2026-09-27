@@ -33,6 +33,7 @@ import {
   Building2,
   Sparkles,
   ArrowRight,
+  ArrowUpRight,
   CheckCircle2,
 } from "lucide-react-native";
 import {
@@ -58,6 +59,10 @@ import {
   EmptyState,
   ErrorState,
   DoseRing,
+  IconButton,
+  IconTile,
+  SectionHeader,
+  Pressable as Touchable,
 } from "@/components/ui";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 
@@ -68,7 +73,7 @@ export default function DoctorHub() {
   const { spacing, colors, typography, radius, fontFamily, layout, shadow, scheme } =
     useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const hairline = isDark ? colors.borderStrong : colors.hairline;
   const user = useAuthStore((s) => s.user);
 
   const {
@@ -240,41 +245,67 @@ export default function DoctorHub() {
                 opacity: pressed ? 0.75 : 1,
               })}
             >
-              {userPhoto ? (
-                <Image
-                  source={{ uri: userPhoto }}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.surfaceMuted,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: hairline,
-                  }}
-                />
-              ) : (
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+              <View style={isDark ? null : shadow.sm}>
+                <LinearGradient
+                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ width: 46, height: 46, borderRadius: 23, padding: 2 }}
                 >
-                  <Text
-                    style={[
-                      typography.title.sm,
-                      { color: colors.primary, fontFamily: fontFamily.displayBold },
-                    ]}
+                  {userPhoto ? (
+                    <Image
+                      source={{ uri: userPhoto }}
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: colors.surfaceMuted,
+                        borderWidth: 2,
+                        borderColor: colors.bg,
+                      }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: colors.primarySoft,
+                        borderWidth: 2,
+                        borderColor: colors.bg,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={[
+                          typography.title.sm,
+                          { color: colors.primary, fontFamily: fontFamily.displayBold },
+                        ]}
+                      >
+                        {doctorInitials}
+                      </Text>
+                    </View>
+                  )}
+                </LinearGradient>
+                {verified ? (
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: -2,
+                      right: -2,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      backgroundColor: colors.bg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
-                    {doctorInitials}
-                  </Text>
-                </View>
-              )}
+                    <BadgeCheck size={15} color={colors.primary} strokeWidth={2.4} />
+                  </View>
+                ) : null}
+              </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Text
@@ -285,10 +316,12 @@ export default function DoctorHub() {
                   </Text>
                   <View
                     style={{
-                      paddingHorizontal: 6,
+                      paddingHorizontal: 7,
                       paddingVertical: 2,
-                      borderRadius: 6,
+                      borderRadius: 999,
                       backgroundColor: colors.primarySoft,
+                      borderWidth: StyleSheet.hairlineWidth * 2,
+                      borderColor: "rgba(2,132,199,0.18)",
                     }}
                   >
                     <Text style={[typography.overline, { fontSize: 9, lineHeight: 12, color: colors.primary }]}>
@@ -306,56 +339,39 @@ export default function DoctorHub() {
             </Pressable>
 
             {/* Notification Bell */}
-            <Pressable
+            <IconButton
+              icon={Bell}
+              variant="surface"
+              badge={unreadN}
               onPress={() => router.push("/(doctor)/notifications" as any)}
-              accessibilityRole="button"
               accessibilityLabel={t("doctor.notificationsA11y", "Notifications")}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: pressed ? colors.fillStrong : colors.fill,
-              })}
-            >
-              <Bell size={19} color={colors.text} strokeWidth={2} />
-              {unreadN > 0 ? (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 9,
-                    minWidth: 9,
-                    height: 9,
-                    borderRadius: 4.5,
-                    backgroundColor: colors.danger,
-                    borderWidth: 1.5,
-                    borderColor: colors.bg,
-                  }}
-                />
-              ) : null}
-            </Pressable>
+            />
           </View>
 
-          {/* Integrated Workspace Row */}
+          {/* Integrated Workspace Bar */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              paddingVertical: 5,
-              paddingHorizontal: spacing.xs,
-              minHeight: 34,
+              gap: spacing.sm,
+              minHeight: 44,
+              paddingVertical: 6,
+              paddingLeft: spacing.md,
+              paddingRight: 6,
+              borderRadius: radius.lg,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
+              ...(isDark ? {} : shadow.xs),
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Building2 size={13} color={colors.textMuted} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              <IconTile icon={Building2} tone="primary" appearance="soft" size={30} />
               <Text
                 style={[
-                  typography.overline,
+                  typography.kicker,
                   { color: colors.textSubtle, textTransform: "uppercase" },
                 ]}
               >
@@ -384,6 +400,15 @@ export default function DoctorHub() {
           <LinearGradient
             colors={["#082247", "#0A4874", "#0C7888"]}
             locations={[0, 0.55, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Material sheen — lit top-left falling off to the base */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0)", "rgba(94,234,212,0.10)"]}
+            locations={[0, 0.5, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -543,11 +568,11 @@ export default function DoctorHub() {
               alignItems: "stretch",
               marginTop: spacing.lg,
               paddingVertical: spacing.md,
-              borderRadius: 18,
+              borderRadius: 20,
               borderCurve: "continuous",
-              backgroundColor: "rgba(255,255,255,0.12)",
+              backgroundColor: "rgba(255,255,255,0.10)",
               borderWidth: StyleSheet.hairlineWidth,
-              borderColor: "rgba(255,255,255,0.24)",
+              borderColor: "rgba(255,255,255,0.20)",
             }}
           >
             <HeroMetric
@@ -584,7 +609,7 @@ export default function DoctorHub() {
         >
           {/* Today's Pulse */}
           <View style={{ gap: spacing.md }}>
-            <SectionLabel title={t("doctor.statsStrip.label", "Today's Pulse")} />
+            <SectionHeader kicker={t("doctor.kicker.today", "Live")} title={t("doctor.statsStrip.label", "Today's Pulse")} style={{ paddingTop: 0, paddingBottom: 0 }} />
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <StatTile
                 icon={Clock4}
@@ -599,7 +624,7 @@ export default function DoctorHub() {
                 label={t("doctor.stats.rxWritten", "Rx Written")}
                 value={rxCount}
                 sub={t("doctor.statsSub.issued")}
-                tone="info"
+                tone="accent"
                 onPress={() => router.push("/(doctor)/prescriptions" as any)}
               />
               <StatTile
@@ -607,7 +632,7 @@ export default function DoctorHub() {
                 label={t("doctor.stats.notes", "Notes")}
                 value={notesCount}
                 sub={t("doctor.statsSub.recorded")}
-                tone="accent"
+                tone="accent2"
                 onPress={() => router.push("/clinical-notes" as any)}
               />
             </View>
@@ -615,7 +640,7 @@ export default function DoctorHub() {
 
           {/* Quick Actions 2x2 Grid */}
           <View style={{ gap: spacing.md }}>
-            <SectionLabel title={t("doctor.sectionQuickActions", "Quick Actions")} />
+            <SectionHeader kicker={t("doctor.kicker.workspace", "Workspace")} title={t("doctor.sectionQuickActions", "Quick Actions")} style={{ paddingTop: 0, paddingBottom: 0 }} />
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
                 icon={CalendarDays}
@@ -667,8 +692,11 @@ export default function DoctorHub() {
 
           {/* Today's Queue Preview */}
           <View style={{ gap: spacing.md }}>
-            <SectionLabel
+            <SectionHeader
+              kicker={t("doctor.kicker.patients", "Patients")}
               title={t("doctor.sectionTodayQueue", "Today's Queue")}
+              count={queueList.length > 0 ? queueList.length : undefined}
+              style={{ paddingTop: 0, paddingBottom: 0 }}
               action={
                 queueList.length > 0
                   ? {
@@ -706,23 +734,16 @@ export default function DoctorHub() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: spacing.sm,
-                  ...(isDark ? {} : shadow.sm),
+                  ...(isDark ? {} : shadow.card),
                 }}
               >
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 18,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: spacing.xs,
-                  }}
-                >
-                  <CheckCircle2 size={26} color={colors.primary} strokeWidth={2} />
-                </View>
+                <IconTile
+                  icon={CheckCircle2}
+                  tone="success"
+                  appearance="solid"
+                  size={56}
+                  style={{ marginBottom: spacing.xs }}
+                />
                 <Text style={[typography.title.md, { color: colors.text }]}>
                   {t("doctor.emptyQueueTitle", "Queue is clear")}
                 </Text>
@@ -791,7 +812,7 @@ export default function DoctorHub() {
 
           {/* Quick Links */}
           <View style={{ gap: spacing.md }}>
-            <SectionLabel title={t("doctor.sectionQuickLinks", "Management & Records")} />
+            <SectionHeader kicker={t("doctor.kicker.practice", "Practice")} title={t("doctor.sectionQuickLinks", "Management & Records")} style={{ paddingTop: 0, paddingBottom: 0 }} />
             <View
               style={{
                 borderRadius: radius.card,
@@ -799,8 +820,8 @@ export default function DoctorHub() {
                 backgroundColor: colors.surface,
                 borderWidth: StyleSheet.hairlineWidth,
                 borderColor: hairline,
-                overflow: "hidden",
-                ...(isDark ? {} : shadow.sm),
+                paddingVertical: 4,
+                ...(isDark ? {} : shadow.card),
               }}
             >
               <LinkTile
@@ -936,53 +957,6 @@ function HeroDivider() {
   );
 }
 
-function SectionLabel({
-  title,
-  action,
-}: {
-  title: string;
-  action?: { label: string; onPress: () => void };
-}) {
-  const { colors, typography, spacing } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: spacing.xs,
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        style={[typography.title.lg, { flex: 1, color: colors.text }]}
-      >
-        {title}
-      </Text>
-      {action ? (
-        <Pressable
-          onPress={action.onPress}
-          hitSlop={8}
-          accessibilityRole="link"
-          accessibilityLabel={action.label}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            paddingVertical: 4,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text style={[typography.label.lg, { color: colors.primary }]}>
-            {action.label}
-          </Text>
-          <ChevronRight size={16} color={colors.primary} strokeWidth={2.4} />
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
 function QuickTile({
   icon: Icon,
   label,
@@ -991,36 +965,37 @@ function QuickTile({
   badge,
   onPress,
 }: {
-  icon: React.ComponentType<any>;
+  icon: any;
   label: string;
   subtitle?: string;
   tone: Tone;
   badge?: number;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme, fontFamily } = useTheme();
   const palette = useTone(tone);
   const isDark = scheme === "dark";
 
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
+      haptic="light"
+      pressedScale={0.97}
+      pressedOpacity={0.96}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => ({
+      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.card }]}
+      style={{
         flex: 1,
         padding: spacing.lg,
         borderRadius: radius.card,
         borderCurve: "continuous",
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-        minHeight: 132,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        minHeight: 140,
         justifyContent: "space-between",
-        ...(isDark ? {} : shadow.sm),
-      })}
+      }}
     >
       <View
         style={{
@@ -1029,66 +1004,56 @@ function QuickTile({
           justifyContent: "space-between",
         }}
       >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            backgroundColor: palette.bg,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={20} color={palette.fg} strokeWidth={2.2} />
-        </View>
+        <IconTile icon={Icon} tone={tone} appearance="solid" size={44} />
         {badge !== undefined && badge > 0 ? (
           <View
             style={{
-              minWidth: 22,
-              height: 22,
+              minWidth: 24,
+              height: 24,
               paddingHorizontal: 7,
-              borderRadius: 11,
-              borderCurve: "continuous",
+              borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: palette.bg,
+              backgroundColor: palette.bgStrong,
             }}
           >
-            <Text style={[typography.label.xs, { color: palette.fg }]}>
+            <Text style={[typography.label.xs, { color: palette.onBgStrong }]}>
               {badge > 99 ? "99+" : badge}
             </Text>
           </View>
-        ) : null}
+        ) : (
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.well,
+            }}
+          >
+            <ArrowUpRight size={14} color={colors.textMuted} strokeWidth={2.4} />
+          </View>
+        )}
       </View>
 
-      <View
-        style={{
-          marginTop: spacing.lg,
-          flexDirection: "row",
-          alignItems: "flex-end",
-          gap: spacing.sm,
-        }}
-      >
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+      <View style={{ marginTop: spacing.lg, gap: 3 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontFamily: fontFamily.bodySemibold, fontSize: 16.5, lineHeight: 21, letterSpacing: -0.3, color: colors.text }}
+        >
+          {label}
+        </Text>
+        {subtitle ? (
           <Text
             numberOfLines={1}
-            style={[typography.title.md, { color: colors.text }]}
+            style={[typography.caption, { color: colors.textMuted }]}
           >
-            {label}
+            {subtitle}
           </Text>
-          {subtitle ? (
-            <Text
-              numberOfLines={1}
-              style={[typography.caption, { color: colors.textMuted }]}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        ) : null}
       </View>
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -1104,93 +1069,89 @@ function StatTile({
   label: string;
   value: number | string;
   sub?: string;
-  tone?: "primary" | "info" | "accent" | "warning" | "success";
+  tone?: Tone;
   onPress?: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow, scheme } = useTheme();
+  const { colors, spacing, radius, typography, shadow, scheme, fontFamily } = useTheme();
   const isDark = scheme === "dark";
-  const tn = useTone(tone);
 
-  const Body = (
-    <View
+  return (
+    <Touchable
+      onPress={onPress}
+      disabled={!onPress}
+      haptic="light"
+      pressedScale={0.97}
+      pressedOpacity={0.96}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.xl }]}
       style={{
         flex: 1,
-        minHeight: 124,
+        minHeight: 132,
         backgroundColor: colors.surface,
         borderRadius: radius.xl,
         borderCurve: "continuous",
         padding: spacing.md + 2,
+        paddingTop: spacing.md,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
         justifyContent: "space-between",
-        overflow: "hidden",
-        ...(isDark ? {} : shadow.sm),
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <View
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <IconTile icon={Icon} tone={tone} appearance="solid" size={36} />
+        {onPress ? (
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.well,
+            }}
+          >
+            <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.5} />
+          </View>
+        ) : null}
+      </View>
+      <View style={{ marginTop: spacing.md, gap: 3 }}>
+        <Text
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 7,
-            borderCurve: "continuous",
-            backgroundColor: tn.bg,
-            alignItems: "center",
-            justifyContent: "center",
+            fontFamily: fontFamily.heavy,
+            fontSize: 30,
+            lineHeight: 32,
+            letterSpacing: -1.1,
+            color: colors.text,
+            fontVariant: ["tabular-nums"],
           }}
         >
-          <Icon size={13} color={tn.fg} strokeWidth={2.5} />
-        </View>
+          {value}
+        </Text>
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.8}
-          style={[typography.label.sm, { flex: 1, color: tn.fg }]}
+          style={[typography.label.sm, { color: colors.textMuted }]}
         >
           {label}
-        </Text>
-      </View>
-      <View style={{ marginTop: spacing.md }}>
-        <Text
-          style={[
-            typography.display.md,
-            {
-              fontSize: 32,
-              lineHeight: 36,
-              letterSpacing: -1.1,
-              color: colors.text,
-              fontVariant: ["tabular-nums"],
-            },
-          ]}
-        >
-          {value}
         </Text>
         {sub ? (
           <Text
             numberOfLines={1}
-            style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]}
+            style={[typography.caption, { fontSize: 11, color: colors.textSubtle }]}
           >
             {sub}
           </Text>
         ) : null}
       </View>
-    </View>
-  );
-
-  if (!onPress) return Body;
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => ({
-        flex: 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-        opacity: pressed ? 0.9 : 1,
-      })}
-    >
-      {Body}
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -1204,7 +1165,7 @@ function QueuePreviewRow({
   onPress: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme, fontFamily } = useTheme();
   const isDark = scheme === "dark";
 
   const isVideo = item.mode === "video";
@@ -1221,47 +1182,32 @@ function QueuePreviewRow({
       : item.status === "completed"
         ? "success"
         : "primary";
-  const stn = useTone(statusTone);
 
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
+      haptic="light"
+      pressedScale={0.98}
+      pressedOpacity={0.96}
       accessibilityRole="button"
-      style={({ pressed }) => ({
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-        opacity: pressed ? 0.92 : 1,
-      })}
+      accessibilityLabel={`${item.patientName || t("doctor.patientFallback")}, ${statusLabel}`}
+      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.xl }]}
     >
       <View
         style={{
           paddingVertical: spacing.md,
-          paddingLeft: spacing.md + 4,
-          paddingRight: spacing.md,
+          paddingHorizontal: spacing.md,
           borderRadius: radius.xl,
           borderCurve: "continuous",
           backgroundColor: colors.surface,
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: isDark ? colors.borderStrong : colors.separator,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
           overflow: "hidden",
-          ...(isDark ? {} : shadow.xs),
         }}
       >
-        {/* timeline accent rail */}
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: spacing.md,
-            bottom: spacing.md,
-            width: 3,
-            borderTopRightRadius: 3,
-            borderBottomRightRadius: 3,
-            backgroundColor: stn.fg,
-          }}
-        />
         <Avatar
           name={item.patientName || t("doctor.patientFallback")}
           size="md"
@@ -1308,10 +1254,13 @@ function QueuePreviewRow({
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           <Pill label={statusLabel} tone={statusTone} size="sm" />
           <Text
-            style={[
-              typography.label.xs,
-              { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
-            ]}
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 11.5,
+              letterSpacing: 0.2,
+              color: colors.textSubtle,
+              fontVariant: ["tabular-nums"],
+            }}
           >
             {t("doctor.queueNumber", {
               number: item.queueNumber ?? index + 1,
@@ -1319,9 +1268,20 @@ function QueuePreviewRow({
           </Text>
         </View>
 
-        <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       </View>
-    </Pressable>
+    </Touchable>
   );
 }
 
@@ -1349,14 +1309,17 @@ function LinkTile({
       accessibilityRole="button"
       accessibilityLabel={title}
       style={({ pressed }) => ({
+        marginHorizontal: 6,
+        borderRadius: 16,
+        borderCurve: "continuous",
         backgroundColor: pressed ? colors.fill : "transparent",
       })}
     >
       <View
         style={{
-          minHeight: 60,
+          minHeight: 62,
           paddingVertical: spacing.md,
-          paddingHorizontal: spacing.lg,
+          paddingHorizontal: spacing.lg - 6,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
@@ -1368,25 +1331,13 @@ function LinkTile({
               position: "absolute",
               bottom: 0,
               right: 0,
-              left: spacing.lg + 32 + spacing.md,
+              left: spacing.lg - 6 + 34 + spacing.md,
               height: StyleSheet.hairlineWidth,
               backgroundColor: colors.separator,
             }}
           />
         ) : null}
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            backgroundColor: palette.bgStrong,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={17} color={palette.onBgStrong} strokeWidth={2.3} />
-        </View>
+        <IconTile icon={Icon} tone={tone} appearance="solid" size={34} />
         <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
           <Text
             numberOfLines={1}
@@ -1401,7 +1352,18 @@ function LinkTile({
             {subtitle}
           </Text>
         </View>
-        <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       </View>
     </Pressable>
   );

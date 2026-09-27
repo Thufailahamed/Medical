@@ -372,7 +372,7 @@ export default function ScheduleScreen() {
                   ? colors.surfaceMuted
                   : colors.surface,
                 borderWidth: isSelected || d.isToday ? 0 : StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.separator,
+                borderColor: isDark ? colors.borderStrong : colors.hairline,
                 opacity: d.isPast && !isSelected ? 0.6 : 1,
                 ...(isSelected && !isDark ? shadow.primary : isDark ? {} : shadow.xs),
               })}
@@ -602,8 +602,8 @@ export default function ScheduleScreen() {
                 borderCurve: "continuous",
                 backgroundColor: colors.surface,
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.separator,
-                ...(isDark ? {} : shadow.sm),
+                borderColor: isDark ? colors.borderStrong : colors.hairline,
+                ...(isDark ? {} : shadow.card),
               }}
             >
               <View
@@ -768,10 +768,10 @@ export default function ScheduleScreen() {
                       borderCurve: "continuous",
                       backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
                       borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: isDark ? colors.borderStrong : colors.separator,
+                      borderColor: isDark ? colors.borderStrong : colors.hairline,
                       marginBottom: spacing.sm + 2,
                       transform: [{ scale: pressed ? 0.99 : 1 }],
-                      ...(isDark ? {} : shadow.sm),
+                      ...(isDark ? {} : shadow.card),
                     })}
                   >
                     {/* Left Icon */}
@@ -934,9 +934,9 @@ function PulseMetricCard({
         padding: spacing.md,
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
         justifyContent: "space-between",
-        ...(isDark ? {} : shadow.xs),
+        ...(isDark ? {} : shadow.sm),
       }}
     >
       {/* Top row: Icon + Label */}

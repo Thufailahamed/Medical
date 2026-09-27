@@ -51,7 +51,7 @@ export function Chip({
   const fg = selected ? selFg : palette.fg;
   const isNeutral = tone === "neutral" && !selected;
   const borderColor = isNeutral
-    ? scheme === "dark" ? colors.borderStrong : colors.separator
+    ? scheme === "dark" ? colors.borderStrong : colors.hairline
     : "transparent";
   const borderWidth = isNeutral ? StyleSheet.hairlineWidth * 2 : 0;
 
@@ -77,7 +77,13 @@ export function Chip({
           borderRadius: radius.full,
           opacity: disabled ? 0.4 : 1,
         },
-        selected && scheme !== "dark" ? { ...shadow.xs, shadowOpacity: 0.12 } : null,
+        scheme === "dark"
+          ? null
+          : selected
+          ? { ...shadow.xs, shadowColor: selBg, shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }
+          : isNeutral
+          ? shadow.xs
+          : null,
         style,
       ]}
     >
@@ -107,6 +113,7 @@ export function Chip({
       <Pressable
         onPress={onPress}
         haptic="light"
+        pressedScale={0.94}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         accessibilityLabel={accessibilityLabel ?? label}

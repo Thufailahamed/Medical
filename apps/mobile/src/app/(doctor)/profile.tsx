@@ -57,7 +57,7 @@ import {
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
-import { Screen, Skeleton, ErrorState, Button, Pill } from "@/components/ui";
+import { Screen, Skeleton, ErrorState, Button, Pill, IconTile } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { useThemeStore } from "@/stores/theme";
@@ -67,9 +67,10 @@ import { withOpacity } from "@/constants/theme";
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   const { colors, typography } = useTheme();
   return (
-    <View style={{ marginBottom: 2, paddingHorizontal: 4 }}>
+    <View style={{ marginBottom: 2, paddingHorizontal: 2 }}>
       <Text
         numberOfLines={1}
+        accessibilityRole="header"
         style={[typography.title.lg, { color: colors.text }]}
       >
         {title}
@@ -115,28 +116,16 @@ function ActivityTile({
         borderCurve: "continuous",
         backgroundColor: colors.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 10,
         opacity: pressed ? 0.9 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
-        ...(isDark ? {} : shadow.sm),
+        ...(isDark ? {} : shadow.card),
       })}
     >
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          borderCurve: "continuous",
-          backgroundColor: palette.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={15} color={palette.fg} strokeWidth={2.4} />
-      </View>
+      <IconTile icon={Icon} tone={tone} size={32} />
       <View>
         <Text
           style={[
@@ -192,7 +181,8 @@ function ProfileInfoRow({
         gap: spacing.md,
         minHeight: 60,
         paddingVertical: 11,
-        paddingHorizontal: spacing.lg,
+        paddingHorizontal: spacing.lg - 6,
+        marginHorizontal: isInteractive ? 0 : 6,
       }}
     >
       {!last ? (
@@ -201,25 +191,13 @@ function ProfileInfoRow({
             position: "absolute",
             bottom: 0,
             right: 0,
-            left: spacing.lg + 32 + spacing.md,
+            left: spacing.lg - 6 + 34 + spacing.md,
             height: StyleSheet.hairlineWidth,
             backgroundColor: colors.separator,
           }}
         />
       ) : null}
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 9,
-          borderCurve: "continuous",
-          backgroundColor: colors.fill,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={16} color={colors.textMuted} strokeWidth={2.2} />
-      </View>
+      <IconTile icon={Icon} tone="neutral" size={34} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[typography.caption, { color: colors.textSubtle }]}>
           {label}
@@ -232,7 +210,18 @@ function ProfileInfoRow({
         </Text>
       </View>
       {isInteractive ? (
-        <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       ) : null}
     </View>
   );
@@ -244,6 +233,9 @@ function ProfileInfoRow({
         accessibilityRole="button"
         accessibilityLabel={label}
         style={({ pressed }) => ({
+          marginHorizontal: 6,
+          borderRadius: 16,
+          borderCurve: "continuous",
           backgroundColor: pressed ? colors.fill : "transparent",
         })}
       >
@@ -281,14 +273,17 @@ function NavigationLinkRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       style={({ pressed }) => ({
+        marginHorizontal: 6,
+        borderRadius: 16,
+        borderCurve: "continuous",
         backgroundColor: pressed ? colors.fill : "transparent",
       })}
     >
       <View
         style={{
-          minHeight: 60,
+          minHeight: 62,
           paddingVertical: 11,
-          paddingHorizontal: spacing.lg,
+          paddingHorizontal: spacing.lg - 6,
           flexDirection: "row",
           alignItems: "center",
           gap: spacing.md,
@@ -300,25 +295,13 @@ function NavigationLinkRow({
               position: "absolute",
               bottom: 0,
               right: 0,
-              left: spacing.lg + 32 + spacing.md,
+              left: spacing.lg - 6 + 34 + spacing.md,
               height: StyleSheet.hairlineWidth,
               backgroundColor: colors.separator,
             }}
           />
         ) : null}
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            backgroundColor: palette.bgStrong,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={17} color={palette.onBgStrong} strokeWidth={2.3} />
-        </View>
+        <IconTile icon={Icon} tone={tone} appearance="solid" size={34} />
         <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
           <Text
             numberOfLines={1}
@@ -353,7 +336,18 @@ function NavigationLinkRow({
             </Text>
           </View>
         ) : null}
-        <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+        </View>
       </View>
     </Pressable>
   );
@@ -370,8 +364,8 @@ export default function DoctorProfileScreen() {
     borderCurve: "continuous" as const,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: isDarkUI ? colors.borderStrong : colors.separator,
-    ...(isDarkUI ? {} : shadow.sm),
+    borderColor: isDarkUI ? colors.borderStrong : colors.hairline,
+    ...(isDarkUI ? {} : shadow.card),
   };
   const { user, logout } = useAuthStore();
   const currentLocale = useLocaleStore((s) => s.locale);
@@ -887,7 +881,7 @@ export default function DoctorProfileScreen() {
           <View
             style={{
               ...groupCard,
-              overflow: "hidden",
+              paddingVertical: 4,
             }}
           >
             {practiceRows.length > 0 ? (
@@ -941,7 +935,7 @@ export default function DoctorProfileScreen() {
           <View
             style={{
               ...groupCard,
-              overflow: "hidden",
+              paddingVertical: 4,
             }}
           >
             <ProfileInfoRow
@@ -970,7 +964,7 @@ export default function DoctorProfileScreen() {
           <View
             style={{
               ...groupCard,
-              overflow: "hidden",
+              paddingVertical: 4,
             }}
           >
             <NavigationLinkRow
@@ -1167,8 +1161,8 @@ export default function DoctorProfileScreen() {
               borderCurve: "continuous",
               backgroundColor: colors.surface,
               borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDarkUI ? colors.borderStrong : colors.separator,
-              ...(isDarkUI ? {} : shadow.xs),
+              borderColor: isDarkUI ? colors.borderStrong : colors.hairline,
+              ...(isDarkUI ? {} : shadow.sm),
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.99 : 1 }],
             })}

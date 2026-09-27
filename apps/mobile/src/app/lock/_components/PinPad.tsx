@@ -10,20 +10,14 @@
 //   error:          when true, renders dots in danger tone and shakes
 //   disabled:       keypad ignores taps while parent is processing
 //   hint:           optional small text under the dots (e.g. "weak PIN")
+//   leftAction:     optional key in the empty bottom-left slot (e.g. Face ID)
 //
 // The component is self-contained — no state, fully controlled. The
 // parent owns the value and decides what to do with a complete PIN.
 
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Animated,
-  Vibration,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, Pressable, Animated, useWindowDimensions } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Delete } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -34,7 +28,25 @@ interface Props {
   error?: boolean;
   disabled?: boolean;
   hint?: string;
+  leftAction?: {
+    icon: React.ReactNode;
+    onPress: () => void;
+    accessibilityLabel: string;
+  };
 }
+
+const LETTERS: Record<string, string> = {
+  "2": "ABC",
+  "3": "DEF",
+  "4": "GHI",
+  "5": "JKL",
+  "6": "MNO",
+  "7": "PQRS",
+  "8": "TUV",
+  "9": "WXYZ",
+};
+
+const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
 export function PinPad({
   value,
@@ -43,155 +55,122 @@ export function PinPad({
   error = false,
   disabled = false,
   hint,
+  leftAction,
 }: Props) {
   const { colors, fontFamily } = useTheme();
   const { height, width } = useWindowDimensions();
-  const keySize = height < 700 || width < 340 ? 54 : height < 900 || width < 390 ? 62 : 68;
-  const keyGap = height < 700 ? 8 : height < 900 ? 10 : 12;
-  const padWidth = keySize * 3 + keyGap * 2;
+  const keySize = height < 700 || width < 340 ? 64 : height < 850 ? 72 : 78;
+  const colGap = width < 360 ? 18 : 26;
+  const rowGap = height < 700 ? 10 : height < 850 ? 14 : 16;
   const shake = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!error) return;
-    Vibration.vibrate(40);
-    Animated.sequence([
-      Animated.timing(shake, { toValue: 8, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: -8, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 6, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: -6, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
-    ]).start();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    Animated.sequence(
+      [14, -12, 9, -6, 3, 0].map((toValue) =>
+        Animated.timing(shake, { toValue, duration: 55, useNativeDriver: true }),
+      ),
+    ).start();
   }, [error, shake]);
 
   function press(digit: string) {
-    if (disabled) return;
-    if (value.length >= length) return;
+    if (disabled || value.length >= length) return;
+    tap();
     onChange(value + digit);
   }
   function back() {
-    if (disabled) return;
-    if (!value.length) return;
+    if (disabled || !value.length) return;
+    tap();
     onChange(value.slice(0, -1));
   }
 
-  const dotSize = 12;
-  const dotGap = 12;
+  const dotSize = 13;
+  const dotColor = error ? colors.danger : colors.text;
+  const showBack = value.length > 0;
 
   return (
-    <View style={{ alignItems: "center", gap: height < 700 ? 8 : 12 }}>
-      {/* Dot indicator */}
-      <View
+    <View style={{ alignItems: "center" }}>
+      <Animated.View
+        accessibilityRole="progressbar"
+        accessibilityLabel={`${value.length} of ${length} digits entered`}
         style={{
-          width: padWidth,
-          height: height < 700 ? 42 : 48,
-          borderRadius: 24,
-          borderCurve: "continuous",
-          borderWidth: 1,
-          borderColor: error ? colors.danger : colors.border,
-          backgroundColor: colors.surface,
+          flexDirection: "row",
+          gap: 18,
+          height: 24,
           alignItems: "center",
-          justifyContent: "center",
-          shadowColor: colors.shadow,
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          transform: [{ translateX: shake }],
         }}
       >
-        <Animated.View
-          style={{
-            flexDirection: "row",
-            gap: dotGap,
-            transform: [{ translateX: shake }],
-          }}
-        >
-          {Array.from({ length }).map((_, i) => {
-            const filled = i < value.length;
-            return (
-              <View
-                key={i}
-                style={{
-                  width: dotSize,
-                  height: dotSize,
-                  borderRadius: dotSize / 2,
-                  borderWidth: 1.5,
-                  borderColor: error
-                    ? colors.danger
-                    : filled
-                      ? colors.primary
-                      : colors.borderStrong,
-                  transform: [{ scale: filled ? 1.08 : 1 }],
-                  backgroundColor: filled
-                    ? error
-                      ? colors.danger
-                      : colors.primary
-                    : "transparent",
-                }}
-              />
-            );
-          })}
-        </Animated.View>
-      </View>
+        {Array.from({ length }).map((_, i) => {
+          const filled = i < value.length;
+          return (
+            <View
+              key={i}
+              style={{
+                width: dotSize,
+                height: dotSize,
+                borderRadius: dotSize / 2,
+                borderWidth: 1.5,
+                borderColor: filled ? dotColor : error ? colors.danger : colors.textSubtle,
+                backgroundColor: filled ? dotColor : "transparent",
+              }}
+            />
+          );
+        })}
+      </Animated.View>
 
-      {hint ? (
-        <Text
-          style={{
-            color: colors.danger,
-            fontSize: 13,
-            fontFamily: fontFamily.bodySemibold,
-            textAlign: "center",
-            minHeight: 18,
-          }}
-        >
-          {hint}
-        </Text>
-      ) : (
-        <View style={{ height: 18 }} />
-      )}
+      <Text
+        numberOfLines={2}
+        style={{
+          color: error ? colors.danger : colors.textMuted,
+          fontSize: 13,
+          lineHeight: 18,
+          fontFamily: fontFamily.bodyMedium,
+          textAlign: "center",
+          minHeight: 36,
+          paddingTop: 10,
+          maxWidth: keySize * 3 + colGap * 2,
+        }}
+      >
+        {hint ?? ""}
+      </Text>
 
-      {/* Keypad */}
-      <View style={{ gap: keyGap }}>
+      <View style={{ gap: rowGap, marginTop: height < 700 ? 4 : 12 }}>
         {[
           ["1", "2", "3"],
           ["4", "5", "6"],
           ["7", "8", "9"],
         ].map((row, ri) => (
-          <View key={ri} style={{ flexDirection: "row", gap: keyGap }}>
+          <View key={ri} style={{ flexDirection: "row", gap: colGap }}>
             {row.map((d) => (
-              <KeyButton
-                key={d}
-                label={d}
-                onPress={() => press(d)}
-                disabled={disabled}
-                size={keySize}
-              />
+              <KeyButton key={d} label={d} onPress={() => press(d)} disabled={disabled} size={keySize} />
             ))}
           </View>
         ))}
-        <View style={{ flexDirection: "row", gap: keyGap, justifyContent: "center" }}>
-          <View style={{ width: keySize }} />
+        <View style={{ flexDirection: "row", gap: colGap }}>
+          {leftAction ? (
+            <GhostKey
+              size={keySize}
+              onPress={leftAction.onPress}
+              disabled={disabled}
+              accessibilityLabel={leftAction.accessibilityLabel}
+            >
+              {leftAction.icon}
+            </GhostKey>
+          ) : (
+            <View style={{ width: keySize }} />
+          )}
           <KeyButton label="0" onPress={() => press("0")} disabled={disabled} size={keySize} />
-          <Pressable
+          <GhostKey
+            size={keySize}
             onPress={back}
-            disabled={disabled || !value.length}
-            hitSlop={8}
-            accessibilityRole="button"
+            disabled={disabled || !showBack}
             accessibilityLabel="Backspace"
-            style={({ pressed }) => ({
-              width: keySize,
-              height: keySize,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              borderWidth: 1,
-              borderColor: pressed ? colors.primary : colors.border,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: pressed ? colors.primarySoft : colors.surface,
-              opacity: value.length === 0 || disabled ? 0.35 : 1,
-            })}
+            hidden={!showBack}
           >
-            <Delete size={24} color={colors.textMuted} strokeWidth={1.9} />
-          </Pressable>
+            <Delete size={26} color={colors.text} strokeWidth={1.6} />
+          </GhostKey>
         </View>
       </View>
     </View>
@@ -210,45 +189,88 @@ function KeyButton({
   size: number;
 }) {
   const { colors, fontFamily } = useTheme();
+  const letters = LETTERS[label];
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      hitSlop={4}
       accessibilityRole="button"
-      accessibilityLabel={`Digit ${label}`}
-      style={({ pressed }) => [
-        {
-          width: size,
-          height: size,
-          borderRadius: 20,
-          borderCurve: "continuous",
-          borderWidth: 1,
-          borderColor: pressed ? colors.primary : colors.border,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: pressed ? colors.primarySoft : colors.surface,
-          shadowColor: colors.shadow,
-          shadowOpacity: pressed ? 0 : 0.05,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: pressed ? 0 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-        },
-        disabled && { opacity: 0.4 },
-      ]}
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: pressed ? colors.fillStrong : colors.fill,
+        opacity: disabled ? 0.45 : 1,
+      })}
     >
       <Text
         style={{
-          fontSize: size < 62 ? 22 : size < 70 ? 26 : 28,
-          lineHeight: 34,
+          fontSize: size < 70 ? 28 : 34,
+          lineHeight: size < 70 ? 32 : 38,
           color: colors.text,
-          fontFamily: fontFamily.bodyMedium,
+          fontFamily: fontFamily.body,
+          letterSpacing: -0.5,
           fontVariant: ["tabular-nums"],
         }}
       >
         {label}
       </Text>
+      {letters ? (
+        <Text
+          style={{
+            fontSize: 9.5,
+            lineHeight: 12,
+            letterSpacing: 2,
+            color: colors.textMuted,
+            fontFamily: fontFamily.bodyBold,
+            marginTop: -1,
+          }}
+        >
+          {letters}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function GhostKey({
+  size,
+  onPress,
+  disabled,
+  accessibilityLabel,
+  hidden = false,
+  children,
+}: {
+  size: number;
+  onPress: () => void;
+  disabled: boolean;
+  accessibilityLabel: string;
+  hidden?: boolean;
+  children: React.ReactNode;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: pressed ? colors.fill : "transparent",
+        opacity: hidden ? 0 : 1,
+      })}
+    >
+      {children}
     </Pressable>
   );
 }
@@ -259,6 +281,3 @@ export function isWeakPin(pin: string): boolean {
   if ("9876543210".includes(pin)) return true; // 9876543210
   return false;
 }
-
-// Avoid the styles helper being tree-shaken away on some setups.
-const _styles = StyleSheet.create({});

@@ -103,10 +103,10 @@ export function ScreenHeader({
             styles.iconButton,
             {
               backgroundColor: colors.surface,
-              borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
+              borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
               borderWidth: StyleSheet.hairlineWidth,
             },
-            scheme === "dark" ? null : shadow.xs,
+            scheme === "dark" ? null : shadow.sm,
           ]}
         >
           <ChevronLeft size={22} color={colors.text} strokeWidth={2.5} style={{ marginLeft: -2 }} />
@@ -121,8 +121,8 @@ export function ScreenHeader({
         {kicker ? (
           <Text
             style={[
-              typography.overline,
-              { color: colors.primary, textTransform: "uppercase", marginBottom: 2 },
+              typography.kicker,
+              { color: colors.primary, textTransform: "uppercase", marginBottom: 3 },
             ]}
           >
             {kicker}

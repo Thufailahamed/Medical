@@ -8,7 +8,8 @@ import { Pressable } from "./Pressable";
 type Props = {
   icon: LucideIcon;
   onPress: () => void;
-  variant?: "solid" | "soft" | "ghost" | "danger";
+  /** `surface` = paper disc with soft lift (headers); `glass` = frosted disc for gradient heroes. */
+  variant?: "solid" | "soft" | "ghost" | "danger" | "surface" | "glass";
   size?: "sm" | "md" | "lg";
   badge?: number;
   tint?: string;
@@ -34,9 +35,10 @@ export function IconButton({
 }: Props) {
   const { colors, shadow, scheme } = useTheme();
 
+  const isDark = scheme === "dark";
   const sizeMap = {
     sm: { box: 32, icon: 16 },
-    md: { box: 44, icon: 20 },
+    md: { box: variant === "surface" || variant === "glass" ? 42 : 44, icon: 20 },
     lg: { box: 52, icon: 24 },
   } as const;
   const s = sizeMap[size];
@@ -59,12 +61,26 @@ export function IconButton({
       ? palette.bg
       : variant === "danger"
       ? palette.bg
+      : variant === "surface"
+      ? colors.surface
+      : variant === "glass"
+      ? "rgba(255,255,255,0.16)"
       : tint
       ? "transparent"
       : colors.fill;
   const defaultFg =
-    variant === "solid" ? colors.onPrimary : palette.fg;
+    variant === "solid" || variant === "glass"
+      ? variant === "glass" ? "#FFFFFF" : colors.onPrimary
+      : variant === "surface"
+      ? colors.text
+      : palette.fg;
   const fg = tint ?? defaultFg;
+  const edge =
+    variant === "surface"
+      ? { borderWidth: StyleSheet.hairlineWidth, borderColor: isDark ? colors.borderStrong : colors.hairline }
+      : variant === "glass"
+      ? { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.3)" }
+      : null;
 
   return (
     <Pressable
@@ -85,24 +101,26 @@ export function IconButton({
           backgroundColor: bg,
           opacity: disabled ? 0.4 : 1,
         },
-        variant === "solid" && scheme !== "dark" ? shadow.primary : null,
+        edge,
+        variant === "solid" && !isDark ? shadow.primary : null,
+        variant === "surface" && !isDark ? shadow.sm : null,
         style,
       ]}
     >
-      <Icon size={s.icon} color={variant === "ghost" && !tint ? colors.text : fg} strokeWidth={2.25} />
+      <Icon size={s.icon} color={variant === "ghost" && !tint ? colors.text : fg} strokeWidth={2.1} />
       {typeof badge === "number" && badge > 0 ? (
         <View
           style={{
             position: "absolute",
-            top: -2,
-            right: -2,
-            minWidth: 18,
-            height: 18,
-            borderRadius: 9,
-            paddingHorizontal: 4,
+            top: -3,
+            right: -4,
+            minWidth: 19,
+            height: 19,
+            borderRadius: 10,
+            paddingHorizontal: 5,
             backgroundColor: colors.danger,
             borderWidth: 2,
-            borderColor: colors.bg,
+            borderColor: variant === "glass" ? "transparent" : colors.bg,
             alignItems: "center",
             justifyContent: "center",
           }}

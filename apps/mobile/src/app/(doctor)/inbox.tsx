@@ -65,7 +65,7 @@ function ConversationCardSkeleton({ colors }: { colors: any }) {
         borderRadius: 20,
         borderCurve: "continuous",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.separator,
+        borderColor: colors.hairline,
         padding: 14,
         marginBottom: 10,
         gap: 12,
@@ -118,9 +118,9 @@ function DoctorPathwayCard({
         borderRadius: 20,
         borderCurve: "continuous",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.separator,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
         backgroundColor: colors.surface,
-        ...(isDark ? {} : shadow.xs),
+        ...(isDark ? {} : shadow.sm),
         opacity: pressed ? 0.88 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
       })}
@@ -169,7 +169,7 @@ export default function DoctorInboxScreen() {
   const router = useRouter();
   const { colors, spacing, typography, fontFamily, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const hairline = isDark ? colors.borderStrong : colors.hairline;
   const segStyle = (active: boolean) => ({
     flex: 1,
     height: 32,
@@ -251,8 +251,8 @@ export default function DoctorInboxScreen() {
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: isUnread ? withOpacity(colors.primary, 0.35) : hairline,
             backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            transform: [{ scale: pressed ? 0.99 : 1 }],
-            ...(isDark ? {} : shadow.xs),
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+            ...(isDark ? {} : shadow.card),
           })}
         >
           {/* Avatar with Active Online Status Dot */}
@@ -373,7 +373,19 @@ export default function DoctorInboxScreen() {
                   </Text>
                 </View>
               ) : (
-                <ChevronRight size={16} color={colors.textSubtle} style={{ marginLeft: 6 }} />
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    marginLeft: 6,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.well,
+                  }}
+                >
+                  <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+                </View>
               )}
             </View>
           </View>

@@ -256,7 +256,7 @@ function CategoryTile({
             borderCurve: "continuous",
             backgroundColor: selected ? fg : bg,
             borderWidth: !selected && bg === colors.surface ? StyleSheet.hairlineWidth : 0,
-            borderColor: colors.separator,
+            borderColor: colors.hairline,
             alignItems: "center",
             justifyContent: "center",
             ...(selected && scheme !== "dark" ? shadow.sm : {}),
@@ -443,7 +443,7 @@ function PlanRichCard({
                 borderCurve: "continuous",
                 overflow: "hidden",
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.separator,
+                borderColor: colors.hairline,
                 backgroundColor: colors.surfaceMuted,
                 flexShrink: 0,
               }}
@@ -545,7 +545,7 @@ function FeaturedPlanCard({
               borderCurve: "continuous",
               overflow: "hidden",
               borderWidth: StyleSheet.hairlineWidth,
-              borderColor: colors.separator,
+              borderColor: colors.hairline,
               backgroundColor: colors.surfaceMuted,
             }}
           >

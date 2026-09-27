@@ -1,95 +1,216 @@
 import React from "react";
-import { Platform, StyleSheet, View, type TextStyle } from "react-native";
-import { BlurView } from "expo-blur";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type TextStyle,
+} from "react-native";
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useMotionEnabled } from "@/hooks/useMotionEnabled";
+
+const ITEM = 44;
+const PAD = 6;
+const GAP = 2;
+const BAR_MARGIN = 16;
+const ICON = 21;
+const PILL_PAD_L = 11;
+const PILL_PAD_R = 15;
+/** Floor width for inactive icon cells — they flex to fill leftover space. */
+const CELL_MIN = 40;
+/** Below this much label room, the active pill renders icon-only. */
+const LABEL_MIN = 40;
 
 /**
- * Shared screenOptions for the floating, frosted-glass iOS tab bar used by
- * every role's (Tabs) layout. Spread into `screenOptions`, then override
- * per-layout keys (e.g. `tabBarLabelStyle`) as needed.
+ * Shared screenOptions for every role's (Tabs) layout. Pair with
+ * `tabBar={(p) => <IslandTabBar {...p} />}` on the navigator.
  */
 export function useFloatingTabBarOptions(labelStyle?: TextStyle) {
-  const { colors, scheme, layout } = useTheme();
-  const r = layout.tabBarRadius;
-  const isDark = scheme === "dark";
-
+  const { colors } = useTheme();
   return {
     headerShown: false,
-    tabBarActiveTintColor: colors.primary,
+    tabBarActiveTintColor: colors.onPrimary,
     tabBarInactiveTintColor: colors.textSubtle,
-    tabBarItemStyle: { paddingTop: 6 },
-    tabBarStyle: {
-      position: "absolute" as const,
-      left: 14,
-      right: 14,
-      bottom: Platform.OS === "ios" ? 26 : 14,
-      height: 70,
-      backgroundColor: "transparent",
-      borderTopWidth: 0,
-      paddingBottom: 8,
-      paddingTop: 4,
-      borderRadius: r,
-      elevation: 12,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: isDark ? 0.5 : 0.14,
-      shadowRadius: 28,
-    },
-    tabBarBackground: () => (
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          { borderRadius: r, borderCurve: "continuous", overflow: "hidden" },
-        ]}
-      >
-        {Platform.OS === "ios" ? (
-          <BlurView
-            intensity={isDark ? 60 : 85}
-            tint={isDark ? "dark" : "light"}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor:
-                Platform.OS === "android" ? colors.surface : colors.glass,
-            },
-          ]}
-        />
-        {/* Hairline edge + lit top rim, like iOS material chrome */}
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: r,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? colors.glassBorder : colors.separator,
-            },
-          ]}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: StyleSheet.hairlineWidth,
-            left: r / 2,
-            right: r / 2,
-            height: 1,
-            backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.9)",
-          }}
-        />
-      </View>
-    ),
-    tabBarLabelStyle: {
-      fontSize: 10,
-      fontFamily: "PlusJakartaSans_600SemiBold",
-      letterSpacing: -0.1,
-      marginTop: 2,
-      ...labelStyle,
-    },
+    tabBarLabelStyle: labelStyle,
   };
+}
+
+/**
+ * Dynamic Island–style tab bar: a floating capsule stretched edge-to-edge.
+ * The focused tab morphs into a brand-gradient pill carrying its label;
+ * inactive tabs flex into evenly-spaced icon cells. On narrow screens or
+ * wide-script locales the pill degrades to an icon-only dot.
+ */
+export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { colors, fontFamily, motion, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const motionEnabled = useMotionEnabled();
+
+  const focusedOptions = descriptors[state.routes[state.index].key].options;
+  const hiddenBar = StyleSheet.flatten(focusedOptions.tabBarStyle as any)?.display === "none";
+
+  const routes = state.routes.filter((r) => {
+    const btn = descriptors[r.key].options.tabBarButton as any;
+    return !(btn && btn({}) === null);
+  });
+
+  if (hiddenBar) return null;
+
+  const count = routes.length;
+  const barWidth = width - BAR_MARGIN * 2;
+  // Width left for the label after capsule padding, inter-item gaps, the
+  // inactive cells at their floor, and the pill's icon + padding chrome.
+  const labelMax =
+    barWidth -
+    PAD * 2 -
+    GAP * (count - 1) -
+    CELL_MIN * (count - 1) -
+    (PILL_PAD_L + ICON + 6 + PILL_PAD_R);
+  const showLabel = labelMax >= LABEL_MIN;
+  const dense = count > 5;
+
+  const layout = motionEnabled
+    ? LinearTransition.springify()
+        .damping(motion.spring.snappy.damping)
+        .stiffness(motion.spring.snappy.stiffness)
+        .mass(motion.spring.snappy.mass)
+    : undefined;
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: insets.bottom > 0 ? insets.bottom - 4 : 14,
+        paddingHorizontal: BAR_MARGIN,
+      }}
+    >
+      <Animated.View
+        layout={layout}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: GAP,
+          padding: PAD,
+          borderRadius: (ITEM + PAD * 2) / 2,
+          borderCurve: "continuous",
+          backgroundColor: colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: scheme === "dark" ? 0.5 : 0.16,
+          shadowRadius: 24,
+          elevation: 14,
+        }}
+      >
+        {routes.map((route) => {
+          const { options } = descriptors[route.key];
+          const focused = state.routes[state.index].key === route.key;
+          const label =
+            typeof options.tabBarLabel === "string"
+              ? options.tabBarLabel
+              : options.title ?? route.name;
+          const showPillLabel = focused && showLabel;
+
+          const onPress = () => {
+            const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+            if (!focused && !event.defaultPrevented) {
+              if (Platform.OS === "ios") Haptics.selectionAsync().catch(() => {});
+              navigation.navigate(route.name, route.params);
+            }
+          };
+          const onLongPress = () => navigation.emit({ type: "tabLongPress", target: route.key });
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+              testID={options.tabBarTestID}
+              style={{
+                flexGrow: focused ? 0 : 1,
+                flexShrink: 1,
+                flexBasis: focused ? undefined : CELL_MIN,
+              }}
+            >
+              {({ pressed }) => (
+                <Animated.View
+                  layout={layout}
+                  style={{
+                    height: ITEM,
+                    minWidth: focused ? ITEM : CELL_MIN,
+                    borderRadius: ITEM / 2,
+                    borderCurve: "continuous",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingLeft: showPillLabel ? PILL_PAD_L : 0,
+                    paddingRight: showPillLabel ? PILL_PAD_R : 0,
+                    overflow: "hidden",
+                    backgroundColor: !focused && pressed ? colors.fill : "transparent",
+                    transform: [{ scale: pressed ? 0.94 : 1 }],
+                  }}
+                >
+                  {focused ? (
+                    <Animated.View
+                      entering={motionEnabled ? FadeIn.duration(180) : undefined}
+                      style={StyleSheet.absoluteFill}
+                    >
+                      <LinearGradient
+                        colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      <LinearGradient
+                        colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0)"]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 0.9 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    </Animated.View>
+                  ) : null}
+                  {options.tabBarIcon?.({
+                    focused,
+                    color: focused ? "#FFFFFF" : colors.textSubtle,
+                    size: ICON,
+                  }) as React.ReactNode}
+                  {showPillLabel ? (
+                    <Animated.Text
+                      entering={motionEnabled ? FadeIn.delay(60).duration(200) : undefined}
+                      exiting={motionEnabled ? FadeOut.duration(80) : undefined}
+                      numberOfLines={1}
+                      style={{
+                        maxWidth: labelMax,
+                        color: "#FFFFFF",
+                        fontSize: dense ? 12.5 : 13,
+                        letterSpacing: -0.1,
+                        fontFamily: fontFamily.bodySemibold,
+                      }}
+                    >
+                      {label}
+                    </Animated.Text>
+                  ) : null}
+                </Animated.View>
+              )}
+            </Pressable>
+          );
+        })}
+      </Animated.View>
+    </View>
+  );
 }

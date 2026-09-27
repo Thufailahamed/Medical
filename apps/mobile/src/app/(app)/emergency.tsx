@@ -624,7 +624,7 @@ export default function EmergencyScreen() {
                     borderRadius: radius.xl,
                     borderCurve: "continuous",
                     borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: colors.separator,
+                    borderColor: colors.hairline,
                     ...(scheme === "dark" ? null : shadow.sm),
                   }}
                 >

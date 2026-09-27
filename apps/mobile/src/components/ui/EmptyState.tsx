@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Folder, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone } from "@/theme/tone";
@@ -27,8 +28,8 @@ export function EmptyState({
   tone = "primary",
   style,
 }: Props) {
-  const { colors, spacing, typography, radius } = useTheme();
-  const { bg, fg } = useTone(tone);
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const { fg, bgStrong, onBgStrong } = useTone(tone);
   const displayMessage = message || body;
 
   const renderIcon = () => {
@@ -36,7 +37,7 @@ export function EmptyState({
       return Icon;
     }
     const Component = Icon as any;
-    return <Component size={34} color={fg} strokeWidth={1.75} />;
+    return <Component size={28} color={onBgStrong} strokeWidth={1.9} />;
   };
 
   return (
@@ -53,31 +54,52 @@ export function EmptyState({
       ]}
       accessibilityRole="summary"
     >
-      {/* Concentric halo: the soft layered glyph used for empty lists on iOS */}
+      {/* Concentric halo around a solid, sheened glyph disc */}
       <View
         style={{
-          width: 116,
-          height: 116,
-          borderRadius: 58,
+          width: 112,
+          height: 112,
+          borderRadius: 56,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: withOpacity(fg, 0.06),
+          backgroundColor: withOpacity(fg, 0.07),
         }}
       >
         <View
           style={{
-            width: 80,
-            height: 80,
-            borderRadius: 26,
-            borderCurve: "continuous",
+            width: 86,
+            height: 86,
+            borderRadius: 43,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: bg,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: withOpacity(fg, 0.18),
+            backgroundColor: withOpacity(fg, 0.1),
           }}
         >
-          {renderIcon()}
+          <View
+            style={[
+              {
+                width: 62,
+                height: 62,
+                borderRadius: 31,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: bgStrong,
+              },
+              scheme === "dark"
+                ? null
+                : { ...shadow.md, shadowColor: bgStrong, shadowOpacity: 0.3 },
+            ]}
+          >
+            <View style={[StyleSheet.absoluteFill, { borderRadius: 31, overflow: "hidden" }]} pointerEvents="none">
+              <LinearGradient
+                colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0)"]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
+            {renderIcon()}
+          </View>
         </View>
       </View>
       <View style={{ alignItems: "center", gap: spacing.xs }}>

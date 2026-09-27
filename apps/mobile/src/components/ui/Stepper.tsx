@@ -4,7 +4,10 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  interpolate,
+  Extrapolation,
   Easing,
+  type SharedValue,
 } from "react-native-reanimated";
 import { Check } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -15,19 +18,15 @@ type Props = {
 };
 
 export function Stepper({ steps, current }: Props) {
-  const { colors, spacing, typography, shadow } = useTheme();
-  const progress = useSharedValue(0);
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const progress = useSharedValue(current);
 
   useEffect(() => {
     progress.value = withTiming(current, {
-      duration: 380,
+      duration: 420,
       easing: Easing.bezier(0.4, 0, 0.2, 1),
     });
   }, [current, progress]);
-
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${(progress.value / Math.max(1, steps.length - 1)) * 100}%`,
-  }));
 
   return (
     <View style={{ paddingHorizontal: spacing.lg }}>
@@ -37,173 +36,143 @@ export function Stepper({ steps, current }: Props) {
           borderRadius: 22,
           borderCurve: "continuous",
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.border,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.md,
-          ...shadow.sm,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+          paddingVertical: spacing.md + 2,
+          paddingHorizontal: spacing.lg,
+          gap: spacing.md,
+          ...(scheme === "dark" ? null : shadow.card),
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: spacing.md,
-          }}
-        >
-          <Text style={[typography.label.md, { color: colors.text, fontWeight: "800" }]}>
-            {steps[current]}
-          </Text>
-          <View
-            style={{
-              paddingHorizontal: 9,
-              paddingVertical: 4,
-              borderRadius: 999,
-              backgroundColor: colors.primarySoft,
-            }}
-          >
-            <Text style={[typography.caption, { color: colors.primary, fontWeight: "800" }]}>
+        <View style={styles.headRow}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[typography.kicker, { color: colors.textSubtle, textTransform: "uppercase" }]}>
               {`${current + 1} / ${steps.length}`}
             </Text>
+            <Text numberOfLines={1} style={[typography.title.md, { color: colors.text, marginTop: 2 }]}>
+              {steps[current]}
+            </Text>
+          </View>
+          <View style={[styles.dots, { gap: 6 }]}>
+            {steps.map((label, i) => {
+              const done = i < current;
+              const active = i === current;
+              return (
+                <View
+                  key={label + i}
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: done || active ? colors.primary : colors.fill,
+                      ...(active && scheme !== "dark" ? shadow.primary : null),
+                    },
+                  ]}
+                >
+                  {done ? (
+                    <Check size={13} color={colors.onPrimary} strokeWidth={3.2} />
+                  ) : (
+                    <Text
+                      style={[
+                        typography.label.xs,
+                        { color: active ? colors.onPrimary : colors.textMuted },
+                      ]}
+                    >
+                      {i + 1}
+                    </Text>
+                  )}
+                </View>
+              );
+            })}
           </View>
         </View>
-        {/* Connector track behind the dots */}
-        <View style={[styles.trackRow]}>
-          <View
-            style={[
-              styles.track,
-              {
-                backgroundColor: colors.border,
-                borderRadius: 999,
-                height: 3,
-              },
-            ]}
-          >
-            <Animated.View
-              style={[
-                styles.fill,
-                {
-                  backgroundColor: colors.primary,
-                  borderRadius: 999,
-                },
-                fillStyle,
-              ]}
-            />
+
+        <View style={{ gap: spacing.sm }}>
+          <View style={[styles.segments, { gap: 6 }]}>
+            {steps.map((label, i) => (
+              <Segment key={label + i} index={i} progress={progress} track={colors.fill} fill={colors.primary} />
+            ))}
           </View>
-
-          {steps.map((label, i) => {
-            const state = i < current ? "done" : i === current ? "active" : "todo";
-            const isDone = state === "done";
-            const isActive = state === "active";
-
-            return (
-              <View
-                key={label + i}
-                style={[
-                  styles.dotWrap,
-                  {
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    borderWidth: isActive ? 0 : 1.5,
-                    borderColor: isDone
-                      ? colors.primary
-                      : colors.borderStrong,
-                    backgroundColor: isDone || isActive
-                      ? colors.primary
-                      : colors.surfaceMuted,
-                    shadowColor: isActive ? colors.primary : "transparent",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: isActive ? 0.28 : 0,
-                    shadowRadius: 8,
-                    elevation: isActive ? 3 : 0,
-                  },
-                ]}
-              >
-                {isDone ? (
-                  <Check size={15} color={colors.onPrimary} strokeWidth={3} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.numeral,
-                      {
-                        color: isActive ? colors.onPrimary : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {i + 1}
-                  </Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Labels */}
-        <View style={[styles.row, { marginTop: spacing.sm }]}>
-          {steps.map((label, i) => {
-            const state = i < current ? "done" : i === current ? "active" : "todo";
-            return (
-              <View key={label + i} style={styles.stepWrap}>
+          <View style={[styles.segments, { gap: 6 }]}>
+            {steps.map((label, i) => {
+              const state = i < current ? "done" : i === current ? "active" : "todo";
+              return (
                 <Text
+                  key={label + i}
+                  numberOfLines={1}
                   style={[
                     typography.caption,
                     {
+                      flex: 1,
                       color:
-                        state === "todo"
-                          ? colors.textSubtle
-                          : state === "active"
-                            ? colors.primary
-                            : colors.text,
-                      fontWeight: state === "active" ? "800" : "600",
-                      textAlign: "center",
-                      fontSize: 12,
+                        state === "active"
+                          ? colors.primary
+                          : state === "done"
+                            ? colors.text
+                            : colors.textSubtle,
+                      fontFamily:
+                        state === "active" ? typography.label.xs.fontFamily : typography.caption.fontFamily,
                     },
                   ]}
-                  numberOfLines={1}
                 >
                   {label}
                 </Text>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
       </View>
     </View>
   );
 }
 
+function Segment({
+  index,
+  progress,
+  track,
+  fill,
+}: {
+  index: number;
+  progress: SharedValue<number>;
+  track: string;
+  fill: string;
+}) {
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${interpolate(progress.value + 1 - index, [0, 1], [0, 100], Extrapolation.CLAMP)}%`,
+  }));
+  return (
+    <View style={[styles.segment, { backgroundColor: track }]}>
+      <Animated.View style={[styles.segmentFill, { backgroundColor: fill }, fillStyle]} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  trackRow: {
+  headRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  track: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    top: 14.5,
-    overflow: "hidden",
+  dots: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  fill: {
-    height: "100%",
-  },
-  dotWrap: {
+  dot: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1,
   },
-  row: {
+  segments: {
     flexDirection: "row",
-    justifyContent: "space-between",
   },
-  stepWrap: {
+  segment: {
     flex: 1,
-    alignItems: "center",
+    height: 5,
+    borderRadius: 999,
+    overflow: "hidden",
   },
-  numeral: {
-    fontSize: 13,
-    fontWeight: "800",
+  segmentFill: {
+    height: "100%",
+    borderRadius: 999,
   },
 });

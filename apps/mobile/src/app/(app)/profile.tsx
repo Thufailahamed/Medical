@@ -1179,7 +1179,7 @@ function StatTile({
         borderRadius: radius.xl,
         borderCurve: "continuous",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.separator,
+        borderColor: colors.hairline,
         padding: spacing.md,
         gap: spacing.sm,
         ...shadow.md,

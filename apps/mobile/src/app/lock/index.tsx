@@ -22,8 +22,7 @@ import { View, Text, Pressable, Alert, StyleSheet, useWindowDimensions } from "r
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import * as Haptics from "expo-haptics";
-import { Fingerprint, Heart, LogOut, ShieldCheck } from "lucide-react-native";
+import { Fingerprint, Heart, ScanFace } from "lucide-react-native";
 import { Screen } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useAppLockStore } from "@/stores/appLock";
@@ -42,7 +41,7 @@ type Mode = "biometric" | "pin";
 export default function LockScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, fontFamily, spacing, typography } = useTheme();
+  const { colors, fontFamily, spacing, shadow } = useTheme();
   const { height } = useWindowDimensions();
   const compact = height < 900;
   const tiny = height < 700;
@@ -130,9 +129,6 @@ export default function LockScreen() {
     setBusy(false);
     if (!ok) {
       setError(t("appLock.unlock.wrongPin"));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
-        () => {},
-      );
       setPin("");
     }
   }
@@ -161,120 +157,104 @@ export default function LockScreen() {
   // all — we just stay in PIN mode.
   const showBiometricCta =
     biometricEnabled && biometricStatus === "available" && mode === "pin";
+  const BiometricIcon = /face/i.test(biometricName_) ? ScanFace : Fingerprint;
+  const iconSize = tiny ? 52 : 60;
 
   return (
     <Screen
       padded={false}
       scroll={false}
       edges={["top", "bottom"]}
-      style={{ backgroundColor: colors.surfaceSubtle }}
+      style={{ backgroundColor: colors.surface }}
     >
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <LinearGradient
-          colors={[colors.primarySoft, colors.surfaceSubtle]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ height: "48%", width: "100%" }}
-        />
-      </View>
-
       <View
         style={{
           flex: 1,
           paddingHorizontal: spacing.xl,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.lg,
+          paddingTop: tiny ? spacing.lg : compact ? spacing.xxl : spacing.xxxxl,
+          paddingBottom: spacing.sm,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-            <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center" }}>
-              <Heart size={18} color={colors.primary} strokeWidth={2.5} />
-            </View>
-            <Text style={{ fontSize: 17, letterSpacing: -0.5, color: colors.text, fontFamily: fontFamily.heavy }}>
-              HealthHub
-            </Text>
+        <View style={{ alignItems: "center" }}>
+          <View
+            style={{
+              width: iconSize,
+              height: iconSize,
+              borderRadius: iconSize * 0.2237,
+              borderCurve: "continuous",
+              overflow: "hidden",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: tiny ? spacing.md : spacing.lg,
+              ...shadow.md,
+            }}
+          >
+            <LinearGradient
+              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Heart size={iconSize * 0.48} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
           </View>
-          <View accessibilityLabel={t("appLock.settings.title")} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border }}>
-            <ShieldCheck size={17} color={colors.primary} strokeWidth={2} />
-          </View>
-        </View>
-
-        <View style={{ alignItems: "center", marginTop: tiny ? spacing.lg : compact ? spacing.xxl : spacing.xxxxl }}>
-          <View style={{ width: tiny ? 72 : compact ? 86 : 100, height: tiny ? 72 : compact ? 86 : 100, borderRadius: 50, backgroundColor: colors.primarySoft, alignItems: "center", justifyContent: "center", marginBottom: tiny ? spacing.sm : spacing.md }}>
-            <View style={{ width: tiny ? 54 : compact ? 64 : 72, height: tiny ? 54 : compact ? 64 : 72, borderRadius: tiny ? 18 : 22, borderCurve: "continuous", overflow: "hidden", alignItems: "center", justifyContent: "center", shadowColor: colors.primary, shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 }}>
-              <LinearGradient
-                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <Fingerprint size={36} color="#FFFFFF" strokeWidth={1.9} />
-            </View>
-          </View>
-          <Text style={[compact ? typography.display.sm : typography.display.md, { color: colors.text, textAlign: "center" }]}>
+          <Text
+            style={{
+              fontSize: tiny ? 20 : 22,
+              lineHeight: tiny ? 26 : 28,
+              letterSpacing: -0.4,
+              color: colors.text,
+              fontFamily: fontFamily.bodySemibold,
+              textAlign: "center",
+            }}
+          >
             {mode === "biometric"
               ? t("appLock.unlock.useBiometric", { name: biometricName_ })
               : t("appLock.unlock.title")}
           </Text>
-          <Text style={{ fontSize: tiny ? 13 : 15, color: colors.textMuted, fontFamily: fontFamily.body, textAlign: "center", lineHeight: tiny ? 19 : 22, marginTop: spacing.xs, maxWidth: 300 }}>
+          <Text
+            style={{
+              fontSize: 15,
+              lineHeight: 20,
+              color: colors.textMuted,
+              fontFamily: fontFamily.body,
+              textAlign: "center",
+              marginTop: 4,
+              maxWidth: 300,
+            }}
+          >
             {t("appLock.unlock.subtitle")}
           </Text>
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center", paddingVertical: tiny ? spacing.sm : compact ? spacing.md : spacing.xl }}>
+        <View style={{ flex: 1, justifyContent: "center", paddingVertical: tiny ? spacing.sm : spacing.lg }}>
           {mode === "biometric" ? (
-            <View
-              style={{
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
+            <View style={{ alignItems: "center", gap: spacing.xl }}>
               <Pressable
                 onPress={() => void runBiometric()}
                 accessibilityRole="button"
-                accessibilityLabel={biometricName_}
-                hitSlop={8}
+                accessibilityLabel={t("appLock.unlock.useBiometric", { name: biometricName_ })}
                 style={({ pressed }) => ({
-                  width: compact ? 96 : 112,
-                  height: compact ? 96 : 112,
-                  borderRadius: compact ? 48 : 56,
-                  backgroundColor: colors.primarySoft,
+                  width: 104,
+                  height: 104,
+                  borderRadius: 52,
+                  backgroundColor: pressed ? colors.fillStrong : colors.fill,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 6,
-                  borderColor: colors.surface,
-                  transform: [{ scale: pressed ? 0.96 : 1 }],
                 })}
               >
-                <Fingerprint size={52} color={colors.primary} strokeWidth={1.8} />
+                <BiometricIcon size={50} color={colors.primary} strokeWidth={1.5} />
               </Pressable>
-              <Pressable
-                onPress={() => setMode("pin")}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t("appLock.unlock.useBiometric", {
-                  name: "PIN",
-                })}
-                style={{
-                  paddingHorizontal: spacing.lg,
-                  height: 36,
-                  justifyContent: "center",
-                  borderRadius: 20,
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 14,
-                    fontFamily: fontFamily.bodySemibold,
-                  }}
-                >
-                  {t("appLock.unlock.subtitle")}
+              {error ? (
+                <Text style={{ color: colors.danger, fontSize: 13, fontFamily: fontFamily.bodyMedium, textAlign: "center" }}>
+                  {error}
                 </Text>
+              ) : null}
+              <Pressable onPress={() => setMode("pin")} hitSlop={12} accessibilityRole="button">
+                {({ pressed }) => (
+                  <Text style={{ color: colors.primary, fontSize: 17, fontFamily: fontFamily.bodySemibold, opacity: pressed ? 0.5 : 1 }}>
+                    {t("appLock.unlock.enterPin")}
+                  </Text>
+                )}
               </Pressable>
             </View>
           ) : (
@@ -291,140 +271,57 @@ export default function LockScreen() {
               error={!!error}
               hint={error ?? undefined}
               disabled={busy}
+              leftAction={
+                showBiometricCta
+                  ? {
+                      icon: <BiometricIcon size={30} color={colors.primary} strokeWidth={1.6} />,
+                      onPress: () => void runBiometric(),
+                      accessibilityLabel: t("appLock.unlock.useBiometric", { name: biometricName_ }),
+                    }
+                  : undefined
+              }
             />
           )}
         </View>
 
-        <View style={{ gap: spacing.sm }}>
-          {showBiometricCta ? (
-            <Pressable
-              onPress={() => setMode("biometric")}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={biometricName_}
-              style={({ pressed }) => ({
-                height: 50,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                overflow: "hidden",
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-                shadowColor: colors.primary,
-                shadowOpacity: 0.22,
-                shadowRadius: 14,
-                shadowOffset: { width: 0, height: 7 },
-                elevation: 4,
-              })}
-            >
-              <LinearGradient
-                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: spacing.sm,
-                }}
-              >
-                <Fingerprint size={19} color="#FFFFFF" />
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 15,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  {t("appLock.unlock.useBiometric", { name: biometricName_ })}
-                </Text>
-              </LinearGradient>
-            </Pressable>
-          ) : null}
-
-          <View
-            style={{
-              flexDirection: "row",
-              minHeight: 50,
-              borderRadius: 16,
-              borderCurve: "continuous",
-              overflow: "hidden",
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              shadowColor: colors.shadow,
-              shadowOpacity: 0.05,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: 2,
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: spacing.sm,
+          }}
+        >
+          <TextLink label={t("appLock.unlock.forgotPinShort")} onPress={onForgotPin} />
+          <TextLink
+            label={t("appLock.unlock.switchAccountShort")}
+            onPress={async () => {
+              await signOut();
+              router.replace("/(auth)/login");
             }}
-          >
-            <Pressable
-              onPress={onForgotPin}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t("appLock.unlock.forgotPin")}
-              style={({ pressed }) => ({
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: spacing.sm,
-                paddingVertical: spacing.xs,
-                backgroundColor: pressed ? colors.dangerSoft : "transparent",
-              })}
-            >
-              <Text
-                numberOfLines={2}
-                style={{
-                  color: colors.danger,
-                  fontSize: 12,
-                  lineHeight: 16,
-                  textAlign: "center",
-                  fontFamily: fontFamily.bodySemibold,
-                }}
-              >
-                {t("appLock.unlock.forgotPin")}
-              </Text>
-            </Pressable>
-
-            <View style={{ width: 1, backgroundColor: colors.border }} />
-
-            <Pressable
-              onPress={async () => {
-                await signOut();
-                router.replace("/(auth)/login");
-              }}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t("appLock.unlock.switchAccount")}
-              style={({ pressed }) => ({
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                paddingHorizontal: spacing.sm,
-                paddingVertical: spacing.xs,
-                backgroundColor: pressed ? colors.fill : "transparent",
-              })}
-            >
-              <LogOut size={14} color={colors.textMuted} />
-              <Text
-                numberOfLines={2}
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 12,
-                  lineHeight: 16,
-                  textAlign: "center",
-                  fontFamily: fontFamily.bodyMedium,
-                }}
-              >
-                {t("appLock.unlock.switchAccount")}
-              </Text>
-            </Pressable>
-          </View>
+          />
         </View>
       </View>
     </Screen>
   );
 }
 
+function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors, fontFamily } = useTheme();
+  return (
+    <Pressable onPress={onPress} hitSlop={12} accessibilityRole="button" accessibilityLabel={label}>
+      {({ pressed }) => (
+        <Text
+          style={{
+            color: colors.primary,
+            fontSize: 15,
+            fontFamily: fontFamily.bodyMedium,
+            opacity: pressed ? 0.45 : 1,
+          }}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}

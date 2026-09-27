@@ -113,7 +113,7 @@ export default function RxTemplatesScreen() {
   const router = useRouter();
   const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const hairline = isDark ? colors.borderStrong : colors.hairline;
 
   const { data, isLoading, isError, refetch, isRefetching } = useDoctorRxTemplates();
   const deleteMutation = useDeleteRxTemplate();
@@ -207,7 +207,7 @@ export default function RxTemplatesScreen() {
             padding: 16,
             marginHorizontal: spacing.lg,
             marginBottom: 12,
-            ...(isDark ? {} : shadow.sm),
+            ...(isDark ? {} : shadow.card),
             opacity: pressed ? 0.94 : 1,
             transform: [{ scale: pressed ? 0.99 : 1 }],
           })}
@@ -579,7 +579,7 @@ export default function RxTemplatesScreen() {
               borderCurve: "continuous",
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: hairline,
-              ...(isDark ? {} : shadow.sm),
+              ...(isDark ? {} : shadow.card),
             }}
           >
             <View
@@ -690,7 +690,7 @@ export default function RxTemplatesScreen() {
                 borderWidth: StyleSheet.hairlineWidth,
                 borderColor: hairline,
                 overflow: "hidden",
-                ...(isDark ? {} : shadow.sm),
+                ...(isDark ? {} : shadow.card),
               }}
             >
               {STARTER_TEMPLATES.map((st, i) => (

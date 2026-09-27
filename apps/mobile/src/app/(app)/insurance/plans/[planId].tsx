@@ -161,7 +161,7 @@ export default function PlanDetail() {
                   borderCurve: "continuous",
                   overflow: "hidden",
                   borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: colors.separator,
+                  borderColor: colors.hairline,
                   backgroundColor: colors.surfaceMuted,
                   flexShrink: 0,
                 }}

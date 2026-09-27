@@ -91,8 +91,8 @@ export default function PlanDetailPage({
       <div className="flex flex-col gap-6 pb-16 animate-pulse">
         <div className="h-44 rounded-2xl bg-slate-200" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 h-96 rounded-2xl bg-slate-100" />
-          <div className="lg:col-span-4 h-80 rounded-2xl bg-slate-100" />
+          <div className="lg:col-span-8 h-96 rounded-2xl bg-surface-2" />
+          <div className="lg:col-span-4 h-80 rounded-2xl bg-surface-2" />
         </div>
       </div>
     );
@@ -100,15 +100,15 @@ export default function PlanDetailPage({
 
   if (!data?.plan) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-slate-200 bg-white">
-        <Building2 size={36} className="text-slate-400 mb-3" />
-        <h2 className="text-lg font-bold text-slate-900">Insurance Plan Not Found</h2>
-        <p className="text-xs text-slate-500 mt-1 max-w-sm">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-border bg-white">
+        <Building2 size={36} className="text-text-muted mb-3" />
+        <h2 className="text-lg font-bold text-text">Insurance Plan Not Found</h2>
+        <p className="text-xs text-text-soft mt-1 max-w-sm">
           The requested insurance policy may have expired or is no longer listed in the marketplace.
         </p>
         <Link
           href="/patient/insurance/marketplace"
-          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-brand bg-brand-soft hover:bg-brand-soft border border-border transition-colors"
         >
           <ChevronLeft size={14} />
           <span>Back to Insurance Marketplace</span>
@@ -187,7 +187,7 @@ export default function PlanDetailPage({
               </Link>
               <Link
                 href={`/patient/insurance/quote?planId=${plan.id}&cycle=${cycle}`}
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
+                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-text bg-surface hover:bg-brand-soft transition-all shadow-md hover:scale-[1.02]"
                 style={{ color: "#0c4a6e" }}
               >
                 <Zap size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
@@ -262,16 +262,16 @@ export default function PlanDetailPage({
         {/* Left Column: Plan In-Depth Coverage */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {/* Plan Meta Banner Card */}
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 shrink-0 shadow-2xs">
+              <div className="h-12 w-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center border border-border shrink-0 shadow-2xs">
                 <Building2 size={24} />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-slate-500">
+                <div className="text-xs font-semibold text-text-soft">
                   {plan.providerName ?? "Accredited Insurer"}
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 leading-tight">
+                <h2 className="text-lg font-bold text-text leading-tight">
                   {plan.name}
                 </h2>
               </div>
@@ -279,7 +279,7 @@ export default function PlanDetailPage({
 
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-brand-soft text-brand border border-border">
                 {TYPE_LABEL[plan.planType] ?? plan.planType}
               </span>
               {plan.isFeatured && (
@@ -294,21 +294,21 @@ export default function PlanDetailPage({
                   Save {plan.annualDiscountPct.toFixed(0)}% annually
                 </span>
               )}
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-surface-2 text-text border border-border">
                 {plan.termMonths}-Month Contract
               </span>
             </div>
           </section>
 
           {/* Coverage & Benefits Grid Card */}
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-5">
-            <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between">
+          <section className="rounded-2xl border border-border bg-surface p-5 sm:p-7 shadow-xs flex flex-col gap-5">
+            <div className="border-b border-border pb-3.5 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-sky-600" />
+                <h3 className="text-base font-bold text-text flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-brand" />
                   <span>Coverage &amp; Policy Benefits</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-text-soft mt-0.5">
                   Core financial limits, deductibles, waiting windows, and inpatient terms.
                 </p>
               </div>
@@ -340,8 +340,8 @@ export default function PlanDetailPage({
                 sub="Paid before insurance activates"
               />
               <BenefitTile
-                icon={<Wallet size={16} className="text-sky-600" />}
-                iconBg="bg-sky-50 border-sky-200"
+                icon={<Wallet size={16} className="text-brand" />}
+                iconBg="bg-brand-soft border-border"
                 label="Co-Payment Cap"
                 value={plan.coPaymentCapLkr > 0 ? formatLkr(plan.coPaymentCapLkr) : "Unlimited Protection"}
                 sub="Max out-of-pocket ceiling"
@@ -386,8 +386,8 @@ export default function PlanDetailPage({
 
           {/* Key Features List */}
           {plan.keyFeatures && plan.keyFeatures.length > 0 && (
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <section className="rounded-2xl border border-border bg-surface p-5 sm:p-7 shadow-xs flex flex-col gap-4">
+              <h3 className="text-base font-bold text-text flex items-center gap-2">
                 <CheckCircle2 size={18} className="text-emerald-600" />
                 <span>What is Included &amp; Key Plan Highlights</span>
               </h3>
@@ -395,7 +395,7 @@ export default function PlanDetailPage({
                 {plan.keyFeatures.map((f, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-xl bg-emerald-50/40 border border-emerald-200/60 flex items-start gap-2.5 text-xs text-slate-800"
+                    className="p-3 rounded-xl bg-emerald-50/40 border border-emerald-200/60 flex items-start gap-2.5 text-xs text-text"
                   >
                     <Check size={14} className="text-emerald-600 shrink-0 mt-0.5 font-bold" />
                     <span className="leading-snug">{f}</span>
@@ -407,8 +407,8 @@ export default function PlanDetailPage({
 
           {/* Policy Exclusions List */}
           {plan.exclusions && plan.exclusions.length > 0 && (
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <section className="rounded-2xl border border-border bg-surface p-5 sm:p-7 shadow-xs flex flex-col gap-4">
+              <h3 className="text-base font-bold text-text flex items-center gap-2">
                 <X size={18} className="text-rose-600" />
                 <span>Policy Exclusions &amp; Waiting Limitations</span>
               </h3>
@@ -416,7 +416,7 @@ export default function PlanDetailPage({
                 {plan.exclusions.map((e, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-xl bg-rose-50/40 border border-rose-200/60 flex items-start gap-2.5 text-xs text-slate-700"
+                    className="p-3 rounded-xl bg-rose-50/40 border border-rose-200/60 flex items-start gap-2.5 text-xs text-text"
                   >
                     <X size={14} className="text-rose-500 shrink-0 mt-0.5" />
                     <span className="leading-snug">{e}</span>
@@ -429,12 +429,12 @@ export default function PlanDetailPage({
 
         {/* Right Column: Sticky Pricing & Enrollment Hub */}
         <aside className="lg:col-span-4 lg:sticky lg:top-4 lg:self-start flex flex-col gap-4">
-          <section className="rounded-2xl border-2 border-sky-500/30 bg-white p-5 sm:p-6 shadow-md flex flex-col gap-4">
+          <section className="rounded-2xl border-2 border-sky-500/30 bg-surface p-5 sm:p-6 shadow-md flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+              <span className="text-[11px] uppercase tracking-wider text-text-soft font-bold">
                 Indicative Premium
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-brand-soft text-brand border border-border">
                 Direct E-Enroll
               </span>
             </div>
@@ -442,10 +442,10 @@ export default function PlanDetailPage({
             {/* Price Display */}
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                <span className="text-3xl sm:text-4xl font-extrabold text-text tracking-tight">
                   {formatLkr(premium)}
                 </span>
-                <span className="text-sm font-semibold text-slate-500">{cycleLabel}</span>
+                <span className="text-sm font-semibold text-text-soft">{cycleLabel}</span>
               </div>
               <p className="text-xs text-emerald-600 font-medium mt-1">
                 {cycle === "annual" && plan.annualDiscountPct > 0
@@ -457,7 +457,7 @@ export default function PlanDetailPage({
             </div>
 
             {/* Billing Cycle Switcher */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-surface-2 rounded-xl border border-border">
               <button
                 type="button"
                 onClick={() => setCycle("monthly")}
@@ -499,15 +499,15 @@ export default function PlanDetailPage({
 
               <Link
                 href={`/patient/insurance/enroll/${plan.id}?cycle=${cycle}`}
-                className="w-full h-11 rounded-xl text-xs sm:text-sm font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 rounded-xl text-xs sm:text-sm font-bold text-text bg-surface-2 hover:bg-surface-3 border border-border transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Enrol Directly Online</span>
                 <ArrowRight size={14} />
               </Link>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-start gap-2 leading-relaxed">
-              <Calculator size={13} className="text-slate-400 shrink-0 mt-0.5" />
+            <div className="pt-3 border-t border-border text-[11px] text-text-soft flex items-start gap-2 leading-relaxed">
+              <Calculator size={13} className="text-text-muted shrink-0 mt-0.5" />
               <span>
                 Premiums displayed are indicative. Final rates reflect your age, family member count, and pre-existing medical declaration.
               </span>
@@ -518,22 +518,22 @@ export default function PlanDetailPage({
           {plan.providerSlug && (
             <Link
               href={`/patient/insurance/marketplace?provider=${plan.providerSlug}`}
-              className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-all flex items-center justify-between gap-3 shadow-2xs group cursor-pointer"
+              className="rounded-2xl border border-border bg-surface p-4 hover:bg-surface-2 transition-all flex items-center justify-between gap-3 shadow-2xs group cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+                <div className="h-10 w-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0 border border-sky-100">
                   <Building2 size={18} />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10.5px] uppercase font-bold text-slate-400 block">
+                  <span className="text-[10.5px] uppercase font-bold text-text-muted block">
                     Underwriting Partner
                   </span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 truncate block group-hover:text-sky-700 transition-colors">
+                  <span className="text-xs sm:text-sm font-bold text-text truncate block group-hover:text-brand transition-colors">
                     {plan.providerName}
                   </span>
                 </div>
               </div>
-              <ChevronRight size={16} className="text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+              <ChevronRight size={16} className="text-text-muted group-hover:text-brand transition-colors shrink-0" />
             </Link>
           )}
         </aside>
@@ -556,7 +556,7 @@ function BenefitTile({
   sub: string;
 }) {
   return (
-    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 flex items-start gap-3 shadow-2xs">
+    <div className="p-3.5 rounded-xl bg-surface-2/70 border border-border flex items-start gap-3 shadow-2xs">
       <div
         className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border",
@@ -566,13 +566,13 @@ function BenefitTile({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] text-slate-500 font-medium leading-tight">
+        <div className="text-[11px] text-text-soft font-medium leading-tight">
           {label}
         </div>
-        <div className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5 truncate">
+        <div className="text-xs sm:text-sm font-extrabold text-text mt-0.5 truncate">
           {value}
         </div>
-        <div className="text-[10px] text-slate-400 mt-0.5 truncate">{sub}</div>
+        <div className="text-[10px] text-text-muted mt-0.5 truncate">{sub}</div>
       </div>
     </div>
   );
