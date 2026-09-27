@@ -58,17 +58,12 @@ export default function CaretakerDetailPage({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={c.photoUrl}
-                        alt=""
-                        className="h-20 w-20 rounded-pill object-cover"
+                        alt={`${c.name} portrait`}
+                        className="h-20 w-20 rounded-lg object-cover"
                       />
                     ) : (
                       <div
-                        className="grid h-20 w-20 place-items-center text-2xl font-bold text-white"
-                        style={{
-                          borderRadius: "var(--radius-pill)",
-                          background:
-                            "linear-gradient(145deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-                        }}
+                        className="grid h-20 w-20 place-items-center rounded-lg bg-ink text-brand-soft font-mono text-2xl font-bold"
                         aria-hidden
                       >
                         {c.name?.[0]?.toUpperCase() ?? "?"}
@@ -87,13 +82,14 @@ export default function CaretakerDetailPage({
                         </p>
                       ) : null}
                       {c.rating ? (
-                        <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
+                        <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-warn">
                           <Star size={12} aria-hidden /> {c.rating.toFixed(1)} · {c.reviewCount} reviews
                         </p>
                       ) : null}
                       {c.hourlyRate ? (
                         <p className="mt-2 text-base font-extrabold text-text">
-                          LKR {c.hourlyRate.toLocaleString()}/hour
+                          <span className="pt-metric">LKR {c.hourlyRate.toLocaleString()}</span>
+                          <span className="t-micro">/hour</span>
                         </p>
                       ) : null}
                     </div>

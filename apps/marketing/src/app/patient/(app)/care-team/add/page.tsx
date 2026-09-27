@@ -129,10 +129,10 @@ export default function AddCareTeamPage() {
 
       {/* ── 2. Add Care Team Member Form Card ──────────────────────────────── */}
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-7 shadow-xs flex flex-col gap-6">
+        <section className="rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-6">
           <div className="border-b border-border pb-4">
-            <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
-              <UserPlus size={19} className="text-sky-600" />
+            <h2 className="t-card-title text-text flex items-center gap-2">
+              <UserPlus size={19} className="text-brand" aria-hidden />
               <span>Clinician &amp; Caregiver Profile</span>
             </h2>
             <p className="text-xs text-text-soft mt-0.5">
@@ -156,7 +156,7 @@ export default function AddCareTeamPage() {
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="Dr. Anjali Perera, MD"
-                className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                className="pt-input pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -177,32 +177,28 @@ export default function AddCareTeamPage() {
                     key={r.value}
                     type="button"
                     onClick={() => setRole(r.value)}
-                    style={{
-                      backgroundColor: isSelected ? "#0284c7" : "#ffffff",
-                      borderColor: isSelected ? "#0284c7" : "#e2e8f0",
-                      color: isSelected ? "#ffffff" : "#1e293b",
-                    }}
                     className={cn(
-                      "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2.5 cursor-pointer group shadow-2xs hover:scale-[1.02]",
+                      "p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2.5 cursor-pointer group shadow-2xs hover:-translate-y-0.5",
                       isSelected
-                        ? "shadow-md ring-2 ring-sky-500/30"
-                        : "hover:border-border-strong hover:bg-surface-2",
+                        ? "bg-ink text-white border-ink shadow-md"
+                        : "bg-surface border-border hover:border-border-strong",
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
                       <div
                         className={cn(
-                          "h-8 w-8 rounded-xl flex items-center justify-center text-sm",
+                          "grid h-8 w-8 place-items-center rounded-md text-sm",
                           isSelected
-                            ? "bg-surface/20 text-white"
-                            : "bg-sky-50 text-sky-700",
+                            ? "bg-white/15 text-white"
+                            : "bg-brand-soft text-brand",
                         )}
+                        aria-hidden
                       >
                         <Icon size={16} />
                       </div>
 
                       {isSelected && (
-                        <div className="h-5 w-5 rounded-full bg-surface text-sky-700 flex items-center justify-center">
+                        <div className="grid h-5 w-5 place-items-center rounded-full bg-white text-ink" aria-hidden>
                           <Check size={12} strokeWidth={3} />
                         </div>
                       )}
@@ -243,7 +239,7 @@ export default function AddCareTeamPage() {
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
                   placeholder="e.g. Cardiology, Endocrinology, Pediatrics"
-                  className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                  className="pt-input pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -262,7 +258,7 @@ export default function AddCareTeamPage() {
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="e.g. Asiri Central Hospital, Lanka Hospitals"
-                  className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                  className="pt-input pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -284,7 +280,7 @@ export default function AddCareTeamPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+94 77 123 4567"
-                  className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                  className="pt-input pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -303,7 +299,7 @@ export default function AddCareTeamPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="doctor@hospital.org"
-                  className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+                  className="pt-input pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -319,23 +315,23 @@ export default function AddCareTeamPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Managing hypertension therapy, post-op cardiac follow-up, weekly wound dressing…"
-              className="w-full p-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all leading-relaxed"
+              className="pt-input h-auto py-3 text-xs sm:text-sm leading-relaxed"
             />
           </div>
 
           {error && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2.5">
-              <AlertCircle size={16} className="text-rose-600 shrink-0" />
+            <div className="p-4 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2.5">
+              <AlertCircle size={16} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
         </section>
 
         {/* ── 3. Action Buttons ────────────────────────────────────────────── */}
-        <footer className="flex items-center justify-between gap-3 bg-surface p-4 rounded-2xl border border-border shadow-xs">
+        <footer className="flex items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-border shadow-card">
           <Link
             href="/patient/care-team"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
+            className="pt-btn pt-btn-secondary h-10 px-4 text-xs"
           >
             Cancel
           </Link>
@@ -343,20 +339,17 @@ export default function AddCareTeamPage() {
           <button
             type="submit"
             disabled={add.isPending}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-50"
           >
             {add.isPending ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Saving to Care Team…</span>
+                <Loader2 size={14} className="animate-spin" aria-hidden />
+                Saving to Care Team…
               </>
             ) : (
               <>
-                <UserPlus size={14} />
-                <span>Add Member to Care Team</span>
+                <UserPlus size={14} aria-hidden />
+                Add Member to Care Team
               </>
             )}
           </button>
