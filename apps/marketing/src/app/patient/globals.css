@@ -627,13 +627,11 @@
   color: #0284c7 !important;
 }
 
-/* ============================================================
-   Patient Sidebar Design Tokens & Scoped Styles
-   ============================================================ */
+/* ── Patient sidebar — light paper VYRO rail ─────────────── */
 
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-color: rgba(19, 32, 68, 0.22) transparent;
 }
 
 .sidebar-scroll::-webkit-scrollbar {
@@ -645,86 +643,55 @@
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(19, 32, 68, 0.16);
   border-radius: 9999px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(19, 32, 68, 0.3);
 }
 
-.sidebar-group-label {
-  color: rgba(255, 255, 255, 0.4) !important;
-  font-family: var(--font-patient-mono);
+.sidebar-group-label-light {
+  color: var(--color-text-muted);
   font-size: 10px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.sidebar-link {
-  color: rgba(255, 255, 255, 0.62) !important;
-  background-color: transparent !important;
-  border: 1px solid transparent !important;
+.sidebar-link-light {
+  color: var(--color-text-soft);
+  background-color: transparent;
+  border: 1px solid transparent;
   transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
-  text-decoration: none !important;
+  text-decoration: none;
 }
 
-.sidebar-link:hover {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
+.sidebar-link-light:hover {
+  color: var(--color-text);
+  background-color: rgba(19, 32, 68, 0.04);
 }
 
-.sidebar-link[aria-current="page"] {
-  color: #ffffff !important;
+.sidebar-link-light[aria-current="page"] {
+  color: var(--color-text);
   font-weight: 600;
-  background: rgba(125, 211, 252, 0.12) !important;
-  border-color: rgba(125, 211, 252, 0.18) !important;
+  background: var(--color-brand-soft);
+  border-color: rgba(59, 111, 245, 0.18);
 }
 
-.sidebar-link[aria-current="page"]::before {
+.sidebar-link-light[aria-current="page"]::before {
   content: "";
   position: absolute;
   left: 0;
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: #38bdf8;
+  background: var(--color-brand);
 }
 
-.sidebar-link[aria-current="page"] svg {
-  color: #38bdf8 !important;
-}
-
-.sidebar-btn {
-  color: #94a3b8 !important;
-  background-color: transparent !important;
-  border: none !important;
-  transition: all 180ms ease;
-}
-
-.sidebar-btn:hover {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-.sidebar-footer-btn {
-  color: #94a3b8 !important;
-  transition: all 180ms ease;
-  border: 1px solid transparent !important;
-}
-
-.sidebar-footer-btn:hover {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-.sidebar-footer-btn-danger:hover {
-  color: #fca5a5 !important;
-  background-color: rgba(239, 68, 68, 0.15) !important;
-  border-color: rgba(239, 68, 68, 0.2) !important;
+.sidebar-link-light[aria-current="page"] svg {
+  color: var(--color-brand);
 }
 
 

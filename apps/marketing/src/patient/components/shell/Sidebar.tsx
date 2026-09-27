@@ -131,7 +131,6 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
   const toggle = useUiStore((s) => s.toggleSidebar);
   const user = useAuthStore((s) => s.user);
   const unreadNotifications = useUnreadNotificationsCount();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -178,44 +177,20 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
         collapsed ? "w-[72px]" : "w-[264px]"
       )}
       style={{
-        background: "linear-gradient(180deg, #070d18 0%, #0a1628 55%, #07101d 100%)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "4px 0 24px rgba(0, 0, 0, 0.25)",
+        background: "var(--color-surface)",
+        borderRight: "1px solid rgba(19, 32, 68, 0.10)",
       }}
       aria-label="Primary navigation"
     >
-      {/* ── Ambient Background Lighting ───────────────────────────────── */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-0 hidden"
         aria-hidden="true"
-      >
-        <div
-          className="absolute -top-[20%] -right-[15%] w-[80%] aspect-square rounded-full opacity-20 pointer-events-none"
-          style={{
-            background: "radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, transparent 65%)",
-          }}
-        />
-        <div
-          className="absolute -bottom-[20%] -left-[15%] w-[70%] aspect-square rounded-full opacity-15 pointer-events-none"
-          style={{
-            background: "radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 65%)",
-          }}
-        />
-        {/* Architectural subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.02] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-      </div>
+      />
 
       {/* ── Top Brand Header ────────────────────────────────────────────── */}
       <div
         className={cn(
-          "relative z-10 flex items-center gap-3 pt-4 pb-3.5 shrink-0 border-b border-white/[0.06]",
+          "relative z-10 flex items-center gap-3 pt-4 pb-3.5 shrink-0 border-b border-ink/[0.08]",
           collapsed ? "justify-center px-0" : "px-4"
         )}
       >
@@ -227,18 +202,16 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
           {/* Logo icon with glow */}
           <div className="relative flex-shrink-0">
             <div
-              className="relative h-9 w-9 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-105"
+              className="relative h-9 w-9 rounded-xl flex items-center justify-center shadow-brand transition-transform duration-200 group-hover:scale-105"
               style={{
-                background: "linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%)",
-                boxShadow: "0 4px 14px rgba(14,165,233,0.35), 0 0 0 1px rgba(255,255,255,0.2)",
+                background: "var(--color-brand)",
               }}
             >
               <HeartPulse size={18} className="text-white" strokeWidth={2.4} />
             </div>
             {/* Live Security Pulse */}
             <span
-              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#070d18] bg-emerald-400"
-              style={{ boxShadow: "0 0 8px #34d399" }}
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-success"
             />
           </div>
 
@@ -246,15 +219,15 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
           {!collapsed && (
             <div className="min-w-0 leading-none">
               <div className="flex items-center gap-1.5">
-                <span className="text-[14px] font-bold text-white tracking-tight">
+                <span className="text-[14px] font-bold text-text tracking-tight">
                   HealthHub
                 </span>
-                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/25">
+                <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-brand-soft text-brand border border-border">
                   Patient
                 </span>
               </div>
-              <div className="text-[10px] font-medium text-slate-400 mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <div className="text-[10px] font-medium text-text-muted mt-1 flex items-center gap-1.5">
+                <span className="pt-dot bg-success inline-block" />
                 <span className="tracking-wide">Personal Care</span>
               </div>
             </div>
@@ -268,20 +241,20 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
           <div className="relative flex items-center">
             <Search
               size={13}
-              className="absolute left-2.5 text-slate-400 pointer-events-none"
+              className="absolute left-2.5 text-text-muted pointer-events-none"
             />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Quick find..."
-              className="w-full h-8 pl-8 pr-7 bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-sky-500/50 rounded-lg text-xs text-white placeholder:text-slate-500 outline-none transition-all duration-150"
+              className="w-full h-8 pl-8 pr-7 bg-surface-2 border border-transparent hover:border-border focus:border-brand rounded-lg text-xs text-text placeholder:text-text-muted outline-none transition-all duration-150"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2 text-slate-400 hover:text-white p-0.5"
+                className="absolute right-2 text-text-muted hover:text-text p-0.5"
               >
                 <X size={12} />
               </button>
@@ -303,16 +276,16 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
-                    className="sidebar-group-label group/label flex items-center justify-between text-[10px] font-bold tracking-[0.12em] uppercase mb-1 px-2 py-1 rounded hover:bg-white/[0.03] transition-colors"
+                    className="sidebar-group-label-light group/label flex items-center justify-between text-[10px] font-bold tracking-[0.12em] uppercase mb-1 px-2 py-1 rounded hover:bg-ink/[0.03] transition-colors"
                   >
-                    <span className="text-slate-400 group-hover/label:text-slate-200 transition-colors">
+                    <span className="text-text-muted group-hover/label:text-text-soft transition-colors">
                       {group.label}
                     </span>
                     <span className="flex items-center gap-1.5 opacity-60 group-hover/label:opacity-100 transition-opacity">
                       <ChevronDown
                         size={11}
                         className={cn(
-                          "transition-transform duration-200 text-slate-400",
+                          "transition-transform duration-200 text-text-muted",
                           isGroupCollapsed ? "-rotate-90" : "rotate-0"
                         )}
                       />
@@ -329,7 +302,6 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                           ? pathname === "/patient"
                           : pathname?.startsWith(item.href) ?? false;
                       const Icon = item.icon;
-                      const isHovered = hoveredItem === item.href;
                       const hasBadge = item.badge && unreadNotifications > 0;
 
                       return (
@@ -340,10 +312,8 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                             title={collapsed ? item.label : undefined}
                             aria-label={item.label}
                             aria-current={active ? "page" : undefined}
-                            onMouseEnter={() => setHoveredItem(item.href)}
-                            onMouseLeave={() => setHoveredItem(null)}
                             className={cn(
-                              "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium sidebar-link",
+                              "group relative flex items-center gap-3 rounded-xl text-[13px] font-medium sidebar-link-light",
                               collapsed
                                 ? "justify-center h-10 w-10 mx-auto"
                                 : "h-[36px] px-2.5"
@@ -352,11 +322,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                             {/* Active left glowing bar */}
                             {active && !collapsed && (
                               <span
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full"
-                                style={{
-                                  background: "linear-gradient(180deg, #38bdf8, #0ea5e9)",
-                                  boxShadow: "0 0 10px rgba(56, 189, 248, 0.7)",
-                                }}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-brand"
                               />
                             )}
 
@@ -364,7 +330,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                             <span
                               className={cn(
                                 "relative z-10 flex-shrink-0 flex items-center justify-center transition-all duration-180",
-                                active ? "text-sky-400" : "text-slate-400 group-hover:text-slate-200"
+                                active ? "text-brand" : "text-text-muted group-hover:text-text"
                               )}
                             >
                               <Icon
@@ -379,8 +345,8 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                                 className={cn(
                                   "relative z-10 flex-1 truncate transition-colors duration-180",
                                   active
-                                    ? "text-white font-semibold"
-                                    : "text-slate-300 group-hover:text-white"
+                                    ? "text-text font-semibold"
+                                    : "text-text-soft group-hover:text-text"
                                 )}
                               >
                                 {item.label}
@@ -391,7 +357,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                             {hasBadge && (
                               <span
                                 className={cn(
-                                  "relative z-10 text-[10px] font-bold rounded-full flex items-center justify-center text-white bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]",
+                                  "relative z-10 text-[10px] font-bold rounded-full flex items-center justify-center text-white bg-brand",
                                   collapsed
                                     ? "absolute top-1.5 right-1.5 h-2 w-2 p-0"
                                     : "px-1.5 min-w-[18px] h-[18px]"
@@ -404,8 +370,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                             {/* Collapsed active dot */}
                             {active && collapsed && !hasBadge && (
                               <span
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sky-400"
-                                style={{ boxShadow: "0 0 6px rgba(56,189,248,0.7)" }}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rotate-45 bg-brand"
                               />
                             )}
                           </Link>
@@ -421,7 +386,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
       </nav>
 
       {/* ── Patient Profile Footer ────────────────────────────────────────── */}
-      <div className="relative z-10 mt-auto shrink-0 border-t border-white/[0.08] bg-[#060d18]/80 backdrop-blur-md">
+      <div className="relative z-10 mt-auto shrink-0 border-t border-ink/[0.08]">
         {/* Collapse toggle row — desktop rail only */}
         {!forceExpanded && (
         <div className="px-2 pt-2">
@@ -429,7 +394,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
             type="button"
             onClick={toggle}
             className={cn(
-              "w-full flex items-center gap-2 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all duration-150",
+              "w-full flex items-center gap-2 h-7 rounded-lg text-text-muted hover:text-text hover:bg-ink/[0.04] transition-all duration-150",
               collapsed ? "justify-center px-0" : "px-2.5"
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -458,30 +423,23 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
             collapsed ? "flex justify-center" : "flex items-center gap-2.5"
           )}
         >
-          {/* Avatar with gradient ring */}
+          {/* Avatar — ink square with mono initials, VYRO style */}
           <div className="relative flex-shrink-0">
             <div
               title={user?.name ?? undefined}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
-              style={{
-                background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
-                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.4), 0 0 0 1.5px rgba(56, 189, 248, 0.3)",
-              }}
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono bg-ink text-brand-soft shadow-sm"
             >
               {initials}
             </div>
-            <span
-              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#060d18] bg-emerald-400"
-              style={{ boxShadow: "0 0 6px #34d399" }}
-            />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-success" />
           </div>
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="text-[12.5px] font-semibold text-white truncate leading-tight">
+              <div className="text-[12.5px] font-semibold text-text truncate leading-tight">
                 {user?.name ?? "Patient"}
               </div>
-              <div className="text-[10px] text-slate-400 leading-tight truncate mt-0.5 font-mono">
+              <div className="text-[10px] text-text-muted leading-tight truncate mt-0.5 font-mono">
                 {user?.email ?? user?.phone ?? "HealthHub"}
               </div>
             </div>
@@ -491,7 +449,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
             <div className="flex items-center gap-1">
               <Link
                 href="/patient/profile"
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="h-7 w-7 rounded-lg flex items-center justify-center text-text-muted hover:text-text hover:bg-ink/[0.06] transition-colors"
                 title="Profile & Settings"
               >
                 <Settings size={13} strokeWidth={2} />
@@ -501,7 +459,7 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
                 onClick={handleLogout}
                 disabled={signingOut}
                 data-testid="sidebar-logout"
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-colors disabled:opacity-50"
+                className="h-7 w-7 rounded-lg flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
                 title="Sign out"
               >
                 <LogOut size={13} strokeWidth={2} />
@@ -509,6 +467,17 @@ export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean }) 
             </div>
           )}
         </div>
+
+        {/* Mono meta line — VYRO footer signature */}
+        {!collapsed && (
+          <div className="flex items-center justify-between px-4 pb-2.5 text-[9px] font-mono uppercase tracking-[0.14em] text-text-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="pt-dot bg-success" />
+              Secured
+            </span>
+            <span>HealthHub</span>
+          </div>
+        )}
       </div>
     </aside>
   );
