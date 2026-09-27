@@ -150,7 +150,7 @@ export default function AppointmentsPage() {
       />
 
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl shadow-card">
         {/* Segmented Filter Switcher */}
         <SegmentedTabs
           ariaLabel="Appointment filters"
@@ -176,7 +176,7 @@ export default function AppointmentsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search doctor, hospital, clinic..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
@@ -197,13 +197,13 @@ export default function AppointmentsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                className="h-24 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredAppointments.length === 0 ? (
-          <div className="rounded-2xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+          <div className="rounded-xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3 shadow-card">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
               <Calendar size={24} />
             </div>
             <div>
@@ -220,13 +220,10 @@ export default function AppointmentsPage() {
             </div>
             <Link
               href="/patient/appointments/book"
-              className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-xs"
             >
-              <Plus size={14} />
-              <span>Book Appointment</span>
+              <Plus size={14} aria-hidden />
+              Book Appointment
             </Link>
           </div>
         ) : (
@@ -244,11 +241,11 @@ export default function AppointmentsPage() {
                   {/* Left Column: Date Tile + Doctor Info */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     {/* Date Block */}
-                    <div className="h-14 w-14 rounded-xl bg-surface-2 border border-border flex flex-col items-center justify-center shrink-0 shadow-2xs group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700">
+                    <div className="h-14 w-14 rounded-lg bg-surface-2 border border-border flex flex-col items-center justify-center shrink-0 shadow-2xs group-hover:border-border-strong transition-colors">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand">
                         {new Date(a.date).toLocaleDateString("en-US", { month: "short" })}
                       </span>
-                      <span className="text-lg font-black text-text leading-none mt-0.5">
+                      <span className="pt-metric text-lg leading-none mt-0.5">
                         {new Date(a.date).getDate()}
                       </span>
                       <span className="text-[9px] font-semibold text-text-muted">
@@ -259,7 +256,7 @@ export default function AppointmentsPage() {
                     {/* Details */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors truncate">
+                        <h3 className="text-base font-bold text-text group-hover:text-brand transition-colors truncate">
                           {a.doctorName ?? "Consulting Physician"}
                         </h3>
                         {a.doctorSpecialization ? (
@@ -280,8 +277,8 @@ export default function AppointmentsPage() {
                         <span className="inline-flex items-center gap-1">
                           {isVideo ? (
                             <>
-                              <Video size={12} className="text-purple-600" />
-                              <span className="text-purple-700 font-semibold">Video Teleconsultation</span>
+                              <Video size={12} className="text-violet-600" />
+                              <span className="text-violet-600 font-semibold">Video Teleconsultation</span>
                             </>
                           ) : (
                             <>
@@ -294,7 +291,7 @@ export default function AppointmentsPage() {
                         {a.queueNumber ? (
                           <>
                             <span>·</span>
-                            <span className="inline-flex items-center gap-0.5 text-sky-800 font-bold bg-sky-50 px-2 py-0.5 rounded-md">
+                            <span className="inline-flex items-center gap-0.5 text-brand font-bold bg-brand-soft px-2 py-0.5 rounded-md">
                               Queue #{a.queueNumber}
                             </span>
                           </>
@@ -317,32 +314,29 @@ export default function AppointmentsPage() {
                       {isVideo && a.isLive && activeSession?.appointmentId === a.id ? (
                         <Link
                           href={`/patient/teleconsult/${activeSession.roomId}`}
-                          className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1"
-                          style={{
-                            background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
-                          }}
+                          className="pt-btn pt-btn-primary h-8 px-3.5 text-xs"
                         >
-                          <Video size={13} />
-                          <span>Join Call</span>
+                          <Video size={13} aria-hidden />
+                          Join Call
                         </Link>
                       ) : isVideo && (a.bucket === "today" || a.isLive) ? (
-                        <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-text-soft bg-surface-2 border border-border">
+                        <span className="px-3 py-1.5 rounded-lg text-xs font-bold text-text-soft bg-surface-2 border border-border">
                           {a.isLive ? "Waiting for doctor" : "Starts soon"}
                         </span>
                       ) : null}
 
                       <Link
                         href={`/patient/appointments/${a.id}`}
-                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors flex items-center gap-1"
+                        className="pt-btn pt-btn-secondary h-8 px-3.5 text-xs"
                       >
-                        <span>Details</span>
-                        <ChevronRight size={13} />
+                        Details
+                        <ChevronRight size={13} aria-hidden />
                       </Link>
 
                       {a.bucket === "missed" || a.bucket === "cancelled" || a.bucket === "completed" ? (
                         <Link
                           href={`/patient/appointments/book?doctorId=${a.doctorId}`}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/70 transition-colors"
+                          className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
                         >
                           Book Again
                         </Link>
