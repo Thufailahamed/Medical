@@ -391,7 +391,7 @@ export default function ConsentsPage() {
       </section>
 
       {/* ── 4. Immutable Privacy Audit Trail ────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-3">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="pt-kicker flex items-center gap-2">
             <History size={16} className="text-brand" aria-hidden />

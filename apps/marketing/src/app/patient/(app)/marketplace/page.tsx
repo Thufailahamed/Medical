@@ -45,13 +45,13 @@ export default function MarketplacePage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, city, or service…"
-                className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
               />
             </div>
             <select
               value={service}
               onChange={(e) => setService(e.target.value)}
-              className="h-11 rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+              className="h-11 rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
             >
               <option value="">All services</option>
               <option value="elder_care">Elder care</option>

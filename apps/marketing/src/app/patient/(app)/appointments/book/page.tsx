@@ -136,7 +136,7 @@ export default function BookAppointmentPage() {
       />
 
       {/* ── 2. Modern Interactive Multi-Step Stepper Bar ────────────────────── */}
-      <nav aria-label="Booking Progress" className="bg-surface p-2.5 rounded-2xl shadow-card">
+      <nav aria-label="Booking Progress" className="bg-surface p-2.5 rounded-xl shadow-card">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
             { key: "specialty" as const, index: 1, label: "1. Medical Specialty" },

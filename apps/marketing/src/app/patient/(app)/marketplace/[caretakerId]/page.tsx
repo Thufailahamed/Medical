@@ -152,7 +152,7 @@ export default function CaretakerDetailPage({
                       <button
                         type="submit"
                         disabled={send.isPending || !message.trim()}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                        className="pt-btn pt-btn-primary h-9 px-4 text-sm disabled:opacity-60"
                       >
                         {send.isPending ? (
                           <>

@@ -164,7 +164,7 @@ export default function AiOcrPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-soft"
+                className="pt-btn pt-btn-secondary h-9 px-4 text-sm"
               >
                 Browse files
               </button>

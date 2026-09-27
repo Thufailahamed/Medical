@@ -69,7 +69,7 @@ export default function EmailImportPage() {
                 </p>
                 <Link
                   href="/patient/records"
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white"
+                  className="pt-btn pt-btn-primary h-10 px-5 text-sm"
                 >
                   Go to records
                 </Link>
@@ -92,7 +92,7 @@ export default function EmailImportPage() {
                     onChange={(e) =>
                       setProvider(e.target.value as "gmail" | "outlook" | "other")
                     }
-                    className="mt-2 h-11 w-full rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+                    className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
                   >
                     <option value="gmail">Gmail</option>
                     <option value="outlook">Outlook / Microsoft 365</option>
@@ -117,7 +117,7 @@ export default function EmailImportPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       placeholder="you@gmail.com"
-                      className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                      className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
                     />
                   </div>
                 </div>
@@ -131,7 +131,7 @@ export default function EmailImportPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="inline-flex items-center justify-center gap-2 self-start rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  className="pt-btn pt-btn-primary h-10 self-start px-5 text-sm disabled:opacity-60"
                 >
                   {busy ? (
                     <>
@@ -151,7 +151,7 @@ export default function EmailImportPage() {
           <Card accent="amber">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <AlertCircle size={16} aria-hidden className="text-amber-600" />
+                <AlertCircle size={16} aria-hidden className="text-warn" />
                 <h3 className="text-sm font-bold text-text">
                   How it works
                 </h3>

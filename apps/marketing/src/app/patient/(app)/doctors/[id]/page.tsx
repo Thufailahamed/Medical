@@ -129,7 +129,7 @@ export default function DoctorProfilePage({
                 </div>
                 <Link
                   href={`/patient/appointments/book?doctorId=${doctor.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                  className="pt-btn pt-btn-primary h-9 px-4 text-sm"
                 >
                   <Calendar size={14} aria-hidden /> Book now
                 </Link>
