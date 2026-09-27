@@ -118,7 +118,7 @@ export default function MessagesPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
         {/* Filter Tabs */}
         <SegmentedTabs
           ariaLabel="Message filters"
@@ -146,20 +146,20 @@ export default function MessagesPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations by doctor or keyword..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X size={13} />
             </button>
@@ -174,24 +174,24 @@ export default function MessagesPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredConversations.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs flex flex-col gap-6">
+          <div className="rounded-xl border border-border bg-surface p-6 sm:p-8 shadow-card flex flex-col gap-6">
             {/* Header notification */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-              <div className="h-14 w-14 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0 shadow-2xs">
-                <MessageCircle size={28} />
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft shrink-0 shadow-2xs" aria-hidden>
+                <MessageCircle size={24} />
               </div>
               <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                <h3 className="t-card-title text-text">
                   {search
                     ? "No conversations match your search"
                     : "No Active Care Team Conversations"}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-text-soft mt-1 max-w-xl leading-relaxed">
                   {search
                     ? `No message threads found matching "${search}". Clear search or filter.`
                     : "Doctors and clinical care teams open secure message channels for appointment follow-ups, diagnostic reviews, and prescription adjustments."}
@@ -200,26 +200,23 @@ export default function MessagesPage() {
 
               <Link
                 href="/patient/appointments/book"
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 flex items-center gap-1.5"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
+                className="pt-btn pt-btn-primary h-10 px-5 text-xs shrink-0"
               >
-                <Calendar size={14} />
-                <span>Book Consultation</span>
+                <Calendar size={14} aria-hidden />
+                Book Consultation
               </Link>
             </div>
 
             {/* Quick Reach Out to Care Team Doctors */}
             {careTeamMembers.length > 0 ? (
-              <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+              <div className="pt-4 border-t border-border flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">
                     Your Connected Healthcare Providers
                   </h4>
                   <Link
                     href="/patient/care-team"
-                    className="text-xs font-bold text-sky-700 hover:text-sky-800"
+                    className="text-xs font-bold text-brand hover:underline"
                   >
                     View All
                   </Link>
@@ -231,17 +228,17 @@ export default function MessagesPage() {
                     return (
                       <div
                         key={doctor.id}
-                        className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between gap-3 shadow-2xs"
+                        className="p-3.5 rounded-xl bg-surface-2 border border-border flex flex-col justify-between gap-3 shadow-2xs"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                          <div className="grid h-10 w-10 place-items-center rounded-md bg-ink text-brand-soft font-mono text-xs font-bold shrink-0 shadow-2xs" aria-hidden>
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">
+                            <p className="text-xs font-bold text-text truncate">
                               {doctor.doctorName.startsWith("Dr.") ? doctor.doctorName : `Dr. ${doctor.doctorName}`}
                             </p>
-                            <p className="text-[11px] text-slate-500 truncate">
+                            <p className="text-[11px] text-text-soft truncate">
                               {doctor.doctorSpecialization || "General Medicine"}
                             </p>
                           </div>
@@ -249,7 +246,7 @@ export default function MessagesPage() {
 
                         <Link
                           href={`/patient/appointments/book?doctorId=${doctor.doctorId || ""}`}
-                          className="w-full py-1.5 rounded-lg text-center text-xs font-bold text-sky-800 bg-white hover:bg-sky-50 border border-sky-200/80 transition-colors"
+                          className="pt-btn pt-btn-secondary h-8 w-full text-xs"
                         >
                           Request Visit &amp; Message
                         </Link>
@@ -271,15 +268,15 @@ export default function MessagesPage() {
                   key={c.id}
                   href={`/patient/messages/${c.id}`}
                   className={cn(
-                    "group rounded-2xl border bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-center justify-between gap-4",
+                    "group rounded-xl border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4",
                     hasUnread
-                      ? "border-sky-300 bg-sky-50/30 ring-1 ring-sky-400/20"
-                      : "border-slate-200/90",
+                      ? "border-brand/40 bg-brand-soft/30"
+                      : "border-border",
                   )}
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     {/* Doctor Avatar */}
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
+                    <div className="grid h-12 w-12 place-items-center rounded-lg bg-ink text-brand-soft font-mono font-bold text-sm shrink-0 shadow-xs group-hover:scale-105 transition-transform overflow-hidden" aria-hidden>
                       {c.doctor?.photo ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -294,27 +291,27 @@ export default function MessagesPage() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
                           {c.doctor?.name ?? "Attending Physician"}
                         </h3>
                         {hasUnread ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-600 text-white shadow-2xs">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand text-white shadow-2xs">
                             {c.patientUnread} new
                           </span>
                         ) : null}
                       </div>
 
-                      <p className="text-xs text-slate-500 truncate mt-0.5 max-w-md font-medium">
+                      <p className="text-xs text-text-soft truncate mt-0.5 max-w-md font-medium">
                         {c.lastMessagePreview || "No messages in thread yet."}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[11px] text-slate-400 font-medium">
+                    <span className="text-[11px] text-text-muted font-medium">
                       {formatRelative(c.lastMessageAt)}
                     </span>
-                    <ChevronRight size={16} className="text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </Link>
               );
@@ -324,16 +321,16 @@ export default function MessagesPage() {
       </section>
 
       {/* ── 4. Clinical Assistance Callout ──────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0" aria-hidden>
             <Bot size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Need Instant Clinical Insights?
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Ask HealthHub AI about symptoms, drug interactions, or preparation for doctor consultations.
             </p>
           </div>
@@ -341,10 +338,10 @@ export default function MessagesPage() {
 
         <Link
           href="/patient/ai/chat"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <Sparkles size={13} className="text-purple-600" />
-          <span>Launch AI Triage Chat</span>
+          <Sparkles size={13} aria-hidden />
+          Launch AI Triage Chat
         </Link>
       </section>
     </div>
