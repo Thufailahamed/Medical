@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,7 +14,6 @@ import {
   Pause,
   Play,
   Plus,
-  Shield,
   ShieldCheck,
   UserCheck,
   UserPlus,
@@ -23,6 +22,7 @@ import {
 
 import { api } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 interface CaretakerLink {
   linkId: string;
@@ -128,124 +128,33 @@ export default function CaretakersPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <HeartHandshake size={12} className="text-sky-300" />
-                Delegated Healthcare Access
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Caretakers &amp; Shared Access
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Authorize trusted family members, legal guardians, or home nurses to manage consultations, pharmacy orders, and records.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/family"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Users size={13} />
-                <span>Family Members</span>
-              </Link>
-              <Link
-                href="/patient/emergency-card"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-              >
-                <ShieldCheck size={14} className="text-sky-700" />
-                <span>Emergency Card</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <UserCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active Caretakers
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {activeCount} Authorized
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Clock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Pending Invites
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawInvites.length}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Shield size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Access Level
-                </p>
-                <p className="text-base font-extrabold text-white">Granular RBAC</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Audit Trail
-                </p>
-                <p className="text-base font-extrabold text-white">Logged Safe</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
+      <PageHero
+        icon={<HeartHandshake size={13} aria-hidden />}
+        kicker="Delegated Healthcare Access"
+        title="Caretakers & Shared Access"
+        description="Authorize trusted family members, legal guardians, or home nurses to manage consultations, pharmacy orders, and records."
+        actions={
+          <>
+            <Link href="/patient/family" className={heroSecondaryAction}>
+              <Users size={13} aria-hidden />
+              Family Members
+            </Link>
+            <Link href="/patient/emergency-card" className={heroPrimaryAction}>
+              <ShieldCheck size={14} aria-hidden />
+              Emergency Card
+            </Link>
+          </>
+        }
+        footer={
+          <>
+            <span>Active Caretakers · {activeCount} Authorized</span>
+            <span>Pending Invites · {rawInvites.length}</span>
+            <span>Access Level · Granular RBAC</span>
+            <span>Audit Trail · Logged Safe</span>
+          </>
+        }
+      />
 
       {/* ── 2. Invite Caretaker Form Card ──────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
