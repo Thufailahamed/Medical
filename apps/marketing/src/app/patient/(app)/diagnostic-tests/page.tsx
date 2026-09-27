@@ -29,6 +29,7 @@ import { useAuthStore } from "@/portal/stores/auth";
 import { formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import { PageHero, HeroStatusPill, heroPrimaryAction } from "@/patient/components/primitives/PageHero";
 
 interface DiagnosticTest {
   id: string;
@@ -448,114 +449,43 @@ export default function DiagnosticTestsPage() {
   function getTestIcon(category: string | null) {
     const c = (category || "").toLowerCase();
     if (c.includes("blood") || c.includes("cbc"))
-      return <Droplets className="text-rose-500" size={17} />;
+      return <Droplets className="text-danger" size={17} />;
     if (c.includes("diabet") || c.includes("sugar"))
-      return <Activity className="text-amber-500" size={17} />;
+      return <Activity className="text-warn" size={17} />;
     if (c.includes("lipid") || c.includes("heart") || c.includes("cardiac"))
-      return <HeartPulse className="text-sky-500" size={17} />;
+      return <HeartPulse className="text-brand" size={17} />;
     if (c.includes("thyroid"))
-      return <Sparkles className="text-indigo-500" size={17} />;
-    return <FlaskConical className="text-teal-500" size={17} />;
+      return <Sparkles className="text-violet-600" size={17} />;
+    return <FlaskConical className="text-success" size={17} />;
   }
 
   return (
     <div className="flex flex-col gap-4 pb-14">
-      {/* ── 1. Compact Luxury Hero Banner ─────────────────────────────────── */}
-      <header
-        className="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #082F49 0%, #0369A1 45%, #0284C7 80%, #0EA5E9 100%)",
-        }}
-      >
-        {/* Decorative ambient background glows */}
-        <div
-          className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(56,189,248,0.25) 0%, transparent 70%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 -left-16 w-80 h-80 rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          {/* Left Column: Title, Subtitle & Value Props */}
-          <div className="min-w-0 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-white/10 border border-white/15 text-sky-200 backdrop-blur-md mb-3">
-              <Sparkles size={13} className="text-sky-300" />
-              <span>Certified Diagnostic &amp; Pathology Marketplace</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Certified Health Packages &amp; Lab Tests
-            </h1>
-
-            <p className="text-sm sm:text-base text-sky-100/90 mt-2 leading-relaxed max-w-xl font-normal">
-              Book curated health checkup bundles or routine pathology tests with sterile doorstep sample collection, ISO-accredited lab processing, and verified digital reports.
-            </p>
-
-            {/* Value Props Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-5 mt-5 border-t border-white/15">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
-                <div className="w-7 h-7 rounded-lg bg-sky-400/20 flex items-center justify-center text-sky-200 shrink-0">
-                  <Home size={14} />
-                </div>
-                <span>Free Home Sample Collection</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
-                <div className="w-7 h-7 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 shrink-0">
-                  <Clock size={14} />
-                </div>
-                <span>Digital Reports in 12–24h</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-white/95">
-                <div className="w-7 h-7 rounded-lg bg-amber-400/20 flex items-center justify-center text-amber-200 shrink-0">
-                  <ShieldCheck size={14} />
-                </div>
-                <span>100% SLMC &amp; ISO Accredited</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Sleek Quick-Action / Trust Card */}
-          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3">
-            {/* Quick Home Visit Highlight Card */}
-            <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 flex items-center gap-4 text-white shadow-inner">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0 shadow-xs">
-                <FlaskConical size={24} className="text-sky-200" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-emerald-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Doorstep Phlebotomy Available
-                </div>
-                <p className="text-xs text-white/80 mt-0.5 font-medium">
-                  Verified medical personnel at your home
-                </p>
-              </div>
-            </div>
-
-            {/* Quick View My Bookings Button */}
-            <Link
-              href="/patient/diagnostic-tests/bookings"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-sky-950 hover:bg-sky-50 transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
-            >
-              <Calendar size={14} className="text-sky-700" />
-              <span>View My Lab Bookings</span>
-              <ArrowRight size={13} className="text-sky-600" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
+      <PageHero
+        icon={<FlaskConical size={13} aria-hidden />}
+        kicker="Certified Diagnostic & Pathology Marketplace"
+        title="Certified Health Packages & Lab Tests"
+        description="Book curated health checkup bundles or routine pathology tests with sterile doorstep sample collection, ISO-accredited lab processing, and verified digital reports."
+        status={<HeroStatusPill label="Doorstep Phlebotomy Available" tone="success" />}
+        actions={
+          <Link href="/patient/diagnostic-tests/bookings" className={heroPrimaryAction}>
+            <Calendar size={14} aria-hidden />
+            View My Lab Bookings
+            <ArrowRight size={13} aria-hidden />
+          </Link>
+        }
+        footer={
+          <>
+            <span>Free Home Sample Collection</span>
+            <span>Digital Reports in 12–24h</span>
+            <span>100% SLMC &amp; ISO Accredited</span>
+          </>
+        }
+      />
 
       {/* ── 2. Unified Compact Marketplace Controls ───────────────────────── */}
-      <div className="flex flex-col gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
+      <div className="flex flex-col gap-2.5 bg-surface p-3 rounded-xl shadow-card">
         {/* Row 1: Segmented Switcher + Search + Sort */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           {/* Segmented Mode Switcher */}
@@ -571,7 +501,7 @@ export default function DiagnosticTestsPage() {
                 id: "packages",
                 label: (
                   <>
-                    <Sparkles size={13} className="text-sky-600" aria-hidden />
+                    <Sparkles size={13} className="text-brand" aria-hidden />
                     <span>Packages ({allPackages.length})</span>
                   </>
                 ),
@@ -580,7 +510,7 @@ export default function DiagnosticTestsPage() {
                 id: "tests",
                 label: (
                   <>
-                    <FlaskConical size={13} className="text-emerald-600" aria-hidden />
+                    <FlaskConical size={13} className="text-success" aria-hidden />
                     <span>Individual Tests ({rawTests.length || "50+"})</span>
                   </>
                 ),
@@ -669,7 +599,7 @@ export default function DiagnosticTestsPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-text flex items-center gap-2">
               <span>Curated Health Checkup Packages</span>
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-100 text-sky-800">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand">
                 {filteredPackages.length} Available
               </span>
             </h2>
@@ -679,16 +609,16 @@ export default function DiagnosticTestsPage() {
           </div>
 
           {filteredPackages.length === 0 ? (
-            <div className="rounded-2xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2">
+            <div className="rounded-xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2 shadow-card">
               <FlaskConical size={28} className="text-text-muted" />
-              <h3 className="font-bold text-text text-sm">No packages match</h3>
+              <h3 className="t-card-title text-text">No packages match</h3>
               <p className="text-xs text-text-soft max-w-sm">
                 No checkup packages match &quot;{search}&quot;. Try another term.
               </p>
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="mt-1 text-xs font-bold text-sky-600 hover:underline cursor-pointer"
+                className="mt-1 text-xs font-bold text-brand hover:underline cursor-pointer"
               >
                 Clear search
               </button>
@@ -706,24 +636,17 @@ export default function DiagnosticTestsPage() {
                     key={pkg.id}
                     className="group relative patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden"
                   >
-                    <div
-                      className="absolute top-0 left-0 right-0 h-1"
-                      style={{
-                        background:
-                          "linear-gradient(90deg, #0284C7 0%, #38BDF8 50%, #10B981 100%)",
-                      }}
-                    />
                     <div>
                       {/* Badge Header Row */}
                       <div className="flex items-center justify-between gap-2 mb-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200/60">
-                            <Sparkles size={10} />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand">
+                            <Sparkles size={10} aria-hidden />
                             {pkg.tag ?? "PACKAGE"}
                           </span>
                           {pct > 0 ? (
-                            <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                              <TrendingDown size={10} />
+                            <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
+                              <TrendingDown size={10} aria-hidden />
                               {pct}% OFF
                             </span>
                           ) : null}
@@ -738,15 +661,15 @@ export default function DiagnosticTestsPage() {
                       {/* Title, Rating & Thumbnail Row */}
                       <div className="flex items-start gap-4 justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors leading-snug">
+                          <h3 className="t-card-title text-text group-hover:text-brand transition-colors leading-snug">
                             {pkg.name}
                           </h3>
 
                           {/* Star Rating cleanly placed under title */}
                           <div className="flex items-center gap-1.5 text-xs mt-1.5 mb-2">
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70">
-                              <Star size={11} className="fill-amber-500 text-amber-500" />
-                              <span className="font-extrabold text-amber-900 text-[11px]">{stars}</span>
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warn-soft">
+                              <Star size={11} className="fill-warn text-warn" aria-hidden />
+                              <span className="font-extrabold text-warn text-[11px]">{stars}</span>
                             </div>
                             <span className="text-[11px] text-text-muted font-medium">({reviews} reviews)</span>
                           </div>
@@ -757,7 +680,7 @@ export default function DiagnosticTestsPage() {
                         </div>
 
                         {/* Dedicated Crisp Thumbnail */}
-                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-border shadow-2xs shrink-0 bg-brand-soft/50">
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border-border shadow-2xs shrink-0 bg-brand-soft/50">
                           <img
                             src={img}
                             alt={pkg.name}
@@ -774,7 +697,7 @@ export default function DiagnosticTestsPage() {
                               key={param}
                               className="flex items-center gap-1.5 text-[11px] font-medium text-text bg-surface-2 rounded-lg px-2.5 py-1 truncate"
                             >
-                              <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                              <CheckCircle2 size={12} className="text-success shrink-0" />
                               <span className="truncate">{param}</span>
                             </div>
                           ))}
@@ -784,12 +707,12 @@ export default function DiagnosticTestsPage() {
                       {/* Logistics details */}
                       <div className="flex items-center gap-3 mt-3 text-[11px] font-medium text-text-soft">
                         <span className="inline-flex items-center gap-1">
-                          <Clock size={11} className="text-sky-600" />
+                          <Clock size={11} className="text-brand" aria-hidden />
                           Report in {pkg.reportTimeHours ?? 24}h
                         </span>
                         <span>·</span>
-                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                          <Home size={11} className="text-emerald-600" />
+                        <span className="inline-flex items-center gap-1 text-success font-semibold">
+                          <Home size={11} className="text-success" aria-hidden />
                           Free Home Visit
                         </span>
                         {pkg.fastingHours ? (
@@ -805,7 +728,7 @@ export default function DiagnosticTestsPage() {
                     <div className="mt-4 pt-3 border-t border-border flex items-center justify-between gap-3">
                       <div>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-xl font-black text-text tracking-tight">
+                          <span className="pt-metric text-xl text-text">
                             {formatLkr(price)}
                           </span>
                           {pkg.discountPrice && pkg.discountPrice < pkg.price ? (
@@ -815,8 +738,8 @@ export default function DiagnosticTestsPage() {
                           ) : null}
                         </div>
                         {pkg.savings > 0 ? (
-                          <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                            <Tag size={10} />
+                          <span className="text-[11px] font-bold text-success flex items-center gap-0.5 mt-0.5">
+                            <Tag size={10} aria-hidden />
                             Save {formatLkr(pkg.savings)}
                           </span>
                         ) : null}
@@ -825,7 +748,7 @@ export default function DiagnosticTestsPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/patient/diagnostic-tests/packages/${pkg.slug}`}
-                          className="px-3 py-2 rounded-xl text-xs font-bold text-text-soft hover:bg-surface-2 transition-colors"
+                          className="px-3 py-2 rounded-lg text-xs font-bold text-text-soft hover:bg-surface-2 transition-colors"
                         >
                           Details
                         </Link>
@@ -841,14 +764,10 @@ export default function DiagnosticTestsPage() {
                               image: img,
                             })
                           }
-                          className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                          }}
+                          className="pt-btn pt-btn-primary h-9 px-4 text-xs"
                         >
                           <span>Book Home Visit</span>
-                          <ArrowRight size={13} />
+                          <ArrowRight size={13} aria-hidden />
                         </button>
                       </div>
                     </div>
@@ -885,9 +804,9 @@ export default function DiagnosticTestsPage() {
               ))}
             </div>
           ) : filteredTests.length === 0 ? (
-            <div className="rounded-2xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2">
+            <div className="rounded-xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2 shadow-card">
               <FlaskConical size={28} className="text-text-muted" />
-              <h3 className="font-bold text-text text-sm">No tests found</h3>
+              <h3 className="t-card-title text-text">No tests found</h3>
               <p className="text-xs text-text-soft max-w-sm">
                 Nothing matched &quot;{search}&quot;. Try another term.
               </p>
@@ -897,7 +816,7 @@ export default function DiagnosticTestsPage() {
                   setSearch("");
                   setSelectedCategory("all");
                 }}
-                className="mt-1 text-xs font-bold text-sky-600 hover:underline cursor-pointer"
+                className="mt-1 text-xs font-bold text-brand hover:underline cursor-pointer"
               >
                 Clear search
               </button>
@@ -932,13 +851,13 @@ export default function DiagnosticTestsPage() {
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-text-soft">
                         <span>{test.sampleType ?? "Blood Sample"}</span>
                         <span>·</span>
-                        <span className="text-emerald-600 font-medium">Home Visit</span>
+                        <span className="text-success font-medium">Home Visit</span>
                       </div>
                     </div>
 
                     <div className="mt-3.5 pt-2.5 border-t border-border flex items-center justify-between">
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm font-black text-text">
+                        <span className="pt-metric text-sm text-text">
                           {formatLkr(price)}
                         </span>
                         {test.discountPrice && test.discountPrice < test.price && (
@@ -958,7 +877,7 @@ export default function DiagnosticTestsPage() {
                             price,
                           })
                         }
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200/70 transition-colors cursor-pointer"
+                        className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
                       >
                         Book Now
                       </button>
@@ -974,12 +893,9 @@ export default function DiagnosticTestsPage() {
       {/* ── 5. INTERACTIVE HOME COLLECTION BOOKING MODAL ────────────────── */}
       {bookingItem ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-surface shadow-2xl border-border overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="w-full max-w-lg rounded-xl bg-ink-card text-white shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div
               className="p-5 text-white flex items-center justify-between"
-              style={{
-                background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
-              }}
             >
               <div className="flex items-center gap-3 min-w-0">
                 {bookingItem.image && (
@@ -992,7 +908,7 @@ export default function DiagnosticTestsPage() {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-sky-200 flex items-center gap-1">
+                  <span className="pt-hero-kicker flex items-center gap-1">
                     <Home size={12} />
                     Home Sample Collection Booking
                   </span>
@@ -1004,7 +920,7 @@ export default function DiagnosticTestsPage() {
                       Total: {formatLkr(bookingItem.price)}
                     </span>
                     {bookingItem.savings ? (
-                      <span className="text-[11px] font-bold text-emerald-300 bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                      <span className="text-[11px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">
                         Saving {formatLkr(bookingItem.savings)}
                       </span>
                     ) : null}
@@ -1023,10 +939,10 @@ export default function DiagnosticTestsPage() {
               </button>
             </div>
 
-            <div className="p-6 flex flex-col gap-4">
+            <div className="p-6 flex flex-col gap-4 bg-surface rounded-b-xl">
               {bookingStatus === "success" ? (
                 <div className="py-6 flex flex-col items-center text-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-success-soft text-success" aria-hidden>
                     <CheckCircle2 size={26} />
                   </div>
                   <h4 className="text-base font-bold text-text">
@@ -1041,7 +957,7 @@ export default function DiagnosticTestsPage() {
                       setBookingItem(null);
                       setBookingStatus("idle");
                     }}
-                    className="mt-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-ink hover:bg-charcoal/90 cursor-pointer"
+                    className="pt-btn pt-btn-primary mt-2 h-9 px-5 text-xs"
                   >
                     Done
                   </button>
@@ -1118,8 +1034,8 @@ export default function DiagnosticTestsPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-2 text-xs text-blue-900">
-                    <ShieldCheck size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div className="p-3 bg-brand-soft border border-brand/20 rounded-lg flex items-start gap-2 text-xs text-text">
+                    <ShieldCheck size={16} className="text-brand shrink-0 mt-0.5" aria-hidden />
                     <span>
                       Our verified phlebotomist will arrive with a sterile sealed kit and temperature-controlled container. Settle via cash or card reader upon collection.
                     </span>
@@ -1135,7 +1051,7 @@ export default function DiagnosticTestsPage() {
                           key={m}
                           type="button"
                           onClick={() => setPaymentMethod(m)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                          className={`px-4 py-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                             paymentMethod === m
                               ? "bg-ink text-white border-ink"
                               : "bg-surface-2 text-text-soft border-border hover:bg-surface-3"
@@ -1151,7 +1067,7 @@ export default function DiagnosticTestsPage() {
                     <button
                       type="button"
                       onClick={() => setBookingItem(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-text-soft hover:bg-surface-2 transition-colors cursor-pointer"
+                      className="pt-btn pt-btn-ghost h-9 px-4 text-xs"
                     >
                       Cancel
                     </button>
@@ -1159,11 +1075,7 @@ export default function DiagnosticTestsPage() {
                       type="button"
                       onClick={handleConfirmBooking}
                       disabled={bookingStatus === "submitting" || !contactPhone || !addressLine}
-                      className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md disabled:opacity-60 transition-all flex items-center gap-1.5 cursor-pointer"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                      }}
+                      className="pt-btn pt-btn-primary h-9 px-5 text-xs disabled:opacity-60"
                     >
                       {bookingStatus === "submitting" ? (
                         <span>Processing…</span>
