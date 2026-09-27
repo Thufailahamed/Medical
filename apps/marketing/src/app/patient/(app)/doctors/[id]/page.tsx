@@ -66,12 +66,7 @@ export default function DoctorProfilePage({
           <Card>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <div
-                className="grid h-20 w-20 shrink-0 place-items-center text-2xl font-bold text-white"
-                style={{
-                  borderRadius: "var(--radius-pill)",
-                  background:
-                    "linear-gradient(145deg, var(--color-brand) 0%, var(--color-brand-strong) 100%)",
-                }}
+                className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-ink text-brand-soft font-mono text-2xl font-bold"
                 aria-hidden
               >
                 {doctor.name?.[0]?.toUpperCase() ?? "?"}
@@ -94,14 +89,14 @@ export default function DoctorProfilePage({
                   </p>
                 ) : null}
                 {doctor.rating ? (
-                  <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
+                  <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-warn">
                     <Star size={13} aria-hidden /> {doctor.rating.toFixed(1)} rating
                   </p>
                 ) : null}
               </div>
               <Link
                 href={`/patient/appointments/book?doctorId=${doctor.id}`}
-                className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                className="pt-btn pt-btn-primary h-9 px-4 text-sm"
               >
                 <Calendar size={14} aria-hidden /> Book
               </Link>

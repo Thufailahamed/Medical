@@ -304,24 +304,26 @@ export default function TestBookingDetailPage({
               {msg ? (
                 <div
                   className={cn(
-                    "flex items-start gap-2.5 rounded-md border px-4 py-3 text-[13px] font-medium",
+                    "flex items-start gap-2.5 rounded-lg border px-4 py-3 text-[13px] font-medium",
                     msg.tone === "success"
-                      ? "border-emerald-200 bg-emerald-50/80 text-emerald-800"
+                      ? "border-success/25 bg-success-soft text-success"
                       : msg.tone === "danger"
-                        ? "border-rose-200 bg-rose-50/80 text-rose-800"
-                        : "border-sky-200 bg-sky-50/80 text-sky-800",
+                        ? "border-danger/25 bg-danger-soft text-danger"
+                        : "border-brand/25 bg-brand-soft text-brand",
                   )}
                   role="status"
                 >
                   {msg.tone === "success" ? (
                     <CheckCircle2
                       size={15}
-                      className="text-emerald-600 shrink-0 mt-0.5"
+                      className="shrink-0 mt-0.5"
+                      aria-hidden
                     />
                   ) : (
                     <AlertCircle
                       size={15}
-                      className="text-rose-600 shrink-0 mt-0.5"
+                      className="shrink-0 mt-0.5"
+                      aria-hidden
                     />
                   )}
                   <span className="flex-1">{msg.text}</span>
@@ -337,8 +339,8 @@ export default function TestBookingDetailPage({
               ) : null}
 
               {b.cancellationReason ? (
-                <div className="flex items-start gap-2.5 rounded-md border border-rose-200 bg-rose-50/80 px-4 py-3 text-[13px] text-rose-800">
-                  <Ban size={15} className="text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 rounded-lg border border-danger/25 bg-danger-soft px-4 py-3 text-[13px] text-danger">
+                  <Ban size={15} className="shrink-0 mt-0.5" aria-hidden />
                   <div>
                     <span className="font-semibold">Cancellation reason: </span>
                     <span>{b.cancellationReason}</span>
@@ -388,11 +390,7 @@ export default function TestBookingDetailPage({
                       <div className="p-5 flex flex-col gap-3">
                         <div className="flex items-center gap-2.5">
                           <span
-                            className="grid h-10 w-10 place-items-center rounded-xl text-white"
-                            style={{
-                              background:
-                                "linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)",
-                            }}
+                            className="grid h-10 w-10 place-items-center rounded-md bg-ink text-white"
                             aria-hidden
                           >
                             <FileText size={18} />
@@ -438,7 +436,7 @@ export default function TestBookingDetailPage({
                   {b.notes ? (
                     <Card>
                       <div className="flex items-start gap-2.5">
-                        <span className="grid h-8 w-8 place-items-center rounded-md bg-amber-50 text-amber-700 shrink-0">
+                        <span className="grid h-8 w-8 place-items-center rounded-md bg-warn-soft text-warn shrink-0" aria-hidden>
                           <StickyNote size={14} />
                         </span>
                         <div className="min-w-0 flex-1">
@@ -472,7 +470,7 @@ export default function TestBookingDetailPage({
                           <span className="text-[10.5px] font-semibold text-text-muted">
                             LKR
                           </span>
-                          <span className="text-[28px] font-extrabold tabular-nums tracking-tight text-text">
+                          <span className="text-[28px] tabular-nums tracking-tight text-text pt-metric">
                             {Number(amount).toLocaleString()}
                           </span>
                         </div>
@@ -500,13 +498,13 @@ export default function TestBookingDetailPage({
                             )}
                           </button>
                         ) : b.paymentStatus === "paid" ? (
-                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-emerald-700 font-semibold">
-                            <CheckCircle2 size={13} />
+                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-success font-semibold">
+                            <CheckCircle2 size={13} aria-hidden />
                             Payment received
                           </div>
                         ) : b.paymentStatus === "cash_on_collection" ? (
-                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-amber-700 font-semibold">
-                            <Timer size={13} />
+                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-warn font-semibold">
+                            <Timer size={13} aria-hidden />
                             Pay cash on collection
                           </div>
                         ) : null}
@@ -517,7 +515,7 @@ export default function TestBookingDetailPage({
                     {b.labName ? (
                       <Card>
                         <div className="flex items-start gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-md bg-emerald-50 text-emerald-700 shrink-0">
+                          <span className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
                             <Building2 size={16} />
                           </span>
                           <div className="min-w-0 flex-1">
@@ -552,7 +550,7 @@ export default function TestBookingDetailPage({
                     {/* Need help */}
                     <Card>
                       <div className="flex items-start gap-3">
-                        <span className="grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-700 shrink-0">
+                        <span className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
                           <HelpCircle size={16} />
                         </span>
                         <div className="min-w-0 flex-1">
@@ -623,7 +621,7 @@ export default function TestBookingDetailPage({
                     <button
                       type="button"
                       onClick={() => setConfirmCancel(true)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50/70 px-3 text-[12.5px] font-semibold text-rose-700 hover:bg-rose-50 hover:border-rose-300 transition-colors"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-danger/25 bg-danger-soft px-3 text-[12.5px] font-semibold text-danger hover:brightness-95 transition-colors"
                     >
                       <XCircle size={13} /> Cancel booking
                     </button>
@@ -631,7 +629,7 @@ export default function TestBookingDetailPage({
                   {b.status === "completed" ? (
                     <Link
                       href={`/patient/diagnostic-tests/bookings/${b.id}/rate`}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50/70 px-3 text-[12.5px] font-semibold text-amber-700 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-warn/25 bg-warn-soft px-3 text-[12.5px] font-semibold text-warn hover:brightness-95 transition-colors"
                     >
                       <Star size={13} /> Rate experience
                     </Link>
@@ -707,8 +705,8 @@ export default function TestBookingDetailPage({
           tone="danger"
         >
           <div className="space-y-4">
-            <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50/80 p-3 text-[12.5px] text-amber-900">
-              <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 rounded-lg border border-warn/25 bg-warn-soft p-3 text-[12.5px] text-warn">
+              <Info size={14} className="shrink-0 mt-0.5" aria-hidden />
               <span>
                 If you paid online, your refund will be initiated to the
                 original payment method.
@@ -770,52 +768,16 @@ function BookingHero({
   onCancel: (() => void) | null;
 }) {
   const isCompleted = status === "completed";
-  const isCancelled = status === "cancelled";
-  const isActive = !isCompleted && !isCancelled;
+  const isActive = !isCompleted && status !== "cancelled";
   const shortId = bookingId.length > 10 ? bookingId.slice(-6).toUpperCase() : bookingId;
   return (
     <section
-      className="relative overflow-hidden rounded-3xl text-white shadow-xl"
-      style={{
-        background: isCancelled
-          ? "linear-gradient(135deg, #4C0519 0%, #881337 50%, #9F1239 100%)"
-          : isCompleted
-            ? "linear-gradient(135deg, #064E3B 0%, #047857 50%, #059669 100%)"
-            : "linear-gradient(135deg, #082F49 0%, #0369A1 50%, #0284C7 100%)",
-      }}
+      className="relative overflow-hidden rounded-xl bg-ink-card text-white shadow-card"
     >
-      <div
-        className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 70%)",
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -left-16 w-80 h-80 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%)",
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
-        aria-hidden
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          maskImage:
-            "radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%)",
-        }}
-      />
-
       <div className="relative z-10 p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
-            <FlaskConical size={11} />
+          <span className="pt-hero-kicker">
+            <FlaskConical size={11} aria-hidden />
             Diagnostics
           </span>
           <span className="font-mono text-[10.5px] text-white/70">
@@ -828,7 +790,7 @@ function BookingHero({
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-end">
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-[1.1] truncate">
+            <h1 className="t-display text-2xl sm:text-3xl text-white leading-[1.1] truncate">
               {title}
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-white/85">
@@ -861,7 +823,7 @@ function BookingHero({
                   <button
                     type="button"
                     onClick={onReschedule}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/20 transition-colors"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/20 transition-colors"
                   >
                     <RefreshCw size={13} /> Reschedule
                   </button>
@@ -870,7 +832,7 @@ function BookingHero({
                   <button
                     type="button"
                     onClick={onCancel}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-rose-500/30 transition-colors"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/20 transition-colors"
                   >
                     <XCircle size={13} /> Cancel
                   </button>
@@ -879,7 +841,7 @@ function BookingHero({
             ) : isCompleted ? (
               <Link
                 href={`/patient/diagnostic-tests/bookings/${bookingId}/rate`}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/30 bg-white/15 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/25 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/30 bg-white/15 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/25 transition-colors"
               >
                 <Star size={13} /> Rate experience
               </Link>
@@ -994,9 +956,9 @@ function VerticalTimeline({
               className={cn(
                 "absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full border-2 transition-colors",
                 done
-                  ? "bg-emerald-500 border-emerald-500 text-white"
+                  ? "bg-success border-success text-white"
                   : current
-                    ? "bg-brand border-brand text-white shadow-[0_0_0_4px_rgba(2,132,199,0.15)]"
+                    ? "bg-brand border-brand text-white shadow-[0_0_0_4px_rgba(59,111,245,0.15)]"
                     : "bg-surface-1 border-border text-text-muted",
               )}
               aria-hidden
@@ -1032,12 +994,12 @@ function VerticalTimeline({
                 </p>
               </div>
               {current ? (
-                <span className="shrink-0 inline-flex items-center gap-1 rounded-pill bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
+                <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
                   <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
                   Now
                 </span>
               ) : done ? (
-                <span className="shrink-0 text-[10.5px] font-mono text-emerald-600 font-semibold">
+                <span className="shrink-0 text-[10.5px] font-mono text-success font-semibold">
                   Done
                 </span>
               ) : null}
@@ -1048,13 +1010,13 @@ function VerticalTimeline({
       {isCancelled ? (
         <li className="relative">
           <span
-            className="absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full border-2 bg-rose-500 border-rose-500 text-white"
+            className="absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-danger text-white"
             aria-hidden
           >
             <X size={11} strokeWidth={3} />
           </span>
           <div>
-            <p className="text-[13px] font-semibold text-rose-700">
+            <p className="text-[13px] font-semibold text-danger">
               Cancelled
             </p>
             <p className="text-[11.5px] text-text-muted mt-0.5">
@@ -1117,16 +1079,13 @@ function ModalShell({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative w-full max-w-md rounded-md border border-border bg-surface shadow-xl overflow-hidden anim-rise">
-        <div
-          className="h-1 w-full"
-          style={{
-            background:
-              tone === "danger"
-                ? "linear-gradient(90deg, #F43F5E 0%, #E11D48 100%)"
-                : "linear-gradient(90deg, #38BDF8 0%, #0369A1 100%)",
-          }}
-        />
+        <div className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-xl overflow-hidden anim-rise">
+          <div
+            className={cn(
+              "h-1 w-full",
+              tone === "danger" ? "bg-danger" : "bg-brand",
+            )}
+          />
         <div className="flex items-start justify-between gap-3 px-5 pt-5">
           <div>
             <h3 className="text-[15px] font-bold text-text">{title}</h3>
@@ -1184,7 +1143,7 @@ function ModalFoot({
         className={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 text-[12.5px] font-semibold text-white shadow-sm disabled:opacity-60 transition-colors",
           confirmTone === "danger"
-            ? "bg-rose-600 hover:bg-rose-700"
+            ? "bg-danger hover:brightness-110"
             : "bg-brand hover:bg-brand/90",
         )}
       >
