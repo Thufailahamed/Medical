@@ -1113,7 +1113,7 @@ function ModalShell({
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />

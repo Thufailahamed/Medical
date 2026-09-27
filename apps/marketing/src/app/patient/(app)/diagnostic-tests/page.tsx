@@ -554,11 +554,11 @@ export default function DiagnosticTestsPage() {
       </header>
 
       {/* ── 2. Unified Compact Marketplace Controls ───────────────────────── */}
-      <div className="flex flex-col gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Row 1: Segmented Switcher + Search + Sort */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           {/* Segmented Mode Switcher */}
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
+          <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -569,7 +569,7 @@ export default function DiagnosticTestsPage() {
                 "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
                 activeTab === "packages"
                   ? "bg-white text-sky-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900",
+                  : "text-text-soft hover:text-text",
               )}
             >
               <Sparkles size={13} className="text-sky-600" />
@@ -585,7 +585,7 @@ export default function DiagnosticTestsPage() {
                 "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
                 activeTab === "tests"
                   ? "bg-white text-sky-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900",
+                  : "text-text-soft hover:text-text",
               )}
             >
               <FlaskConical size={13} className="text-emerald-600" />
@@ -597,20 +597,20 @@ export default function DiagnosticTestsPage() {
           <div className="relative flex-1">
             <Search
               size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
             />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tests or checkup packages (e.g. HbA1c, Liver, CBC)..."
-              className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition-all"
+              className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
               >
                 <X size={13} />
               </button>
@@ -619,13 +619,13 @@ export default function DiagnosticTestsPage() {
 
           {/* Sort Selector */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden md:inline">
+            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider hidden md:inline">
               Sort:
             </span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-9 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
+              className="h-9 px-2.5 text-xs bg-surface-2 border-border rounded-xl font-semibold text-text focus:outline-none focus:ring-1 focus:ring-brand cursor-pointer"
             >
               <option value="popular">Most Popular</option>
               <option value="savings">Highest Savings</option>
@@ -636,7 +636,7 @@ export default function DiagnosticTestsPage() {
         </div>
 
         {/* Row 2: Uniform Horizontal Category Pills */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none flex-1">
             {CATEGORIES.map((cat) => {
               const active = selectedCategory === cat.id;
@@ -649,18 +649,18 @@ export default function DiagnosticTestsPage() {
                   className={cn(
                     "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all border cursor-pointer",
                     active
-                      ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                      : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900",
+                      ? "bg-ink text-white border-ink shadow-2xs"
+                      : "bg-surface-2 text-text-soft border-border hover:bg-surface-3 hover:text-text",
                   )}
                 >
-                  <Icon size={12} className={active ? "text-white" : "text-slate-400"} />
+                  <Icon size={12} className={active ? "text-white" : "text-text-muted"} />
                   <span>{cat.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <span className="text-xs font-bold text-slate-400 shrink-0 hidden sm:inline pl-2">
+          <span className="text-xs font-bold text-text-muted shrink-0 hidden sm:inline pl-2">
             {activeTab === "packages"
               ? `${filteredPackages.length} packages`
               : `${filteredTests.length} tests`}
@@ -672,22 +672,22 @@ export default function DiagnosticTestsPage() {
       {activeTab === "packages" ? (
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
               <span>Curated Health Checkup Packages</span>
               <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-100 text-sky-800">
                 {filteredPackages.length} Available
               </span>
             </h2>
-            <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+            <span className="text-xs text-text-soft font-medium hidden sm:inline">
               Up to 35% bundled savings with home collection
             </span>
           </div>
 
           {filteredPackages.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center flex flex-col items-center gap-2">
-              <FlaskConical size={28} className="text-slate-400" />
-              <h3 className="font-bold text-slate-800 text-sm">No packages match</h3>
-              <p className="text-xs text-slate-500 max-w-sm">
+            <div className="rounded-2xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2">
+              <FlaskConical size={28} className="text-text-muted" />
+              <h3 className="font-bold text-text text-sm">No packages match</h3>
+              <p className="text-xs text-text-soft max-w-sm">
                 No checkup packages match &quot;{search}&quot;. Try another term.
               </p>
               <button
@@ -709,7 +709,7 @@ export default function DiagnosticTestsPage() {
                 return (
                   <article
                     key={pkg.id}
-                    className="group relative rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col justify-between overflow-hidden"
+                    className="group relative patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden"
                   >
                     <div
                       className="absolute top-0 left-0 right-0 h-1"
@@ -734,8 +734,8 @@ export default function DiagnosticTestsPage() {
                           ) : null}
                         </div>
 
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                          <Layers size={11} className="text-slate-500" />
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-soft bg-surface-2 px-2.5 py-0.5 rounded-full">
+                          <Layers size={11} className="text-text-muted" />
                           {pkg.testCount} Tests Included
                         </span>
                       </div>
@@ -743,7 +743,7 @@ export default function DiagnosticTestsPage() {
                       {/* Title, Rating & Thumbnail Row */}
                       <div className="flex items-start gap-4 justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors leading-snug">
+                          <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors leading-snug">
                             {pkg.name}
                           </h3>
 
@@ -753,16 +753,16 @@ export default function DiagnosticTestsPage() {
                               <Star size={11} className="fill-amber-500 text-amber-500" />
                               <span className="font-extrabold text-amber-900 text-[11px]">{stars}</span>
                             </div>
-                            <span className="text-[11px] text-slate-400 font-medium">({reviews} reviews)</span>
+                            <span className="text-[11px] text-text-muted font-medium">({reviews} reviews)</span>
                           </div>
 
-                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-text-soft line-clamp-2 leading-relaxed">
                             {pkg.description}
                           </p>
                         </div>
 
                         {/* Dedicated Crisp Thumbnail */}
-                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 bg-sky-50/50">
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-border shadow-2xs shrink-0 bg-brand-soft/50">
                           <img
                             src={img}
                             alt={pkg.name}
@@ -777,7 +777,7 @@ export default function DiagnosticTestsPage() {
                           {pkg.includedParameters.slice(0, 4).map((param) => (
                             <div
                               key={param}
-                              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700 bg-slate-50 rounded-lg px-2.5 py-1 truncate"
+                              className="flex items-center gap-1.5 text-[11px] font-medium text-text bg-surface-2 rounded-lg px-2.5 py-1 truncate"
                             >
                               <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
                               <span className="truncate">{param}</span>
@@ -787,7 +787,7 @@ export default function DiagnosticTestsPage() {
                       ) : null}
 
                       {/* Logistics details */}
-                      <div className="flex items-center gap-3 mt-3 text-[11px] font-medium text-slate-500">
+                      <div className="flex items-center gap-3 mt-3 text-[11px] font-medium text-text-soft">
                         <span className="inline-flex items-center gap-1">
                           <Clock size={11} className="text-sky-600" />
                           Report in {pkg.reportTimeHours ?? 24}h
@@ -807,14 +807,14 @@ export default function DiagnosticTestsPage() {
                     </div>
 
                     {/* Bottom Pricing & Action Row */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between gap-3">
                       <div>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-xl font-black text-slate-900 tracking-tight">
+                          <span className="text-xl font-black text-text tracking-tight">
                             {formatLkr(price)}
                           </span>
                           {pkg.discountPrice && pkg.discountPrice < pkg.price ? (
-                            <span className="text-xs line-through text-slate-400 font-medium">
+                            <span className="text-xs line-through text-text-muted font-medium">
                               {formatLkr(pkg.price)}
                             </span>
                           ) : null}
@@ -830,7 +830,7 @@ export default function DiagnosticTestsPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/patient/diagnostic-tests/packages/${pkg.slug}`}
-                          className="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-text-soft hover:bg-surface-2 transition-colors"
                         >
                           Details
                         </Link>
@@ -869,13 +869,13 @@ export default function DiagnosticTestsPage() {
       {activeTab === "tests" ? (
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
               <span>Individual Diagnostic Tests</span>
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-surface-2 text-text">
                 {filteredTests.length} Tests
               </span>
             </h2>
-            <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+            <span className="text-xs text-text-soft font-medium hidden sm:inline">
               Single tests with sterile collection kit
             </span>
           </div>
@@ -885,15 +885,15 @@ export default function DiagnosticTestsPage() {
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="h-28 rounded-xl bg-slate-100 animate-pulse border border-slate-200"
+                  className="h-28 rounded-xl patient-shimmer"
                 />
               ))}
             </div>
           ) : filteredTests.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center flex flex-col items-center gap-2">
-              <FlaskConical size={28} className="text-slate-400" />
-              <h3 className="font-bold text-slate-800 text-sm">No tests found</h3>
-              <p className="text-xs text-slate-500 max-w-sm">
+            <div className="rounded-2xl border-border bg-surface p-8 text-center flex flex-col items-center gap-2">
+              <FlaskConical size={28} className="text-text-muted" />
+              <h3 className="font-bold text-text text-sm">No tests found</h3>
+              <p className="text-xs text-text-soft max-w-sm">
                 Nothing matched &quot;{search}&quot;. Try another term.
               </p>
               <button
@@ -915,39 +915,39 @@ export default function DiagnosticTestsPage() {
                 return (
                   <div
                     key={test.id}
-                    className="group rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-2xs hover:shadow-sm hover:border-sky-300 transition-all flex flex-col justify-between"
+                    className="group rounded-xl border-border bg-surface p-3.5 shadow-2xs hover:shadow-sm hover:border-border-strong transition-all flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="h-8 w-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-surface-2 border-border flex items-center justify-center shrink-0">
                           {getTestIcon(test.category)}
                         </div>
-                        <span className="text-[10.5px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[120px]">
+                        <span className="text-[10.5px] font-semibold text-text-soft bg-surface-2 px-2 py-0.5 rounded-md truncate max-w-[120px]">
                           {test.category ?? "Pathology"}
                         </span>
                       </div>
 
                       <Link
                         href={`/patient/diagnostic-tests/${test.slug}`}
-                        className="block font-bold text-sm text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-1"
+                        className="block font-bold text-sm text-text group-hover:text-brand transition-colors line-clamp-1"
                       >
                         {test.name}
                       </Link>
 
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-text-soft">
                         <span>{test.sampleType ?? "Blood Sample"}</span>
                         <span>·</span>
                         <span className="text-emerald-600 font-medium">Home Visit</span>
                       </div>
                     </div>
 
-                    <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <div className="mt-3.5 pt-2.5 border-t border-border flex items-center justify-between">
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm font-black text-slate-900">
+                        <span className="text-sm font-black text-text">
                           {formatLkr(price)}
                         </span>
                         {test.discountPrice && test.discountPrice < test.price && (
-                          <span className="text-[11px] line-through text-slate-400">
+                          <span className="text-[11px] line-through text-text-muted">
                             {formatLkr(test.price)}
                           </span>
                         )}
@@ -978,8 +978,8 @@ export default function DiagnosticTestsPage() {
 
       {/* ── 5. INTERACTIVE HOME COLLECTION BOOKING MODAL ────────────────── */}
       {bookingItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl bg-surface shadow-2xl border-border overflow-hidden animate-in zoom-in-95 duration-200">
             <div
               className="p-5 text-white flex items-center justify-between"
               style={{
@@ -1034,10 +1034,10 @@ export default function DiagnosticTestsPage() {
                   <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <CheckCircle2 size={26} />
                   </div>
-                  <h4 className="text-base font-bold text-slate-900">
+                  <h4 className="text-base font-bold text-text">
                     Booking Confirmed!
                   </h4>
-                  <p className="text-xs text-slate-600 max-w-sm">
+                  <p className="text-xs text-text-soft max-w-sm">
                     {bookingMsg}
                   </p>
                   <button
@@ -1046,7 +1046,7 @@ export default function DiagnosticTestsPage() {
                       setBookingItem(null);
                       setBookingStatus("idle");
                     }}
-                    className="mt-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 cursor-pointer"
+                    className="mt-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-ink hover:bg-charcoal/90 cursor-pointer"
                   >
                     Done
                   </button>
@@ -1055,25 +1055,25 @@ export default function DiagnosticTestsPage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-text mb-1">
                         Collection Date
                       </label>
                       <input
                         type="date"
                         value={scheduledDate}
                         onChange={(e) => setScheduledDate(e.target.value)}
-                        className="w-full h-9 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        className="w-full h-9 px-3 text-xs bg-surface-2 border-border rounded-lg text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-text mb-1">
                         Preferred Time Slot
                       </label>
                       <select
                         value={scheduledSlot}
                         onChange={(e) => setScheduledSlot(e.target.value)}
-                        className="w-full h-9 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        className="w-full h-9 px-2.5 text-xs bg-surface-2 border-border rounded-lg text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         <option>07:00 - 09:00 AM (Early Fasting)</option>
                         <option>09:00 - 11:00 AM (Morning)</option>
@@ -1084,7 +1084,7 @@ export default function DiagnosticTestsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-text mb-1">
                       Street Address
                     </label>
                     <input
@@ -1092,13 +1092,13 @@ export default function DiagnosticTestsPage() {
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       placeholder="Street name, house/flat number"
-                      className="w-full h-9 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full h-9 px-3 text-xs bg-surface-2 border-border rounded-lg text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-text mb-1">
                         City / Area
                       </label>
                       <input
@@ -1106,11 +1106,11 @@ export default function DiagnosticTestsPage() {
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         placeholder="e.g. Colombo 03"
-                        className="w-full h-9 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        className="w-full h-9 px-3 text-xs bg-surface-2 border-border rounded-lg text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-text mb-1">
                         Contact Phone
                       </label>
                       <input
@@ -1118,7 +1118,7 @@ export default function DiagnosticTestsPage() {
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
                         placeholder="077XXXXXXX"
-                        className="w-full h-9 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        className="w-full h-9 px-3 text-xs bg-surface-2 border-border rounded-lg text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
@@ -1131,7 +1131,7 @@ export default function DiagnosticTestsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-text mb-1">
                       Payment
                     </label>
                     <div className="flex gap-2">
@@ -1142,8 +1142,8 @@ export default function DiagnosticTestsPage() {
                           onClick={() => setPaymentMethod(m)}
                           className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                             paymentMethod === m
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                              ? "bg-ink text-white border-ink"
+                              : "bg-surface-2 text-text-soft border-border hover:bg-surface-3"
                           }`}
                         >
                           {m === "cash" ? "Cash on collection" : "Pay online"}
@@ -1156,7 +1156,7 @@ export default function DiagnosticTestsPage() {
                     <button
                       type="button"
                       onClick={() => setBookingItem(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-text-soft hover:bg-surface-2 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>

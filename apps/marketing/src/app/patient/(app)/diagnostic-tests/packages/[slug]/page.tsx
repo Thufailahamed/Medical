@@ -267,14 +267,14 @@ export default function TestPackageDetailPage({
       {/* Breadcrumb Navigation */}
       <Link
         href="/patient/diagnostic-tests"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-sky-700 transition-colors w-fit group"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-brand transition-colors w-fit group"
       >
         <ChevronLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
         <span>Back to Diagnostic Marketplace</span>
       </Link>
 
       {/* Hero Package Banner */}
-      <div className="relative rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs overflow-hidden">
+      <div className="relative patient-card p-5 sm:p-7 overflow-hidden">
         <div
           className="absolute top-0 left-0 right-0 h-1.5"
           style={{
@@ -285,7 +285,7 @@ export default function TestPackageDetailPage({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
             {/* Crisp Thumbnail Container */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-slate-100 shadow-md shrink-0 bg-sky-50">
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-border shadow-md shrink-0 bg-brand-soft">
               <img
                 src={img}
                 alt={pkg.name}
@@ -295,7 +295,7 @@ export default function TestPackageDetailPage({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200/60">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-brand-soft text-brand border-border">
                   <Sparkles size={10} />
                   {pkg.tag}
                 </span>
@@ -305,13 +305,13 @@ export default function TestPackageDetailPage({
                     {pct}% OFF
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                  <Layers size={11} className="text-slate-500" />
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-soft bg-surface-2 px-2.5 py-0.5 rounded-full">
+                  <Layers size={11} className="text-text-soft" />
                   {pkg.testCount} Tests Included
                 </span>
               </div>
 
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 leading-tight">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-text leading-tight">
                 {pkg.name}
               </h1>
 
@@ -321,26 +321,26 @@ export default function TestPackageDetailPage({
                   <Star size={12} className="fill-amber-500 text-amber-500" />
                   <span className="font-extrabold text-amber-900 text-xs">4.9</span>
                 </div>
-                <span className="text-slate-400 font-medium text-xs">(184 verified patient reviews)</span>
+                <span className="text-text-muted font-medium text-xs">(184 verified patient reviews)</span>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed max-w-2xl">
+              <p className="text-xs sm:text-sm text-text-soft mt-2 leading-relaxed max-w-2xl">
                 {pkg.description}
               </p>
             </div>
           </div>
 
           {/* Pricing Box */}
-          <div className="flex flex-col md:items-end justify-center shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="flex flex-col md:items-end justify-center shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-border">
+            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
               All-Inclusive Total
             </span>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-3xl font-black text-text tracking-tight">
                 {formatLkr(pkg.price)}
               </span>
               {pkg.originalPrice > pkg.price && (
-                <span className="text-sm line-through text-slate-400 font-medium">
+                <span className="text-sm line-through text-text-muted font-medium">
                   {formatLkr(pkg.originalPrice)}
                 </span>
               )}
@@ -350,7 +350,7 @@ export default function TestPackageDetailPage({
                 You save {formatLkr(pkg.savings)} with this package
               </span>
             )}
-            <span className="text-[11px] text-slate-400 mt-1">
+            <span className="text-[11px] text-text-muted mt-1">
               Includes certified phlebotomist visit
             </span>
           </div>
@@ -362,15 +362,15 @@ export default function TestPackageDetailPage({
         {/* Left Column: Test Inclusions, Preparation & Accreditations */}
         <div className="flex flex-col gap-5 lg:col-span-7">
           {/* Test Inclusions */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div className="rounded-2xl border-border bg-surface p-5 shadow-card">
+            <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <FlaskConical size={18} className="text-sky-600" />
-                <h2 className="text-base font-bold text-slate-900">
+                <FlaskConical size={18} className="text-brand" />
+                <h2 className="text-base font-bold text-text">
                   Included Tests &amp; Markers ({pkg.tests.length})
                 </h2>
               </div>
-              <span className="text-xs font-medium text-slate-400">
+              <span className="text-xs font-medium text-text-muted">
                 100% NABL Accredited
               </span>
             </div>
@@ -379,7 +379,7 @@ export default function TestPackageDetailPage({
               {pkg.tests.map((testName, idx) => (
                 <li
                   key={idx}
-                  className="flex items-start gap-2.5 rounded-xl bg-slate-50 p-3 text-xs font-medium text-slate-800 border border-slate-100 hover:bg-sky-50/50 hover:border-sky-200/60 transition-colors"
+                  className="flex items-start gap-2.5 rounded-xl bg-surface-2 p-3 text-xs font-medium text-text border border-border hover:bg-brand-soft/50 hover:border-border-strong transition-colors"
                 >
                   <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                   <span className="leading-snug">{testName}</span>
@@ -407,40 +407,40 @@ export default function TestPackageDetailPage({
           </div>
 
           {/* Accreditations & Quality Guarantees */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          <div className="rounded-2xl border-border bg-surface p-5 shadow-card">
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
               HealthHub Lab Quality Guarantees
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="h-9 w-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
+                <div className="h-9 w-9 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
                   <Clock size={16} />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800">
+                  <div className="text-xs font-bold text-text">
                     {pkg.reportTimeHours}h Turnaround
                   </div>
-                  <div className="text-[11px] text-slate-500">Digital PDF in portal</div>
+                  <div className="text-[11px] text-text-soft">Digital PDF in portal</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
                 <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                   <Home size={16} />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800">Home Visit</div>
-                  <div className="text-[11px] text-slate-500">Certified phlebotomist</div>
+                  <div className="text-xs font-bold text-text">Home Visit</div>
+                  <div className="text-[11px] text-text-soft">Certified phlebotomist</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
                 <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
                   <Award size={16} />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800">ISO &amp; NABL</div>
-                  <div className="text-[11px] text-slate-500">Verified lab testing</div>
+                  <div className="text-xs font-bold text-text">ISO &amp; NABL</div>
+                  <div className="text-[11px] text-text-soft">Verified lab testing</div>
                 </div>
               </div>
             </div>
@@ -449,16 +449,16 @@ export default function TestPackageDetailPage({
 
         {/* Right Column: Home Collection Booking Card */}
         <div className="flex flex-col gap-5 lg:col-span-5">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm sticky top-6">
+          <div className="rounded-3xl border-border bg-surface p-6 shadow-md sticky top-6">
             {bookingSuccess ? (
               <div className="py-6 flex flex-col items-center text-center gap-3">
                 <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
                   <CheckCircle2 size={32} />
                 </div>
-                <h4 className="text-lg font-bold text-slate-900">
+                <h4 className="text-lg font-bold text-text">
                   Home Visit Booked!
                 </h4>
-                <p className="text-xs text-slate-600 max-w-sm leading-relaxed">
+                <p className="text-xs text-text-soft max-w-sm leading-relaxed">
                   Your appointment for <strong>{pkg.name}</strong> on{" "}
                   <strong>{scheduledDate} ({scheduledSlot})</strong> has been scheduled.
                   A certified phlebotomist will arrive with sterile sample kits.
@@ -466,14 +466,14 @@ export default function TestPackageDetailPage({
                 <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
                   <Link
                     href="/patient/diagnostic-tests/bookings"
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center bg-slate-900 hover:bg-slate-800 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center bg-ink hover:bg-charcoal/90 transition-colors"
                   >
                     View All Bookings
                   </Link>
                   <button
                     type="button"
                     onClick={() => setBookingSuccess(false)}
-                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
                   >
                     Book Another Slot
                   </button>
@@ -481,41 +481,41 @@ export default function TestPackageDetailPage({
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="pb-3 border-b border-slate-100">
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 uppercase tracking-wider">
+                <div className="pb-3 border-b border-border">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand uppercase tracking-wider">
                     <Home size={12} />
                     Schedule Home Sample Collection
                   </span>
-                  <h3 className="text-lg font-black text-slate-900 mt-1">
+                  <h3 className="text-lg font-black text-text mt-1">
                     Book This Package
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-text-soft mt-0.5">
                     Our certified phlebotomist visits your doorstep at the chosen time slot.
                   </p>
                 </div>
 
                 {/* Date Selection */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-text mb-1">
                     Preferred Collection Date
                   </label>
                   <input
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                    className="w-full h-10 px-3.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full h-10 px-3.5 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
                 {/* Slot Selection */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-text mb-1">
                     Preferred Time Slot
                   </label>
                   <select
                     value={scheduledSlot}
                     onChange={(e) => setScheduledSlot(e.target.value)}
-                    className="w-full h-10 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full h-10 px-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     <option>07:00 - 09:00 AM (Early Fasting)</option>
                     <option>09:00 - 11:00 AM (Morning Window)</option>
@@ -526,54 +526,54 @@ export default function TestPackageDetailPage({
 
                 {/* Address */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-text mb-1">
                     Collection Address
                   </label>
                   <div className="relative">
                     <MapPin
                       size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
                     />
                     <input
                       type="text"
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       placeholder="Street address, City"
-                      className="w-full h-10 pl-9 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full h-10 pl-9 pr-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
 
                 {/* Contact Phone */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-text mb-1">
                     Contact Phone Number
                   </label>
                   <div className="relative">
                     <Phone
                       size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
                     />
                     <input
                       type="tel"
                       value={contactPhone}
                       onChange={(e) => setContactPhone(e.target.value)}
-                      className="w-full h-10 pl-9 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full h-10 pl-9 pr-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Special Notes <span className="text-slate-400 font-normal">(optional)</span>
+                  <label className="block text-xs font-bold text-text mb-1">
+                    Special Notes <span className="text-text-muted font-normal">(optional)</span>
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Gate code, landmarks, special patient instructions..."
-                    className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"
+                    className="w-full p-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                   />
                 </div>
 
@@ -585,16 +585,16 @@ export default function TestPackageDetailPage({
                 )}
 
                 {/* Price Breakdown */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1.5 text-xs">
-                  <div className="flex items-center justify-between text-slate-600">
+                <div className="p-3.5 rounded-2xl bg-surface-2 border border-border flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between text-text-soft">
                     <span>Package Fee</span>
                     <span>{formatLkr(pkg.price)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600">
+                  <div className="flex items-center justify-between text-text-soft">
                     <span>Home Sample Collection</span>
                     <span className="font-bold text-emerald-600">FREE</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between font-black text-slate-900 text-sm">
+                  <div className="pt-2 border-t border-border flex items-center justify-between font-black text-text text-sm">
                     <span>Total Amount</span>
                     <span>{formatLkr(pkg.price)}</span>
                   </div>

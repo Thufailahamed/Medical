@@ -24,6 +24,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { ApiError } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 export default function RecordScanPage() {
   const router = useRouter();
@@ -106,132 +107,44 @@ export default function RecordScanPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Scan size={12} className="text-sky-300" />
-                Optical Character Recognition (OCR)
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Scan a Medical Record
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Drop a photo or PDF scan. Our clinical vision AI extracts laboratory values, diagnosis codes, dates, and doctor notes automatically into your health record.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <Link
-                href="/patient/records"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <ChevronLeft size={13} />
-                <span>Back to Records</span>
-              </Link>
-              <Link
-                href="/patient/records"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <UserCheck size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>View All Records</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Zap size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  AI OCR Engine
-                </p>
-                <p className="text-base font-extrabold text-white">Clinical Vision</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Data Security
-                </p>
-                <p className="text-base font-extrabold text-white">AES-256 Vault</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Sparkles size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Extraction
-                </p>
-                <p className="text-base font-extrabold text-white">Auto-Parsed</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <FileCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Formats
-                </p>
-                <p className="text-base font-extrabold text-white">PDF, JPG, HEIC</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
+      <PageHero
+        icon={<Scan size={13} />}
+        kicker="Optical Character Recognition (OCR)"
+        title="Scan a Medical Record"
+        description="Drop a photo or PDF scan. Our clinical vision AI extracts laboratory values, diagnosis codes, dates, and doctor notes automatically into your health record."
+        actions={
+          <>
+            <Link href="/patient/records" className={heroSecondaryAction}>
+              <ChevronLeft size={13} />
+              <span>Back to Records</span>
+            </Link>
+            <Link href="/patient/records" className={heroPrimaryAction}>
+              <UserCheck size={14} />
+              <span>View All Records</span>
+            </Link>
+          </>
+        }
+        footer={
+          <>
+            <span>AI OCR engine · clinical vision</span>
+            <span>Data security · AES-256 vault</span>
+            <span>Extraction · auto-parsed</span>
+            <span>Formats · PDF, JPG, HEIC</span>
+          </>
+        }
+      />
 
       {/* ── 2. Two-Column Upload & Extraction Stage ────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Interactive Dropzone */}
-        <section className="lg:col-span-7 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-5">
-          <div className="border-b border-slate-100 pb-3.5">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+        <section className="lg:col-span-7 patient-card p-5 sm:p-7 flex flex-col gap-5">
+          <div className="border-b border-border pb-3.5">
+            <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
               <Camera size={19} className="text-sky-600" />
               <span>Upload Document or Camera Photo</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Drag &amp; drop physical paperwork, discharge notes, prescriptions, or pathology printouts.
             </p>
           </div>
@@ -253,10 +166,10 @@ export default function RecordScanPage() {
                 <img
                   src={preview}
                   alt="Selected medical document"
-                  className="max-h-72 w-auto rounded-xl object-contain border border-slate-200 shadow-sm"
+                  className="max-h-72 w-auto rounded-xl object-contain border border-border shadow-sm"
                 />
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-semibold text-slate-700">
+                  <span className="text-xs font-semibold text-text">
                     {file?.name} ({(file ? file.size / 1024 : 0).toFixed(1)} KB)
                   </span>
                 </div>
@@ -267,22 +180,22 @@ export default function RecordScanPage() {
                   <FileText size={32} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-900">{file.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-sm font-bold text-text">{file.name}</p>
+                  <p className="text-xs text-text-muted mt-0.5">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB · Ready for OCR
                   </p>
                 </div>
               </div>
             ) : (
               <>
-                <div className="h-16 w-16 rounded-2xl bg-white border border-sky-200 text-sky-600 flex items-center justify-center shadow-xs">
+                <div className="h-16 w-16 rounded-2xl bg-surface border border-sky-200 text-sky-600 flex items-center justify-center shadow-xs">
                   <Upload size={28} />
                 </div>
                 <div className="max-w-sm">
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  <h3 className="text-sm sm:text-base font-bold text-text">
                     Drop your clinical document here, or browse
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-text-soft mt-1">
                     Supports JPG, PNG, HEIC, or PDF · Up to 20 MB
                   </p>
                 </div>
@@ -304,7 +217,7 @@ export default function RecordScanPage() {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-sky-700 bg-white hover:bg-sky-50 border border-slate-200 shadow-2xs hover:border-sky-300 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-sky-700 bg-surface hover:bg-sky-50 border border-border shadow-2xs hover:border-border-strong transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <ImageIcon size={14} />
                 <span>{file ? "Choose Another File" : "Browse Files"}</span>
@@ -338,22 +251,22 @@ export default function RecordScanPage() {
         {/* Right Column: AI Extraction Intelligence & Actions */}
         <section className="lg:col-span-5 flex flex-col gap-4">
           {/* What We Extract Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+            <div className="flex items-center gap-2.5 border-b border-border pb-3">
               <div className="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
                 <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">
+                <h3 className="text-sm font-bold text-text">
                   What our AI Extracts
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-text-soft">
                   Automated clinical classification
                 </p>
               </div>
             </div>
 
-            <ul className="flex flex-col gap-2.5 text-xs text-slate-700">
+            <ul className="flex flex-col gap-2.5 text-xs text-text">
               <li className="flex items-center gap-2.5">
                 <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
                   <Check size={12} strokeWidth={3} />
