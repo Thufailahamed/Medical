@@ -68,34 +68,34 @@ function getActionCategory(action: string) {
   if (a.startsWith("share") || a.includes("link")) {
     return {
       category: "Sharing & Disclosure",
-      tone: "bg-sky-50 text-sky-700 border-sky-200",
+      tone: "bg-brand-soft text-brand",
       icon: Share2,
     };
   }
   if (a.startsWith("consent") || a.includes("grant")) {
     return {
       category: "Consent Governance",
-      tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      tone: "bg-success-soft text-success",
       icon: FileSignature,
     };
   }
   if (a.includes("record") || a.includes("rx") || a.includes("prescription") || a.includes("lab")) {
     return {
       category: "Clinical Data Access",
-      tone: "bg-purple-50 text-purple-700 border-purple-200",
+      tone: "bg-violet-50 text-violet-600",
       icon: Stethoscope,
     };
   }
   if (a.includes("export") || a.includes("download") || a.includes("dsar")) {
     return {
       category: "Data Portability",
-      tone: "bg-amber-50 text-amber-700 border-amber-200",
+      tone: "bg-warn-soft text-warn",
       icon: Download,
     };
   }
   return {
     category: "Security & Account",
-    tone: "bg-slate-100 text-slate-700 border-slate-200",
+    tone: "bg-surface-2 text-text-soft",
     icon: Activity,
   };
 }
@@ -183,7 +183,7 @@ export default function PatientAuditPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
         {/* Filter Tabs */}
         <SegmentedTabs
           ariaLabel="Audit filters"
@@ -201,20 +201,20 @@ export default function PatientAuditPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search action, actor, or resource..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X size={13} />
             </button>
@@ -229,25 +229,25 @@ export default function PatientAuditPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : error ? (
-          <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2.5">
-            <AlertCircle size={16} className="text-rose-600 shrink-0" />
+          <div className="p-5 rounded-xl bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2.5">
+            <AlertCircle size={16} className="shrink-0" aria-hidden />
             <span>Could not load security audit trail. Please refresh the page.</span>
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col items-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shadow-2xs">
+          <div className="p-8 sm:p-10 rounded-xl bg-surface border border-border shadow-card flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
               <History size={28} />
             </div>
             <div className="max-w-md">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="t-card-title text-text">
                 {search ? "No events match your search" : "No Audit Events Recorded Yet"}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
                 {search
                   ? `No audit entries found matching "${search}". Clear search to view all events.`
                   : "All access events, shared link creations, prescription inspections, and consent updates are logged here automatically."}
@@ -264,41 +264,42 @@ export default function PatientAuditPage() {
               return (
                 <article
                   key={e.id}
-                  className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="p-4 sm:p-5 rounded-xl bg-surface border border-border shadow-card hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <div
                       className={cn(
-                        "h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs",
+                        "grid h-11 w-11 place-items-center rounded-md shrink-0 shadow-2xs",
                         cat.tone,
                       )}
+                      aria-hidden
                     >
                       <CatIcon size={18} />
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base capitalize truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base capitalize truncate">
                           {e.action.replace(/[._]/g, " ")}
                         </h3>
 
                         <span
                           className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border",
+                            "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                             cat.tone,
                           )}
                         >
                           {cat.category}
                         </span>
 
-                        <span className="px-2 py-0.5 rounded-md text-[10.5px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="px-2 py-0.5 rounded-md text-[10.5px] font-mono font-medium bg-surface-2 text-text-soft">
                           {e.resource}
                         </span>
                       </div>
 
                       {/* Actor & Timestamp */}
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap font-medium">
-                        <span className="text-slate-800 font-semibold">
+                      <p className="text-xs text-text-soft mt-1 flex items-center gap-2 flex-wrap font-medium">
+                        <span className="text-text font-semibold">
                           {e.actorName || e.actorId || "System Automated"}
                         </span>
                         <span>·</span>
@@ -312,12 +313,12 @@ export default function PatientAuditPage() {
                           {detailsList.map((d, i) => (
                             <span
                               key={i}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-slate-50 border border-slate-200 text-slate-700 font-mono"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-surface-2 text-text-soft font-mono"
                             >
-                              <span className="font-bold capitalize text-slate-500">
+                              <span className="font-bold capitalize text-text-muted">
                                 {d.label}:
                               </span>
-                              <span className="font-semibold text-slate-900 truncate max-w-[200px]">
+                              <span className="font-semibold text-text truncate max-w-[200px]">
                                 {d.value}
                               </span>
                             </span>
@@ -328,8 +329,8 @@ export default function PatientAuditPage() {
                   </div>
 
                   <div className="shrink-0 self-end sm:self-center">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                      <CheckCircle2 size={12} />
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success bg-success-soft px-2.5 py-1 rounded-md">
+                      <CheckCircle2 size={12} aria-hidden />
                       <span>Verified Event</span>
                     </span>
                   </div>
@@ -341,16 +342,16 @@ export default function PatientAuditPage() {
       </section>
 
       {/* ── 4. Legal Accounting of Disclosures Notice ──────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               HIPAA §164.312(b) &amp; GDPR Accounting of Disclosures
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Every data access request, link share, and doctor consultation generates an immutable cryptographic audit record retained for your protection.
             </p>
           </div>
@@ -358,10 +359,10 @@ export default function PatientAuditPage() {
 
         <Link
           href="/patient/dsar"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-sky-700" />
-          <span>Privacy Rights (DSAR)</span>
+          <ExternalLink size={13} aria-hidden />
+          Privacy Rights (DSAR)
         </Link>
       </section>
     </div>
