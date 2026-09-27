@@ -137,20 +137,20 @@ export default function ConsentsPage() {
       />
 
       {/* ── 2. Issue Consent Authorization Card ────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <Plus size={16} className="text-sky-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <Plus size={16} className="text-brand" aria-hidden />
             <span>Issue New Consent Grant</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-text-soft mt-0.5">
             Authorize a third-party physician, clinic, or claims auditor to view your clinical records for a set duration.
           </p>
         </div>
 
         {/* Purpose Cards */}
         <div className="flex flex-col gap-2">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-text-soft">
             Authorization Purpose
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -164,25 +164,26 @@ export default function ConsentsPage() {
                   type="button"
                   onClick={() => setPurpose(p.id)}
                   className={cn(
-                    "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1",
+                    "p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col gap-1",
                     isSelected
-                      ? "bg-sky-50/90 border-sky-400 ring-2 ring-sky-500/20 shadow-xs"
-                      : "bg-slate-50 border-slate-200 hover:bg-slate-100/70",
+                      ? "bg-brand-soft/50 border-brand shadow-card"
+                      : "bg-surface-2 border-border hover:border-border-strong",
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <Icon
                       size={16}
-                      className={isSelected ? "text-sky-600" : "text-slate-500"}
+                      className={isSelected ? "text-brand" : "text-text-muted"}
+                      aria-hidden
                     />
                     {isSelected ? (
-                      <CheckCircle2 size={14} className="text-sky-600" />
+                      <CheckCircle2 size={14} className="text-brand" aria-hidden />
                     ) : null}
                   </div>
-                  <span className="text-xs font-bold text-slate-900 mt-1">
+                  <span className="text-xs font-bold text-text mt-1">
                     {p.label}
                   </span>
-                  <span className="text-[10.5px] text-slate-500 line-clamp-1">
+                  <span className="text-[10.5px] text-text-soft line-clamp-1">
                     {p.desc}
                   </span>
                 </button>
@@ -193,21 +194,21 @@ export default function ConsentsPage() {
 
         <form onSubmit={onIssue} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
           <div className="sm:col-span-6 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
               Recipient / Doctor Label (Optional)
             </label>
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Dr. Silva Second Opinion Consult"
-              className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
             />
           </div>
 
           <div className="sm:col-span-4 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider flex items-center justify-between">
               <span>Duration Validity</span>
-              <div className="flex items-center gap-1 font-semibold text-[10px] text-sky-700">
+              <div className="flex items-center gap-1 font-semibold text-[10px] text-brand">
                 {DURATION_PRESETS.map((dp) => (
                   <button
                     key={dp.days}
@@ -228,9 +229,9 @@ export default function ConsentsPage() {
                 value={durationDays}
                 onChange={(e) => setDurationDays(e.target.value)}
                 placeholder="30"
-                className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all pr-14"
+                className="pt-input text-xs sm:text-sm pr-14"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-muted pointer-events-none">
                 Days
               </span>
             </div>
@@ -240,20 +241,17 @@ export default function ConsentsPage() {
             <button
               type="submit"
               disabled={issue.isPending}
-              className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary h-11 w-full text-xs disabled:opacity-50"
             >
               {issue.isPending ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Issuing…</span>
+                  <Loader2 size={13} className="animate-spin" aria-hidden />
+                  Issuing…
                 </>
               ) : (
                 <>
-                  <Plus size={14} />
-                  <span>Grant Consent</span>
+                  <Plus size={14} aria-hidden />
+                  Grant Consent
                 </>
               )}
             </button>
@@ -261,15 +259,15 @@ export default function ConsentsPage() {
         </form>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-            <AlertCircle size={14} className="text-rose-600 shrink-0" />
+          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertCircle size={14} className="shrink-0" aria-hidden />
             <span>{error}</span>
           </div>
         )}
 
         {status && (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+          <div className="p-3 rounded-lg bg-success-soft border border-success/25 text-xs font-semibold text-success flex items-center gap-2">
+            <CheckCircle2 size={14} className="shrink-0" aria-hidden />
             <span>{status}</span>
           </div>
         )}
@@ -278,10 +276,10 @@ export default function ConsentsPage() {
       {/* ── 3. Active & Existing Consent Grants ─────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <FileCheck size={16} className="text-emerald-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <FileCheck size={16} className="text-success" aria-hidden />
             <span>Active Consent Grants</span>
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+            <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-success">
               {grantsList.length}
             </span>
           </h2>
@@ -292,20 +290,20 @@ export default function ConsentsPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : grantsList.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col items-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-2xs">
+          <div className="p-8 sm:p-10 rounded-xl bg-surface border border-border shadow-card flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success shadow-2xs" aria-hidden>
               <ShieldCheck size={28} />
             </div>
             <div className="max-w-md">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="t-card-title text-text">
                 No External Consent Grants Active
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
                 Your medical record is strictly restricted to you and your primary care physician. External clinics and insurers cannot access your data without an explicit consent grant.
               </p>
             </div>
@@ -320,52 +318,53 @@ export default function ConsentsPage() {
                 <article
                   key={c.id}
                   className={cn(
-                    "p-4 sm:p-5 rounded-2xl bg-white border shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3",
+                    "p-4 sm:p-5 rounded-xl bg-surface border shadow-card hover:shadow-md transition-all flex flex-col justify-between gap-3",
                     isRevoked
-                      ? "border-slate-200 bg-slate-50/50 opacity-70"
-                      : "border-slate-200/90 hover:border-emerald-300",
+                      ? "border-border bg-surface-2/40 opacity-70"
+                      : "border-border hover:border-border-strong",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={cn(
-                          "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border",
+                          "grid h-10 w-10 place-items-center rounded-md shrink-0",
                           isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border-slate-200",
+                            ? "bg-success-soft text-success"
+                            : "bg-surface-2 text-text-muted",
                         )}
+                        aria-hidden
                       >
                         <FileSignature size={18} />
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
+                          <h3 className="font-bold text-text text-sm sm:text-base truncate">
                             {c.label || c.purpose.replace(/_/g, " ")}
                           </h3>
                           <span
                             className={cn(
-                              "px-2 py-0.5 rounded-full text-[10px] font-bold capitalize",
+                              "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider capitalize",
                               isActive
-                                ? "bg-emerald-100 text-emerald-800"
+                                ? "bg-success-soft text-success"
                                 : isRevoked
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-amber-100 text-amber-800",
+                                  ? "bg-danger-soft text-danger"
+                                  : "bg-warn-soft text-warn",
                             )}
                           >
                             {c.status}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 capitalize mt-0.5">
+                        <p className="text-xs text-text-soft capitalize mt-0.5">
                           Purpose: {c.purpose.replace(/_/g, " ")}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400 font-medium">
+                  <div className="pt-2.5 border-t border-border flex items-center justify-between gap-2">
+                    <span className="text-xs text-text-muted font-medium">
                       Expires: {new Date(c.expiresAt).toLocaleDateString()}
                     </span>
 
@@ -378,7 +377,7 @@ export default function ConsentsPage() {
                             revoke.mutate(c.id);
                           }
                         }}
-                        className="px-3 py-1 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                        className="pt-btn h-7 px-3 text-xs text-danger hover:bg-danger-soft disabled:opacity-50"
                       >
                         Revoke Access
                       </button>
@@ -394,10 +393,10 @@ export default function ConsentsPage() {
       {/* ── 4. Immutable Privacy Audit Trail ────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <History size={16} className="text-purple-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <History size={16} className="text-brand" aria-hidden />
             <span>Immutable Privacy Audit Trail</span>
-            <span className="text-xs font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60">
+            <span className="rounded-md bg-brand-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-brand">
               {auditList.length} Events
             </span>
           </h2>
@@ -408,48 +407,48 @@ export default function ConsentsPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-12 rounded-xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-12 rounded-lg bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : auditList.length === 0 ? (
-          <div className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white text-slate-400 flex items-center justify-center shrink-0 border border-slate-200">
+          <div className="p-6 rounded-lg bg-surface-2 border border-border flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-surface text-text-muted shrink-0 border border-border" aria-hidden>
               <History size={18} />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-800">
+              <p className="text-xs font-bold text-text">
                 No Consent Audit Events Yet
               </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-text-soft mt-0.5">
                 Every consent grant, record access by a doctor, and revocation is cryptographically logged here.
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+          <div className="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden bg-surface">
             {auditList.slice(0, 20).map((entry) => (
               <div
                 key={entry.id}
-                className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 transition-colors"
+                className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs hover:bg-surface-2 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-7 w-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 font-bold text-[10px]">
+                  <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0 font-mono font-bold text-[10px]" aria-hidden>
                     EHR
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-slate-900 truncate capitalize">
+                    <p className="font-bold text-text truncate capitalize">
                       {entry.action.replace(/_/g, " ")}
                     </p>
                     {entry.purpose ? (
-                      <p className="text-[11px] text-slate-500 truncate capitalize">
+                      <p className="text-[11px] text-text-soft truncate capitalize">
                         Scope: {entry.purpose.replace(/_/g, " ")}
                       </p>
                     ) : null}
                   </div>
                 </div>
 
-                <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                <span className="text-[11px] text-text-muted font-medium shrink-0">
                   {new Date(entry.createdAt).toLocaleString()}
                 </span>
               </div>
@@ -459,16 +458,16 @@ export default function ConsentsPage() {
       </section>
 
       {/* ── 5. Patient Data Rights Callout ──────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Patient Data Rights (GDPR &amp; HIPAA Compliant)
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Under healthcare privacy regulations, you have full ownership over your medical history with the absolute right to revoke access or request data erasure at any time.
             </p>
           </div>
@@ -476,10 +475,10 @@ export default function ConsentsPage() {
 
         <Link
           href="/patient/dsar"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-sky-700" />
-          <span>Exercise Data Rights</span>
+          <ExternalLink size={13} aria-hidden />
+          Exercise Data Rights
         </Link>
       </section>
     </div>
