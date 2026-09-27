@@ -53,7 +53,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "appointments",
       icon: Video,
-      bg: "bg-violet-50 text-violet-700 border-violet-100",
+      bg: "bg-violet-50 text-violet-600",
       link: roomId ? `/patient/teleconsult/${roomId}` : "/patient/appointments",
     };
   }
@@ -61,7 +61,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "appointments",
       icon: Calendar,
-      bg: "bg-sky-50 text-sky-700 border-sky-100",
+      bg: "bg-brand-soft text-brand",
       link: "/patient/appointments",
     };
   }
@@ -69,7 +69,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "medications",
       icon: Pill,
-      bg: "bg-emerald-50 text-emerald-700 border-emerald-100",
+      bg: "bg-success-soft text-success",
       link: "/patient/medications",
     };
   }
@@ -77,7 +77,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "labs",
       icon: FlaskConical,
-      bg: "bg-purple-50 text-purple-700 border-purple-100",
+      bg: "bg-violet-50 text-violet-600",
       link: "/patient/records",
     };
   }
@@ -85,14 +85,14 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "insurance",
       icon: ShieldCheck,
-      bg: "bg-amber-50 text-amber-800 border-amber-100",
+      bg: "bg-warn-soft text-warn",
       link: "/patient/insurance/claims",
     };
   }
   return {
     category: "general",
     icon: Bell,
-    bg: "bg-slate-50 text-slate-700 border-slate-200",
+    bg: "bg-surface-2 text-text-soft",
     link: null,
   };
 }
@@ -189,7 +189,7 @@ export default function NotificationsPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
         {/* Filter Tabs */}
         <SegmentedTabs
           ariaLabel="Notification filters"
@@ -221,20 +221,20 @@ export default function NotificationsPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search alerts by title or description..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X size={13} />
             </button>
@@ -249,20 +249,20 @@ export default function NotificationsPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+          <div className="rounded-xl border border-border bg-surface p-12 text-center flex flex-col items-center gap-3 shadow-card">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft" aria-hidden>
               <CheckCheck size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="t-card-title text-text">
                 {search ? "No notifications match your search" : "You're all caught up"}
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mt-0.5">
+              <p className="text-xs text-text-soft max-w-sm mt-0.5">
                 {search
                   ? `No alerts found for "${search}". Try clearing search.`
                   : "There are no unread notifications or action items for your health account right now."}
@@ -272,7 +272,7 @@ export default function NotificationsPage() {
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="mt-1 px-4 py-1.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 transition-colors"
+                className="pt-btn pt-btn-secondary mt-1 h-8 px-4 text-xs"
               >
                 Clear Search
               </button>
@@ -289,19 +289,20 @@ export default function NotificationsPage() {
                 <article
                   key={n.id}
                   className={cn(
-                    "group rounded-2xl border bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex items-start sm:items-center justify-between gap-4",
+                    "group rounded-xl border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-start sm:items-center justify-between gap-4",
                     !n.read
-                      ? "border-sky-300 bg-gradient-to-r from-sky-50/40 via-white to-white ring-1 ring-sky-400/20"
-                      : "border-slate-200/90",
+                      ? "border-brand/40 bg-brand-soft/30"
+                      : "border-border",
                   )}
                 >
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                     {/* Category Icon Badge */}
                     <div
                       className={cn(
-                        "h-11 w-11 rounded-2xl border flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform mt-0.5 sm:mt-0",
+                        "grid h-11 w-11 place-items-center rounded-md shrink-0 shadow-2xs group-hover:scale-105 transition-transform mt-0.5 sm:mt-0",
                         meta.bg,
                       )}
+                      aria-hidden
                     >
                       <CategoryIcon size={20} />
                     </div>
@@ -309,28 +310,28 @@ export default function NotificationsPage() {
                     {/* Content */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-sky-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
                           {n.title}
                         </h3>
 
                         {!n.read ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-600 text-white shadow-2xs">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand text-white shadow-2xs">
                             New
                           </span>
                         ) : (
-                          <span className="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">
+                          <span className="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-surface-2 text-text-muted">
                             Read
                           </span>
                         )}
                       </div>
 
                       {formattedBody ? (
-                        <p className="text-xs text-slate-600 font-medium mt-0.5 leading-relaxed">
+                        <p className="text-xs text-text-soft font-medium mt-0.5 leading-relaxed">
                           {formattedBody}
                         </p>
                       ) : null}
 
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-medium">
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted font-medium">
                         <Clock size={11} />
                         <span>{formatRelative(n.createdAt)}</span>
                       </div>
@@ -345,7 +346,7 @@ export default function NotificationsPage() {
                         onClick={() => markRead.mutate(n.id)}
                         disabled={markRead.isPending}
                         title="Mark as read"
-                        className="p-2 rounded-xl text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+                        className="p-2 rounded-lg text-text-muted hover:text-success hover:bg-success-soft transition-colors cursor-pointer disabled:opacity-50"
                       >
                         <Check size={16} />
                       </button>
@@ -354,10 +355,10 @@ export default function NotificationsPage() {
                     {meta.link ? (
                       <Link
                         href={meta.link}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/80 transition-colors"
+                        className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
                       >
                         <span>View</span>
-                        <ChevronRight size={13} />
+                        <ChevronRight size={13} aria-hidden />
                       </Link>
                     ) : null}
                   </div>
