@@ -20,6 +20,7 @@ import {
 import { useAppointments } from "@/patient/hooks";
 import { formatTime, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 import { teleconsultApi } from "@/portal/lib/api";
 import type { VisitBucket } from "@healthcare/shared/visit-lifecycle";
 
@@ -60,13 +61,13 @@ function getStatusBadge(status: string) {
     case "cancelled":
       return {
         label: "Cancelled",
-        className: "bg-slate-100 text-slate-600 border-slate-200",
+        className: "bg-surface-2 text-text-soft border-border",
         icon: XCircle,
       };
     default:
       return {
         label: humanize(status),
-        className: "bg-slate-50 text-slate-600 border-slate-200",
+        className: "bg-surface-2 text-text-soft border-border",
         icon: Calendar,
       };
   }
@@ -147,201 +148,47 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col gap-5 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Calendar size={12} className="text-sky-300" />
-                Care Team Schedule
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Doctor Visits &amp; Appointments
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Schedule and manage in-person clinical consultations, hospital follow-ups, and live video teleconsultations.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/care-team"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <User size={13} />
-                <span>My Doctors</span>
-              </Link>
-              <Link
-                href="/patient/appointments/book"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <Plus size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>Book Appointment</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <button
-              type="button"
-              onClick={() => setActiveTab("all")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "all"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <Calendar size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Visits
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawAppointments.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("upcoming")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "upcoming"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Clock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Upcoming
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {upcomingList.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("completed")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "completed"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <CheckCircle2 size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Completed
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {completedList.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("missed")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "missed"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-rose-400/30 flex items-center justify-center text-rose-200 shrink-0">
-                <AlertCircle size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Missed
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {missedList.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("cancelled")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeTab === "cancelled"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-slate-400/30 flex items-center justify-center text-slate-200 shrink-0">
-                <XCircle size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Cancelled
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {cancelledList.length}
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
+      <PageHero
+        icon={<Calendar size={13} />}
+        kicker="Care Team Schedule"
+        title="Doctor Visits & Appointments"
+        description="Schedule and manage in-person clinical consultations, hospital follow-ups, and live video teleconsultations."
+        actions={
+          <>
+            <Link href="/patient/care-team" className={heroSecondaryAction}>
+              <User size={13} />
+              <span>My Doctors</span>
+            </Link>
+            <Link href="/patient/appointments/book" className={heroPrimaryAction}>
+              <Plus size={14} />
+              <span>Book Appointment</span>
+            </Link>
+          </>
+        }
+        footer={
+          <>
+            <span>{rawAppointments.length} total visits</span>
+            <span>{upcomingList.length} upcoming</span>
+            <span>{completedList.length} completed</span>
+            <span>{missedList.length} missed</span>
+            <span>{cancelledList.length} cancelled</span>
+          </>
+        }
+      />
 
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter Switcher */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0 overflow-x-auto">
+        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
               activeTab === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             All ({rawAppointments.length})
@@ -352,8 +199,8 @@ export default function AppointmentsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
               activeTab === "upcoming"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Upcoming ({upcomingList.length})
@@ -364,8 +211,8 @@ export default function AppointmentsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
               activeTab === "completed"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Completed ({completedList.length})
@@ -376,8 +223,8 @@ export default function AppointmentsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
               activeTab === "missed"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Missed ({missedList.length})
@@ -388,8 +235,8 @@ export default function AppointmentsPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
               activeTab === "cancelled"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Cancelled ({cancelledList.length})
@@ -400,20 +247,20 @@ export default function AppointmentsPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search doctor, hospital, clinic..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
             >
               <X size={13} />
             </button>
@@ -428,20 +275,20 @@ export default function AppointmentsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-24 rounded-2xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredAppointments.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center flex flex-col items-center gap-3">
+          <div className="rounded-2xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
               <Calendar size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-text text-sm">
                 No appointments found
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mt-0.5">
+              <p className="text-xs text-text-soft max-w-sm mt-0.5">
                 {search
                   ? `No visits match "${search}". Try clearing your search.`
                   : activeTab === "upcoming"
@@ -471,19 +318,19 @@ export default function AppointmentsPage() {
               return (
                 <div
                   key={a.id}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="group patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   {/* Left Column: Date Tile + Doctor Info */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     {/* Date Block */}
-                    <div className="h-14 w-14 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col items-center justify-center shrink-0 shadow-2xs group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors">
+                    <div className="h-14 w-14 rounded-xl bg-surface-2 border border-border flex flex-col items-center justify-center shrink-0 shadow-2xs group-hover:border-sky-200 group-hover:bg-sky-50/50 transition-colors">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700">
                         {new Date(a.date).toLocaleDateString("en-US", { month: "short" })}
                       </span>
-                      <span className="text-lg font-black text-slate-900 leading-none mt-0.5">
+                      <span className="text-lg font-black text-text leading-none mt-0.5">
                         {new Date(a.date).getDate()}
                       </span>
-                      <span className="text-[9px] font-semibold text-slate-400">
+                      <span className="text-[9px] font-semibold text-text-muted">
                         {new Date(a.date).toLocaleDateString("en-US", { weekday: "short" })}
                       </span>
                     </div>
@@ -491,19 +338,19 @@ export default function AppointmentsPage() {
                     {/* Details */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors truncate">
+                        <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors truncate">
                           {a.doctorName ?? "Consulting Physician"}
                         </h3>
                         {a.doctorSpecialization ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-surface-2 text-text">
                             {a.doctorSpecialization}
                           </span>
                         ) : null}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 font-medium">
-                        <span className="inline-flex items-center gap-1 text-slate-700 font-semibold">
-                          <Clock size={12} className="text-slate-400" />
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-text-soft font-medium">
+                        <span className="inline-flex items-center gap-1 text-text font-semibold">
+                          <Clock size={12} className="text-text-muted" />
                           {formatTime(a.time)}
                         </span>
 
@@ -517,7 +364,7 @@ export default function AppointmentsPage() {
                             </>
                           ) : (
                             <>
-                              <Building2 size={12} className="text-slate-400" />
+                              <Building2 size={12} className="text-text-muted" />
                               <span>{a.hospitalName ?? "Hospital Consultation"}</span>
                             </>
                           )}
@@ -534,15 +381,15 @@ export default function AppointmentsPage() {
                       </div>
 
                       {a.reason ? (
-                        <p className="text-xs text-slate-500 mt-1 truncate max-w-md">
-                          <span className="font-semibold text-slate-700">Reason:</span> {a.reason}
+                        <p className="text-xs text-text-soft mt-1 truncate max-w-md">
+                          <span className="font-semibold text-text">Reason:</span> {a.reason}
                         </p>
                       ) : null}
                     </div>
                   </div>
 
                   {/* Right Column: Status Badge & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-border shrink-0">
                     <span
                       className={cn(
                         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
@@ -566,14 +413,14 @@ export default function AppointmentsPage() {
                           <span>Join Call</span>
                         </Link>
                       ) : isVideo && (a.bucket === "today" || a.isLive) ? (
-                        <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200">
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-text-soft bg-surface-2 border border-border">
                           {a.isLive ? "Waiting for doctor" : "Starts soon"}
                         </span>
                       ) : null}
 
                       <Link
                         href={`/patient/appointments/${a.id}`}
-                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1"
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors flex items-center gap-1"
                       >
                         <span>Details</span>
                         <ChevronRight size={13} />

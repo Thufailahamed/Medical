@@ -139,7 +139,7 @@ export default function AppointmentDetailPage({
                   </button>
                 ) : canJoinVideo ? (
                   <span
-                    className="inline-flex items-center gap-2 rounded-pill bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-500"
+                    className="inline-flex items-center gap-2 rounded-pill bg-surface-2 px-5 py-2.5 text-sm font-semibold text-text-soft"
                     data-testid="join-waiting-chip"
                   >
                     <Video size={16} />

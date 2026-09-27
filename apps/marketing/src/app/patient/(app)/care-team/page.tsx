@@ -20,6 +20,7 @@ import { api } from "@/portal/lib/api";
 import { usePatientProfile } from "@/patient/hooks";
 import { humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 
 interface CareTeamMember {
   id: string;
@@ -117,168 +118,46 @@ export default function CareTeamPage() {
 
   return (
     <div className="flex flex-col gap-5 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Users size={12} className="text-sky-300" />
-                Authorized Clinical Providers
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Care Team &amp; Clinicians
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Review and control healthcare professionals authorized to access your electronic health record, prescribe medications, and add clinical notes.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Link
-                href="/patient/appointments/book"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <Calendar size={13} />
-                <span>Book Visit</span>
-              </Link>
-              <Link
-                href="/patient/care-team/add"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-              >
-                <UserPlus size={14} className="text-sky-700" />
-                <span>Add Clinician</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <button
-              type="button"
-              onClick={() => setActiveFilter("all")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeFilter === "all"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
-                <Users size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Clinicians
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rawMembers.length}
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter("active")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeFilter === "active"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active Access
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {activeMembers.length}
-                </p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Stethoscope size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Primary Care
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {primaryCount}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter("paused")}
-              className={cn(
-                "flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left border cursor-pointer",
-                activeFilter === "paused"
-                  ? "bg-white/20 border-white/30 shadow-xs"
-                  : "bg-white/10 border-white/10 hover:bg-white/15",
-              )}
-            >
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Pause size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Paused Access
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {pausedMembers.length}
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
+      <PageHero
+        icon={<Users size={13} />}
+        kicker="Authorized Clinical Providers"
+        title="Care Team & Clinicians"
+        description="Review and control healthcare professionals authorized to access your electronic health record, prescribe medications, and add clinical notes."
+        actions={
+          <>
+            <Link href="/patient/appointments/book" className={heroSecondaryAction}>
+              <Calendar size={13} />
+              <span>Book Visit</span>
+            </Link>
+            <Link href="/patient/care-team/add" className={heroPrimaryAction}>
+              <UserPlus size={14} />
+              <span>Add Clinician</span>
+            </Link>
+          </>
+        }
+        footer={
+          <>
+            <span>{rawMembers.length} clinicians</span>
+            <span>{activeMembers.length} active access</span>
+            <span>{primaryCount} primary care</span>
+            <span>{pausedMembers.length} paused</span>
+          </>
+        }
+      />
 
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
+        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeFilter === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             All ({rawMembers.length})
@@ -289,8 +168,8 @@ export default function CareTeamPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeFilter === "active"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Active ({activeMembers.length})
@@ -301,8 +180,8 @@ export default function CareTeamPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeFilter === "paused"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
+                ? "bg-surface text-brand shadow-xs"
+                : "text-text-soft hover:text-text",
             )}
           >
             Paused ({pausedMembers.length})
@@ -313,20 +192,20 @@ export default function CareTeamPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clinician, specialty, or role..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
             >
               <X size={13} />
             </button>
@@ -341,20 +220,20 @@ export default function CareTeamPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-28 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-28 rounded-2xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center flex flex-col items-center gap-3">
+          <div className="rounded-2xl border border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
               <Users size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-text text-sm">
                 No clinicians found
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mt-0.5">
+              <p className="text-xs text-text-soft max-w-sm mt-0.5">
                 {search
                   ? `No doctors match "${search}". Try clearing your search.`
                   : "Connect with your family physician, specialists, or therapists to share records and treatment plans."}
@@ -383,7 +262,7 @@ export default function CareTeamPage() {
               return (
                 <article
                   key={member.id}
-                  className="group rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-sky-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="group rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   {/* Left Column: Doctor Avatar + Clinical Details */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
@@ -394,7 +273,7 @@ export default function CareTeamPage() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors truncate">
+                        <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors truncate">
                           {member.doctorName.startsWith("Dr.") ? member.doctorName : `Dr. ${member.doctorName}`}
                         </h3>
                         {member.doctorSpecialization ? (
@@ -406,15 +285,15 @@ export default function CareTeamPage() {
                       </div>
 
                       {/* Role & Access Scope tags */}
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-xs text-slate-500 font-medium">
-                        <span className="inline-flex items-center gap-1 text-slate-700 font-semibold">
-                          <UserCheck size={12} className="text-slate-400" />
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-xs text-text-soft font-medium">
+                        <span className="inline-flex items-center gap-1 text-text font-semibold">
+                          <UserCheck size={12} className="text-text-muted" />
                           {formattedRole}
                         </span>
 
                         <span>·</span>
 
-                        <span className="inline-flex items-center gap-1 text-slate-600">
+                        <span className="inline-flex items-center gap-1 text-text-soft">
                           <ShieldCheck size={12} className="text-emerald-600" />
                           {formattedScope}
                         </span>
@@ -423,7 +302,7 @@ export default function CareTeamPage() {
                   </div>
 
                   {/* Right Column: Status & Consent Management Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-border shrink-0">
                     <span
                       className={cn(
                         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
@@ -431,7 +310,7 @@ export default function CareTeamPage() {
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
                           : isPaused
                           ? "bg-amber-50 text-amber-800 border-amber-200/80"
-                          : "bg-slate-100 text-slate-600 border-slate-200",
+                          : "bg-surface-2 text-text-soft border-border",
                       )}
                     >
                       {isActive ? (
@@ -460,7 +339,7 @@ export default function CareTeamPage() {
                             })
                           }
                           disabled={update.isPending}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-text-soft hover:bg-surface-2 border border-border transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {isActive ? "Pause" : "Resume"}
                         </button>
