@@ -157,20 +157,20 @@ export default function CaretakersPage() {
       />
 
       {/* ── 2. Invite Caretaker Form Card ──────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <UserPlus size={16} className="text-sky-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <UserPlus size={16} className="text-brand" aria-hidden />
             <span>Invite a Trusted Caretaker</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-text-soft mt-0.5">
             Send an SMS or Email invitation granting verified care access to your patient profile.
           </p>
         </div>
 
         <form onSubmit={handleInvite} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           <div className="sm:col-span-4 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
               Caretaker Name
             </label>
             <input
@@ -178,18 +178,18 @@ export default function CaretakersPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Eleanor Vance"
-              className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input text-xs sm:text-sm"
             />
           </div>
 
           <div className="sm:col-span-3 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
               Care Role
             </label>
             <select
               value={careRole}
               onChange={(e) => setCareRole(e.target.value)}
-              className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             >
               {CARE_ROLES.map((role) => (
                 <option key={role.value} value={role.value}>
@@ -200,9 +200,9 @@ export default function CaretakersPage() {
           </div>
 
           <div className="sm:col-span-3 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider flex items-center justify-between">
               <span>{channel === "email" ? "Email Address" : "Phone Number"}</span>
-              <div className="flex items-center gap-1 font-semibold text-[10px] text-sky-700">
+              <div className="flex items-center gap-1 font-semibold text-[10px] text-brand">
                 <button
                   type="button"
                   onClick={() => setChannel(channel === "mobile" ? "email" : "mobile")}
@@ -218,7 +218,7 @@ export default function CaretakersPage() {
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 placeholder={channel === "email" ? "eleanor@example.com" : "+94 77 987 6543"}
-                className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                className="pt-input text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -227,20 +227,17 @@ export default function CaretakersPage() {
             <button
               type="submit"
               disabled={create.isPending || !name.trim() || !contact.trim()}
-              className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary h-11 w-full text-xs disabled:opacity-50"
             >
               {create.isPending ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Inviting…</span>
+                  <Loader2 size={13} className="animate-spin" aria-hidden />
+                  Inviting…
                 </>
               ) : (
                 <>
-                  <Plus size={14} />
-                  <span>Invite Caretaker</span>
+                  <Plus size={14} aria-hidden />
+                  Invite Caretaker
                 </>
               )}
             </button>
@@ -248,15 +245,15 @@ export default function CaretakersPage() {
         </form>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-            <AlertCircle size={14} className="text-rose-600 shrink-0" />
+          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertCircle size={14} className="shrink-0" aria-hidden />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+          <div className="p-3 rounded-lg bg-success-soft border border-success/25 text-xs font-semibold text-success flex items-center gap-2">
+            <CheckCircle2 size={14} className="shrink-0" aria-hidden />
             <span>{successMsg}</span>
           </div>
         )}
@@ -265,10 +262,10 @@ export default function CaretakersPage() {
       {/* ── 3. Linked Caretakers List ───────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <UserCheck size={16} className="text-emerald-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <UserCheck size={16} className="text-success" aria-hidden />
             <span>Authorized Caretakers</span>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+            <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-success">
               {activeLinks.length}
             </span>
           </h2>
@@ -279,20 +276,20 @@ export default function CaretakersPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : activeLinks.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col items-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-2xs">
+          <div className="p-8 sm:p-10 rounded-xl bg-surface border border-border shadow-card flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success shadow-2xs" aria-hidden>
               <ShieldCheck size={28} />
             </div>
             <div className="max-w-md">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="t-card-title text-text">
                 No Caretakers Currently Linked
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
                 You maintain full, exclusive control over your health profile. If you have an elderly parent, partner, or private nurse who helps coordinate your medical care, send them an invitation above.
               </p>
             </div>
@@ -307,41 +304,41 @@ export default function CaretakersPage() {
                 <article
                   key={link.linkId}
                   className={cn(
-                    "p-4 sm:p-5 rounded-2xl bg-white border shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-4",
+                    "p-4 sm:p-5 rounded-xl bg-surface border shadow-card hover:shadow-md transition-all flex flex-col justify-between gap-4",
                     isPaused
-                      ? "border-amber-200 bg-amber-50/20"
-                      : "border-slate-200/90 hover:border-emerald-300",
+                      ? "border-warn/40 bg-warn-soft/20"
+                      : "border-border hover:border-border-strong",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                      <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success font-mono font-bold text-sm shrink-0 shadow-2xs" aria-hidden>
                         {initials}
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
+                          <h3 className="font-bold text-text text-sm sm:text-base truncate">
                             {link.caretakerName ?? "Authorized Caretaker"}
                           </h3>
                           {link.caretakerVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              <CheckCircle2 size={10} />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
+                              <CheckCircle2 size={10} aria-hidden />
                               Verified
                             </span>
                           ) : null}
                         </div>
 
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
-                          <span className="text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 capitalize">
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-text-soft font-medium">
+                          <span className="text-success font-semibold bg-success-soft px-2 py-0.5 rounded-md capitalize">
                             {link.careRole}
                           </span>
                           <span
                             className={cn(
-                              "px-2 py-0.5 rounded-md text-[11px] font-bold capitalize",
+                              "px-2 py-0.5 rounded-md text-[11px] font-semibold capitalize",
                               isPaused
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-emerald-100 text-emerald-800",
+                                ? "bg-warn-soft text-warn"
+                                : "bg-success-soft text-success",
                             )}
                           >
                             {link.status}
@@ -352,7 +349,7 @@ export default function CaretakersPage() {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() =>
@@ -363,14 +360,14 @@ export default function CaretakersPage() {
                       }
                       disabled={patch.isPending}
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50",
+                        "pt-btn h-8 px-3 text-xs disabled:opacity-50",
                         isPaused
-                          ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200"
-                          : "bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200",
+                          ? "bg-success-soft text-success hover:brightness-95"
+                          : "bg-warn-soft text-warn hover:brightness-95",
                       )}
                     >
-                      {isPaused ? <Play size={13} /> : <Pause size={13} />}
-                      <span>{isPaused ? "Resume Access" : "Pause Access"}</span>
+                      {isPaused ? <Play size={13} aria-hidden /> : <Pause size={13} aria-hidden />}
+                      {isPaused ? "Resume Access" : "Pause Access"}
                     </button>
 
                     <button
@@ -385,7 +382,7 @@ export default function CaretakersPage() {
                         }
                       }}
                       disabled={revoke.isPending}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
+                      className="pt-btn h-8 px-3 text-xs text-danger hover:bg-danger-soft disabled:opacity-50"
                     >
                       Revoke Access
                     </button>
@@ -400,10 +397,10 @@ export default function CaretakersPage() {
       {/* ── 4. Pending Invitations Section ─────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <Clock size={16} className="text-amber-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <Clock size={16} className="text-warn" aria-hidden />
             <span>Pending Caretaker Invitations</span>
-            <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+            <span className="rounded-md bg-warn-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-warn">
               {rawInvites.length}
             </span>
           </h2>
@@ -414,20 +411,20 @@ export default function CaretakersPage() {
             {[1].map((i) => (
               <div
                 key={i}
-                className="h-16 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-16 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : rawInvites.length === 0 ? (
-          <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center gap-3.5">
-            <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+          <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex items-center gap-3.5">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-surface-2 text-text-muted shrink-0" aria-hidden>
               <Mail size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="t-card-title text-text">
                 No Pending Caretaker Invitations
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-text-soft mt-0.5">
                 All sent caretaker invitations have been resolved or accepted.
               </p>
             </div>
@@ -437,18 +434,18 @@ export default function CaretakersPage() {
             {rawInvites.map((inv) => (
               <div
                 key={inv.id}
-                className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3 text-xs"
+                className="p-4 rounded-xl bg-surface border border-border shadow-card flex items-center justify-between gap-3 text-xs"
               >
                 <div className="min-w-0">
-                  <p className="font-bold text-slate-900 truncate">
+                  <p className="font-bold text-text truncate">
                     {inv.caretakerName}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 capitalize">
+                  <p className="text-[11px] text-text-soft mt-0.5 capitalize">
                     {inv.careRole} · via {inv.channel}
                   </p>
                 </div>
 
-                <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-warn-soft text-warn shrink-0">
                   {inv.consumedAt ? "Accepted" : "Awaiting Verification"}
                 </span>
               </div>
@@ -458,16 +455,16 @@ export default function CaretakersPage() {
       </section>
 
       {/* ── 5. Caretaker Privileges Callout ─────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Patient Control &amp; Granular Consent
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Caretakers only have delegated proxy access. You can pause or permanently revoke their permission at any time with immediate effect.
             </p>
           </div>
@@ -475,10 +472,10 @@ export default function CaretakersPage() {
 
         <Link
           href="/patient/emergency-card"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-sky-700" />
-          <span>Emergency Contacts</span>
+          <ExternalLink size={13} aria-hidden />
+          Emergency Contacts
         </Link>
       </section>
     </div>
