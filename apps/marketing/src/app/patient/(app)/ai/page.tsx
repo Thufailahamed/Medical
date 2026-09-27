@@ -3,23 +3,20 @@
 import { useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
   Bot,
   FileText,
   FlaskConical,
-  Lock,
   Pill,
   ScanLine,
-  ShieldCheck,
   Sparkles,
   Stethoscope,
   Syringe,
   TrendingUp,
-  UserCheck,
 } from "lucide-react";
 
 import { useMedications, usePatientProfile } from "@/patient/hooks";
-import { cn } from "@/portal/lib/utils";
+import { PageHero } from "@/patient/components/primitives/PageHero";
+import { Card } from "@/patient/components/primitives/Card";
 import { AiCommandBar } from "@/patient/components/ai/AiCommandBar";
 import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
 import {
@@ -94,10 +91,10 @@ const TOOLS: {
 ];
 
 const TRUST = [
-  { icon: Activity, label: "EMR grounded" },
-  { icon: ShieldCheck, label: "Pharmacopeia checked" },
-  { icon: Lock, label: "Private by design" },
-  { icon: UserCheck, label: "Human review" },
+  "EMR grounded",
+  "Pharmacopeia checked",
+  "Private by design",
+  "Human review",
 ];
 
 export default function AiToolsPage() {
@@ -158,127 +155,48 @@ export default function AiToolsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-1 pb-8 pt-1 sm:gap-7 sm:px-2">
       {/* Hero + command center */}
-      <section className="dashboard-hero anim-rise relative overflow-hidden rounded-3xl p-6 text-white shadow-xl md:p-9">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.4) 0%, transparent 65%)",
-          }}
+      <PageHero
+        icon={<Sparkles size={13} aria-hidden />}
+        kicker="Clinical intelligence"
+        title="AI health assistant"
+        description="Summaries, medication safety checks and lab explanations grounded in your health record — private by design and never a replacement for your physician."
+        footer={
+          <>
+            {TRUST.map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </>
+        }
+      />
+
+      <Card>
+        <AiCommandBar
+          promptsLabel="Try"
+          onSubmit={goToChat}
+          quickPrompts={[
+            {
+              label: "Summarize my record",
+              icon: <FileText size={13} className="text-sky-200" aria-hidden />,
+              onSelect: () => runQuickPrompt("summary"),
+            },
+            {
+              label: "Explain my lab results",
+              icon: <FlaskConical size={13} className="text-emerald-200" aria-hidden />,
+              onSelect: () => runQuickPrompt("lab"),
+            },
+            {
+              label: "Check my medications",
+              icon: <Pill size={13} className="text-amber-200" aria-hidden />,
+              onSelect: () => runQuickPrompt("meds"),
+            },
+            {
+              label: "Prepare for my visit",
+              icon: <Stethoscope size={13} className="text-indigo-200" aria-hidden />,
+              onSelect: () => runQuickPrompt("chat"),
+            },
+          ]}
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-10 h-64 w-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.28) 0%, transparent 60%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/3 md:block"
-          style={{
-            backgroundImage:
-              "radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1.4px)",
-            backgroundSize: "20px 20px",
-            maskImage:
-              "linear-gradient(to left, rgba(0,0,0,0.9) 35%, transparent)",
-            WebkitMaskImage:
-              "linear-gradient(to left, rgba(0,0,0,0.9) 35%, transparent)",
-          }}
-        />
-
-        <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="flex max-w-3xl flex-col gap-5">
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-400/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-100 backdrop-blur-md shadow-2xs">
-              <Sparkles size={12} className="text-sky-300" aria-hidden />
-              Clinical intelligence
-            </span>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl">
-                AI health{" "}
-                <span className="bg-gradient-to-r from-sky-200 via-cyan-100 to-emerald-200 bg-clip-text text-transparent">
-                  assistant
-                </span>
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm font-normal leading-relaxed text-white/85 md:text-[15px]">
-                Summaries, medication safety checks and lab explanations
-                grounded in your health record — private by design and never a
-                replacement for your physician.
-              </p>
-            </div>
-
-            <AiCommandBar
-              className="mt-1"
-              promptsLabel="Try"
-              onSubmit={goToChat}
-              quickPrompts={[
-              {
-                label: "Summarize my record",
-                icon: <FileText size={13} className="text-sky-200" aria-hidden />,
-                onSelect: () => runQuickPrompt("summary"),
-              },
-              {
-                label: "Explain my lab results",
-                icon: <FlaskConical size={13} className="text-emerald-200" aria-hidden />,
-                onSelect: () => runQuickPrompt("lab"),
-              },
-              {
-                label: "Check my medications",
-                icon: <Pill size={13} className="text-amber-200" aria-hidden />,
-                onSelect: () => runQuickPrompt("meds"),
-              },
-              {
-                label: "Prepare for my visit",
-                icon: <Stethoscope size={13} className="text-indigo-200" aria-hidden />,
-                onSelect: () => runQuickPrompt("chat"),
-              },
-            ]}
-          />
-
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-white/15 pt-4">
-              {TRUST.map(({ icon: Icon, label }) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-2 text-[11px] font-semibold text-white/85"
-                >
-                  <span
-                    aria-hidden
-                    className="grid h-6 w-6 place-items-center rounded-lg border border-white/15 bg-white/10 text-sky-200"
-                  >
-                    <Icon size={12} />
-                  </span>
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Decorative constellation of the tool icons */}
-          <div aria-hidden className="relative hidden lg:block">
-            <div
-              className="absolute inset-0 -m-10 rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle, rgba(125,211,252,0.18) 0%, transparent 65%)",
-              }}
-            />
-            <div className="relative grid grid-cols-2 gap-4">
-              {TOOLS.map((tool, i) => (
-                <div key={tool.href} className={cn(i % 2 === 1 && "translate-y-5")}>
-                  <div
-                    className="anim-pulse-soft grid h-16 w-16 place-items-center rounded-2xl border border-white/15 bg-white/10 text-sky-100 shadow-lg backdrop-blur-md"
-                    style={{ animationDelay: `${i * 0.45}s` }}
-                  >
-                    {tool.icon}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      </Card>
 
       {/* Primary tools */}
       <section className="anim-rise anim-rise-delay-1 flex flex-col gap-4">
