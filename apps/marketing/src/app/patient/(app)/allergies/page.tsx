@@ -38,26 +38,26 @@ function getSeverityBadge(severity?: string | null) {
     case "critical":
       return {
         label: "Critical (Anaphylactic)",
-        bg: "bg-rose-50 text-rose-700 border-rose-200",
+        bg: "bg-danger-soft text-danger",
         icon: AlertCircle,
       };
     case "severe":
       return {
         label: "Severe Reaction",
-        bg: "bg-orange-50 text-orange-700 border-orange-200",
+        bg: "bg-warn-soft text-warn",
         icon: AlertTriangle,
       };
     case "moderate":
       return {
         label: "Moderate",
-        bg: "bg-amber-50 text-amber-700 border-amber-200",
+        bg: "bg-warn-soft text-warn",
         icon: AlertTriangle,
       };
     case "mild":
     default:
       return {
         label: "Mild",
-        bg: "bg-sky-50 text-sky-700 border-sky-200",
+        bg: "bg-brand-soft text-brand",
         icon: Info,
       };
   }
@@ -166,7 +166,7 @@ export default function AllergiesPage() {
       />
 
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
         {/* Filter Tabs */}
         <SegmentedTabs
           ariaLabel="Allergy filters"
@@ -195,20 +195,20 @@ export default function AllergiesPage() {
         <div className="relative flex-1 sm:max-w-xs">
           <Search
             size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search substance, reaction, or notes..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X size={13} />
             </button>
@@ -223,21 +223,21 @@ export default function AllergiesPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredAllergies.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs flex flex-col gap-6">
+          <div className="rounded-xl border border-border bg-surface p-6 sm:p-8 shadow-card flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success shrink-0 shadow-2xs" aria-hidden>
                 <ShieldCheck size={28} />
               </div>
               <div className="flex-1">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                <h3 className="t-card-title text-text">
                   {search ? "No allergies match your search" : "No Known Allergies Recorded"}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-text-soft mt-1 max-w-xl leading-relaxed">
                   {search
                     ? `No allergen found matching "${search}". Clear search to view full list.`
                     : "No drug, food, or environmental sensitivities are flagged on your chart. Adding your known reactions helps doctors avoid prescribing contraindicated medications during consultations."}
@@ -247,24 +247,21 @@ export default function AllergiesPage() {
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
+                className="pt-btn pt-btn-primary h-10 px-5 text-xs shrink-0"
               >
-                <Plus size={14} />
-                <span>+ Record Known Allergy</span>
+                <Plus size={14} aria-hidden />
+                + Record Known Allergy
               </button>
             </div>
 
             {/* Quick Presets for Common Allergies */}
             {!search && (
-              <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+              <div className="pt-4 border-t border-border flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">
                     Common Allergens (1-Tap Fast Record)
                   </h4>
-                  <span className="text-[11px] text-slate-400">Click to add to record</span>
+                  <span className="text-[11px] text-text-muted">Click to add to record</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -274,19 +271,19 @@ export default function AllergiesPage() {
                       type="button"
                       onClick={() => handleQuickAdd(preset)}
                       disabled={add.isPending}
-                      className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition-all text-left flex items-start justify-between gap-2 group cursor-pointer"
+                      className="p-3 rounded-xl bg-surface-2 border border-border hover:border-border-strong transition-all text-left flex items-start justify-between gap-2 group cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 group-hover:text-rose-700 transition-colors truncate">
+                        <p className="text-xs font-bold text-text group-hover:text-danger transition-colors truncate">
                           {preset.substance}
                         </p>
-                        <p className="text-[11px] text-slate-500 truncate">
+                        <p className="text-[11px] text-text-soft truncate">
                           {preset.reaction}
                         </p>
                       </div>
                       <Plus
                         size={14}
-                        className="text-slate-400 group-hover:text-rose-600 transition-colors shrink-0 mt-0.5"
+                        className="text-text-muted group-hover:text-danger transition-colors shrink-0 mt-0.5"
                       />
                     </button>
                   ))}
@@ -304,38 +301,38 @@ export default function AllergiesPage() {
               return (
                 <article
                   key={allergy.id}
-                  className="group p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:border-rose-300 transition-all flex items-start justify-between gap-4"
+                  className="group p-4 sm:p-5 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-start justify-between gap-4"
                 >
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className="h-11 w-11 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100 shadow-2xs group-hover:scale-105 transition-transform">
+                    <div className="grid h-11 w-11 place-items-center rounded-md bg-danger-soft text-danger shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
                       <ShieldAlert size={20} />
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-rose-700 transition-colors truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-danger transition-colors truncate">
                           {allergy.substance}
                         </h3>
 
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border",
+                            "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                             badge.bg,
                           )}
                         >
-                          <BadgeIcon size={11} />
+                          <BadgeIcon size={11} aria-hidden />
                           <span>{badge.label}</span>
                         </span>
                       </div>
 
                       {allergy.reaction ? (
-                        <p className="text-xs text-slate-700 font-semibold mt-1">
-                          Reaction: <span className="font-medium text-slate-600">{allergy.reaction}</span>
+                        <p className="text-xs text-text font-semibold mt-1">
+                          Reaction: <span className="font-medium text-text-soft">{allergy.reaction}</span>
                         </p>
                       ) : null}
 
                       {allergy.notes ? (
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 line-clamp-2">
+                        <p className="text-xs text-text-soft font-medium mt-0.5 line-clamp-2">
                           {allergy.notes}
                         </p>
                       ) : null}
@@ -347,7 +344,7 @@ export default function AllergiesPage() {
                     onClick={() => handleDelete(allergy.id)}
                     disabled={isDeleting}
                     title="Remove allergy"
-                    className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    className="p-2 rounded-lg text-text-muted hover:text-danger hover:bg-danger-soft transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -359,16 +356,16 @@ export default function AllergiesPage() {
       </section>
 
       {/* ── 4. Emergency Health ID & Interaction Callout ───────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-warn-soft text-warn shrink-0" aria-hidden>
             <QrCode size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Synced with Emergency Card &amp; QR Pass
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Confirmed critical allergies are automatically projected to your Emergency Medical ID for first responders and ER clinicians.
             </p>
           </div>
@@ -376,10 +373,10 @@ export default function AllergiesPage() {
 
         <Link
           href="/patient/emergency-card"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-amber-700" />
-          <span>View Emergency Card</span>
+          <ExternalLink size={13} aria-hidden />
+          View Emergency Card
         </Link>
       </section>
 
