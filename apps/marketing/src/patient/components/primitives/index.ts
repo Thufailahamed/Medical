@@ -9,3 +9,9 @@ export { SectionHeader } from "./SectionHeader";
 export { CardHeader } from "./CardHeader";
 export { Sheet } from "./Sheet";
 export { QueryBoundary } from "./QueryBoundary";
+export {
+  PageHero,
+  HeroStatusPill,
+  heroPrimaryAction,
+  heroSecondaryAction,
+} from "./PageHero";
