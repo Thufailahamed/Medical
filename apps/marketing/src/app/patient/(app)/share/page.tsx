@@ -198,14 +198,14 @@ export default function PatientSharePage() {
       />
 
       {/* ── 2. Create Share Link or Visit Pack ───────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4">
-        <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-border">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-              <Link2 size={16} className="text-sky-600" />
+            <h2 className="pt-kicker flex items-center gap-2">
+              <Link2 size={16} className="text-brand" aria-hidden />
               <span>Create Access Link</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Choose between an all-records consultation pass or a curated visit pack.
             </p>
           </div>
@@ -238,25 +238,25 @@ export default function PatientSharePage() {
           /* Quick Visit Link Form */
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-1">
             <div className="sm:col-span-6 flex flex-col gap-1">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
                 Recipient / Purpose Label
               </label>
               <input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="e.g. For Dr. Perera's Cardiology Consult"
-                className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                className="pt-input text-xs sm:text-sm"
               />
             </div>
 
             <div className="sm:col-span-3 flex flex-col gap-1">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
                 Access Duration
               </label>
               <select
                 value={hours}
                 onChange={(e) => setHours(e.target.value)}
-                className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer"
+                className="pt-input text-xs sm:text-sm"
               >
                 {EXPIRY_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -271,20 +271,17 @@ export default function PatientSharePage() {
                 type="button"
                 onClick={() => create.mutate()}
                 disabled={create.isPending}
-                className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
+                className="pt-btn pt-btn-primary h-10 w-full text-xs disabled:opacity-50"
               >
                 {create.isPending ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Generating…</span>
+                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                    Generating…
                   </>
                 ) : (
                   <>
-                    <Plus size={14} />
-                    <span>Generate Visit Link</span>
+                    <Plus size={14} aria-hidden />
+                    Generate Visit Link
                   </>
                 )}
               </button>
@@ -295,25 +292,25 @@ export default function PatientSharePage() {
           <div className="flex flex-col gap-4 pt-1">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-6 flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
                   Pack Title
                 </label>
                 <input
                   value={packLabel}
                   onChange={(e) => setPackLabel(e.target.value)}
                   placeholder="e.g. Pre-Surgery Lab & ECG Bundle"
-                  className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                  className="pt-input text-xs sm:text-sm"
                 />
               </div>
 
               <div className="sm:col-span-3 flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
                   Pack Validity
                 </label>
                 <select
                   value={packHours}
                   onChange={(e) => setPackHours(e.target.value)}
-                  className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer"
+                  className="pt-input text-xs sm:text-sm"
                 >
                   {EXPIRY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -324,37 +321,34 @@ export default function PatientSharePage() {
               </div>
 
               <div className="sm:col-span-3">
-                <button
-                  type="button"
-                  onClick={() => createPack.mutate()}
-                  disabled={createPack.isPending || packSelected.length === 0}
-                  className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                  }}
-                >
-                  {createPack.isPending ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Packing…</span>
-                    </>
-                  ) : (
-                    <>
-                      <FolderLock size={14} />
-                      <span>Mint Pack ({packSelected.length})</span>
-                    </>
-                  )}
-                </button>
+              <button
+                type="button"
+                onClick={() => createPack.mutate()}
+                disabled={createPack.isPending || packSelected.length === 0}
+                className="pt-btn pt-btn-primary h-10 w-full text-xs disabled:opacity-50"
+              >
+                {createPack.isPending ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                    Packing…
+                  </>
+                ) : (
+                  <>
+                    <FolderLock size={14} aria-hidden />
+                    Mint Pack ({packSelected.length})
+                  </>
+                )}
+              </button>
               </div>
             </div>
 
             {/* Record Picker Header with Search */}
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-800">
+                <span className="text-xs font-bold text-text">
                   Select Records to Include
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-text-muted">
                   ({packSelected.length} of {packRecords.length} selected)
                 </span>
               </div>
@@ -363,7 +357,7 @@ export default function PatientSharePage() {
                 <button
                   type="button"
                   onClick={selectAllRecords}
-                  className="text-xs font-semibold text-sky-700 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-brand hover:underline cursor-pointer"
                 >
                   {packSelected.length === filteredPackRecords.length
                     ? "Deselect All"
@@ -373,25 +367,26 @@ export default function PatientSharePage() {
                 <div className="relative w-44 sm:w-56">
                   <Search
                     size={13}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                    aria-hidden
                   />
                   <input
                     type="text"
                     value={recordSearch}
                     onChange={(e) => setRecordSearch(e.target.value)}
                     placeholder="Search records…"
-                    className="w-full h-7 pl-7 pr-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none"
+                    className="pt-input pl-7 pr-2 !h-8 text-xs"
                   />
                 </div>
               </div>
             </div>
 
             {/* Record Picker List */}
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100 bg-slate-50/50">
+            <div className="max-h-72 overflow-y-auto rounded-lg border border-border divide-y divide-border bg-surface-2/50">
               {records.isLoading ? (
-                <div className="p-4 text-xs text-slate-400 text-center">Loading medical records…</div>
+                <div className="p-4 text-xs text-text-muted text-center">Loading medical records…</div>
               ) : filteredPackRecords.length === 0 ? (
-                <div className="p-4 text-xs text-slate-400 text-center">
+                <div className="p-4 text-xs text-text-muted text-center">
                   No records match your search filter.
                 </div>
               ) : (
@@ -404,7 +399,7 @@ export default function PatientSharePage() {
                       key={r.id}
                       className={cn(
                         "flex items-center gap-3 px-3.5 py-2.5 text-xs transition-colors cursor-pointer select-none",
-                        checked ? "bg-sky-50/70" : "hover:bg-white",
+                        checked ? "bg-brand-soft/60" : "hover:bg-surface",
                       )}
                     >
                       <input
@@ -419,21 +414,21 @@ export default function PatientSharePage() {
                               : prev.filter((x) => x !== r.id),
                           );
                         }}
-                        className="h-4 w-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand cursor-pointer"
                       />
 
-                      <div className="h-7 w-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                      <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0" aria-hidden>
                         <Icon size={14} />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 truncate">
+                        <p className="font-semibold text-text truncate">
                           {r.title}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 text-[11px] text-slate-400">
-                        <span className="capitalize font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                      <div className="flex items-center gap-2 shrink-0 text-[11px] text-text-muted">
+                        <span className="capitalize font-medium text-text-soft bg-surface-2 px-2 py-0.5 rounded-md">
                           {(r.kind || r.recordType).replace(/_/g, " ")}
                         </span>
                         {r.date ? <span>{new Date(r.date).toLocaleDateString()}</span> : null}
@@ -450,10 +445,10 @@ export default function PatientSharePage() {
       {/* ── 3. Active & Existing Share Links Feed ───────────────────────────── */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <Globe size={16} className="text-sky-600" />
+          <h2 className="pt-kicker flex items-center gap-2">
+            <Globe size={16} className="text-brand" aria-hidden />
             <span>Active &amp; Historical Share Links</span>
-            <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60">
+            <span className="rounded-md bg-brand-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-brand">
               {links.length}
             </span>
           </h2>
@@ -464,20 +459,20 @@ export default function PatientSharePage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-20 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : links.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col items-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shadow-2xs">
+          <div className="p-8 sm:p-10 rounded-xl bg-surface border border-border shadow-card flex flex-col items-center text-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
               <Share2 size={28} />
             </div>
             <div className="max-w-md">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="t-card-title text-text">
                 No Active Share Links Yet
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
                 When you generate time-limited links for outside doctors or family members, they will appear here with live access auditing and instant killswitch controls.
               </p>
             </div>
@@ -496,53 +491,54 @@ export default function PatientSharePage() {
                 <article
                   key={l.id}
                   className={cn(
-                    "p-4 sm:p-5 rounded-2xl bg-white border shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+                    "p-4 sm:p-5 rounded-xl bg-surface border shadow-card hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
                     l.revoked || expired
-                      ? "border-slate-200 bg-slate-50/40 opacity-75"
-                      : "border-slate-200/90 hover:border-sky-300",
+                      ? "border-border bg-surface-2/40 opacity-75"
+                      : "border-border hover:border-border-strong",
                   )}
                 >
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <div
                       className={cn(
-                        "h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs",
+                        "grid h-11 w-11 place-items-center rounded-md shrink-0 shadow-2xs",
                         l.revoked
-                          ? "bg-rose-50 text-rose-600 border border-rose-200"
+                          ? "bg-danger-soft text-danger"
                           : expired
-                            ? "bg-amber-50 text-amber-600 border border-amber-200"
-                            : "bg-sky-50 text-sky-700 border border-sky-200",
+                            ? "bg-warn-soft text-warn"
+                            : "bg-brand-soft text-brand",
                       )}
+                      aria-hidden
                     >
                       <Share2 size={18} />
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
+                        <h3 className="font-bold text-text text-sm sm:text-base truncate">
                           {l.label || "Untitled Share Link"}
                         </h3>
 
                         {l.revoked ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-danger-soft text-danger">
                             Revoked
                           </span>
                         ) : expired ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-warn-soft text-warn">
                             Expired
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
                             Active
                           </span>
                         )}
                       </div>
 
                       {/* Link URL */}
-                      <p className="text-xs text-slate-500 font-mono mt-0.5 truncate max-w-md select-all">
+                      <p className="text-xs text-text-soft font-mono mt-0.5 truncate max-w-md select-all">
                         {url}
                       </p>
 
-                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium flex-wrap">
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-muted font-medium flex-wrap">
                         <span>Created {relativeTime(l.createdAt)}</span>
                         <span>·</span>
                         <span>
@@ -551,7 +547,7 @@ export default function PatientSharePage() {
                         {l.lastViewedAt ? (
                           <>
                             <span>·</span>
-                            <span className="text-sky-700 font-semibold">
+                            <span className="text-brand font-semibold">
                               Last viewed {relativeTime(l.lastViewedAt)}
                             </span>
                           </>
@@ -575,17 +571,17 @@ export default function PatientSharePage() {
                           setCopied(l.id);
                           setTimeout(() => setCopied(null), 2500);
                         }}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
                       >
                         {isCopied ? (
                           <>
-                            <Check size={13} className="text-emerald-600" />
-                            <span>Copied!</span>
+                            <Check size={13} className="text-success" aria-hidden />
+                            Copied!
                           </>
                         ) : (
                           <>
-                            <Copy size={13} />
-                            <span>Copy Link</span>
+                            <Copy size={13} aria-hidden />
+                            Copy Link
                           </>
                         )}
                       </button>
@@ -594,7 +590,7 @@ export default function PatientSharePage() {
                         href={url}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
                         title="Open Share Preview"
                       >
                         <ExternalLink size={15} />
@@ -607,7 +603,7 @@ export default function PatientSharePage() {
                             revoke.mutate(l.id);
                           }
                         }}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="p-2 rounded-lg text-text-muted hover:text-danger hover:bg-danger-soft transition-colors cursor-pointer"
                         title="Revoke Link"
                       >
                         <Trash2 size={15} />
@@ -622,16 +618,16 @@ export default function PatientSharePage() {
       </section>
 
       {/* ── 4. Privacy & Access Security Callout ────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
             <ShieldCheck size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="t-card-title text-text">
               Zero-Knowledge Tokenized Security
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-text-soft mt-0.5">
               Recipients only view the records permitted by your link. They cannot browse your other files or modify your account.
             </p>
           </div>
@@ -639,10 +635,10 @@ export default function PatientSharePage() {
 
         <Link
           href="/patient/consents"
-          className="px-4 py-2 rounded-xl text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shrink-0 flex items-center gap-1.5"
+          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
         >
-          <ExternalLink size={13} className="text-emerald-700" />
-          <span>Active Consents</span>
+          <ExternalLink size={13} aria-hidden />
+          Active Consents
         </Link>
       </section>
     </div>
