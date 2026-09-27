@@ -131,7 +131,7 @@ export default function AppointmentDetailPage({
                   <button
                     type="button"
                     onClick={() => router.push(`/patient/teleconsult/${activeSession!.roomId}`)}
-                    className="inline-flex items-center gap-2 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+                    className="pt-btn pt-btn-primary h-10 px-5 text-sm shadow-sm"
                     data-testid="join-video-visit"
                   >
                     <Video size={16} />
@@ -139,7 +139,7 @@ export default function AppointmentDetailPage({
                   </button>
                 ) : canJoinVideo ? (
                   <span
-                    className="inline-flex items-center gap-2 rounded-pill bg-surface-2 px-5 py-2.5 text-sm font-semibold text-text-soft"
+                    className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
                     data-testid="join-waiting-chip"
                   >
                     <Video size={16} />
@@ -156,7 +156,7 @@ export default function AppointmentDetailPage({
                         setTime(appointment.time);
                         setEditing(true);
                       }}
-                      className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      className="pt-btn pt-btn-primary h-9 px-4 text-sm disabled:opacity-60"
                       disabled={reschedule.isPending || cancel.isPending}
                     >
                       Reschedule
@@ -164,7 +164,7 @@ export default function AppointmentDetailPage({
                     <button
                       type="button"
                       onClick={onCancel}
-                      className="rounded-pill bg-danger-soft px-4 py-2 text-sm font-semibold text-danger disabled:opacity-60"
+                      className="pt-btn h-9 px-4 text-sm text-danger hover:bg-danger-soft disabled:opacity-60"
                       disabled={reschedule.isPending || cancel.isPending}
                     >
                       {cancel.isPending ? "Cancelling…" : "Cancel appointment"}
@@ -194,10 +194,10 @@ export default function AppointmentDetailPage({
                         className="h-10 rounded-inner border border-border bg-surface px-3 text-sm text-text"
                       />
                     </label>
-                    <button type="submit" disabled={reschedule.isPending} className="rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                    <button type="submit" disabled={reschedule.isPending} className="pt-btn pt-btn-primary h-9 px-4 text-sm disabled:opacity-60">
                       {reschedule.isPending ? "Saving…" : "Save time"}
                     </button>
-                    <button type="button" onClick={() => setEditing(false)} className="rounded-pill border border-border px-4 py-2 text-sm font-semibold text-text-soft">
+                    <button type="button" onClick={() => setEditing(false)} className="pt-btn pt-btn-secondary h-9 px-4 text-sm">
                       Keep current time
                     </button>
                   </form>

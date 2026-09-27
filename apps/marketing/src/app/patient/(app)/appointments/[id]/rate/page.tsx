@@ -86,7 +86,7 @@ export default function RateVisitPage({
                   onClick={() => setRating(i)}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(0)}
-                  className="rounded-pill p-1 transition-transform hover:scale-110"
+                  className="rounded-full p-1 transition-transform hover:scale-110"
                   aria-label={`Rate ${i} star${i === 1 ? "" : "s"}`}
                 >
                   <Star
@@ -95,7 +95,7 @@ export default function RateVisitPage({
                     strokeWidth={1.5}
                     className={
                       i <= (hovered || rating)
-                        ? "fill-amber-400 text-amber-400"
+                        ? "fill-warn text-warn"
                         : "text-text-muted"
                     }
                   />
@@ -103,7 +103,7 @@ export default function RateVisitPage({
               ))}
             </div>
             {rating > 0 ? (
-              <p className="mt-2 text-sm font-semibold text-amber-600">
+              <p className="mt-2 text-sm font-semibold text-warn">
                 {labels[rating]}
               </p>
             ) : null}
@@ -133,14 +133,14 @@ export default function RateVisitPage({
             <button
               type="submit"
               disabled={rate.isPending || rating === 0}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
             >
               <Send size={14} aria-hidden />
               {rate.isPending ? "Submitting…" : "Submit rating"}
             </button>
             <Link
               href={`/patient/appointments/${id}`}
-              className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+              className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
             >
               Skip for now
             </Link>
