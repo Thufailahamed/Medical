@@ -590,15 +590,10 @@
   transform: translateY(-1px);
 }
 
-.dashboard-hero {
-  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%);
-  box-shadow:
-    0 8px 32px rgba(3, 105, 161, 0.22),
-    0 2px 8px rgba(14, 116, 144, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Ensure all white action buttons in oceanic hero headers have bold, high-contrast text */
+/* Ensure all white action buttons in oceanic hero headers have bold, high-contrast text.
+   NOTE: .dashboard-hero itself is fully migrated to PageHero (no usages remain).
+   .hero-action-btn is kept until the in-flight insurance plan page migrates
+   (see insurance/plans/[planId]/page.tsx). */
 .dashboard-hero .bg-white,
 .hero-action-btn {
   background-color: #ffffff !important;
