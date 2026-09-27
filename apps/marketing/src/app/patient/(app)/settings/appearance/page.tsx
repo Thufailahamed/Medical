@@ -76,7 +76,7 @@ export default function AppearanceSettingsPage() {
         description="Tune how the portal looks and what language it uses. Your preferences are saved to this device."
         action={
           saved ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1.5 text-xs font-semibold text-success">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success">
               <Check size={12} aria-hidden /> Saved
             </span>
           ) : null
@@ -131,7 +131,7 @@ export default function AppearanceSettingsPage() {
                 key={l.value}
                 type="button"
                 onClick={() => save({ locale: l.value })}
-                className={`rounded-pill border px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
                   locale === l.value
                     ? "border-brand bg-brand text-white"
                     : "border-border bg-surface-1 text-text hover:border-brand hover:bg-brand-soft"
@@ -154,7 +154,7 @@ export default function AppearanceSettingsPage() {
               <button
                 type="button"
                 onClick={() => save({ density: "comfortable" })}
-                className={`rounded-pill border px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
                   density === "comfortable"
                     ? "border-brand bg-brand text-white"
                     : "border-border bg-surface-1 text-text hover:border-brand"
@@ -165,7 +165,7 @@ export default function AppearanceSettingsPage() {
               <button
                 type="button"
                 onClick={() => save({ density: "compact" })}
-                className={`rounded-pill border px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
                   density === "compact"
                     ? "border-brand bg-brand text-white"
                     : "border-border bg-surface-1 text-text hover:border-brand"
@@ -215,7 +215,7 @@ function ThemeOption({
       }`}
     >
       <span
-        className={`grid h-9 w-9 place-items-center rounded-pill ${
+        className={`grid h-9 w-9 place-items-center rounded-md ${
           active ? "bg-brand text-white" : "bg-surface-3 text-text-soft"
         }`}
       >

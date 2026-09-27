@@ -82,7 +82,7 @@ export default function TenantsPage() {
                           : "border-[color:var(--color-border)] bg-surface-1"
                       }`}
                     >
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-pill bg-brand-soft text-brand">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
                         <Icon size={16} aria-hidden />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -102,7 +102,7 @@ export default function TenantsPage() {
                           type="button"
                           onClick={() => switchTenant.mutate(t.id)}
                           disabled={switchTenant.isPending}
-                          className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                          className="pt-btn pt-btn-primary h-8 px-4 text-xs disabled:opacity-60"
                         >
                           {switchTenant.isPending ? (
                             <Loader2 size={12} className="animate-spin" />

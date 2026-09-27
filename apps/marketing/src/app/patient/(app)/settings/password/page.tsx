@@ -100,7 +100,7 @@ export default function ChangePasswordPage() {
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-10 text-sm text-text outline-none focus:border-brand"
+                className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-10 text-sm text-text outline-none focus:border-brand"
               />
               <button
                 type="button"
@@ -131,7 +131,7 @@ export default function ChangePasswordPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-10 text-sm text-text outline-none focus:border-brand"
+                className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-10 text-sm text-text outline-none focus:border-brand"
               />
               <button
                 type="button"
@@ -162,7 +162,7 @@ export default function ChangePasswordPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
               />
             </div>
           </div>
@@ -177,13 +177,13 @@ export default function ChangePasswordPage() {
             <button
               type="submit"
               disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
             >
               {busy ? "Updating…" : "Update password"}
             </button>
             <Link
               href="/patient/profile"
-              className="inline-flex items-center gap-1.5 rounded-pill border border-border px-5 py-2.5 text-sm font-semibold text-text-soft"
+              className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
             >
               Cancel
             </Link>

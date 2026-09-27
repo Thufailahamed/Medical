@@ -75,7 +75,7 @@ export default function ActivityPage() {
                       key={a.id}
                       className="flex items-start gap-3 rounded-inner bg-surface-2 p-3"
                     >
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-pill bg-brand-soft text-brand">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
                         <Icon size={15} aria-hidden />
                       </div>
                       <div className="min-w-0 flex-1">

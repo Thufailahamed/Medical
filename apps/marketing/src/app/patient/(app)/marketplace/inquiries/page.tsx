@@ -45,7 +45,7 @@ export default function InquiriesPage() {
                     className="rounded-inner border border-[color:var(--color-border)] bg-surface-1 p-3"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-pill bg-brand-soft text-brand">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
                         <Send size={14} aria-hidden />
                       </div>
                       <div className="min-w-0 flex-1">
