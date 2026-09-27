@@ -99,7 +99,7 @@ function MfaChallengeInner() {
                 }
                 required
                 placeholder="123456"
-                className="h-12 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-center text-2xl font-bold tracking-widest text-text outline-none focus:border-brand"
+                className="h-12 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-center text-2xl font-bold tracking-widest text-text outline-none focus:border-brand"
               />
             </div>
           </div>
@@ -111,7 +111,7 @@ function MfaChallengeInner() {
           <button
             type="submit"
             disabled={busy || code.length !== 6}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-brand text-sm font-semibold text-white disabled:opacity-60"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 pt-btn pt-btn-primary h-12 text-sm disabled:opacity-60"
           >
             {busy ? (
               <>

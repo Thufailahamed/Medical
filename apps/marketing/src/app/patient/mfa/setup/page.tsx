@@ -155,7 +155,7 @@ export default function MfaSetupPage() {
                     <button
                       type="button"
                       onClick={() => copy(data.secret)}
-                      className="rounded-pill bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand"
+                      className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand"
                     >
                       {copied ? <Check size={12} /> : <Copy size={12} />}
                       <span className="ml-1">{copied ? "Copied" : "Copy"}</span>
@@ -186,7 +186,7 @@ export default function MfaSetupPage() {
                   }
                   required
                   placeholder="123456"
-                  className="h-12 rounded-pill border border-border bg-surface-2 px-4 text-center text-2xl font-bold tracking-widest text-text outline-none focus:border-brand"
+                  className="h-12 rounded-lg border border-border bg-surface-2 px-4 text-center text-2xl font-bold tracking-widest text-text outline-none focus:border-brand"
                 />
                 {error ? (
                   <p role="alert" className="text-sm text-danger">
@@ -205,7 +205,7 @@ export default function MfaSetupPage() {
                 <button
                   type="submit"
                   disabled={busy || code.length !== 6 || !confirmed}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-brand px-5 text-sm font-semibold text-white disabled:opacity-60"
+                  className="pt-btn pt-btn-primary h-11 px-5 text-sm disabled:opacity-60"
                 >
                   {busy ? "Verifying…" : "Enable 2FA"}
                 </button>
@@ -217,7 +217,7 @@ export default function MfaSetupPage() {
             <Card accent="amber">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle size={18} aria-hidden className="text-amber-600" />
+                  <AlertTriangle size={18} aria-hidden className="text-warn" />
                   <h3 className="text-sm font-bold text-text">
                     Recovery codes
                   </h3>
@@ -236,7 +236,7 @@ export default function MfaSetupPage() {
                 <button
                   type="button"
                   onClick={downloadRecoveryCodes}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-soft"
+                  className="inline-flex items-center justify-center gap-1.5 pt-btn pt-btn-secondary h-9 px-4 text-sm"
                 >
                   <Download size={14} aria-hidden /> Download codes
                 </button>

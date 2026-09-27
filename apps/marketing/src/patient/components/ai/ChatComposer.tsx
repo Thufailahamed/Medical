@@ -72,7 +72,7 @@ export function ChatComposer({
               aria-label="Toggle EHR sync"
               aria-pressed={useEhr}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-pill border px-2.5 text-[12px] font-semibold transition-colors",
+                "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold transition-colors",
                 useEhr
                   ? "border-success/30 bg-success-soft text-success"
                   : "border-border bg-white text-text-soft hover:bg-surface-2",
@@ -87,7 +87,7 @@ export function ChatComposer({
                 type="button"
                 onClick={onStop}
                 title="Stop generating"
-                className="inline-flex h-8 items-center gap-1.5 rounded-pill bg-ink px-3 text-[12px] font-semibold text-white transition-colors hover:bg-brand-strong"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white transition-colors hover:bg-brand-strong"
               >
                 <Square size={11} aria-hidden className="fill-white" />
                 <span>Stop</span>

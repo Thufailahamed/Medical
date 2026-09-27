@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
             </p>
             <Link
               href={`/patient/verify-otp?identifier=${encodeURIComponent(identifier)}&mode=reset`}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-1.5 pt-btn pt-btn-primary h-11 px-5 text-sm"
             >
               <KeyRound size={14} aria-hidden /> Enter reset code
             </Link>
@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
                   placeholder="e.g. name@example.com or 0771234567"
                   required
                   autoComplete="username"
-                  className="h-11 w-full rounded-pill border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
+                  className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
                 />
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={busy || !identifier}
-              className="h-12 w-full rounded-pill bg-brand text-sm font-semibold text-white disabled:opacity-60"
+              className="h-12 w-full pt-btn pt-btn-primary h-12 text-sm disabled:opacity-60"
             >
               {busy ? "Sending…" : "Send reset code"}
             </button>

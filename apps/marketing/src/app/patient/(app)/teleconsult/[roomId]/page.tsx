@@ -102,7 +102,7 @@ export default function PatientTeleconsultPage({
               <button
                 type="button"
                 onClick={() => setRetryToken((n) => n + 1)}
-                className="mt-1 inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-sm"
                 data-testid="retry-join"
               >
                 <RotateCcw size={14} aria-hidden /> Try again
@@ -110,7 +110,7 @@ export default function PatientTeleconsultPage({
             ) : null}
             <Link
               href="/patient/appointments"
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+              className="pt-btn pt-btn-primary h-9 px-4 text-sm"
             >
               Back to appointments
             </Link>

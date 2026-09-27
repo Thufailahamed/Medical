@@ -84,7 +84,7 @@ export default function PrescriptionDetailPage({
                       type="button"
                       onClick={downloadPdf}
                       disabled={downloading}
-                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      className="pt-btn pt-btn-primary h-9 px-4 text-sm disabled:opacity-60"
                     >
                       <Download size={14} aria-hidden />
                       {downloading ? "Preparing…" : "Download PDF"}
@@ -224,7 +224,7 @@ export default function PrescriptionDetailPage({
                       </p>
                       <Link
                         href="/patient/medications"
-                        className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                        className="pt-btn pt-btn-primary h-9 px-4 text-sm"
                       >
                         <Pill size={14} aria-hidden /> Open medications
                       </Link>
@@ -242,7 +242,7 @@ export default function PrescriptionDetailPage({
                       </p>
                       <Link
                         href={`/portal/verify/${rx.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-soft"
+                        className="pt-btn pt-btn-secondary h-9 px-4 text-sm"
                       >
                         <FileText size={14} aria-hidden /> Verify prescription
                       </Link>

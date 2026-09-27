@@ -98,7 +98,7 @@ export function ChatShellHeader({
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           className={cn(
-            "ml-1 inline-flex h-8 items-center gap-1.5 rounded-pill border px-2.5 text-[12px] font-semibold transition-colors",
+            "ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold transition-colors",
             menuOpen
               ? "border-brand/40 bg-brand-soft text-brand"
               : "border-border text-text-soft hover:bg-surface-2",
@@ -117,7 +117,7 @@ export function ChatShellHeader({
           <div
             id="model-menu"
             role="menu"
-            className="absolute left-12 top-[52px] z-30 w-72 rounded-2xl border border-border bg-white p-1.5 shadow-[var(--shadow-float)]"
+            className="absolute left-12 top-[52px] z-30 w-72 rounded-xl border border-border bg-surface p-1.5 shadow-[var(--shadow-float)]"
           >
             {CHAT_MODELS.map((m) => {
               const Icon = m.icon;

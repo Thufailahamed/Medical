@@ -119,7 +119,7 @@ export default function SupportPage() {
                     id="category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="mt-2 h-11 w-full rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+                    className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
                   >
                     <option value="general">General question</option>
                     <option value="bug">Report a bug</option>
@@ -141,7 +141,7 @@ export default function SupportPage() {
                     onChange={(e) => setSubject(e.target.value)}
                     required
                     placeholder="What's on your mind?"
-                    className="mt-2 h-11 w-full rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+                    className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
                   />
                 </div>
 
@@ -169,7 +169,7 @@ export default function SupportPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 self-start rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 self-start pt-btn pt-btn-primary h-11 px-5 text-sm disabled:opacity-60"
                 >
                   <Send size={14} aria-hidden />
                   {busy ? "Sending…" : "Send message"}

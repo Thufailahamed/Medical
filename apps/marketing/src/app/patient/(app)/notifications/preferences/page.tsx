@@ -83,7 +83,7 @@ export default function NotificationPreferencesPage() {
         description="Choose what we tell you about and how. Updates apply across web and mobile."
         action={
           saved ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1.5 text-xs font-semibold text-success">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success">
               <Check size={12} aria-hidden /> Saved
             </span>
           ) : null
@@ -172,7 +172,7 @@ export default function NotificationPreferencesPage() {
                 type="time"
                 value={quietStart}
                 onChange={(e) => setQuietStart(e.target.value)}
-                className="mt-2 h-11 w-full rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+                className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
               />
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function NotificationPreferencesPage() {
                 type="time"
                 value={quietEnd}
                 onChange={(e) => setQuietEnd(e.target.value)}
-                className="mt-2 h-11 w-full rounded-pill border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
+                className="mt-2 h-11 w-full rounded-lg border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
               />
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function NotificationPreferencesPage() {
           type="button"
           onClick={onSave}
           disabled={update.isPending}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
         >
           <Save size={14} aria-hidden />
           {update.isPending ? "Saving…" : "Save preferences"}
@@ -218,7 +218,7 @@ function Toggle({
 }) {
   return (
     <label className="flex items-center gap-3 rounded-inner bg-surface-2 p-3 cursor-pointer">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-pill bg-brand-soft text-brand">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
@@ -228,7 +228,7 @@ function Toggle({
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
           checked ? "bg-brand" : "bg-surface-3"
         }`}
         aria-pressed={checked}
