@@ -181,7 +181,7 @@ export default function AiOcrPage() {
             type="button"
             onClick={upload}
             disabled={!file || busy}
-            className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="pt-btn pt-btn-primary h-11 self-start px-5 text-sm disabled:opacity-60"
           >
             {busy ? (
               <>
@@ -224,7 +224,7 @@ export default function AiOcrPage() {
                 <button
                   type="button"
                   onClick={addAsMedicines}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-sm font-semibold text-white"
+                  className="pt-btn pt-btn-primary h-9 px-4 text-sm"
                 >
                   Add to my medications
                 </button>

@@ -235,10 +235,7 @@ export default function AiChatPage() {
               >
                 <span
                   aria-hidden
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white shadow-[var(--shadow-brand)]"
-                  style={{
-                    background: "linear-gradient(135deg, #0284c7, #38bdf8)",
-                  }}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink text-white shadow-[var(--shadow-brand)]"
                 >
                   <Sparkles size={13} className="animate-spin" />
                 </span>

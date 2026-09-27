@@ -115,8 +115,8 @@ export function RecordForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-6">
       {/* ── 1. Document Category / Kind Selection ────────────────────────── */}
-      <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+      <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-surface-2 border border-border">
+        <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider block">
           Document Classification / Record Type *
         </label>
         <div className="flex flex-wrap gap-2" data-testid="kind-chips">
@@ -129,14 +129,11 @@ export function RecordForm({
                 disabled={mode === "edit"}
                 aria-pressed={active}
                 onClick={() => setKind(k)}
-                style={{
-                  backgroundColor: active ? "#0284c7" : "#ffffff",
-                  borderColor: active ? "#0284c7" : "#cbd5e1",
-                  color: active ? "#ffffff" : "#334155",
-                }}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:scale-105",
-                  active ? "shadow-xs font-bold" : "hover:border-sky-300",
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:-translate-y-0.5",
+                  active
+                    ? "bg-ink text-white border-ink shadow-xs font-bold"
+                    : "bg-surface border-border text-text-soft hover:text-text hover:border-border-strong",
                   mode === "edit" && !active ? "opacity-50 cursor-not-allowed" : "",
                 )}
               >
@@ -151,13 +148,13 @@ export function RecordForm({
       {/* ── 2. Primary Record Title & Date ───────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="sm:col-span-2 flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Record Title *
           </label>
           <div className="relative">
             <FileText
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
             />
             <input
               type="text"
@@ -165,13 +162,13 @@ export function RecordForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Complete Blood Count (CBC), Cardiac Consultation Note…"
-              className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input pl-10 text-xs sm:text-sm"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Date of Service *
           </label>
           <div className="relative">
@@ -180,7 +177,7 @@ export function RecordForm({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             />
           </div>
         </div>
@@ -196,14 +193,14 @@ export function RecordForm({
           value={diagnosis}
           onChange={(e) => setDiagnosis(e.target.value)}
           placeholder="e.g. Essential Hypertension (I10), Acute Sinusitis, Post-Op Care…"
-          className="w-full h-11 px-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+            className="pt-input text-xs sm:text-sm"
         />
       </div>
 
       {/* ── 4. Summary & Detailed Clinical Notes ─────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Clinical Summary (Optional)
           </label>
           <textarea
@@ -211,12 +208,12 @@ export function RecordForm({
             onChange={(e) => setSummary(e.target.value)}
             rows={3}
             placeholder="Key findings, treatment decisions, and physician takeaways…"
-            className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
+            className="pt-input h-auto py-3.5 text-xs sm:text-sm leading-relaxed"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Physician Notes &amp; Observations (Optional)
           </label>
           <textarea
@@ -224,7 +221,7 @@ export function RecordForm({
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Specific directives, dosage regimens, or clinical follow-up dates…"
-            className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
+            className="pt-input h-auto py-3.5 text-xs sm:text-sm leading-relaxed"
           />
         </div>
       </div>
@@ -239,26 +236,26 @@ export function RecordForm({
           <div className="relative">
             <Tag
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
             />
             <input
               type="text"
               value={tagsRaw}
               onChange={(e) => setTagsRaw(e.target.value)}
               placeholder="e.g. annual, fasting, cardiology, hospital-admission"
-              className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input pl-10 text-xs sm:text-sm"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Patient / Family Member Scope
           </label>
           <div className="relative">
             <User
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
             />
             <select
               value={familyMemberId ?? ""}
@@ -279,17 +276,17 @@ export function RecordForm({
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-          <AlertCircle size={15} className="text-rose-600 shrink-0" />
+          <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0" aria-hidden />
           <span>{error}</span>
         </div>
       )}
 
       {/* ── 6. Form Submission Footer ────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-200">
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-border">
         <Link
           href="/patient/records"
-          className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+          className="pt-btn pt-btn-secondary h-10 px-4 text-xs"
         >
           Cancel
         </Link>
@@ -297,10 +294,7 @@ export function RecordForm({
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          style={{
-            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-          }}
+          className="pt-btn pt-btn-primary h-10 px-6 text-xs sm:text-sm disabled:opacity-50"
         >
           {isPending ? (
             <>
