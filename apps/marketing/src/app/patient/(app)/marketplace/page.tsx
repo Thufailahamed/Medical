@@ -86,7 +86,7 @@ export default function MarketplacePage() {
                   </span>
                 ) : null}{" "}
                 {c.rating ? (
-                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
+                  <span className="inline-flex items-center gap-1 font-semibold text-warn">
                     <Star size={11} aria-hidden /> {c.rating.toFixed(1)} · {c.reviewCount} reviews
                   </span>
                 ) : null}

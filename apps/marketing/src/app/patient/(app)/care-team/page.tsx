@@ -147,7 +147,7 @@ export default function CareTeamPage() {
       />
 
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl shadow-card">
         {/* Segmented Filter */}
         <SegmentedTabs
           ariaLabel="Care team filters"
@@ -171,7 +171,7 @@ export default function CareTeamPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clinician, specialty, or role..."
-            className="w-full h-9 pl-9 pr-8 text-xs bg-surface-2 border border-border rounded-xl font-medium text-text placeholder:text-text-muted focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand transition-all"
+            className="pt-input pl-9 pr-8 !h-9 text-xs"
           />
           {search ? (
             <button
@@ -192,13 +192,13 @@ export default function CareTeamPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-28 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                className="h-28 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+          <div className="rounded-xl border border-border bg-surface p-10 text-center flex flex-col items-center gap-3 shadow-card">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
               <Users size={24} />
             </div>
             <div>
@@ -213,13 +213,10 @@ export default function CareTeamPage() {
             </div>
             <Link
               href="/patient/care-team/add"
-              className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-xs"
             >
-              <UserPlus size={14} />
-              <span>Connect First Clinician</span>
+              <UserPlus size={14} aria-hidden />
+              Connect First Clinician
             </Link>
           </div>
         ) : (
@@ -234,23 +231,23 @@ export default function CareTeamPage() {
               return (
                 <article
                   key={member.id}
-                  className="group rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="group rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   {/* Left Column: Doctor Avatar + Clinical Details */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     {/* Doctor Initials Avatar */}
-                    <div className="h-13 w-13 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 text-white flex flex-col items-center justify-center shrink-0 shadow-sm font-black text-sm">
+                    <div className="grid h-13 w-13 place-items-center rounded-md bg-ink text-brand-soft font-mono font-bold text-sm shrink-0 shadow-sm" aria-hidden>
                       <span>{initials}</span>
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors truncate">
+                        <h3 className="text-base font-bold text-text group-hover:text-brand transition-colors truncate">
                           {member.doctorName.startsWith("Dr.") ? member.doctorName : `Dr. ${member.doctorName}`}
                         </h3>
                         {member.doctorSpecialization ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-100">
-                            <Stethoscope size={11} className="text-sky-600" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-brand-soft text-brand">
+                            <Stethoscope size={11} aria-hidden />
                             {member.doctorSpecialization}
                           </span>
                         ) : null}
@@ -259,14 +256,14 @@ export default function CareTeamPage() {
                       {/* Role & Access Scope tags */}
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-xs text-text-soft font-medium">
                         <span className="inline-flex items-center gap-1 text-text font-semibold">
-                          <UserCheck size={12} className="text-text-muted" />
+                          <UserCheck size={12} className="text-text-muted" aria-hidden />
                           {formattedRole}
                         </span>
 
                         <span>·</span>
 
                         <span className="inline-flex items-center gap-1 text-text-soft">
-                          <ShieldCheck size={12} className="text-emerald-600" />
+                          <ShieldCheck size={12} className="text-success" aria-hidden />
                           {formattedScope}
                         </span>
                       </div>
@@ -284,7 +281,7 @@ export default function CareTeamPage() {
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={`/patient/appointments/book?doctorId=${member.doctorId || ""}`}
-                          className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200/70 transition-colors"
+                          className="pt-btn pt-btn-primary h-8 px-3.5 text-xs"
                         >
                           Book Visit
                         </Link>
@@ -298,7 +295,7 @@ export default function CareTeamPage() {
                             })
                           }
                           disabled={update.isPending}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-text-soft hover:bg-surface-2 border border-border transition-colors cursor-pointer disabled:opacity-50"
+                          className="pt-btn pt-btn-secondary h-8 px-3 text-xs disabled:opacity-50"
                         >
                           {isActive ? "Pause" : "Resume"}
                         </button>
@@ -315,7 +312,7 @@ export default function CareTeamPage() {
                             }
                           }}
                           disabled={update.isPending}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 transition-colors cursor-pointer disabled:opacity-50"
+                          className="pt-btn h-8 px-3 text-xs text-danger hover:bg-danger-soft disabled:opacity-50"
                         >
                           Revoke
                         </button>
