@@ -135,13 +135,13 @@ export default function AiLabTrendPage() {
       />
 
       {/* ── 2. Biomarker Selection & Input Stage ────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-6">
-        <div className="border-b border-slate-100 pb-3.5">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <FlaskConical size={18} className="text-sky-600" />
+      <section className="rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-6">
+        <div className="border-b border-border pb-3.5">
+          <h2 className="t-card-title text-text flex items-center gap-2">
+            <FlaskConical size={18} className="text-brand" aria-hidden />
             <span>Select or Search Laboratory Biomarker</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-text-soft mt-0.5">
             Choose from common diagnostic tests or enter any biomarker from your clinical records.
           </p>
         </div>
@@ -150,7 +150,7 @@ export default function AiLabTrendPage() {
         <div className="flex flex-col gap-4">
           {TEST_CATEGORIES.map((cat) => (
             <div key={cat.category} className="flex flex-col gap-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
                 {cat.category}
               </span>
               <div className="flex flex-wrap gap-2">
@@ -164,17 +164,14 @@ export default function AiLabTrendPage() {
                         setTest(t);
                         setCustomInput("");
                       }}
-                      style={{
-                        backgroundColor: isSelected ? "#0284c7" : "#ffffff",
-                        borderColor: isSelected ? "#0284c7" : "#cbd5e1",
-                        color: isSelected ? "#ffffff" : "#334155",
-                      }}
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:scale-105",
-                        isSelected ? "shadow-xs font-bold" : "hover:border-sky-300",
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:-translate-y-0.5",
+                        isSelected
+                          ? "bg-ink text-white border-ink shadow-xs font-bold"
+                          : "bg-surface border-border text-text-soft hover:text-text hover:border-border-strong",
                       )}
                     >
-                      {isSelected && <Check size={11} strokeWidth={3} />}
+                      {isSelected && <Check size={11} strokeWidth={3} aria-hidden />}
                       <span>{t}</span>
                     </button>
                   );
@@ -185,14 +182,15 @@ export default function AiLabTrendPage() {
         </div>
 
         {/* Custom Test Name Input */}
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
+          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
             Or Type Any Specific Biomarker Name
           </label>
           <div className="relative">
             <Search
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+              aria-hidden
             />
             <input
               type="text"
@@ -202,14 +200,14 @@ export default function AiLabTrendPage() {
                 setTest(e.target.value);
               }}
               placeholder="e.g. Uric Acid, Bilirubin, Vitamin B12, Platelet Count…"
-              className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+              className="pt-input pl-10 text-xs sm:text-sm"
             />
           </div>
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-            <AlertCircle size={15} className="text-rose-600 shrink-0" />
+          <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0" aria-hidden />
             <span>{error}</span>
           </div>
         )}
@@ -220,25 +218,22 @@ export default function AiLabTrendPage() {
             type="button"
             onClick={run}
             disabled={!selectedTest.trim() || busy}
-            className="px-6 py-3 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-11 px-6 text-xs sm:text-sm disabled:opacity-50"
           >
             {busy ? (
               <>
-                <Loader2 size={15} className="animate-spin" />
-                <span>Synthesizing Longitudinal Trend…</span>
+                <Loader2 size={15} className="animate-spin" aria-hidden />
+                Synthesizing Longitudinal Trend…
               </>
             ) : (
               <>
-                <TrendingUp size={15} />
-                <span>Show Trend Narrative for {selectedTest}</span>
+                <TrendingUp size={15} aria-hidden />
+                Show Trend Narrative for {selectedTest}
               </>
             )}
           </button>
 
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+          <span className="text-xs text-text-muted font-medium hidden sm:inline">
             Analyzed against clinical target reference ranges
           </span>
         </div>
@@ -246,17 +241,17 @@ export default function AiLabTrendPage() {
 
       {/* ── 3. Generated Trend Narrative Card ──────────────────────────────── */}
       {trend && (
-        <section className="rounded-2xl border border-sky-200 bg-white p-6 sm:p-7 shadow-md flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <section className="rounded-xl border border-brand/25 bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-200">
+              <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
                 <Sparkles size={18} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">
+                <h3 className="t-card-title text-text">
                   {trend.type} — Clinical Trajectory Analysis
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-text-soft">
                   AI-synthesized longitudinal interpretation
                 </p>
               </div>
@@ -264,24 +259,24 @@ export default function AiLabTrendPage() {
 
             <div className="flex items-center gap-2">
               {trend.overdue === true ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
+                <span className="inline-flex items-center gap-1 rounded-md bg-warn-soft px-2.5 py-1 text-[11px] font-semibold text-warn">
                   Overdue — schedule soon
                 </span>
               ) : null}
               <button
                 type="button"
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
               >
                 {copied ? (
                   <>
-                    <Check size={12} className="text-emerald-600" />
-                    <span className="text-emerald-600">Copied</span>
+                    <Check size={12} className="text-success" aria-hidden />
+                    Copied
                   </>
                 ) : (
                   <>
-                    <Copy size={12} />
-                    <span>Copy Narrative</span>
+                    <Copy size={12} aria-hidden />
+                    Copy Narrative
                   </>
                 )}
               </button>
@@ -291,57 +286,57 @@ export default function AiLabTrendPage() {
                   `Help me understand my ${trend.type} trend over time: ` +
                     trend.narrative.slice(0, 150),
                 )}`}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1 cursor-pointer"
+                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
               >
-                <MessageSquare size={12} />
-                <span>Discuss in AI Chat</span>
+                <MessageSquare size={12} aria-hidden />
+                Discuss in AI Chat
               </Link>
             </div>
           </div>
 
           {/* Real report stats */}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
                 Reports on file
               </p>
-              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+              <p className="mt-0.5 pt-metric text-lg text-text">
                 {trend.count}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
                 Last done
               </p>
-              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+              <p className="mt-0.5 pt-metric text-lg text-text">
                 {trend.lastDate ?? "—"}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
                 Usual interval
               </p>
-              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+              <p className="mt-0.5 pt-metric text-lg text-text">
                 {trend.intervalMonths ? `~${trend.intervalMonths} mo` : "—"}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
                 Next suggested
               </p>
-              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+              <p className="mt-0.5 pt-metric text-lg text-text">
                 {trend.nextSuggestedDate ?? "—"}
               </p>
             </div>
           </div>
 
-          <div className="prose prose-sm max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 font-normal">
+          <div className="prose prose-sm max-w-none text-text text-xs sm:text-sm leading-relaxed p-4 rounded-lg bg-surface-2 font-normal">
             <div className="whitespace-pre-wrap">{trend.narrative}</div>
           </div>
 
           {trend.series.length > 0 ? (
             <div className="flex flex-col gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-soft">
                 Report history — last 24 months
               </span>
               <ul className="flex flex-wrap gap-1.5">
@@ -351,15 +346,15 @@ export default function AiLabTrendPage() {
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
                       s.status === "completed"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                        : "border-amber-200 bg-amber-50 text-amber-800",
+                        ? "border-success/25 bg-success-soft text-success"
+                        : "border-warn/25 bg-warn-soft text-warn",
                     )}
                   >
                     <span
                       aria-hidden
                       className={cn(
                         "h-1.5 w-1.5 rounded-full",
-                        s.status === "completed" ? "bg-emerald-500" : "bg-amber-500",
+                        s.status === "completed" ? "bg-success" : "bg-warn",
                       )}
                     />
                     {s.date}
@@ -370,8 +365,8 @@ export default function AiLabTrendPage() {
             </div>
           ) : null}
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5 text-[11px] text-slate-500">
-            <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-lg bg-surface-2 border border-border flex items-start gap-2.5 text-[11px] text-text-soft">
+            <Info size={14} className="text-text-muted shrink-0 mt-0.5" aria-hidden />
             <span>
               Longitudinal analysis highlights trends and shifts across historical lab encounters. It is intended to assist medical discussions with your physician, not to replace formal diagnostic consultation.
             </span>
