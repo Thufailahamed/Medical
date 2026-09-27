@@ -24,6 +24,7 @@ import { usePatientProfile } from "@/patient/hooks";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 interface ImagingInstance {
   sopInstanceUid: string;
@@ -166,23 +167,12 @@ export default function PatientImagingPage() {
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Modality Tabs */}
-        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0 overflow-x-auto scrollbar-none">
-          {MODALITY_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setActiveModality(f.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0",
-                activeModality === f.id
-                  ? "bg-surface text-brand shadow-xs"
-                  : "text-text-soft hover:text-text",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          ariaLabel="Modality filters"
+          activeId={activeModality}
+          onChange={(id) => setActiveModality(id)}
+          tabs={MODALITY_FILTERS.map((f) => ({ id: f.id, label: <>{f.label}</> }))}
+        />
 
         {/* Search Input */}
         <div className="relative flex-1 sm:max-w-xs">

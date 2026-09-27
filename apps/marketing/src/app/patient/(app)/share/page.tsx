@@ -27,6 +27,7 @@ import { api } from "@/portal/lib/api";
 import { formatDateTime, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 interface ShareLink {
   id: string;
@@ -210,37 +211,27 @@ export default function PatientSharePage() {
           </div>
 
           {/* Mode Switcher */}
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveMode("quick")}
-              className={cn(
-                "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                activeMode === "quick"
-                  ? "bg-white text-sky-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900",
-              )}
-            >
-              Standard Visit Link (All)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMode("pack")}
-              className={cn(
-                "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                activeMode === "pack"
-                  ? "bg-white text-sky-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900",
-              )}
-            >
-              <span>Custom Share Pack</span>
-              {packSelected.length > 0 ? (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
-                  {packSelected.length}
-                </span>
-              ) : null}
-            </button>
-          </div>
+          <SegmentedTabs
+            ariaLabel="Share mode"
+            activeId={activeMode}
+            onChange={(id) => setActiveMode(id as "quick" | "pack")}
+            tabs={[
+              { id: "quick", label: <>Standard Visit Link (All)</> },
+              {
+                id: "pack",
+                label: (
+                  <>
+                    <span>Custom Share Pack</span>
+                    {packSelected.length > 0 ? (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
+                        {packSelected.length}
+                      </span>
+                    ) : null}
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {activeMode === "quick" ? (

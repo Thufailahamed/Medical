@@ -22,6 +22,7 @@ import { useConversations, usePatientProfile } from "@/patient/hooks";
 import { formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 interface CareTeamMember {
   id: string;
@@ -119,37 +120,27 @@ export default function MessagesPage() {
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
         {/* Filter Tabs */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveFilter("all")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeFilter === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            All Messages ({rawConversations.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter("unread")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-              activeFilter === "unread"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            <span>Unread</span>
-            {unreadCount > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
-                {unreadCount}
-              </span>
-            ) : null}
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Message filters"
+          activeId={activeFilter}
+          onChange={(id) => setActiveFilter(id as "all" | "unread")}
+          tabs={[
+            { id: "all", label: <>All Messages ({rawConversations.length})</> },
+            {
+              id: "unread",
+              label: (
+                <>
+                  <span>Unread</span>
+                  {unreadCount > 0 ? (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </>
+              ),
+            },
+          ]}
+        />
 
         {/* Live Search Input */}
         <div className="relative flex-1 sm:max-w-xs">

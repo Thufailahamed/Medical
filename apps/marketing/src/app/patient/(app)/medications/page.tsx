@@ -20,6 +20,7 @@ import {
 
 import { Sheet } from "@/patient/components/primitives/Sheet";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import {
   useAddMedication,
   useMarkDoseTaken,
@@ -155,44 +156,16 @@ export default function MedicationsPage() {
 
       {/* ── 3. Medications Filter Bar ──────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 bg-surface p-3 rounded-2xl border-border shadow-xs">
-        <div className="inline-flex p-1 bg-surface-2 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setFilterActive("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              filterActive === "all"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            All ({medicines.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterActive("active")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              filterActive === "active"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Active ({medicines.filter((m) => m.active).length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterActive("paused")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              filterActive === "paused"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Paused ({medicines.filter((m) => !m.active).length})
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Medication filters"
+          activeId={filterActive}
+          onChange={(id) => setFilterActive(id as "all" | "active" | "paused")}
+          tabs={[
+            { id: "all", label: <>All ({medicines.length})</> },
+            { id: "active", label: <>Active ({medicines.filter((m) => m.active).length})</> },
+            { id: "paused", label: <>Paused ({medicines.filter((m) => !m.active).length})</> },
+          ]}
+        />
 
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-semibold text-text-muted hidden sm:inline">
