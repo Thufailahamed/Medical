@@ -22,6 +22,7 @@ import { formatDayLabel, humanize } from "@/patient/lib/format";
 import { patientPaths } from "@healthcare/shared/contracts";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 function cleanScheduleString(val: string | null | undefined): string {
   if (!val) return "";
@@ -132,44 +133,16 @@ export default function PrescriptionsPage() {
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter */}
-        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeTab === "all"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            All ({rawPrescriptions.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("active")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeTab === "active"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Active ({activeList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("past")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeTab === "past"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            History ({pastList.length})
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Prescription filters"
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as "all" | "active" | "past")}
+          tabs={[
+            { id: "all", label: <>All ({rawPrescriptions.length})</> },
+            { id: "active", label: <>Active ({activeList.length})</> },
+            { id: "past", label: <>History ({pastList.length})</> },
+          ]}
+        />
 
         {/* Search Input */}
         <div className="relative flex-1 sm:max-w-xs">

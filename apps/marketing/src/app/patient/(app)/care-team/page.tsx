@@ -20,6 +20,7 @@ import { humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 import { StatusDots } from "@/patient/components/primitives/StatusDots";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 interface CareTeamMember {
   id: string;
@@ -148,44 +149,16 @@ export default function CareTeamPage() {
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter */}
-        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveFilter("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeFilter === "all"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            All ({rawMembers.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter("active")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeFilter === "active"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Active ({activeMembers.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveFilter("paused")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeFilter === "paused"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Paused ({pausedMembers.length})
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Care team filters"
+          activeId={activeFilter}
+          onChange={(id) => setActiveFilter(id as "all" | "active" | "paused")}
+          tabs={[
+            { id: "all", label: <>All ({rawMembers.length})</> },
+            { id: "active", label: <>Active ({activeMembers.length})</> },
+            { id: "paused", label: <>Paused ({pausedMembers.length})</> },
+          ]}
+        />
 
         {/* Search Input */}
         <div className="relative flex-1 sm:max-w-xs">

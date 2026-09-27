@@ -20,6 +20,7 @@ import { cn } from "@/portal/lib/utils";
 import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 import { StatusDots } from "@/patient/components/primitives/StatusDots";
 import type { ClinicalStatus } from "@/patient/components/primitives/StatusDots";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import { teleconsultApi } from "@/portal/lib/api";
 import type { VisitBucket } from "@healthcare/shared/visit-lifecycle";
 
@@ -151,68 +152,18 @@ export default function AppointmentsPage() {
       {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-2xl shadow-card">
         {/* Segmented Filter Switcher */}
-        <div className="inline-flex p-1 bg-surface-2 rounded-xl shrink-0 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "all"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            All ({rawAppointments.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("upcoming")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "upcoming"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Upcoming ({upcomingList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("completed")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "completed"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Completed ({completedList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("missed")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "missed"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Missed ({missedList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("cancelled")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-              activeTab === "cancelled"
-                ? "bg-surface text-brand shadow-xs"
-                : "text-text-soft hover:text-text",
-            )}
-          >
-            Cancelled ({cancelledList.length})
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Appointment filters"
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as TabFilter)}
+          tabs={[
+            { id: "all", label: <>All ({rawAppointments.length})</> },
+            { id: "upcoming", label: <>Upcoming ({upcomingList.length})</> },
+            { id: "completed", label: <>Completed ({completedList.length})</> },
+            { id: "missed", label: <>Missed ({missedList.length})</> },
+            { id: "cancelled", label: <>Cancelled ({cancelledList.length})</> },
+          ]}
+        />
 
         {/* Search Bar */}
         <div className="relative flex-1 sm:max-w-xs">

@@ -25,6 +25,7 @@ import {
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
 import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 
 export default function VaccinationsPage() {
   const administered = useVaccinations();
@@ -117,49 +118,28 @@ export default function VaccinationsPage() {
       {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
         {/* Filter Tabs */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeTab === "all"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            All ({totalAdministered + allDue.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("administered")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              activeTab === "administered"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            Administered ({totalAdministered})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("due")}
-            className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-              activeTab === "due"
-                ? "bg-white text-sky-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900",
-            )}
-          >
-            <span>Due / Upcoming</span>
-            {totalDue > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                {totalDue}
-              </span>
-            ) : null}
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Vaccination filters"
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as "all" | "administered" | "due")}
+          tabs={[
+            { id: "all", label: <>All ({totalAdministered + allDue.length})</> },
+            { id: "administered", label: <>Administered ({totalAdministered})</> },
+            {
+              id: "due",
+              label: (
+                <>
+                  <span>Due / Upcoming</span>
+                  {totalDue > 0 ? (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                      {totalDue}
+                    </span>
+                  ) : null}
+                </>
+              ),
+            },
+          ]}
+        />
 
         {/* Search Input */}
         <div className="relative flex-1 sm:max-w-xs">
