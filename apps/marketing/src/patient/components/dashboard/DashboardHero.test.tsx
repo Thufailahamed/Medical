@@ -27,4 +27,11 @@ describe("DashboardHero", () => {
     const { container } = withClient(<DashboardHero />);
     expect(container.textContent ?? "").toContain("Log vitals");
   });
+
+  it("shows vitals status as a pill with text, not dot-only", () => {
+    const { container } = withClient(<DashboardHero />);
+    const pill = container.querySelector(".pt-hero");
+    expect(pill).toBeTruthy();
+    expect(pill?.textContent).toMatch(/Vitals steady|vital alert/);
+  });
 });
