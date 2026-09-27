@@ -128,16 +128,16 @@ export default function MedicationsPage() {
 
       {/* ── 2. Refill Warning Alert Banner ─────────────────────────────────── */}
       {refillCount > 0 ? (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-warn-soft border border-warn/30 shadow-2xs">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-warn text-white shrink-0 mt-0.5" aria-hidden>
               <AlertTriangle size={18} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-amber-950">
+              <h3 className="t-card-title text-text">
                 {refillCount} Prescription{refillCount === 1 ? "" : "s"} due for refill
               </h3>
-              <p className="text-xs text-amber-800 mt-0.5">
+              <p className="text-xs text-text-soft mt-0.5">
                 Supply for {refillCandidates.map((r) => r.name).join(", ") || "active medications"} is running low. Request your pharmacy refill to ensure continuous care.
               </p>
             </div>
@@ -146,16 +146,16 @@ export default function MedicationsPage() {
           <button
             type="button"
             onClick={() => setRefillOpen(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-amber-950 bg-amber-200/80 hover:bg-amber-300/90 transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+            className="pt-btn h-9 px-4 text-xs shrink-0 bg-warn text-white hover:brightness-110"
           >
             <span>Review &amp; Refill</span>
-            <ArrowRight size={13} />
+            <ArrowRight size={13} aria-hidden />
           </button>
         </div>
       ) : null}
 
       {/* ── 3. Medications Filter Bar ──────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 bg-surface p-3 rounded-2xl border-border shadow-xs">
+      <div className="flex items-center justify-between gap-3 bg-surface p-3 rounded-xl border-border shadow-card">
         <SegmentedTabs
           ariaLabel="Medication filters"
           activeId={filterActive}
@@ -174,10 +174,10 @@ export default function MedicationsPage() {
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors cursor-pointer"
+            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
           >
-            <Plus size={13} />
-            <span>Add Medication</span>
+            <Plus size={13} aria-hidden />
+            Add Medication
           </button>
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function MedicationsPage() {
       {/* ── 4. Medications List ────────────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
         {doseError ? (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger">
             {doseError}
           </div>
         ) : null}
@@ -195,13 +195,13 @@ export default function MedicationsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-24 rounded-2xl bg-surface-2 animate-pulse border border-border"
+                className="h-24 rounded-xl bg-surface-2 animate-pulse border border-border"
               />
             ))}
           </div>
         ) : filteredMedicines.length === 0 ? (
-          <div className="rounded-2xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+          <div className="rounded-xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3 shadow-card">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
               <Pill size={24} />
             </div>
             <div>
@@ -216,13 +216,10 @@ export default function MedicationsPage() {
             </div>
             <Link
               href="/patient/prescriptions"
-              className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-xs"
             >
-              <ShieldCheck size={14} />
-              <span>View Prescriptions</span>
+              <ShieldCheck size={14} aria-hidden />
+              View Prescriptions
             </Link>
           </div>
         ) : (
@@ -239,21 +236,21 @@ export default function MedicationsPage() {
                 >
                   {/* Left Column: Icon + Details */}
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="h-11 w-11 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0 shadow-2xs group-hover:bg-sky-100/70 transition-colors">
+                    <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
                       <Pill size={20} />
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-text group-hover:text-sky-800 transition-colors truncate">
+                        <h3 className="text-base font-bold text-text group-hover:text-brand transition-colors truncate">
                           {m.name}
                         </h3>
                         <span
                           className={cn(
-                            "px-2 py-0.5 rounded-full text-[10.5px] font-bold border",
+                            "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                             m.active
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                              : "bg-surface-2 text-text-soft border-border",
+                              ? "bg-success-soft text-success"
+                              : "bg-surface-2 text-text-soft",
                           )}
                         >
                           {m.active ? "Active" : "Paused"}
@@ -266,7 +263,7 @@ export default function MedicationsPage() {
                           {m.dosage}
                         </span>
                         {formattedFreq ? (
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-100">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-brand-soft text-brand">
                             {formattedFreq}
                           </span>
                         ) : null}
@@ -304,10 +301,10 @@ export default function MedicationsPage() {
                               });
                             }}
                             disabled={busy}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-colors cursor-pointer disabled:opacity-60"
+                            className="pt-btn h-9 px-3.5 text-xs bg-success-soft text-success hover:brightness-95 disabled:opacity-60"
                           >
-                            <Check size={14} className="text-emerald-600" />
-                            <span>Taken Today · Undo</span>
+                            <Check size={14} aria-hidden />
+                            Taken Today · Undo
                           </button>
                         ) : dose.skipped ? (
                           <button
@@ -324,10 +321,10 @@ export default function MedicationsPage() {
                               });
                             }}
                             disabled={busy}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-text-soft bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer disabled:opacity-60"
+                            className="pt-btn pt-btn-secondary h-9 px-3 text-xs disabled:opacity-60"
                           >
-                            <RotateCcw size={13} />
-                            <span>Skipped · Reset</span>
+                            <RotateCcw size={13} aria-hidden />
+                            Skipped · Reset
                           </button>
                         ) : (
                           <div className="flex items-center gap-1.5">
@@ -348,14 +345,10 @@ export default function MedicationsPage() {
                                 );
                               }}
                               disabled={busy}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-60"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                              }}
+                              className="pt-btn pt-btn-primary h-9 px-4 text-xs disabled:opacity-60"
                             >
-                              <Check size={13} />
-                              <span>Take Dose</span>
+                              <Check size={13} aria-hidden />
+                              Take Dose
                             </button>
                             <button
                               type="button"
@@ -374,16 +367,16 @@ export default function MedicationsPage() {
                                 );
                               }}
                               disabled={busy}
-                              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-text-soft hover:bg-surface-2 border border-border transition-colors cursor-pointer disabled:opacity-60"
+                              className="pt-btn pt-btn-secondary h-9 px-3 text-xs disabled:opacity-60"
                             >
-                              <SkipForward size={13} />
-                              <span>Skip</span>
+                              <SkipForward size={13} aria-hidden />
+                              Skip
                             </button>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs font-medium text-text-muted bg-surface-2 px-3 py-1.5 rounded-xl border border-border">
+                      <span className="text-xs font-medium text-text-muted bg-surface-2 px-3 py-1.5 rounded-lg border border-border">
                         {m.frequency ? cleanScheduleString(m.frequency) : "As prescribed"}
                       </span>
                     )}
@@ -403,10 +396,8 @@ export default function MedicationsPage() {
       >
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700">
-              Pharmacy Service
-            </span>
-            <h2 className="text-lg font-bold text-text">
+            <span className="pt-kicker">Pharmacy Service</span>
+            <h2 className="t-card-title text-text mt-0.5">
               Prescription Refills
             </h2>
           </div>
@@ -422,7 +413,7 @@ export default function MedicationsPage() {
         <div className="mt-4 flex flex-col gap-3">
           {refillCandidates.length === 0 ? (
             <div className="py-10 text-center flex flex-col items-center gap-2">
-              <CheckCircle2 size={32} className="text-emerald-500" />
+              <CheckCircle2 size={32} className="text-success" />
               <p className="font-bold text-text text-sm">
                 All medications are well stocked
               </p>
@@ -443,10 +434,10 @@ export default function MedicationsPage() {
                   </div>
                   <span
                     className={cn(
-                      "px-2 py-0.5 rounded-md text-[10.5px] font-bold",
+                      "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
                       m.daysRemaining <= 3
-                        ? "bg-rose-50 text-rose-700 border border-rose-200"
-                        : "bg-amber-50 text-amber-800 border border-amber-200",
+                        ? "bg-danger-soft text-danger"
+                        : "bg-warn-soft text-warn",
                     )}
                   >
                     {m.daysRemaining <= 0
@@ -463,10 +454,10 @@ export default function MedicationsPage() {
                   <Link
                     href="/patient/prescriptions"
                     onClick={() => setRefillOpen(false)}
-                    className="text-xs font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1"
+                    className="text-xs font-bold text-brand hover:underline flex items-center gap-1"
                   >
                     <span>Order Refill</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={12} aria-hidden />
                   </Link>
                 </div>
               </div>
@@ -577,11 +568,11 @@ function AddMedicationSheet({
     <Sheet open={open} onClose={onClose} ariaLabel="Add New Medication">
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 shadow-2xs">
+          <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
             <Pill size={18} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-text">
+            <h2 className="t-card-title text-text">
               Add New Medication
             </h2>
             <p className="text-xs text-text-soft">
@@ -601,7 +592,7 @@ function AddMedicationSheet({
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
         {/* Quick Suggestions as high-contrast pill chips */}
-        <div className="p-3.5 rounded-2xl bg-surface-2 border border-border">
+        <div className="p-3.5 rounded-xl bg-surface-2 border border-border">
           <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider block mb-2">
             Quick Auto-Fill Prescriptions
           </label>
@@ -613,16 +604,14 @@ function AddMedicationSheet({
                   key={item.name}
                   type="button"
                   onClick={() => handleQuickSelect(item)}
-                  style={{
-                    backgroundColor: isSelected ? "#0284c7" : "#ffffff",
-                    borderColor: isSelected ? "#0284c7" : "#cbd5e1",
-                    color: isSelected ? "#ffffff" : "#334155",
-                  }}
                   className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:scale-105",
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:-translate-y-0.5",
+                    isSelected
+                      ? "bg-ink text-white border-ink"
+                      : "bg-surface border-border text-text-soft hover:text-text hover:border-border-strong",
                   )}
                 >
-                  <Pill size={11} className={isSelected ? "text-white" : "text-sky-600"} />
+                  <Pill size={11} className={isSelected ? "text-white" : "text-brand"} />
                   <span>
                     {item.name} <span className={isSelected ? "opacity-90" : "text-text-muted font-normal"}>{item.dosage}</span>
                   </span>
@@ -643,7 +632,7 @@ function AddMedicationSheet({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Paracetamol, Amoxicillin, Atorvastatin…"
-            className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+            className="pt-input text-xs sm:text-sm"
           />
         </div>
 
@@ -658,7 +647,7 @@ function AddMedicationSheet({
             value={dosage}
             onChange={(e) => setDosage(e.target.value)}
             placeholder="e.g. 500mg, 10ml, 1 tablet, 2 puffs…"
-            className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
+            className="pt-input text-xs sm:text-sm"
           />
         </div>
 
@@ -671,7 +660,7 @@ function AddMedicationSheet({
             <select
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:border-brand cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             >
               <option value="Once daily">Once daily</option>
               <option value="Twice daily">Twice daily</option>
@@ -691,7 +680,7 @@ function AddMedicationSheet({
             <select
               value={timing}
               onChange={(e) => setTiming(e.target.value)}
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:border-brand cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             >
               <option value="After food">After food / meals</option>
               <option value="Before food">Before food / meals</option>
@@ -714,7 +703,7 @@ function AddMedicationSheet({
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:border-brand cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             />
           </div>
 
@@ -727,13 +716,13 @@ function AddMedicationSheet({
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full h-11 px-3.5 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:border-brand cursor-pointer"
+              className="pt-input text-xs sm:text-sm"
             />
           </div>
         </div>
 
         {/* Refill Reminder */}
-        <label className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-2 border border-border cursor-pointer">
+        <label className="flex items-center gap-2.5 p-3 rounded-lg bg-surface-2 border border-border cursor-pointer">
           <input
             type="checkbox"
             checked={refillReminder}
@@ -760,13 +749,13 @@ function AddMedicationSheet({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Take with water, avoid citrus juices…"
-            className="w-full p-3 text-xs sm:text-sm bg-surface-2 border border-border rounded-xl font-medium text-text focus:bg-surface focus:outline-none focus:border-brand transition-all leading-relaxed"
+            className="pt-input h-auto py-3 text-xs sm:text-sm leading-relaxed"
           />
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
+            <AlertTriangle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -776,27 +765,24 @@ function AddMedicationSheet({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-text bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
+            className="pt-btn pt-btn-secondary h-10 px-4 text-xs"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
+            className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-50"
           >
             {busy ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Saving Medication…</span>
+                <Loader2 size={14} className="animate-spin" aria-hidden />
+                Saving Medication…
               </>
             ) : (
               <>
-                <Plus size={14} strokeWidth={3} />
-                <span>Add to Schedule</span>
+                <Plus size={14} strokeWidth={3} aria-hidden />
+                Add to Schedule
               </>
             )}
           </button>
