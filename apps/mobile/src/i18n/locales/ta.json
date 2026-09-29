@@ -2676,6 +2676,19 @@
     "fallback": "பராமரிப்பு குழு"
   },
   "addMedicine": {
+    "sections": {
+      "medicine": "மருந்து",
+      "schedule": "அட்டவணை",
+      "notes": "குறிப்புகள்"
+    },
+    "summary": {
+      "label": "உங்கள் திட்டம்",
+      "empty": "உங்கள் திட்டத்தைப் பார்க்க விவரங்களை நிரப்பவும்"
+    },
+    "labels": {
+      "howOften": "எத்தனை முறை",
+      "whenToTake": "எப்போது எடுக்க வேண்டும்"
+    },
     "title": "Add medicine",
     "actions": {
       "save": "Save medicine"

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,14 @@ import {
   AlertTriangle,
   ShieldAlert,
   X,
+  Clock,
+  Sunrise,
+  Sun,
+  Sunset,
+  Moon,
+  Utensils,
+  UtensilsCrossed,
+  Soup,
 } from "lucide-react-native";
 import {
   useAddMedicineWithConfirm,
@@ -70,6 +78,20 @@ const TIMING_VALUES = [
   "Night",
 ] as const;
 
+// Doses per day for each FREQUENCY_VALUES entry (null = as needed).
+const FREQUENCY_DOSES = [1, 2, 3, 4, null] as const;
+
+const TIMING_ICONS: Record<string, any> = {
+  "Before food": UtensilsCrossed,
+  "After food": Utensils,
+  "With food": Soup,
+  "Any time": Clock,
+  Morning: Sunrise,
+  Afternoon: Sun,
+  Evening: Sunset,
+  Night: Moon,
+};
+
 type FormData = {
   name: string;
   dosage: string;
@@ -83,6 +105,78 @@ type FormData = {
   // from useActiveFamilyMemberStore so the active view stays sticky.
   familyMemberId?: string | null;
 };
+
+// Section: overline title + elevated card (matches auth screens).
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View style={{ marginBottom: spacing.xl }}>
+      <Text
+        style={[
+          typography.overline,
+          { color: colors.textMuted, marginBottom: 10, marginLeft: 4 },
+        ]}
+      >
+        {title}
+      </Text>
+      <Card padded={false}>
+        <View style={{ padding: spacing.lg, gap: spacing.lg }}>{children}</View>
+      </Card>
+    </View>
+  );
+}
+
+// Equal-width selectable tile: glyph on top, label below.
+function OptionTile({
+  label,
+  top,
+  selected,
+  onPress,
+}: {
+  label: string;
+  top: ReactNode;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { colors, fontFamily } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 72,
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        borderRadius: 14,
+        borderCurve: "continuous",
+        borderWidth: 1.5,
+        borderColor: selected ? colors.primary : "transparent",
+        backgroundColor: selected ? colors.primarySoft : colors.fill,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+      })}
+    >
+      {top}
+      <Text
+        numberOfLines={2}
+        style={{
+          fontSize: 12,
+          lineHeight: 15,
+          textAlign: "center",
+          color: selected ? colors.primary : colors.textMuted,
+          fontFamily: selected ? fontFamily.bodyBold : fontFamily.bodySemibold,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 function SuggestionRow({
   s,
@@ -173,7 +267,7 @@ function SuggestionRow({
 export default function AddMedicineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
+  const { spacing, colors, typography, radius, scheme, shadow } = useTheme();
   const toast = useToast();
   const addMedicine = useAddMedicineWithConfirm();
   const { data: profileData } = usePatientProfile();
@@ -333,325 +427,359 @@ export default function AddMedicineScreen() {
     await submitWithOverride(pendingPayload as any, true);
   };
 
+  const nameValue = watch("name") || "";
+  const dosageValue = watch("dosage") || "";
+  const frequencyValue = watch("frequency") || "";
+  const timingValue = watch("timing") || "";
+  const summaryParts = [
+    dosageValue.trim(),
+    FREQUENCIES.find((f) => f.value === frequencyValue)?.label,
+    TIMINGS.find((o) => o.value === timingValue)?.label,
+  ].filter(Boolean);
+
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
       <ScreenHeader back title={t("addMedicine.title", { defaultValue: "Add medicine" })} />
 
-      {/* Compact identity strip */}
-      <View
-        style={{
-          margin: spacing.lg,
-          padding: spacing.lg,
-          borderRadius: radius.glass,
-          borderCurve: "continuous",
-          backgroundColor: colors.primarySoft,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.md,
-        }}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: radius.lg,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.surface,
-          }}
-        >
-          <Pill size={28} color={colors.primary} strokeWidth={2.25} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[typography.overline, { color: colors.primary }]}>
-            {t("addMedicine.hero.label")}
-          </Text>
-          <Text style={[typography.title.md, { color: colors.text }]}>
-            {t("addMedicine.hero.title")}
-          </Text>
-          <Text
-            style={[
-              typography.body.sm,
-              { color: colors.textMuted, marginTop: 2 },
-            ]}
-          >
-            {t("addMedicine.hero.body")}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
-        <Card padded={false}>
-          <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <FormField
-                  label={t("medicine.form.nameLabel")}
-                  required
-                  error={errors.name?.message}
-                  helper={
-                    !showDropdown && nameQuery.trim().length > 0 && !isFetching
-                      ? suggestions.length === 0
-                        ? t("addMedicine.noMatch")
-                        : undefined
-                      : undefined
-                  }
-                >
-                  <View style={{ position: "relative" }}>
-                    <TextInput
-                      value={value}
-                      onChangeText={(txt) => {
-                        onChange(txt);
-                        setNameQuery(txt);
-                      }}
-                      onFocus={() => setNameFocused(true)}
-                      onBlur={(e) => {
-                        onBlur(e);
-                        setTimeout(() => setNameFocused(false), 120);
-                      }}
-                      placeholder={t("medicine.form.namePlaceholder")}
-                      autoCapitalize="words"
-                      leadingIcon={Pill}
-                      invalid={!!errors.name}
-                    />
-                    {isFetching && nameQuery.trim().length > 0 ? (
-                      <View
-                        style={{
-                          position: "absolute",
-                          right: spacing.md,
-                          top: 0,
-                          bottom: 0,
-                          justifyContent: "center",
-                        }}
-                      >
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      </View>
-                    ) : null}
-                  </View>
-                  {showDropdown ? (
-                    <View
-                      style={{
-                        marginTop: 8,
-                        backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
-                        overflow: "hidden",
-                        maxHeight: 280,
-                      }}
-                    >
-                      <ScrollView
-                        keyboardShouldPersistTaps="handled"
-                        showsVerticalScrollIndicator={false}
-                      >
-                        {suggestions.map((s) => (
-                          <SuggestionRow
-                            key={`${s.source}-${s.name}`}
-                            s={s}
-                            onApply={applySuggestion}
-                          />
-                        ))}
-                      </ScrollView>
-                    </View>
-                  ) : null}
-                </FormField>
-              )}
-            />
-
-            {/* V3: Inline interaction warnings */}
-            {(hasBlockingWarning || hasSoftWarning) && interactions ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  gap: spacing.sm,
-                  padding: spacing.md,
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  backgroundColor: hasBlockingWarning ? colors.dangerSoft : colors.warningSoft,
-                }}
-                accessibilityRole="alert"
-                accessibilityLabel={
-                  hasBlockingWarning
-                    ? t("addMedicine.a11y.criticalWarning")
-                    : t("addMedicine.a11y.warningAlert")
-                }
-              >
-                {hasBlockingWarning ? (
-                  <ShieldAlert size={18} color={colors.danger} strokeWidth={2.25} />
-                ) : (
-                  <AlertTriangle size={18} color={colors.warning} strokeWidth={2.25} />
-                )}
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text
-                    style={[
-                      typography.label.md,
-                      {
-                        color: hasBlockingWarning ? colors.danger : colors.warning,
-                        fontWeight: "800",
-                      },
-                    ]}
-                  >
-                    {hasBlockingWarning ? t("addMedicine.interaction.critical") : t("addMedicine.interaction.possible")}
-                  </Text>
-                  {interactions.allergies.map((a, i) => (
-                    <Text
-                      key={`a-${i}`}
-                      style={[typography.body.sm, { color: colors.text }]}
-                    >
-                      {a.reaction
-                        ? t("addMedicine.interaction.allergyWithReaction", {
-                            substance: a.substance,
-                            severity: a.severity,
-                            reaction: a.reaction,
-                          })
-                        : t("addMedicine.interaction.allergyItem", {
-                            substance: a.substance,
-                            severity: a.severity,
-                          })}
-                    </Text>
-                  ))}
-                  {interactions.interactions.map((it, i) => (
-                    <Text
-                      key={`i-${i}`}
-                      style={[typography.body.sm, { color: colors.text }]}
-                    >
-                      {t("addMedicine.interaction.interactionItem", {
-                        medicines: it.medicines.join(" + "),
-                        note: it.note,
-                      })}
-                    </Text>
-                  ))}
-                  {hasBlockingWarning ? (
-                    <Text
-                      style={[
-                        typography.caption,
-                        { color: colors.danger, fontWeight: "700", marginTop: 2 },
-                      ]}
-                    >
-                      {t("addMedicine.interaction.confirmPrompt")}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-
-            <Controller
-              control={control}
-              name="dosage"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <FormField
-                  label={t("medicine.form.dosageLabel")}
-                  required
-                  error={errors.dosage?.message}
-                >
-                  <TextInput
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder={t("medicine.form.dosagePlaceholder")}
-                    leadingIcon={Hourglass}
-                    invalid={!!errors.dosage}
-                  />
-                </FormField>
-              )}
-            />
-
-            <FormField
-              label={t("medicine.form.frequencyLabel")}
-              required
-              error={errors.frequency?.message}
-            >
-              <Controller
-                control={control}
-                name="frequency"
-                render={({ field: { onChange, value } }) => (
-                  <ChipGroup
-                    options={FREQUENCIES}
-                    value={value}
-                    onChange={onChange}
-                  />
-                )}
-              />
-            </FormField>
-
-            <FormField
-              label={t("medicine.form.timingLabel")}
-              required
-              error={errors.timing?.message}
-            >
-              <Controller
-                control={control}
-                name="timing"
-                render={({ field: { onChange, value } }) => (
-                  <ChipGroup
-                    options={TIMINGS}
-                    value={value}
-                    onChange={onChange}
-                  />
-                )}
-              />
-            </FormField>
-
-            <FormField label={t("medicine.form.startDateLabel")} required>
-              <Controller
-                control={control}
-                name="startDate"
-                render={({ field: { onChange, value } }) => (
-                  <DateField
-                    value={value}
-                    onChange={onChange}
-                    placeholder={t("medicine.form.startDatePlaceholder")}
-                  />
-                )}
-              />
-            </FormField>
-
-            {/* Phase 2.3: tag the medicine for a specific family member.
-                "Self / household" = null. Selection survives to the API. */}
-            <FormField
-              label={t("medicine.form.familyLabel", { defaultValue: "For" })}
-              helper={t("medicine.form.familyHelper", {
-                defaultValue: "Tag this medicine for a family member.",
-              })}
-            >
-              <Controller
-                control={control}
-                name="familyMemberId"
-                render={({ field: { onChange, value } }) => (
-                  <ChipGroup
-                    options={FAMILY_OPTIONS}
-                    value={value ?? ""}
-                    onChange={(v) => onChange(v === "" ? null : v)}
-                  />
-                )}
-              />
-            </FormField>
-          </View>
-        </Card>
-
-        <FormField label={t("medicine.form.notesLabel")} helper={t("medicine.form.notesHelper")}>
+        {/* ─── Medicine ─── */}
+        <FormSection title={t("addMedicine.sections.medicine")}>
           <Controller
             control={control}
-            name="notes"
+            name="name"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder={t("medicine.form.notesPlaceholder")}
-                multiline
-                numberOfLines={3}
-                leadingIcon={FileText}
-                tone="soft"
-              />
+              <FormField
+                label={t("medicine.form.nameLabel")}
+                required
+                error={errors.name?.message}
+                helper={
+                  !showDropdown && nameQuery.trim().length > 0 && !isFetching
+                    ? suggestions.length === 0
+                      ? t("addMedicine.noMatch")
+                      : undefined
+                    : nameQuery.trim().length === 0
+                    ? t("addMedicine.hero.body")
+                    : undefined
+                }
+              >
+                <View style={{ position: "relative" }}>
+                  <TextInput
+                    value={value}
+                    onChangeText={(txt) => {
+                      onChange(txt);
+                      setNameQuery(txt);
+                    }}
+                    onFocus={() => setNameFocused(true)}
+                    onBlur={(e) => {
+                      onBlur(e);
+                      setTimeout(() => setNameFocused(false), 120);
+                    }}
+                    placeholder={t("medicine.form.namePlaceholder")}
+                    autoCapitalize="words"
+                    leadingIcon={Pill}
+                    tone="soft"
+                    invalid={!!errors.name}
+                  />
+                  {isFetching && nameQuery.trim().length > 0 ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        right: spacing.md,
+                        top: 0,
+                        bottom: 0,
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    </View>
+                  ) : null}
+                </View>
+                {showDropdown ? (
+                  <View
+                    style={{
+                      marginTop: 8,
+                      backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+                      borderRadius: 16,
+                      borderCurve: "continuous",
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+                      overflow: "hidden",
+                      maxHeight: 280,
+                      ...shadow.md,
+                    }}
+                  >
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled
+                    >
+                      {suggestions.map((s) => (
+                        <SuggestionRow
+                          key={`${s.source}-${s.name}`}
+                          s={s}
+                          onApply={applySuggestion}
+                        />
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
+              </FormField>
             )}
           />
-        </FormField>
+
+          {/* V3: Inline interaction warnings */}
+          {(hasBlockingWarning || hasSoftWarning) && interactions ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.sm,
+                padding: spacing.md,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: hasBlockingWarning ? colors.dangerSoft : colors.warningSoft,
+              }}
+              accessibilityRole="alert"
+              accessibilityLabel={
+                hasBlockingWarning
+                  ? t("addMedicine.a11y.criticalWarning")
+                  : t("addMedicine.a11y.warningAlert")
+              }
+            >
+              {hasBlockingWarning ? (
+                <ShieldAlert size={18} color={colors.danger} strokeWidth={2.25} />
+              ) : (
+                <AlertTriangle size={18} color={colors.warning} strokeWidth={2.25} />
+              )}
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text
+                  style={[
+                    typography.label.md,
+                    {
+                      color: hasBlockingWarning ? colors.danger : colors.warning,
+                      fontWeight: "800",
+                    },
+                  ]}
+                >
+                  {hasBlockingWarning ? t("addMedicine.interaction.critical") : t("addMedicine.interaction.possible")}
+                </Text>
+                {interactions.allergies.map((a, i) => (
+                  <Text
+                    key={`a-${i}`}
+                    style={[typography.body.sm, { color: colors.text }]}
+                  >
+                    {a.reaction
+                      ? t("addMedicine.interaction.allergyWithReaction", {
+                          substance: a.substance,
+                          severity: a.severity,
+                          reaction: a.reaction,
+                        })
+                      : t("addMedicine.interaction.allergyItem", {
+                          substance: a.substance,
+                          severity: a.severity,
+                        })}
+                  </Text>
+                ))}
+                {interactions.interactions.map((it, i) => (
+                  <Text
+                    key={`i-${i}`}
+                    style={[typography.body.sm, { color: colors.text }]}
+                  >
+                    {t("addMedicine.interaction.interactionItem", {
+                      medicines: it.medicines.join(" + "),
+                      note: it.note,
+                    })}
+                  </Text>
+                ))}
+                {hasBlockingWarning ? (
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.danger, fontWeight: "700", marginTop: 2 },
+                    ]}
+                  >
+                    {t("addMedicine.interaction.confirmPrompt")}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
+          <Controller
+            control={control}
+            name="dosage"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormField
+                label={t("medicine.form.dosageLabel")}
+                required
+                error={errors.dosage?.message}
+              >
+                <TextInput
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder={t("medicine.form.dosagePlaceholder")}
+                  leadingIcon={Hourglass}
+                  tone="soft"
+                  invalid={!!errors.dosage}
+                />
+              </FormField>
+            )}
+          />
+        </FormSection>
+
+        {/* ─── Schedule ─── */}
+        <FormSection title={t("addMedicine.sections.schedule")}>
+          <FormField
+            label={t("addMedicine.labels.howOften")}
+            required
+            error={errors.frequency?.message}
+          >
+            <Controller
+              control={control}
+              name="frequency"
+              render={({ field: { onChange, value } }) => (
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {FREQUENCIES.map((f, idx) => {
+                    const selected = value === f.value;
+                    const doses = FREQUENCY_DOSES[idx];
+                    return (
+                      <OptionTile
+                        key={f.value}
+                        label={f.label}
+                        selected={selected}
+                        onPress={() => onChange(f.value)}
+                        top={
+                          doses ? (
+                            <View style={{ flexDirection: "row", gap: 3, height: 18, alignItems: "center" }}>
+                              {Array.from({ length: doses }).map((_, i) => (
+                                <View
+                                  key={i}
+                                  style={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: 4,
+                                    backgroundColor: selected ? colors.primary : colors.textSubtle,
+                                  }}
+                                />
+                              ))}
+                            </View>
+                          ) : (
+                            <Clock
+                              size={18}
+                              color={selected ? colors.primary : colors.textSubtle}
+                              strokeWidth={2.25}
+                            />
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </View>
+              )}
+            />
+          </FormField>
+
+          <FormField
+            label={t("addMedicine.labels.whenToTake")}
+            required
+            error={errors.timing?.message}
+          >
+            <Controller
+              control={control}
+              name="timing"
+              render={({ field: { onChange, value } }) => (
+                <View style={{ gap: 8 }}>
+                  {[TIMINGS.slice(0, 4), TIMINGS.slice(4)].map((row, r) => (
+                    <View key={r} style={{ flexDirection: "row", gap: 8 }}>
+                      {row.map((o) => {
+                        const selected = value === o.value;
+                        const Icon = TIMING_ICONS[o.value] ?? Clock;
+                        return (
+                          <OptionTile
+                            key={o.value}
+                            label={o.label}
+                            selected={selected}
+                            onPress={() => onChange(o.value)}
+                            top={
+                              <Icon
+                                size={18}
+                                color={selected ? colors.primary : colors.textSubtle}
+                                strokeWidth={2.25}
+                              />
+                            }
+                          />
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              )}
+            />
+          </FormField>
+
+          <FormField label={t("medicine.form.startDateLabel")} required>
+            <Controller
+              control={control}
+              name="startDate"
+              render={({ field: { onChange, value } }) => (
+                <DateField
+                  value={value}
+                  onChange={onChange}
+                  placeholder={t("medicine.form.startDatePlaceholder")}
+                />
+              )}
+            />
+          </FormField>
+
+          {/* Phase 2.3: tag the medicine for a specific family member.
+              "Self / household" = null. Selection survives to the API. */}
+          <FormField
+            label={t("medicine.form.familyLabel", { defaultValue: "For" })}
+            helper={t("medicine.form.familyHelper", {
+              defaultValue: "Tag this medicine for a family member.",
+            })}
+          >
+            <Controller
+              control={control}
+              name="familyMemberId"
+              render={({ field: { onChange, value } }) => (
+                <ChipGroup
+                  options={FAMILY_OPTIONS}
+                  value={value ?? ""}
+                  onChange={(v) => onChange(v === "" ? null : v)}
+                />
+              )}
+            />
+          </FormField>
+        </FormSection>
+
+        {/* ─── Notes ─── */}
+        <FormSection title={t("addMedicine.sections.notes")}>
+          <FormField helper={t("medicine.form.notesHelper")}>
+            <Controller
+              control={control}
+              name="notes"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder={t("medicine.form.notesPlaceholder")}
+                  multiline
+                  numberOfLines={3}
+                  leadingIcon={FileText}
+                  tone="soft"
+                />
+              )}
+            />
+          </FormField>
+        </FormSection>
 
         {errors.root ? (
           <Text
@@ -663,7 +791,48 @@ export default function AddMedicineScreen() {
             {errors.root.message}
           </Text>
         ) : null}
+      </ScrollView>
 
+      {/* Sticky footer: live plan summary + save */}
+      <View
+        style={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          gap: spacing.md,
+          backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.hairline,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 11,
+              borderCurve: "continuous",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <Pill size={18} color={colors.primary} strokeWidth={2.25} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              style={[typography.title.sm, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              {nameValue.trim() || t("addMedicine.summary.label")}
+            </Text>
+            <Text
+              style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
+              numberOfLines={1}
+            >
+              {summaryParts.length ? summaryParts.join(" · ") : t("addMedicine.summary.empty")}
+            </Text>
+          </View>
+        </View>
         <Button
           title={t("addMedicine.actions.save", { defaultValue: "Save medicine" })}
           onPress={handleSubmit(onSubmit)}

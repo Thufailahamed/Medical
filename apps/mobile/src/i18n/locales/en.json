@@ -1692,6 +1692,19 @@
     }
   },
   "addMedicine": {
+    "sections": {
+      "medicine": "Medicine",
+      "schedule": "Schedule",
+      "notes": "Notes"
+    },
+    "summary": {
+      "label": "Your plan",
+      "empty": "Fill in the details to see your plan"
+    },
+    "labels": {
+      "howOften": "How often",
+      "whenToTake": "When to take"
+    },
     "title": "Add medicine",
     "actions": {
       "save": "Save medicine"

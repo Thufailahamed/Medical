@@ -2676,6 +2676,19 @@
     "fallback": "සත්කාර කණ්ඩායම"
   },
   "addMedicine": {
+    "sections": {
+      "medicine": "ඖෂධය",
+      "schedule": "කාලසටහන",
+      "notes": "සටහන්"
+    },
+    "summary": {
+      "label": "ඔබේ සැලැස්ම",
+      "empty": "ඔබේ සැලැස්ම බැලීමට විස්තර පුරවන්න"
+    },
+    "labels": {
+      "howOften": "කොපමණ වාරයක්",
+      "whenToTake": "ගත යුතු වේලාව"
+    },
     "title": "Add medicine",
     "actions": {
       "save": "Save medicine"
