@@ -1166,6 +1166,43 @@ auth.get("/me", authMiddleware, async (c) => {
   return c.json({ user: dbUser });
 });
 
+// ─── Update current user (photo) ─────────────────────────
+// The mobile profile editor uploads the image via POST /files/upload,
+// then sends the returned r2Key here. We store an absolute URL of the
+// public /files/avatar-key/<key> stream so every consumer that renders
+// `photo` as a plain URI (mobile <Image>, invite-page <img>) works
+// without an auth header.
+auth.put("/me", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  const db = c.get("db");
+  const body = await c.req.json().catch(() => ({}));
+  const raw = typeof body?.photo === "string" ? body.photo.trim() : "";
+  if (!raw) {
+    return c.json({ error: "photo is required" }, 400);
+  }
+
+  // Accept either the bare r2Key from /files/upload or a previously
+  // stored avatar URL for the same key (idempotent re-save).
+  const key = raw.includes("/files/avatar-key/")
+    ? decodeURIComponent(raw.split("/files/avatar-key/")[1] ?? "")
+    : raw;
+
+  // The key must live under this user's own upload prefix — this is what
+  // stops a user from pointing their avatar at someone else's object.
+  if (!key.startsWith(`medical/${userId}/`) || key.includes("..")) {
+    return c.json({ error: "Photo must be uploaded first" }, 400);
+  }
+
+  const photo = `${new URL(c.req.url).origin}/files/avatar-key/${key}`;
+  const [updated] = await db
+    .update(users)
+    .set({ photo })
+    .where(eq(users.id, userId))
+    .returning();
+
+  return c.json({ user: updated });
+});
+
 // ─── Refresh token ───────────────────────────────────────
 auth.post("/refresh", async (c) => {
   const body = await c.req.json().catch(() => ({}));

@@ -1549,16 +1549,14 @@ function PremiumHero({
             overflow: "hidden",
             borderWidth: 1,
             borderColor: "rgba(255,255,255,0.2)",
-            backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(3,35,55,0.24)",
           }}
         >
-          {Platform.OS === "ios" ? (
-            <BlurView
-              intensity={35}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null}
+          <BlurView
+            intensity={35}
+            tint="dark"
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
           <View
             style={{
               flexDirection: "row",

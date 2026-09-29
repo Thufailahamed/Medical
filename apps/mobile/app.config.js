@@ -81,15 +81,17 @@ export default {
       "expo-secure-store",
       "expo-notifications",
       "expo-location",
+      "expo-asset",
+      "expo-localization",
       [
         "expo-font",
         {
           fonts: [
-            "./node_modules/@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf",
-            "./node_modules/@expo-google-fonts/outfit/500Medium/Outfit_500Medium.ttf",
-            "./node_modules/@expo-google-fonts/outfit/600SemiBold/Outfit_600SemiBold.ttf",
-            "./node_modules/@expo-google-fonts/outfit/700Bold/Outfit_700Bold.ttf",
-            "./node_modules/@expo-google-fonts/outfit/800ExtraBold/Outfit_800ExtraBold.ttf",
+            "./node_modules/@expo-google-fonts/plus-jakarta-sans/400Regular/PlusJakartaSans_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/plus-jakarta-sans/500Medium/PlusJakartaSans_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/plus-jakarta-sans/600SemiBold/PlusJakartaSans_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/plus-jakarta-sans/700Bold/PlusJakartaSans_700Bold.ttf",
+            "./node_modules/@expo-google-fonts/plus-jakarta-sans/800ExtraBold/PlusJakartaSans_800ExtraBold.ttf",
           ],
         },
       ],

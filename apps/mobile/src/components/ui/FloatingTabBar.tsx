@@ -106,7 +106,7 @@ export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarPro
           padding: PAD,
           borderRadius: RADIUS,
           borderCurve: "continuous",
-          backgroundColor: Platform.OS === "ios" ? "transparent" : dark ? "rgba(28,28,32,0.92)" : "rgba(255,255,255,0.94)",
+          backgroundColor: Platform.OS === "ios" ? "transparent" : dark ? "rgba(28,28,32,0.35)" : "rgba(255,255,255,0.3)",
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: dark ? 0.45 : 0.12,
@@ -118,17 +118,24 @@ export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarPro
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, { borderRadius: RADIUS, borderCurve: "continuous", overflow: "hidden" }]}
         >
-          {Platform.OS === "ios" ? (
-            <BlurView
-              intensity={dark ? 60 : 70}
-              tint={dark ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null}
+          <BlurView
+            intensity={dark ? 60 : 70}
+            tint={
+              Platform.OS === "ios"
+                ? dark
+                  ? "systemUltraThinMaterialDark"
+                  : "systemUltraThinMaterialLight"
+                : dark
+                ? "dark"
+                : "light"
+            }
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
           <View
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: dark ? "rgba(40,40,46,0.28)" : "rgba(255,255,255,0.38)" },
+              { backgroundColor: dark ? "rgba(40,40,46,0.28)" : "rgba(255,255,255,0.28)" },
             ]}
           />
           <LinearGradient
@@ -179,7 +186,7 @@ export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarPro
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
-              testID={options.tabBarTestID}
+              testID={options.tabBarButtonTestID}
               style={{
                 flexGrow: focused ? 0 : 1,
                 flexShrink: 1,

@@ -100,7 +100,8 @@ export function useAppLockGate(isReady: boolean = true) {
 
     const timeout = setTimeout(() => {
       const inLockGroup = segments[0] === "lock";
-      const isLockScreen = segments[0] === "lock" && segments[1] !== "setup";
+      const isLockScreen =
+        segments[0] === "lock" && (segments as string[])[1] !== "setup";
 
       if (isAuthenticated && !pinHash && !inLockGroup) {
         router.replace("/lock/setup");

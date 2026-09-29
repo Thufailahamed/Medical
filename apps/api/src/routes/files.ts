@@ -543,6 +543,35 @@ filesRouter.get("/download/:key", authMiddleware, async (c) => {
   });
 });
 
+// ─── Public avatar stream ────────────────────────────────
+// Avatars are stored in R2 under `medical/<userId>/…` and users.photo
+// holds the absolute URL of this route so `<Image source={{uri}}>` and
+// HTML `<img>` consumers can render them without an auth header. The
+// key embeds a random UUID — unguessable, capability-URL security model
+// (same as an R2 presigned URL). No authMiddleware by design.
+filesRouter.get("/avatar-key/*", async (c) => {
+  const raw = c.req.path.split("/avatar-key/")[1] ?? "";
+  const key = decodeURIComponent(raw);
+  // Only keys under the medical/ user prefix are servable; reject
+  // traversal or foreign prefixes outright.
+  if (!key || !key.startsWith("medical/") || key.includes("..")) {
+    return c.json({ error: "File not found" }, 404);
+  }
+  const object = await c.env.R2.get(key);
+  if (!object) {
+    return c.json({ error: "File not found" }, 404);
+  }
+  const headers = new Headers();
+  headers.set(
+    "Content-Type",
+    object.httpMetadata?.contentType || "image/jpeg"
+  );
+  headers.set("Cache-Control", "public, max-age=86400");
+  if (object.size != null) headers.set("Content-Length", String(object.size));
+  if (object.httpEtag) headers.set("ETag", object.httpEtag);
+  return new Response(object.body as ReadableStream, { headers });
+});
+
 // ─── List files for a record ─────────────────────────────
 filesRouter.get("/record/:recordId", authMiddleware, async (c) => {
   const recordId = c.req.param("recordId");

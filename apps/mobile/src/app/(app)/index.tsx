@@ -591,20 +591,12 @@ export default function HomeScreen() {
                   borderColor: "rgba(255, 255, 255, 0.28)",
                 }}
               >
-                {Platform.OS === "ios" ? (
-                  <BlurView
-                    intensity={24}
-                    tint="light"
-                    style={StyleSheet.absoluteFill}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      StyleSheet.absoluteFill,
-                      { backgroundColor: "rgba(255,255,255,0.14)" },
-                    ]}
-                  />
-                )}
+                <BlurView
+                  intensity={24}
+                  tint="light"
+                  experimentalBlurMethod="dimezisBlurView"
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={{ padding: spacing.md + 2 }}>
                   <View
                     style={{

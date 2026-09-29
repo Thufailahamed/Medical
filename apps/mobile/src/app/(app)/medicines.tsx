@@ -681,20 +681,12 @@ export default function MedicinesScreen() {
                     borderColor: "rgba(255,255,255,0.18)",
                   }}
                 >
-                  {Platform.OS === "ios" ? (
-                    <BlurView
-                      intensity={30}
-                      tint="dark"
-                      style={StyleSheet_AbsoluteFill}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        StyleSheet_AbsoluteFill,
-                        { backgroundColor: "rgba(255,255,255,0.12)" },
-                      ]}
-                    />
-                  )}
+                  <BlurView
+                    intensity={30}
+                    tint="dark"
+                    experimentalBlurMethod="dimezisBlurView"
+                    style={StyleSheet_AbsoluteFill}
+                  />
                   <View
                     style={{
                       flexDirection: "row",
