@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Sparkles,
   ChevronRight,
+  Check,
 } from "lucide-react-native";
 import {
   useMyInsuranceEnrollments,
@@ -139,6 +140,13 @@ export default function InsuranceHome() {
             }}
           />
 
+          <Shield
+            size={150}
+            color="#FFFFFF"
+            strokeWidth={1}
+            style={{ position: "absolute", right: -18, bottom: -22, opacity: 0.09 }}
+            pointerEvents="none"
+          />
           <View
             style={{
               flexDirection: "row",
@@ -246,16 +254,49 @@ export default function InsuranceHome() {
               </Text>
             </Pressable>
           </View>
+
+          {!isLoading && enrollments.length === 0 ? (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 14,
+                marginTop: 16,
+                paddingTop: 14,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: "rgba(255,255,255,0.22)",
+              }}
+            >
+              {[
+                t("insurance.perk.compare", "Compare plans"),
+                t("insurance.perk.instant", "Instant cover"),
+                t("insurance.perk.claims", "Easy claims"),
+              ].map((label) => (
+                <View key={label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <Check size={13} color="#A7F3D0" strokeWidth={3} />
+                  <Text style={{ ...typography.caption, color: "rgba(255,255,255,0.9)", fontWeight: "600" }}>
+                    {label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </LinearGradient>
       </View>
 
-      {/* Full-width stats */}
+      {/* Overview: one card, divided columns — hidden while everything is zero */}
+      {active.length + claims.length > 0 ? (
       <View
         style={{
           flexDirection: "row",
-          gap: 12,
-          paddingHorizontal: spacing.lg,
+          marginHorizontal: spacing.lg,
           marginTop: spacing.lg,
+          backgroundColor: colors.surface,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+          ...(scheme === "dark" ? {} : shadow.sm),
         }}
       >
         <StatTile
@@ -266,6 +307,7 @@ export default function InsuranceHome() {
           soft={colors.primarySoft}
           onPress={scrollToPolicies}
         />
+        <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 14 }} />
         <StatTile
           icon={FilePlus}
           value={String(claims.length)}
@@ -281,29 +323,34 @@ export default function InsuranceHome() {
           onPress={() => router.push("/insurance/claims")}
         />
         {dueSoon > 0 ? (
-          <StatTile
-            icon={CalendarClock}
-            value={String(dueSoon)}
-            label={t("insurance.dueSoon", "Due ≤ 7d")}
-            tint={colors.warning}
-            soft={colors.warningSoft}
-            onPress={scrollToPolicies}
-          />
+          <>
+            <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 14 }} />
+            <StatTile
+              icon={CalendarClock}
+              value={String(dueSoon)}
+              label={t("insurance.dueSoon", "Due ≤ 7d")}
+              tint={colors.warning}
+              soft={colors.warningSoft}
+              onPress={scrollToPolicies}
+            />
+          </>
         ) : null}
       </View>
+      ) : null}
 
       {/* Secondary actions only — browse/quote stay in hero */}
       <View
         style={{
           flexDirection: "row",
-          gap: 12,
+          gap: 10,
           paddingHorizontal: spacing.lg,
-          marginTop: 12,
+          marginTop: spacing.lg,
         }}
       >
         <ActionChip
           icon={Activity}
           label={t("insurance.actionCoverage", "Coverage")}
+          hint={t("insurance.actionCoverageHint", "Check what's covered")}
           color={colors.success}
           soft={colors.successSoft}
           onPress={() => router.push("/insurance/coverage-check")}
@@ -311,25 +358,42 @@ export default function InsuranceHome() {
         <ActionChip
           icon={FileText}
           label={t("insurance.actionClaim", "File claim")}
+          hint={t("insurance.actionClaimHint", "Start a new claim")}
           color={colors.warning}
           soft={colors.warningSoft}
           onPress={() => router.push("/insurance/claims/new")}
+        />
+        <ActionChip
+          icon={FilePlus}
+          label={t("insurance.myClaims", "My claims")}
+          hint={
+            pendingClaims > 0
+              ? t("insurance.claimsPendingStat", "{{count}} pending", { count: pendingClaims })
+              : undefined
+          }
+          color={colors.primary}
+          soft={colors.primarySoft}
+          onPress={() => router.push("/insurance/claims")}
         />
       </View>
 
       {/* Policies — immediately after actions so empty state is on-screen */}
       <View
-        style={{ paddingHorizontal: spacing.lg, marginTop: 28 }}
+        style={{ paddingHorizontal: spacing.lg, marginTop: 24 }}
         onLayout={(e) => {
           policiesY.current = e.nativeEvent.layout.y;
         }}
       >
         <SectionHeader
           title={t("insurance.myPolicies", "My policies")}
-          action={{
-            label: t("insurance.browseMarketplace", "Browse plans"),
-            onPress: () => router.push("/insurance/marketplace"),
-          }}
+          action={
+            enrollments.length > 0
+              ? {
+                  label: t("insurance.browseMarketplace", "Browse plans"),
+                  onPress: () => router.push("/insurance/marketplace"),
+                }
+              : undefined
+          }
         />
       </View>
 
@@ -345,64 +409,11 @@ export default function InsuranceHome() {
         </View>
       ) : enrollments.length === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
-          <View
-            style={{
-              paddingVertical: 28,
-              paddingHorizontal: 20,
-              alignItems: "center",
-              gap: 8,
-              backgroundColor: colors.surface,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor:
-                scheme === "dark" ? colors.borderStrong : colors.separator,
-              ...(scheme === "dark" ? {} : shadow.sm),
-            }}
-          >
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                marginBottom: 4,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Shield size={26} color={colors.primary} strokeWidth={2.2} />
-            </View>
-            <Text
-              style={{
-                ...typography.title.md,
-                color: colors.text,
-                textAlign: "center",
-              }}
-            >
-              {t("insurance.noPolicies", "No active policies yet")}
-            </Text>
-            <Text
-              style={{
-                ...typography.body.sm,
-                color: colors.textMuted,
-                textAlign: "center",
-                maxWidth: 260,
-                marginBottom: 8,
-              }}
-            >
-              {t(
-                "insurance.noPoliciesHint",
-                "Browse the marketplace to get coverage in minutes.",
-              )}
-            </Text>
-            <Button
-              title={t("insurance.browseMarketplace", "Browse plans")}
-              onPress={() => router.push("/insurance/marketplace")}
-              fullWidth={false}
-            />
-          </View>
+          <CompactEmpty
+            icon={ShieldCheck}
+            title={t("insurance.noPolicies", "No active policies yet")}
+            hint={t("insurance.noPoliciesHintShort", "Plans you buy will show up here.")}
+          />
         </View>
       ) : (
         <View
@@ -470,12 +481,11 @@ export default function InsuranceHome() {
         </View>
       ) : claims.length === 0 ? (
         <View style={{ paddingHorizontal: spacing.lg, marginTop: 8 }}>
-          <EmptyState
+          <CompactEmpty
             icon={FilePlus}
             title={t("insurance.claim.noClaims", "No claims submitted yet")}
             actionLabel={t("insurance.submitClaim", "File a claim")}
             onAction={() => router.push("/insurance/claims/new")}
-            tone="neutral"
           />
         </View>
       ) : (
@@ -594,7 +604,7 @@ function StatTile({
   soft: string;
   onPress: () => void;
 }) {
-  const { colors, typography, radius, shadow, scheme } = useTheme();
+  const { colors, typography } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -603,45 +613,33 @@ function StatTile({
       accessibilityLabel={`${label}: ${value}`}
       style={{
         flex: 1,
-        backgroundColor: colors.surface,
-        borderRadius: radius.card,
-        borderCurve: "continuous",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
-        padding: 14,
-        gap: 2,
-        minHeight: 104,
-        ...(scheme === "dark" ? {} : shadow.sm),
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
       }}
     >
       <View
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
+          width: 38,
+          height: 38,
+          borderRadius: 12,
           borderCurve: "continuous",
           backgroundColor: soft,
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 8,
         }}
       >
-        <Icon size={16} color={tint} strokeWidth={2.4} />
+        <Icon size={18} color={tint} strokeWidth={2.3} />
       </View>
-      <Text
-        style={{
-          ...typography.display.sm,
-          color: colors.text,
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        style={{ ...typography.caption, color: colors.textMuted }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      <View style={{ flexShrink: 1 }}>
+        <Text style={{ ...typography.display.sm, color: colors.text }}>{value}</Text>
+        <Text style={{ ...typography.caption, color: colors.textMuted }} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -649,12 +647,14 @@ function StatTile({
 function ActionChip({
   icon: Icon,
   label,
+  hint,
   color,
   soft,
   onPress,
 }: {
   icon: any;
   label: string;
+  hint?: string;
   color: string;
   soft: string;
   onPress: () => void;
@@ -665,48 +665,117 @@ function ActionChip({
       onPress={onPress}
       haptic="light"
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={hint ? `${label}, ${hint}` : label}
       style={{
         flex: 1,
-        flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 6,
         backgroundColor: colors.surface,
-        borderRadius: radius.lg,
+        borderRadius: radius.xl,
         borderCurve: "continuous",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        minHeight: 56,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
         ...(scheme === "dark" ? {} : shadow.xs),
       }}
     >
       <View
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
+          width: 42,
+          height: 42,
+          borderRadius: 14,
           borderCurve: "continuous",
           backgroundColor: soft,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={16} color={color} strokeWidth={2.4} />
+        <Icon size={19} color={color} strokeWidth={2.3} />
       </View>
-      <Text
-        style={{
-          flex: 1,
-          ...typography.title.xs,
-          color: colors.text,
-        }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <ChevronRight size={14} color={colors.textSubtle} strokeWidth={2.4} />
+      <View style={{ alignItems: "center" }}>
+        <Text style={{ ...typography.label.md, color: colors.text }} numberOfLines={1}>
+          {label}
+        </Text>
+        {hint ? (
+          <Text style={{ ...typography.caption, color, fontWeight: "700" }} numberOfLines={1}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
+  );
+}
+
+/** Quiet single-row empty state — keeps empty sections from dominating the page. */
+function CompactEmpty({
+  icon: Icon,
+  title,
+  hint,
+  actionLabel,
+  onAction,
+}: {
+  icon: any;
+  title: string;
+  hint?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  const { colors, typography, radius, spacing } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: spacing.md,
+        borderRadius: radius.xl,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth * 2,
+        borderStyle: "dashed",
+        borderColor: colors.borderStrong,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          backgroundColor: colors.well,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon size={18} color={colors.textMuted} strokeWidth={2.2} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ ...typography.label.md, color: colors.text }} numberOfLines={1}>
+          {title}
+        </Text>
+        {hint ? (
+          <Text style={{ ...typography.caption, color: colors.textMuted }} numberOfLines={2}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+      {actionLabel && onAction ? (
+        <Pressable
+          onPress={onAction}
+          haptic="light"
+          accessibilityRole="button"
+          style={{
+            paddingHorizontal: 12,
+            height: 32,
+            borderRadius: 16,
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Text style={{ ...typography.label.sm, color: colors.primary }}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 

@@ -26,6 +26,7 @@ import {
   EmptyState,
   ErrorState,
   useToast,
+  SearchField,
 } from "@/components/ui";
 
 export default function NewConversationScreen() {
@@ -119,13 +120,11 @@ export default function NewConversationScreen() {
       />
 
       <View style={{ flex: 1, padding: spacing.lg, gap: spacing.lg }}>
-        <TextInput
+        <SearchField
           placeholder={t("inbox.searchPlaceholder")}
           value={query}
           onChangeText={setQuery}
-          leadingIcon={Search}
-          tone="soft"
-          autoCapitalize="none"
+          autoFocus
         />
 
         {isLoading ? (

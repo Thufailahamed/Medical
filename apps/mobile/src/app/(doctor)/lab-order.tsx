@@ -181,7 +181,6 @@ export default function LabOrderScreen() {
                 leadingIcon={FileText}
                 multiline
                 numberOfLines={4}
-                tone="soft"
               />
             </FormField>
           </View>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import {
   Users,
@@ -35,6 +36,9 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  UserRound,
+  HeartHandshake,
+  Baby,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -75,6 +79,8 @@ import {
   Skeleton,
   Avatar,
   Card,
+  IconTile,
+  SectionHeader,
   TextInput,
   FormField,
   Button,
@@ -1043,9 +1049,15 @@ export default function FamilyScreen() {
     );
   }
 
+  const showActionBar = !isLoading && !isError && family.length === 0;
+
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: showActionBar ? spacing.xxl : spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenHeader
           onBack={() => router.back()}
           title={t("family.title")}
@@ -1055,6 +1067,7 @@ export default function FamilyScreen() {
               : undefined
           }
           right={
+            family.length === 0 ? undefined : (
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <IconButton
                 icon={UserPlus}
@@ -1069,6 +1082,7 @@ export default function FamilyScreen() {
                 accessibilityLabel={t("family.addLabel")}
               />
             </View>
+            )
           }
         />
 
@@ -1086,103 +1100,44 @@ export default function FamilyScreen() {
             onAction={() => refetch()}
           />
         ) : family.length === 0 ? (
-          <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
-            {/* 1. Welcoming Hero Card */}
-            <View
-              style={{
-                borderRadius: 28,
-                borderCurve: "continuous",
-                overflow: "hidden",
-                ...(scheme === "dark" ? null : shadow.hero),
-              }}
-            >
-              <LinearGradient
-                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  top: -60,
-                  right: -40,
-                  width: 180,
-                  height: 180,
-                  borderRadius: 90,
-                  backgroundColor: "rgba(56, 189, 248, 0.28)",
-                }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  bottom: -80,
-                  left: -40,
-                  width: 200,
-                  height: 200,
-                  borderRadius: 100,
-                  backgroundColor: "rgba(14, 165, 233, 0.24)",
-                }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 1,
-                  backgroundColor: "rgba(255, 255, 255, 0.28)",
-                }}
-              />
-
-              <View
-                style={{
-                  paddingHorizontal: spacing.xl,
-                  paddingVertical: spacing.xxl + 4,
-                  alignItems: "center",
-                  gap: spacing.lg,
-                }}
-              >
-                {/* Visual central badge */}
-                <View
-                  style={{
-                    width: 68,
-                    height: 68,
-                    borderRadius: 24,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.18)",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: "rgba(255, 255, 255, 0.28)",
-                  }}
-                >
-                  <Users size={32} color="#FFFFFF" strokeWidth={2.2} />
-                  <View
+          <View style={{ paddingHorizontal: spacing.lg, gap: spacing.xl }}>
+            <AuroraSurface>
+              <View style={{ padding: spacing.xl, gap: spacing.lg }}>
+                {/* Family avatar cluster with an open "+" seat */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {[
+                    { Ic: UserRound, tone: "primary" as const },
+                    { Ic: HeartHandshake, tone: "danger" as const },
+                    { Ic: Baby, tone: "success" as const },
+                  ].map(({ Ic, tone }, i) => (
+                    <ClusterAvatar key={i} icon={Ic} tone={tone} first={i === 0} />
+                  ))}
+                  <Pressable
+                    onPress={() => setComposing(true)}
+                    haptic="light"
+                    accessibilityRole="button"
+                    accessibilityLabel={t("family.addLabel", "Add family member")}
                     style={{
-                      position: "absolute",
-                      bottom: -4,
-                      right: -4,
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      borderCurve: "continuous",
-                      backgroundColor: "#10B981",
-                      borderWidth: 2,
-                      borderColor: "#FFFFFF",
+                      width: 52,
+                      height: 52,
+                      borderRadius: 26,
+                      marginLeft: -12,
                       alignItems: "center",
                       justifyContent: "center",
+                      backgroundColor: "rgba(255,255,255,0.14)",
+                      borderWidth: 2,
+                      borderStyle: "dashed",
+                      borderColor: "rgba(255,255,255,0.7)",
                     }}
                   >
-                    <HeartPulse size={12} color="#FFFFFF" strokeWidth={2.5} />
-                  </View>
+                    <Plus size={20} color={colors.onPrimary} strokeWidth={2.6} />
+                  </Pressable>
                 </View>
-
-                <View style={{ alignItems: "center", gap: 6 }}>
+                <View style={{ gap: spacing.xs }}>
                   <Text
                     style={[
-                      typography.display.sm,
-                      { color: "#FFFFFF", textAlign: "center" },
+                      typography.display.md,
+                      { color: colors.onPrimary, letterSpacing: -0.8 },
                     ]}
                   >
                     {t("family.heroTitle", "Care together")}
@@ -1190,99 +1145,156 @@ export default function FamilyScreen() {
                   <Text
                     style={[
                       typography.body.md,
-                      {
-                        color: "rgba(255, 255, 255, 0.86)",
-                        textAlign: "center",
-                        maxWidth: 320,
-                      },
+                      { color: colors.glassOnPrimarySoft, lineHeight: 21 },
                     ]}
                   >
-                    {t(
-                      "family.heroBody",
-                      "Add family to share health info and unlock emergency access."
-                    )}
+                    {t("family.heroBody")}
                   </Text>
                 </View>
               </View>
-            </View>
+            </AuroraSurface>
 
-            {/* 2. Feature Value Pillars */}
-            <Card
-              style={{
-                padding: spacing.lg,
-                gap: spacing.lg,
-              }}
-            >
-              <Text
-                style={[
-                  typography.overline,
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title={t("family.features.sectionTitle", "What you get")}
+                style={{ paddingBottom: 0 }}
+              />
+              <Card padded={false}>
+                {[
                   {
-                    color: colors.textSubtle,
+                    icon: HeartPulse,
+                    tone: "danger" as const,
+                    title: t("family.features.emergencyTitle", "Emergency Ready"),
+                    description: t(
+                      "family.features.emergencyDesc",
+                      "Blood type, hereditary risks and ICE contacts on hand."
+                    ),
                   },
-                ]}
-              >
-                {t("family.features.sectionTitle", "WHY CONNECT FAMILY").toUpperCase()}
-              </Text>
-
-              <FamilyFeatureRow
-                icon={HeartPulse}
-                iconColor={colors.danger}
-                iconBg={colors.dangerSoft}
-                title={t("family.features.emergencyTitle", "Emergency Ready")}
-                description={t(
-                  "family.features.emergencyDesc",
-                  "Instant access to blood types, hereditary risks, and ICE contacts when seconds count."
-                )}
-              />
-
-              <Divider />
-
-              <FamilyFeatureRow
-                icon={Activity}
-                iconColor={colors.success}
-                iconBg={colors.successSoft}
-                title={t("family.features.dependentsTitle", "Coordinated Care & Dependents")}
-                description={t(
-                  "family.features.dependentsDesc",
-                  "Manage medications, appointments, and vitals for children and elderly parents."
-                )}
-              />
-
-              <Divider />
-
-              <FamilyFeatureRow
-                icon={ShieldCheck}
-                iconColor={colors.primary}
-                iconBg={colors.primarySoft}
-                title={t("family.features.privacyTitle", "Granular Privacy & Control")}
-                description={t(
-                  "family.features.privacyDesc",
-                  "Lock sensitive personal health records anytime or invite adults with secure share links."
-                )}
-              />
-            </Card>
-
-            {/* 3. Primary Action Group */}
-            <View style={{ gap: spacing.md, marginTop: spacing.xs }}>
-              <Button
-                title={t("family.addLabel", "Add family member")}
-                icon={Plus}
-                size="lg"
-                variant="primary"
-                onPress={() => setComposing(true)}
-                fullWidth
-              />
-              <Button
-                title={t("family.invite.buttonTitle", "Invite by link")}
-                icon={Share2}
-                size="md"
-                variant="outline"
-                onPress={() => setInviteOpen(true)}
-                fullWidth
-              />
+                  {
+                    icon: Activity,
+                    tone: "success" as const,
+                    title: t("family.features.dependentsTitle", "Coordinated Care"),
+                    description: t(
+                      "family.features.dependentsDesc",
+                      "Medications and visits for children and parents."
+                    ),
+                  },
+                  {
+                    icon: ShieldCheck,
+                    tone: "primary" as const,
+                    title: t("family.features.privacyTitle", "Private by default"),
+                    description: t(
+                      "family.features.privacyDesc",
+                      "Lock any record, or invite with a secure link."
+                    ),
+                  },
+                ].map((f, i) => (
+                  <Fragment key={f.title}>
+                    {i > 0 ? <Divider inset={spacing.lg + 42 + spacing.md} /> : null}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.md,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md + 2,
+                      }}
+                    >
+                      <IconTile icon={f.icon} tone={f.tone} size={42} />
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[typography.title.sm, { color: colors.text }]}>
+                          {f.title}
+                        </Text>
+                        <Text
+                          style={[
+                            typography.body.sm,
+                            { color: colors.textMuted, lineHeight: 18 },
+                          ]}
+                        >
+                          {f.description}
+                        </Text>
+                      </View>
+                    </View>
+                  </Fragment>
+                ))}
+              </Card>
             </View>
 
-            {/* 4. Pending Invites */}
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title={t("family.howTitle", "How it works")}
+                style={{ paddingBottom: 0 }}
+              />
+              <Card style={{ paddingVertical: spacing.lg }}>
+                {[
+                  {
+                    title: t("family.how.addTitle", "Add a family member"),
+                    body: t("family.how.addBody", "Create a profile for a child, parent or partner."),
+                  },
+                  {
+                    title: t("family.how.inviteTitle", "Invite with a link"),
+                    body: t("family.how.inviteBody", "Let adults manage their own records securely."),
+                  },
+                  {
+                    title: t("family.how.careTitle", "Care in one place"),
+                    body: t("family.how.careBody", "Track medicines, visits and emergency info together."),
+                  },
+                ].map((s, i, all) => (
+                  <View key={s.title} style={{ flexDirection: "row", gap: spacing.md }}>
+                    {/* Step rail: numbered dot + connector to the next step */}
+                    <View style={{ alignItems: "center", width: 28 }}>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: i === 0 ? colors.primary : colors.primarySoft,
+                        }}
+                      >
+                        <Text
+                          style={[
+                            typography.label.sm,
+                            { color: i === 0 ? colors.onPrimary : colors.primary },
+                          ]}
+                        >
+                          {i + 1}
+                        </Text>
+                      </View>
+                      {i < all.length - 1 ? (
+                        <View
+                          style={{
+                            flex: 1,
+                            width: 2,
+                            minHeight: 18,
+                            marginVertical: 4,
+                            borderRadius: 1,
+                            backgroundColor: colors.primarySoft,
+                          }}
+                        />
+                      ) : null}
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        gap: 2,
+                        paddingTop: 3,
+                        paddingBottom: i < all.length - 1 ? spacing.md : 0,
+                      }}
+                    >
+                      <Text style={[typography.title.sm, { color: colors.text }]}>
+                        {s.title}
+                      </Text>
+                      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                        {s.body}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </View>
+
             {renderPendingInvitesList()}
           </View>
         ) : (
@@ -1294,119 +1306,54 @@ export default function FamilyScreen() {
                 paddingBottom: spacing.md,
               }}
             >
-              <View
-                style={{
-                  borderRadius: 28,
-                  borderCurve: "continuous",
-                  overflow: "hidden",
-                  ...(scheme === "dark" ? null : shadow.hero),
-                }}
-              >
-                <LinearGradient
-                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -70,
-                    right: -50,
-                    width: 200,
-                    height: 200,
-                    borderRadius: 100,
-                    backgroundColor: "rgba(56, 189, 248, 0.30)",
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: -90,
-                    left: -50,
-                    width: 220,
-                    height: 220,
-                    borderRadius: 110,
-                    backgroundColor: "rgba(14, 165, 233, 0.28)",
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 1,
-                    backgroundColor: "rgba(255, 255, 255, 0.25)",
-                  }}
-                />
-                <View
-                  pointerEvents="none"
-                  style={{ position: "absolute", right: -12, bottom: -12, opacity: 0.09 }}
-                >
-                  <Users size={120} color="#FFFFFF" strokeWidth={1.5} />
-                </View>
-
+              <AuroraSurface>
                 <View style={{ padding: spacing.xl, gap: spacing.md }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.md,
-                    }}
+                  <Text
+                    style={[
+                      typography.kicker,
+                      {
+                        color: colors.glassOnPrimarySoft,
+                        textTransform: "uppercase",
+                      },
+                    ]}
                   >
-                    <View
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "rgba(255, 255, 255, 0.18)",
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: "rgba(255, 255, 255, 0.28)",
-                      }}
+                    {t("family.title")}
+                  </Text>
+
+                  <View style={{ gap: 2 }}>
+                    <Text
+                      style={[
+                        typography.display.lg,
+                        {
+                          color: colors.onPrimary,
+                          fontSize: 46,
+                          lineHeight: 52,
+                          letterSpacing: -1.6,
+                        },
+                      ]}
+                      numberOfLines={1}
                     >
-                      <Users size={22} color="#FFFFFF" strokeWidth={2.25} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          typography.title.lg,
-                          { color: "#FFFFFF" },
-                        ]}
-                      >
-                        {t("family.heroTitle", "Care together")}
-                      </Text>
-                      <Text
-                        style={[
-                          typography.body.sm,
-                          { color: "rgba(255, 255, 255, 0.86)", marginTop: 2 },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {t(
-                          "family.heroBody",
-                          "Add family to share health info and unlock emergency access."
-                        )}
-                      </Text>
-                    </View>
+                      {family.length}
+                    </Text>
+                    <Text
+                      style={[
+                        typography.body.md,
+                        { color: colors.glassOnPrimarySoft },
+                      ]}
+                    >
+                      {t("family.heroNumeralLabel", "People in your care circle")}
+                    </Text>
                   </View>
 
-                  {/* count chips */}
                   <View
                     style={{
                       flexDirection: "row",
                       flexWrap: "wrap",
                       gap: spacing.sm,
                       alignItems: "center",
+                      marginTop: spacing.xs,
                     }}
                   >
-                    <HeroChip
-                      icon={Users}
-                      label={t("family.subtitle", { count: family.length })}
-                    />
                     {pendingInvites.length > 0 ? (
                       <HeroChip
                         icon={Clock}
@@ -1417,11 +1364,11 @@ export default function FamilyScreen() {
                     ) : null}
                     <HeroChip
                       icon={ShieldCheck}
-                      label={t("family.emergencyReady", "Emergency Active")}
+                      label={t("family.emergencyReady", "Emergency ready")}
                     />
                   </View>
                 </View>
-              </View>
+              </AuroraSurface>
             </View>
 
             {/* Member Cards List */}
@@ -1691,11 +1638,51 @@ export default function FamilyScreen() {
         )}
       </ScrollView>
 
+      {showActionBar ? (
+        <FamilyActionBar
+          onAdd={() => setComposing(true)}
+          onInvite={() => setInviteOpen(true)}
+        />
+      ) : null}
+
       <FamilyInviteSheet
         visible={inviteOpen}
         onDismiss={() => setInviteOpen(false)}
       />
     </Screen>
+  );
+}
+
+/** One face in the hero's family cluster — white disc with a tone glyph. */
+function ClusterAvatar({ icon: Icon, tone, first }: { icon: LucideIcon; tone: Tone; first?: boolean }) {
+  const pal = useTone(tone);
+  return (
+    <View
+      style={{
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        marginLeft: first ? 0 : -12,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.9)",
+      }}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: pal.bg,
+        }}
+      >
+        <Icon size={20} color={pal.fg} strokeWidth={2.3} />
+      </View>
+    </View>
   );
 }
 
@@ -1709,27 +1696,27 @@ function HeroChip({
   label: string;
   onPress?: () => void;
 }) {
-  const { spacing, typography } = useTheme();
+  const { colors, radius, spacing, typography } = useTheme();
   const content = (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        paddingHorizontal: spacing.md,
-        paddingVertical: 6,
-        borderRadius: 999,
-        backgroundColor: "rgba(255, 255, 255, 0.18)",
+        paddingHorizontal: spacing.md - 2,
+        paddingVertical: 5,
+        borderRadius: radius.full,
+        backgroundColor: colors.glassOnPrimary,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255, 255, 255, 0.28)",
+        borderColor: "rgba(255, 255, 255, 0.22)",
         alignSelf: "flex-start",
       }}
     >
-      {Icon && <Icon size={12} color="#FFFFFF" strokeWidth={2.4} />}
+      {Icon && <Icon size={11} color={colors.glassOnPrimarySoft} strokeWidth={2.4} />}
       <Text
         style={[
           typography.label.sm,
-          { color: "#FFFFFF" },
+          { color: colors.glassOnPrimarySoft },
         ]}
         numberOfLines={1}
       >
@@ -1748,50 +1735,116 @@ function HeroChip({
   return content;
 }
 
-/** Value proposition feature row for onboarding */
-function FamilyFeatureRow({
-  icon: Icon,
-  iconColor,
-  iconBg,
-  title,
-  description,
-}: {
-  icon: LucideIcon;
-  iconColor: string;
-  iconBg: string;
-  title: string;
-  description: string;
-}) {
-  const { spacing, typography, colors } = useTheme();
+/**
+ * Brand-gradient surface: a restrained aurora (two large, low-opacity
+ * off-canvas glows) plus a hairline top highlight, so the card reads as
+ * depth rather than decoration. Shared by the empty and active headers.
+ */
+function AuroraSurface({ children }: { children: React.ReactNode }) {
+  const { colors, radius, shadow, scheme } = useTheme();
   return (
     <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: spacing.md,
-      }}
+      style={[
+        {
+          borderRadius: radius.xxl,
+          borderCurve: "continuous",
+          overflow: "hidden",
+          backgroundColor: colors.primaryGradientEnd,
+        },
+        scheme === "dark" ? null : shadow.hero,
+      ]}
     >
+      <LinearGradient
+        colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+        start={{ x: 0.05, y: 0 }}
+        end={{ x: 0.95, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: -120,
+          right: -100,
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: "rgba(255, 255, 255, 0.13)",
+        }}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          bottom: -140,
+          left: -90,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: "rgba(4, 120, 190, 0.20)",
+        }}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: "rgba(255, 255, 255, 0.24)",
+        }}
+      />
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Pinned bottom action bar for the empty state — keeps the primary action
+ * reachable without scrolling, and dissolves the list into the canvas.
+ */
+function FamilyActionBar({
+  onAdd,
+  onInvite,
+}: {
+  onAdd: () => void;
+  onInvite: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors, spacing, typography } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View>
       <View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: iconBg,
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 1,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.hairline,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          paddingBottom: Math.max(insets.bottom, spacing.md),
+          backgroundColor: colors.bg,
         }}
       >
-        <Icon size={20} color={iconColor} strokeWidth={2.2} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[typography.title.sm, { color: colors.text }]}>
-          {title}
-        </Text>
-        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-          {description}
-        </Text>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Button
+            title={t("family.invite.buttonTitle", "Invite by link")}
+            icon={Share2}
+            size="lg"
+            variant="secondary"
+            onPress={onInvite}
+            style={{ flex: 1 }}
+          />
+          <Button
+            title={t("family.addLabel", "Add family member")}
+            icon={Plus}
+            size="lg"
+            variant="primary"
+            onPress={onAdd}
+            style={{ flex: 1.4 }}
+          />
+        </View>
       </View>
     </View>
   );

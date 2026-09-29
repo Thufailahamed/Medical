@@ -19,15 +19,11 @@ import {
   History,
   HeartPulse,
   ChevronRight,
-  Sparkles,
-  Clock,
-  Waypoints,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useLocaleStore } from "@/stores/locale";
-import { fmtMonthYear, fmtDateLong, fmtTime } from "@/lib/format";
+import { fmtMonthYear, fmtMonthShort, fmtTime } from "@/lib/format";
 import {
   useUnifiedTimeline,
   type TimelineEvent,
@@ -132,15 +128,6 @@ function statusTone(status: string): Tone {
   return "neutral";
 }
 
-function formatEventTimestamp(dateIso: string | null, locale: any): string {
-  if (!dateIso) return "—";
-  const d = new Date(dateIso);
-  if (isNaN(d.getTime())) return "—";
-  const dateStr = fmtDateLong(d, locale);
-  const timeStr = fmtTime(d, locale);
-  return `${dateStr} · ${timeStr}`;
-}
-
 export default function TimelineScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -186,17 +173,17 @@ export default function TimelineScreen() {
         title={t("timeline.title", "Timeline")}
         subtitle={subtitle}
         onBack={() => router.back()}
-        right={<History size={20} color={colors.textMuted} />}
       />
 
       {/* Horizontal Filter Bar */}
-      <View style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator }}>
+      <View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.sm,
+            paddingTop: spacing.xs,
+            paddingBottom: spacing.md,
             gap: spacing.sm,
           }}
         >
@@ -225,7 +212,14 @@ export default function TimelineScreen() {
                   height: 36,
                   borderRadius: 18,
                   borderCurve: "continuous",
-                  backgroundColor: isSelected ? colors.primary : colors.fill,
+                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  borderWidth: isSelected ? 0 : StyleSheet.hairlineWidth * 2,
+                  borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+                  ...(scheme === "dark"
+                    ? null
+                    : isSelected
+                    ? { ...shadow.xs, shadowColor: colors.primary, shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }
+                    : shadow.xs),
                 }}
               >
                 <Icon
@@ -252,7 +246,7 @@ export default function TimelineScreen() {
                       borderCurve: "continuous",
                       backgroundColor: isSelected
                         ? "rgba(255, 255, 255, 0.25)"
-                        : colors.fillStrong,
+                        : colors.fill,
                     }}
                   >
                     <Text
@@ -277,6 +271,7 @@ export default function TimelineScreen() {
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
+          paddingTop: spacing.sm,
           paddingBottom: 120,
           gap: spacing.xl,
         }}
@@ -289,129 +284,6 @@ export default function TimelineScreen() {
           />
         }
       >
-        {/* Stream Health Journey Hero */}
-        {filter === "all" && events.length > 0 && (
-          <Card
-            padded={false}
-            elevated={false}
-            style={{
-              borderRadius: 28,
-              borderCurve: "continuous",
-              borderWidth: 0,
-              overflow: "hidden",
-              ...(scheme === "dark" ? null : shadow.hero),
-            }}
-          >
-            <LinearGradient
-              colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ padding: spacing.xl }}
-            >
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    backgroundColor: "rgba(255,255,255,0.10)",
-                    opacity: 0.32,
-                    borderRadius: 200,
-                    transform: [{ translateX: 120 }, { translateY: -80 }],
-                  },
-                ]}
-                pointerEvents="none"
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: StyleSheet.hairlineWidth,
-                  backgroundColor: "rgba(255, 255, 255, 0.28)",
-                }}
-                pointerEvents="none"
-              />
-              <Waypoints
-                size={140}
-                color="#FFFFFF"
-                strokeWidth={1}
-                style={{
-                  position: "absolute",
-                  right: -24,
-                  bottom: -24,
-                  opacity: 0.1,
-                }}
-                pointerEvents="none"
-              />
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.md,
-                }}
-              >
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 15,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "rgba(255, 255, 255, 0.18)",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: "rgba(255, 255, 255, 0.28)",
-                  }}
-                >
-                  <Sparkles size={22} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text
-                    style={[
-                      typography.title.lg,
-                      { color: "#FFFFFF" },
-                    ]}
-                  >
-                    {t("timeline.heroTitle", "Continuous Health Stream")}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: "rgba(255,255,255,0.86)" },
-                    ]}
-                  >
-                    {t(
-                      "timeline.heroBody",
-                      "Chronological care record connecting clinical visits, prescribed medicines, and logged vitals."
-                    )}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: 6,
-                    borderRadius: 999,
-                    backgroundColor: "rgba(255, 255, 255, 0.18)",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: "rgba(255, 255, 255, 0.28)",
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.sm,
-                      { color: "#FFFFFF" },
-                    ]}
-                  >
-                    {events.length}
-                  </Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </Card>
-        )}
-
         {/* Loading State */}
         {isLoading ? (
           <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
@@ -447,24 +319,24 @@ export default function TimelineScreen() {
 
               return (
                 <View key={gKey} style={{ gap: spacing.md }}>
-                  {/* Group Header Badge */}
+                  {/* Group Header */}
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                    <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase", letterSpacing: 1.1 }]}>
+                      {groupTitle}
+                    </Text>
                     <View
                       style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 5,
-                        borderRadius: 20,
-                        borderCurve: "continuous",
-                        backgroundColor: colors.fill,
+                        minWidth: 22,
+                        height: 22,
+                        paddingHorizontal: 7,
+                        borderRadius: 11,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: colors.well,
                       }}
                     >
-                      <Text
-                        style={[
-                          typography.overline,
-                          { color: colors.textMuted },
-                        ]}
-                      >
-                        {groupTitle.toUpperCase()} · {groupList.length}
+                      <Text style={[typography.label.xs, { color: colors.textMuted, letterSpacing: 0 }]}>
+                        {groupList.length}
                       </Text>
                     </View>
                     <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
@@ -493,7 +365,6 @@ export default function TimelineScreen() {
     </Screen>
   );
 }
-
 function TimelineEventRow({
   event,
   isLast,
@@ -516,7 +387,6 @@ function TimelineEventRow({
   const isVital = event.kind === "vital";
   const isAppointment = event.kind === "appointment";
   const isRecord = event.kind === "record";
-  const isMedicine = event.kind === "medicine_start" || event.kind === "medicine_stop";
 
   // Nicely capitalized title
   const cleanTitle = useMemo(() => {
@@ -524,7 +394,14 @@ function TimelineEventRow({
     return event.title.charAt(0).toUpperCase() + event.title.slice(1);
   }, [event.title]);
 
-  const timestampFormatted = formatEventTimestamp(event.date, locale);
+  const vitalSplit = useMemo(() => {
+    const i = cleanTitle.indexOf(":");
+    if (i < 1) return null;
+    return [cleanTitle.slice(0, i).trim(), cleanTitle.slice(i + 1).trim()] as const;
+  }, [cleanTitle]);
+
+  const date = event.date ? new Date(event.date) : null;
+  const validDate = date && !isNaN(date.getTime()) ? date : null;
 
   function handlePress() {
     Haptics.selectionAsync().catch(() => {});
@@ -555,104 +432,107 @@ function TimelineEventRow({
   const isInteractive = isAppointment || isRecord || isVital;
 
   return (
-    <View style={{ flexDirection: "row", gap: spacing.md, position: "relative" }}>
-      {/* Left Continuous Timeline Spine */}
-      <View style={{ alignItems: "center", width: 38 }}>
-        {/* Connected Vertical Track Line */}
+    <View style={{ flexDirection: "row", gap: spacing.md }}>
+      {/* Date rail: day + month, with a spine down to the next event */}
+      <View style={{ width: 40, alignItems: "center", paddingTop: spacing.md }}>
+        <Text
+          style={[
+            typography.title.md,
+            { color: colors.text, fontVariant: ["tabular-nums"], lineHeight: 24 },
+          ]}
+        >
+          {validDate ? validDate.getDate() : "—"}
+        </Text>
+        <Text
+          style={[
+            typography.overline,
+            { color: colors.textSubtle, textTransform: "uppercase", fontSize: 10 },
+          ]}
+          numberOfLines={1}
+        >
+          {validDate ? fmtMonthShort(validDate, locale) : ""}
+        </Text>
         {!isLast && (
           <View
             style={{
-              position: "absolute",
-              top: 42,
-              bottom: 4,
+              flex: 1,
               width: 2,
+              marginTop: spacing.sm,
+              marginBottom: -spacing.xs,
               borderRadius: 1,
               backgroundColor: colors.separator,
             }}
           />
         )}
-
-        {/* Embedded Icon Node on Spine */}
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            backgroundColor: palette.bg,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2,
-          }}
-        >
-          <Icon size={18} color={palette.fg} strokeWidth={2.2} />
-        </View>
       </View>
 
-      {/* Right Event Card Container */}
-      <View style={{ flex: 1, paddingBottom: spacing.md }}>
+      {/* Event card */}
+      <View style={{ flex: 1, paddingBottom: isLast ? 0 : spacing.md }}>
         <Pressable
           onPress={isInteractive ? handlePress : undefined}
+          accessibilityRole={isInteractive ? "button" : undefined}
           style={{
-            borderRadius: 20,
+            borderRadius: radius.xl,
             borderCurve: "continuous",
             backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: scheme === "dark" ? colors.borderStrong : colors.separator,
-            padding: spacing.lg,
+            borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+            padding: spacing.md + 2,
             gap: spacing.sm,
-            ...(scheme === "dark" ? null : shadow.sm),
+            overflow: "hidden",
+            ...(scheme === "dark" ? null : shadow.xs),
           }}
         >
-          {/* Card Top Strip: Category Pill + Formatted Timestamp */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: spacing.xs,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {/* Kind + time, status on the right */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radius.md,
+                borderCurve: "continuous",
+                backgroundColor: palette.bg,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon size={16} color={palette.fg} strokeWidth={2.3} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[typography.label.md, { color: palette.fg }]} numberOfLines={1}>
+                {event.label || meta.defaultLabel}
+              </Text>
+              {validDate ? (
+                <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+                  {fmtTime(validDate, locale)}
+                </Text>
+              ) : null}
+            </View>
+            {event.meta?.status && (
               <PillCmp
-                label={event.label || meta.defaultLabel}
-                tone={meta.tone}
+                label={humanizeStatus(event.meta.status)}
+                tone={statusTone(event.meta.status)}
                 size="sm"
               />
-              {event.meta?.status && (
-                <PillCmp
-                  label={humanizeStatus(event.meta.status)}
-                  tone={statusTone(event.meta.status)}
-                  size="sm"
-                />
-              )}
-            </View>
-
-            {isInteractive && (
-              <ChevronRight size={16} color={colors.textSubtle} />
             )}
+            {isInteractive && <ChevronRight size={16} color={colors.textSubtle} />}
           </View>
 
           {/* Event Title */}
-          <Text
-            style={[
-              typography.title.md,
-              { color: colors.text, marginTop: 2 },
-            ]}
-            numberOfLines={2}
-          >
-            {cleanTitle}
-          </Text>
+          {isVital && vitalSplit ? (
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm, flexWrap: "wrap" }}>
+              <Text style={[typography.title.lg, { color: colors.text }]}>{vitalSplit[1]}</Text>
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>{vitalSplit[0]}</Text>
+            </View>
+          ) : (
+            <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={2}>
+              {cleanTitle}
+            </Text>
+          )}
 
           {/* Event Subtitle / Details */}
           {!!event.subtitle && (
-            <Text
-              style={[
-                typography.body.sm,
-                { color: colors.textMuted },
-              ]}
-              numberOfLines={2}
-            >
+            <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: -2 }]} numberOfLines={2}>
               {event.subtitle}
             </Text>
           )}
@@ -660,14 +540,7 @@ function TimelineEventRow({
           {/* Extracted Lab / Test Badges */}
           {Array.isArray((event as any).extractedItems) &&
             (event as any).extractedItems.length > 0 && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 6,
-                  marginTop: 2,
-                }}
-              >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {(event as any).extractedItems.slice(0, 3).map((item: any, i: number) => (
                   <View
                     key={i}
@@ -687,21 +560,6 @@ function TimelineEventRow({
                 ))}
               </View>
             )}
-
-          {/* Formatted Date & Time */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 4,
-            }}
-          >
-            <Clock size={12} color={colors.textSubtle} />
-            <Text style={[typography.caption, { color: colors.textSubtle }]}>
-              {timestampFormatted}
-            </Text>
-          </View>
         </Pressable>
       </View>
     </View>

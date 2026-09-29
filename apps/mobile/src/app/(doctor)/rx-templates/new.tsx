@@ -21,7 +21,7 @@ import {
   useCreateRxTemplate,
   type MedicineEntry,
 } from "@/hooks/useApi";
-import { Screen } from "@/components/ui";
+import { Screen, ScreenHeader } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type Draft = {
@@ -42,7 +42,7 @@ const emptyMed: MedicineEntry = {
 export default function NewTemplateScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const createMutation = useCreateRxTemplate();
 
   const [draft, setDraft] = useState<Draft>({
@@ -95,81 +95,42 @@ export default function NewTemplateScreen() {
   }, [draft, createMutation, router, t]);
 
   return (
-    <Screen padded={false} scroll edges={["top"]} style={{ backgroundColor: colors.bg }}>
+    <Screen padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
-          paddingBottom: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 8,
-            backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-          })}
-        >
-          <ChevronLeft size={22} color={colors.primary} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: "800",
-              color: colors.text,
-              fontFamily: fontFamily.displayBold,
-              letterSpacing: -0.4,
-            }}
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title={t("rxTemplates.newTitle")}
+        right={
+          <Pressable
+            onPress={save}
+            disabled={createMutation.isPending}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              height: 38,
+              paddingHorizontal: 16,
+              borderRadius: 19,
+              backgroundColor: colors.primary,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              opacity: pressed ? 0.85 : 1,
+              ...(scheme === "dark" ? {} : shadow.primary),
+            })}
           >
-            {t("rxTemplates.newTitle")}
-          </Text>
-        </View>
-        <Pressable
-          onPress={save}
-          disabled={createMutation.isPending}
-          style={({ pressed }) => ({
-            paddingHorizontal: 14,
-            paddingVertical: 9,
-            borderRadius: radius.full,
-            backgroundColor: colors.primary,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          {createMutation.isPending ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Save size={14} color="#FFFFFF" strokeWidth={2.4} />
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontWeight: "700",
-                  fontSize: 13,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {t("common.save")}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </View>
+            {createMutation.isPending ? (
+              <ActivityIndicator color={colors.onPrimary} size="small" />
+            ) : (
+              <>
+                <Save size={14} color={colors.onPrimary} strokeWidth={2.4} />
+                <Text style={[typography.label.md, { color: colors.onPrimary }]}>
+                  {t("common.save")}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}

@@ -11,14 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import {
-  FileText,
-  Search,
-  Pill,
-  ChevronRight,
-  CalendarDays,
-  Download,
-} from "lucide-react-native";
+import { FileText, Download } from "lucide-react-native";
 import { useDoctorPrescriptions, downloadPrescriptionPdf } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -27,7 +20,8 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
-  IconButton,
+  IconTile,
+  SearchField,
   useToast,
 } from "@/components/ui";
 
@@ -41,6 +35,7 @@ export default function DoctorPrescriptionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("");
   const [scope, setScope] = useState<"all" | "recent">("recent");
+  const [query, setQuery] = useState("");
 
   const all = data?.prescriptions || [];
 
@@ -70,7 +65,8 @@ export default function DoctorPrescriptionsScreen() {
       const cutIso = cutoff.toISOString().slice(0, 10);
       list = list.filter((r: any) => (r.date || "") >= cutIso);
     }
-    if (q) {
+    const text = query.trim().toLowerCase();
+    if (q || text) {
       list = list.filter((r: any) => {
         const hay = [
           r.title,
@@ -81,11 +77,11 @@ export default function DoctorPrescriptionsScreen() {
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        return hay.includes(q);
+        return (!q || hay.includes(q)) && (!text || hay.includes(text));
       });
     }
     return list;
-  }, [all, filter, scope]);
+  }, [all, filter, scope, query]);
 
   async function onRefresh() {
     try {
@@ -114,82 +110,55 @@ export default function DoctorPrescriptionsScreen() {
         }
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Filter bar */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-              paddingLeft: spacing.md,
-              paddingRight: 4,
-              backgroundColor: colors.fill,
-              borderRadius: 12,
-              borderCurve: "continuous",
-              minHeight: 44,
-            }}
-          >
-            <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={{ flex: 1 }}
-              contentContainerStyle={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.sm,
-                paddingVertical: spacing.xs,
-              }}
-            >
-              <Pressable
-                onPress={() => setFilter("")}
-                style={{
-                  paddingHorizontal: 12,
-                  height: 30,
-                  justifyContent: "center",
-                  borderRadius: 999,
-                  borderCurve: "continuous",
-                  backgroundColor: !filter ? colors.surface : "transparent",
-                  ...(!filter ? shadow.xs : shadow.none),
-                }}
-              >
-                <Text
-                  style={[
-                    typography.label.sm,
-                    { color: !filter ? colors.text : colors.textMuted },
-                  ]}
-                >
-                  {t("doctorPrescriptions.filters.all")}
-                </Text>
-              </Pressable>
-              <FilterChip
-                active={scope === "recent"}
-                label={t("doctorPrescriptions.filters.last90")}
-                onPress={() => setScope(scope === "recent" ? "all" : "recent")}
-              />
-              <FilterChip
-                active={filter === "diabetes"}
-                label={t("doctorPrescriptions.filters.diabetes")}
-                onPress={() => setFilter(filter === "diabetes" ? "" : "diabetes")}
-              />
-              <FilterChip
-                active={filter === "hypertension"}
-                label={t("doctorPrescriptions.filters.hypertension")}
-                onPress={() =>
-                  setFilter(filter === "hypertension" ? "" : "hypertension")
-                }
-              />
-              <FilterChip
-                active={filter === "antibiotic"}
-                label={t("doctorPrescriptions.filters.antibiotic")}
-                onPress={() =>
-                  setFilter(filter === "antibiotic" ? "" : "antibiotic")
-                }
-              />
-            </ScrollView>
-          </View>
+        {/* Search + quick filters */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t("doctorPrescriptions.searchPlaceholder", "Search patient or diagnosis")}
+          />
         </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm + 2,
+          }}
+        >
+          <FilterChip
+            active={!filter && scope === "all"}
+            label={t("doctorPrescriptions.filters.all")}
+            onPress={() => {
+              setFilter("");
+              setScope("all");
+            }}
+          />
+          <FilterChip
+            active={scope === "recent"}
+            label={t("doctorPrescriptions.filters.last90")}
+            onPress={() => setScope(scope === "recent" ? "all" : "recent")}
+          />
+          <FilterChip
+            active={filter === "diabetes"}
+            label={t("doctorPrescriptions.filters.diabetes")}
+            onPress={() => setFilter(filter === "diabetes" ? "" : "diabetes")}
+          />
+          <FilterChip
+            active={filter === "hypertension"}
+            label={t("doctorPrescriptions.filters.hypertension")}
+            onPress={() => setFilter(filter === "hypertension" ? "" : "hypertension")}
+          />
+          <FilterChip
+            active={filter === "antibiotic"}
+            label={t("doctorPrescriptions.filters.antibiotic")}
+            onPress={() => setFilter(filter === "antibiotic" ? "" : "antibiotic")}
+          />
+        </ScrollView>
 
         {isLoading ? (
           <View style={{ padding: spacing.lg, gap: spacing.sm }}>
@@ -216,14 +185,19 @@ export default function DoctorPrescriptionsScreen() {
             }
           />
         ) : (
-          <View
-            style={{
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.md,
-              gap: spacing.sm,
-            }}
-          >
-            {filtered.map((r: any) => (
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
+            <View
+              style={{
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.hairline,
+                paddingVertical: 4,
+                ...(isDark ? {} : shadow.card),
+              }}
+            >
+            {filtered.map((r: any, idx: number) => (
               <Pressable
                 key={r.id}
                 onPress={() =>
@@ -238,15 +212,10 @@ export default function DoctorPrescriptionsScreen() {
                   date: r.date,
                 })}
                 style={({ pressed }) => ({
-                  backgroundColor: pressed
-                    ? colors.surfaceMuted
-                    : colors.surface,
-                  borderRadius: radius.xl,
+                  marginHorizontal: 5,
+                  borderRadius: 18,
                   borderCurve: "continuous",
-                  padding: spacing.md,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDark ? colors.borderStrong : colors.hairline,
-                  ...(isDark ? {} : shadow.sm),
+                  backgroundColor: pressed ? colors.fill : "transparent",
                 })}
               >
                 <View
@@ -254,130 +223,92 @@ export default function DoctorPrescriptionsScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: spacing.md,
+                    paddingVertical: 14,
+                    paddingHorizontal: spacing.md,
                   }}
                 >
-                  <View
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 13,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <FileText
-                      size={20}
-                      color={colors.primary}
-                      strokeWidth={2.25}
+                  {idx < filtered.length - 1 ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: spacing.md,
+                        left: spacing.md + 40 + spacing.md,
+                        height: StyleSheet.hairlineWidth,
+                        backgroundColor: colors.separator,
+                      }}
                     />
-                  </View>
+                  ) : null}
+                  <IconTile icon={FileText} tone="primary" appearance="soft" size={40} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
-                      style={[
-                        typography.title.md,
-                        { color: colors.text },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {r.title || t("doctorPrescriptions.fallbackTitle")}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted, marginTop: 2 },
-                      ]}
+                      style={[typography.title.sm, { color: colors.text }]}
                       numberOfLines={1}
                     >
                       {r.patient?.name || t("doctorPrescriptions.unknownPatient")}
-                      {r.diagnosis ? ` · ${r.diagnosis}` : ""}
+                    </Text>
+                    <Text
+                      style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {r.diagnosis || r.title || t("doctorPrescriptions.fallbackTitle")}
                     </Text>
                     <View
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: spacing.sm,
-                        marginTop: 6,
+                        gap: 6,
+                        marginTop: 5,
                       }}
                     >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
+                      <Text
+                        style={[
+                          typography.caption,
+                          { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+                        ]}
                       >
-                        <CalendarDays
-                          size={11}
-                          color={colors.textSubtle}
-                          strokeWidth={2.2}
-                        />
-                        <Text style={[typography.caption, { color: colors.textSubtle }]}>
-                          {(r.date || "").toUpperCase()}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <Pill
-                          size={11}
-                          color={colors.textSubtle}
-                          strokeWidth={2.2}
-                        />
-                        <Text style={[typography.caption, { color: colors.textSubtle }]}>
-                          {t("doctorPrescriptions.medCount", { count: r.medicineCount || 0 })}
-                        </Text>
-                      </View>
+                        {[r.date, t("doctorPrescriptions.medCount", { count: r.medicineCount || 0 })]
+                          .filter(Boolean)
+                          .join("  ·  ")}
+                      </Text>
                       {r.followUpDate ? (
-                        <Text
-                          style={[
-                            typography.label.xs,
-                            {
-                              color: colors.warning,
-                              backgroundColor: colors.warningSoft,
-                              paddingHorizontal: 6,
-                              paddingVertical: 1,
-                              borderRadius: 6,
-                              overflow: "hidden",
-                            },
-                          ]}
+                        <View
+                          style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 1,
+                            borderRadius: 6,
+                            backgroundColor: colors.warningSoft,
+                          }}
                         >
-                          {t("doctorPrescriptions.fuPrefix")} {(r.followUpDate || "").toUpperCase()}
-                        </Text>
+                          <Text style={[typography.label.xs, { fontSize: 10, color: colors.warning }]}>
+                            {t("doctorPrescriptions.fuPrefix")} {r.followUpDate}
+                          </Text>
+                        </View>
                       ) : null}
                     </View>
                   </View>
-                  <View pointerEvents="box-only">
-                    <IconButton
-                      icon={Download}
-                      accessibilityLabel={t(
-                        "doctorPrescriptions.downloadA11y",
-                        {
-                          name:
-                            r.patient?.name ||
-                            t("doctorPrescriptions.unknownPatient"),
-                        }
-                      )}
-                      variant="ghost"
-                      onPress={() => handleDownload(r.id)}
-                      style={{
-                        backgroundColor: colors.fill,
-                      }}
-                    />
-                  </View>
-                  <ChevronRight
-                    size={18}
-                    color={colors.textSubtle}
-                    strokeWidth={2.2}
-                  />
+                  <Pressable
+                    onPress={() => handleDownload(r.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("doctorPrescriptions.downloadA11y", {
+                      name: r.patient?.name || t("doctorPrescriptions.unknownPatient"),
+                    })}
+                    style={({ pressed }) => ({
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: pressed ? colors.primarySoft : colors.well,
+                    })}
+                  >
+                    <Download size={16} color={colors.primary} strokeWidth={2.3} />
+                  </Pressable>
                 </View>
               </Pressable>
             ))}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -394,7 +325,8 @@ function FilterChip({
   active: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography, shadow } = useTheme();
+  const { colors, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   return (
     <Pressable
       onPress={onPress}
@@ -402,20 +334,22 @@ function FilterChip({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       style={({ pressed }) => ({
-        paddingHorizontal: 12,
-        height: 30,
+        paddingHorizontal: 14,
+        height: 34,
         justifyContent: "center",
-        borderRadius: 999,
+        borderRadius: 17,
         borderCurve: "continuous",
-        backgroundColor: active ? colors.surface : "transparent",
-        ...(active ? shadow.xs : shadow.none),
-        opacity: pressed ? 0.7 : 1,
+        backgroundColor: active ? colors.primary : colors.surface,
+        borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        ...(active || isDark ? {} : shadow.xs),
+        opacity: pressed ? 0.8 : 1,
       })}
     >
       <Text
         style={[
-          typography.label.sm,
-          { color: active ? colors.primary : colors.textMuted },
+          typography.label.md,
+          { color: active ? colors.onPrimary : colors.text },
         ]}
       >
         {label}

@@ -5,15 +5,13 @@ import {
   Text,
   Pressable,
   ScrollView,
-  ActivityIndicator,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   Calendar as CalendarIcon,
-  CalendarDays,
-  Clock,
   CalendarOff,
   CalendarCheck,
   Pill,
@@ -21,13 +19,20 @@ import {
   ChevronRight,
   Bell,
   Video,
-  Building2,
   Sparkles,
   ArrowRight,
-  User,
 } from "lucide-react-native";
 import { useDoctorScheduleRange } from "@/hooks/useApi";
-import { Screen, ErrorState } from "@/components/ui";
+import {
+  Screen,
+  ErrorState,
+  IconButton,
+  IconTile,
+  LargeHeader,
+  MetricStrip,
+  SectionHeader,
+  Skeleton,
+} from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { tonePalette, type Tone } from "@/theme/tone";
 import { useLocaleStore } from "@/stores/locale";
@@ -184,417 +189,227 @@ export default function ScheduleScreen() {
     return futureDay || daysWithEvents[0];
   }, [selectedEvents, weekDays, selectedDate]);
 
+  const kickerLabel = isViewingToday
+    ? `${t("schedule.today", "Today")} · ${selectedDateFormatted}`
+    : selectedDateFormatted;
+
   return (
     <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
-      {/* ── Top Header ────────────────────────────────────────── */}
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: spacing.sm,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={() => refetch()}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
-          <View
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 15,
-              borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <CalendarDays size={22} color={colors.primary} strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[typography.display.md, { color: colors.text }]}>
-              {t("schedule.title", "Schedule")}
-            </Text>
-            <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}>
-              {headerDateRange}
-            </Text>
-          </View>
-        </View>
-
-        {/* Quick jump to Today button if looking at another day */}
-        {!isViewingToday ? (
-          <Pressable
-            onPress={goToday}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-              height: 34,
-              paddingHorizontal: 14,
-              borderRadius: 999,
-              borderCurve: "continuous",
-              backgroundColor: pressed ? colors.primary : colors.primarySoft,
-            })}
-          >
-            {({ pressed }) => (
-              <>
-                <View
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: pressed ? colors.onPrimary : colors.primary,
-                  }}
-                />
+        {/* ── Header: title + week range, week nav on the right ── */}
+        <LargeHeader
+          kicker={headerDateRange}
+          title={t("schedule.title", "Schedule")}
+          right={
+            <>
+          {!isViewingToday || weekStart.getTime() !== startOfWeek(today).getTime() ? (
+            <Pressable
+              onPress={goToday}
+              hitSlop={6}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                height: 36,
+                paddingHorizontal: 14,
+                borderRadius: 18,
+                borderCurve: "continuous",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: pressed ? colors.primary : colors.primarySoft,
+              })}
+            >
+              {({ pressed }) => (
                 <Text
-                  style={[
-                    typography.label.md,
-                    { color: pressed ? colors.onPrimary : colors.primary },
-                  ]}
+                  style={[typography.label.md, { color: pressed ? colors.onPrimary : colors.primary }]}
                 >
                   {t("schedule.today", "Today")}
                 </Text>
-              </>
-            )}
-          </Pressable>
-        ) : null}
-      </View>
-
-      {/* ── Week Switcher Toolbar ─────────────────────────────── */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginHorizontal: spacing.lg,
-          marginBottom: spacing.xs,
-          marginTop: spacing.xs,
-          padding: 3,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: colors.fill,
-        }}
-      >
-        <Pressable
-          onPress={goPrevWeek}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("schedule.previousWeek")}
-          style={({ pressed }) => ({
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: pressed ? colors.surface : "transparent",
-          })}
-        >
-          <ChevronLeft size={18} color={colors.text} strokeWidth={2.4} />
-        </Pressable>
-
-        <Pressable
-          onPress={goToday}
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingVertical: 6,
-          }}
-        >
-          <Text
-            style={[
-              typography.label.md,
-              { color: isViewingToday ? colors.primary : colors.text },
-            ]}
-          >
-            {isViewingToday
-              ? `${t("schedule.today")} · ${headerDateRange.split("–")[0].trim()}`
-              : headerDateRange}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={goNextWeek}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("schedule.nextWeek")}
-          style={({ pressed }) => ({
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: pressed ? colors.surface : "transparent",
-          })}
-        >
-          <ChevronRight size={18} color={colors.text} strokeWidth={2.4} />
-        </Pressable>
-      </View>
-
-      {/* ── 7-Day Selector Strip ──────────────────────────────── */}
-      <View
-        style={{
-          flexDirection: "row",
-          marginHorizontal: spacing.lg,
-          paddingVertical: spacing.xs,
-          gap: 6,
-        }}
-      >
-        {weekDays.map((d) => {
-          const isSelected = d.iso === selectedDate;
-          const hasEvents = d.eventCount > 0;
-
-          return (
-            <Pressable
-              key={d.iso}
-              onPress={() => onSelectDay(d.iso)}
-              accessibilityRole="button"
-              accessibilityLabel={t("schedule.dayA11y", {
-                day: `${d.dayLabel} ${d.num}`,
-                count: d.eventCount,
-              })}
-              style={({ pressed }) => ({
-                flex: 1,
-                minHeight: 78,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                paddingVertical: 8,
-                paddingHorizontal: 2,
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: isSelected
-                  ? colors.primary
-                  : d.isToday
-                  ? colors.primarySoft
-                  : pressed
-                  ? colors.surfaceMuted
-                  : colors.surface,
-                borderWidth: isSelected || d.isToday ? 0 : StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.hairline,
-                opacity: d.isPast && !isSelected ? 0.6 : 1,
-                ...(isSelected && !isDark ? shadow.primary : isDark ? {} : shadow.xs),
-              })}
-            >
-              {/* Day Label (e.g. SUN, MON) */}
-              <Text
-                style={[
-                  typography.overline,
-                  {
-                    fontSize: 10,
-                    color: isSelected
-                      ? "rgba(255,255,255,0.85)"
-                      : d.isToday
-                      ? colors.primary
-                      : colors.textSubtle,
-                    textTransform: "uppercase",
-                  },
-                ]}
-              >
-                {d.dayLabel.slice(0, 3)}
-              </Text>
-
-              {/* Day Number (e.g. 23) */}
-              <Text
-                style={[
-                  typography.title.lg,
-                  {
-                    fontVariant: ["tabular-nums"],
-                    color: isSelected
-                      ? colors.onPrimary
-                      : d.isToday
-                      ? colors.primary
-                      : colors.text,
-                  },
-                ]}
-              >
-                {d.num}
-              </Text>
-
-              {/* Event indicator badge */}
-              {hasEvents ? (
-                <View
-                  style={{
-                    minWidth: 18,
-                    height: 18,
-                    paddingHorizontal: 5,
-                    borderRadius: 9,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: isSelected
-                      ? "rgba(255, 255, 255, 0.24)"
-                      : colors.primarySoft,
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.xs,
-                      { fontSize: 10, color: isSelected ? colors.onPrimary : colors.primary },
-                    ]}
-                  >
-                    {d.eventCount}
-                  </Text>
-                </View>
-              ) : d.isToday ? (
-                <View
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: 2.5,
-                    backgroundColor: isSelected
-                      ? "rgba(255, 255, 255, 0.8)"
-                      : colors.primary,
-                  }}
-                />
-              ) : (
-                <View style={{ height: 18 }} />
               )}
             </Pressable>
-          );
-        })}
-      </View>
-
-      {/* ── Metrics Cards Strip ───────────────────────────────── */}
-      <View
-        style={{
-          flexDirection: "row",
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.sm,
-          paddingBottom: spacing.xs,
-          gap: spacing.sm,
-        }}
-      >
-        <PulseMetricCard
-          label={t("schedule.total", "Total")}
-          value={selectedDayTotals.total}
-          subtext={
-            totalThisWeek === selectedDayTotals.total
-              ? t("schedule.allScheduled")
-              : t("schedule.thisWeek", { count: totalThisWeek })
+          ) : null}
+          <IconButton
+            icon={ChevronLeft}
+            variant="surface"
+            size="sm"
+            onPress={goPrevWeek}
+            accessibilityLabel={t("schedule.previousWeek", "Previous week")}
+          />
+          <IconButton
+            icon={ChevronRight}
+            variant="surface"
+            size="sm"
+            onPress={goNextWeek}
+            accessibilityLabel={t("schedule.nextWeek", "Next week")}
+          />
+            </>
           }
-          icon={CalendarIcon}
-          tone="primary"
         />
-        <PulseMetricCard
-          label={t("schedule.appts", "Appts")}
-          value={selectedDayTotals.appointment}
-          subtext={t("schedule.thisWeek", {
-            count: totalsByKind.appointment || 0,
-          })}
-          icon={CalendarCheck}
-          tone="info"
-        />
-        <PulseMetricCard
-          label={t("schedule.walkins", "Walk-ins")}
-          value={selectedDayTotals.walkin}
-          subtext={t("schedule.thisWeek", {
-            count: totalsByKind.walkin || 0,
-          })}
-          icon={Bell}
-          tone="warning"
-        />
-      </View>
 
-      {/* ── Day Event List / Agenda ───────────────────────────── */}
-      <View
-        style={{
-          flex: 1,
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.xs,
-        }}
-      >
-        {/* Agenda Section Header */}
+        {/* ── 7-day selector — one paper card, selected day is a filled capsule ── */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingVertical: spacing.xs,
-            marginBottom: spacing.xs,
+            marginHorizontal: spacing.lg,
+            padding: 5,
+            gap: 2,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            backgroundColor: colors.surface,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? colors.borderStrong : colors.hairline,
+            ...(isDark ? {} : shadow.card),
           }}
         >
-          <View style={{ gap: 2 }}>
-            <Text
-              style={[
-                typography.overline,
-                { color: colors.textSubtle, textTransform: "uppercase" },
-              ]}
-            >
-              {selectedDateFormatted}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={[typography.title.lg, { color: colors.text }]}>
-                {t("schedule.agenda", "Daily agenda")}
-              </Text>
-              {isViewingToday ? (
-                <View
-                  style={{
-                    paddingHorizontal: 7,
-                    paddingVertical: 2,
-                    borderRadius: 6,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.xs,
-                      { fontSize: 10, color: colors.primary, textTransform: "uppercase" },
-                    ]}
-                  >
-                    {t("schedule.today")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
+          {weekDays.map((d) => {
+            const isSelected = d.iso === selectedDate;
+            const hasEvents = d.eventCount > 0;
+            const fg = isSelected ? colors.onPrimary : d.isToday ? colors.primary : colors.text;
 
-          {/* Visits Count Pill */}
-          <View
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              borderRadius: 999,
-              backgroundColor:
-                selectedEvents.length > 0 ? colors.primarySoft : colors.fill,
-            }}
-          >
-            <Text
-              style={[
-                typography.label.sm,
-                { color: selectedEvents.length > 0 ? colors.primary : colors.textMuted },
-              ]}
-            >
-              {t("schedule.visitCount", { count: selectedEvents.length })}
-            </Text>
-          </View>
+            return (
+              <Pressable
+                key={d.iso}
+                onPress={() => onSelectDay(d.iso)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={t("schedule.dayA11y", {
+                  day: `${d.dayLabel} ${d.num}`,
+                  count: d.eventCount,
+                })}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  height: 74,
+                  borderRadius: 20,
+                  borderCurve: "continuous",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  backgroundColor: isSelected
+                    ? colors.primary
+                    : pressed
+                    ? colors.fill
+                    : "transparent",
+                  ...(isSelected && !isDark ? shadow.primary : {}),
+                })}
+              >
+                <Text
+                  style={[
+                    typography.overline,
+                    {
+                      fontSize: 10,
+                      color: isSelected
+                        ? "rgba(255,255,255,0.8)"
+                        : d.isToday
+                        ? colors.primary
+                        : colors.textSubtle,
+                      textTransform: "uppercase",
+                    },
+                  ]}
+                >
+                  {d.dayLabel.slice(0, 3)}
+                </Text>
+                <Text
+                  style={[
+                    typography.title.lg,
+                    {
+                      fontVariant: ["tabular-nums"],
+                      color: fg,
+                      opacity: d.isPast && !isSelected ? 0.45 : 1,
+                    },
+                  ]}
+                >
+                  {d.num}
+                </Text>
+                <View style={{ height: 6, flexDirection: "row", gap: 2, alignItems: "center" }}>
+                  {hasEvents
+                    ? Array.from({ length: Math.min(d.eventCount, 3) }).map((_, i) => (
+                        <View
+                          key={i}
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: 2,
+                            backgroundColor: isSelected ? "rgba(255,255,255,0.9)" : colors.primary,
+                          }}
+                        />
+                      ))
+                    : d.isToday && !isSelected
+                    ? (
+                        <View
+                          style={{ width: 14, height: 2, borderRadius: 1, backgroundColor: colors.primary }}
+                        />
+                      )
+                    : null}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
-        {/* List Content */}
-        {isLoading ? (
-          <View style={{ paddingVertical: spacing.xxl, alignItems: "center", gap: 10 }}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-              {t("schedule.loading")}
-            </Text>
-          </View>
-        ) : isError ? (
-          <ErrorState
-            title={t("recordDetail.errorTitle", "Couldn't load schedule")}
-            message={t("recordDetail.errorBody", "Check your connection and try again.")}
-            actionLabel={t("common.retry")}
-            onAction={() => refetch()}
+        {/* ── Day metrics ───────────────────────────────────────── */}
+        <MetricStrip
+          size="md"
+          style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}
+          items={[
+            {
+              icon: CalendarIcon,
+              label: t("schedule.total", "Total"),
+              value: selectedDayTotals.total,
+              sub:
+                totalThisWeek === selectedDayTotals.total
+                  ? t("schedule.allScheduled")
+                  : t("schedule.thisWeek", { count: totalThisWeek }),
+              tone: "primary",
+            },
+            {
+              icon: CalendarCheck,
+              label: t("schedule.appts", "Appts"),
+              value: selectedDayTotals.appointment,
+              sub: t("schedule.thisWeek", { count: totalsByKind.appointment || 0 }),
+              tone: "info",
+            },
+            {
+              icon: Bell,
+              label: t("schedule.walkins", "Walk-ins"),
+              value: selectedDayTotals.walkin,
+              sub: t("schedule.thisWeek", { count: totalsByKind.walkin || 0 }),
+              tone: "warning",
+            },
+          ]}
+        />
+
+        {/* ── Agenda ───────────────────────────────────────────── */}
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <SectionHeader
+            kicker={kickerLabel}
+            title={t("schedule.agenda", "Daily agenda")}
+            count={selectedEvents.length > 0 ? selectedEvents.length : undefined}
           />
-        ) : selectedEvents.length === 0 ? (
-          /* Empty State */
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 130 }}
-          >
+
+          {isLoading ? (
+            <View style={{ gap: spacing.sm }}>
+              <Skeleton height={76} radius={radius.xl} />
+              <Skeleton height={76} radius={radius.xl} />
+            </View>
+          ) : isError ? (
+            <ErrorState
+              title={t("recordDetail.errorTitle", "Couldn't load schedule")}
+              message={t("recordDetail.errorBody", "Check your connection and try again.")}
+              actionLabel={t("common.retry")}
+              onAction={() => refetch()}
+            />
+          ) : selectedEvents.length === 0 ? (
             <View
               style={{
-                marginTop: spacing.xs,
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.xxl,
                 alignItems: "center",
@@ -606,20 +421,7 @@ export default function ScheduleScreen() {
                 ...(isDark ? {} : shadow.card),
               }}
             >
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 22,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <CalendarCheck size={28} color={colors.primary} strokeWidth={2} />
-              </View>
-
+              <IconTile icon={CalendarCheck} tone="primary" appearance="soft" size={60} />
               <Text
                 style={[
                   typography.title.lg,
@@ -637,7 +439,6 @@ export default function ScheduleScreen() {
                 {t("schedule.clearDayBody")}
               </Text>
 
-              {/* Actionable smart hint to jump to next day with events */}
               {nextDayWithVisits ? (
                 <Pressable
                   onPress={() => onSelectDay(nextDayWithVisits.iso)}
@@ -681,13 +482,8 @@ export default function ScheduleScreen() {
                 </Pressable>
               ) : null}
             </View>
-          </ScrollView>
-        ) : (
-          /* Events List */
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 130 }}
-          >
+          ) : (
+            <View>
             {selectedEvents.map((e, idx) => {
               const meta = KIND_META[e.kind] || KIND_META.appointment;
               const tn = tonePalette(meta.tone, colors);
@@ -793,11 +589,21 @@ export default function ScheduleScreen() {
                     {/* Center Content */}
                     <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text style={[typography.label.xs, { color: tn.fg }]}>
-                          {t(`schedule.kinds.${e.kind}.tag`, {
-                            defaultValue: meta.tag,
-                          })}
-                        </Text>
+                        <View
+                          style={{
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                            borderCurve: "continuous",
+                            backgroundColor: tn.bg,
+                          }}
+                        >
+                          <Text style={[typography.label.xs, { fontSize: 10, color: tn.fg, letterSpacing: 0.4 }]}>
+                            {t(`schedule.kinds.${e.kind}.tag`, {
+                              defaultValue: meta.tag,
+                            })}
+                          </Text>
+                        </View>
                         {isVideo ? (
                           <View
                             style={{
@@ -814,27 +620,6 @@ export default function ScheduleScreen() {
                             <Video size={10} color={colors.success} />
                             <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
                               {t("schedule.video")}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {e.startTime ? (
-                          <View
-                            style={{
-                              marginLeft: "auto",
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 3,
-                            }}
-                          >
-                            <Clock size={11} color={colors.textSubtle} />
-                            <Text
-                              style={[
-                                typography.caption,
-                                { color: colors.textMuted, fontVariant: ["tabular-nums"] },
-                              ]}
-                            >
-                              {e.startTime}
-                              {e.endTime ? ` – ${e.endTime}` : ""}
                             </Text>
                           </View>
                         ) : null}
@@ -900,98 +685,11 @@ export default function ScheduleScreen() {
                 </View>
               );
             })}
-          </ScrollView>
-        )}
-      </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
 
-// ── Pulse Metric Card ──────────────────────────────────────────
-function PulseMetricCard({
-  label,
-  value,
-  subtext,
-  icon: Icon,
-  tone = "primary",
-}: {
-  label: string;
-  value: number;
-  subtext: string;
-  icon: any;
-  tone?: Tone;
-}) {
-  const { colors, spacing, typography, shadow, scheme } = useTheme();
-  const isDark = scheme === "dark";
-  const tn = tonePalette(tone, colors);
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        borderRadius: 18,
-        borderCurve: "continuous",
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.hairline,
-        justifyContent: "space-between",
-        ...(isDark ? {} : shadow.sm),
-      }}
-    >
-      {/* Top row: Icon + Label */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          marginBottom: 6,
-        }}
-      >
-        <View
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 7,
-            borderCurve: "continuous",
-            backgroundColor: tn.bg,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={12} color={tn.fg} strokeWidth={2.5} />
-        </View>
-        <Text
-          numberOfLines={1}
-          style={[typography.label.sm, { flex: 1, color: tn.fg }]}
-        >
-          {label}
-        </Text>
-      </View>
-
-      {/* Number */}
-      <Text
-        style={[
-          typography.display.sm,
-          {
-            fontSize: 26,
-            lineHeight: 30,
-            letterSpacing: -0.9,
-            color: colors.text,
-            fontVariant: ["tabular-nums"],
-          },
-        ]}
-      >
-        {value}
-      </Text>
-
-      {/* Subtext */}
-      <Text
-        numberOfLines={1}
-        style={[typography.caption, { fontSize: 11, color: colors.textSubtle, marginTop: 1 }]}
-      >
-        {subtext}
-      </Text>
-    </View>
-  );
-}

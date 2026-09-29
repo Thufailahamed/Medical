@@ -70,6 +70,8 @@ import {
   Divider,
   Chip,
   Pressable,
+  IconTile,
+  QuickAction,
 } from "@/components/ui";
 
 function calcBmi(height?: number | null, weight?: number | null) {
@@ -304,7 +306,7 @@ export default function ProfileScreen() {
       labelKey: "profile.item.timeline.label",
       subtitle: t("profile.item.timeline.subtitle"),
       icon: ClipboardList,
-      tone: "primary" as const,
+      tone: "info" as const,
       onPress: () => router.push("/(app)/timeline" as any),
     },
     {
@@ -318,7 +320,7 @@ export default function ProfileScreen() {
       labelKey: "profile.item.healthSummary.label",
       subtitle: t("profile.item.healthSummary.subtitle"),
       icon: FileText,
-      tone: "primary" as const,
+      tone: "accent" as const,
       onPress: () => router.push("/(app)/health-summary" as any),
     },
     {
@@ -380,7 +382,7 @@ export default function ProfileScreen() {
           ? t("profile.item.prescriptions.subtitleCount", { count: rxCount })
           : t("profile.item.prescriptions.subtitleEmpty"),
       icon: PillIcon,
-      tone: "primary" as const,
+      tone: "accent2" as const,
       onPress: () => router.push("/(app)/prescriptions" as any),
     },
     {
@@ -477,18 +479,18 @@ export default function ProfileScreen() {
 
   const quickActions = [
     {
-      key: "edit",
-      label: t("profile.quick.edit"),
-      icon: Pencil,
-      tone: "primary" as const,
-      onPress: () => router.push("/(app)/edit-profile" as any),
-    },
-    {
       key: "healthId",
       label: t("profile.quick.healthId"),
       icon: QrCode,
-      tone: "info" as const,
+      tone: "primary" as const,
       onPress: () => router.push("/(app)/health-id" as any),
+    },
+    {
+      key: "records",
+      label: t("profile.v2.quickRecords"),
+      icon: ClipboardList,
+      tone: "info" as const,
+      onPress: () => router.push("/(app)/records" as any),
     },
     {
       key: "share",
@@ -503,6 +505,43 @@ export default function ProfileScreen() {
       icon: Users,
       tone: "accent2" as const,
       onPress: () => router.push("/(app)/family" as any),
+    },
+  ];
+
+  // Split the long account/health lists into short, scannable groups.
+  const itemsByKey: Record<string, MenuItem> = Object.fromEntries(
+    [...accountItems, ...healthItems].map((i) => [i.labelKey.split(".")[2], i])
+  );
+  const pick = (keys: string[]) => keys.map((k) => itemsByKey[k]).filter(Boolean) as MenuItem[];
+  const roleExtras = pick(["doctorPortal", "hospitalAdmin", "hospitalStaff", "wards", "staffRoster"]);
+  const menuGroups: { key: string; title: string; items: MenuItem[]; patientOnly?: boolean }[] = [
+    {
+      key: "account",
+      title: t("profile.section.account"),
+      items: pick(["editProfile", "family", "caretakers", "emailImport"]),
+    },
+    {
+      key: "records",
+      title: t("profile.v2.records"),
+      items: pick(["recordsV2", "timeline", "healthSummary", "prescriptions", "vaccinations", "notes"]),
+      patientOnly: true,
+    },
+    {
+      key: "care",
+      title: t("profile.v2.care"),
+      items: [...pick(["vitals", "allergies", "refill", "insurance", "tenants"]), ...roleExtras],
+      patientOnly: true,
+    },
+    {
+      key: "privacy",
+      title: t("profile.v2.privacy"),
+      items: pick(["healthId", "share", "export", "activity"]),
+      patientOnly: true,
+    },
+    {
+      key: "preferences",
+      title: t("profile.v2.preferences"),
+      items: pick(["notifications", "notificationPreferences", "appearance", "changePassword", "appLock", "auditLog"]),
     },
   ];
 
@@ -632,13 +671,6 @@ export default function ProfileScreen() {
                 backgroundColor: "rgba(255, 255, 255, 0.25)",
               }}
             />
-            {/* heartbeat watermark */}
-            <View
-              pointerEvents="none"
-              style={{ position: "absolute", right: -18, bottom: -18, opacity: 0.08 }}
-            >
-              <HeartPulse size={170} color="#FFFFFF" strokeWidth={1.5} />
-            </View>
 
             {/* edit shortcut — wrapped in a plain View so absolute positioning
                 anchors to the card, not Pressable's inner animated wrapper */}
@@ -658,8 +690,7 @@ export default function ProfileScreen() {
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
+                  borderRadius: 18,
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: "rgba(255, 255, 255, 0.16)",
@@ -671,19 +702,14 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <View
-              style={{
-                padding: spacing.xl,
-                paddingBottom: spacing.xxxxl + spacing.sm,
-                gap: spacing.lg,
-              }}
-            >
+            <View style={{ padding: spacing.lg, paddingTop: spacing.xl, gap: spacing.lg }}>
               {/* Identity row */}
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: spacing.lg,
+                  gap: spacing.md,
+                  paddingRight: 40,
                 }}
               >
                 {/* avatar with glass ring + verified dot */}
@@ -692,9 +718,9 @@ export default function ProfileScreen() {
                     style={{
                       padding: 3,
                       borderRadius: 9999,
-                      backgroundColor: "rgba(255, 255, 255, 0.28)",
-                      borderWidth: 1.5,
-                      borderColor: "rgba(255, 255, 255, 0.55)",
+                      backgroundColor: "rgba(255, 255, 255, 0.22)",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.5)",
                     }}
                   >
                     <View
@@ -707,7 +733,7 @@ export default function ProfileScreen() {
                       <Avatar
                         name={userRow?.name || user?.name}
                         source={photoUri ? { uri: photoUri } : undefined}
-                        size="xl"
+                        size={68}
                         tone={isDoctor ? "info" : "primary"}
                       />
                     </View>
@@ -721,7 +747,6 @@ export default function ProfileScreen() {
                         width: 22,
                         height: 22,
                         borderRadius: 11,
-                        borderCurve: "continuous",
                         backgroundColor: "#10B981",
                         borderWidth: 2.5,
                         borderColor: "#FFFFFF",
@@ -776,7 +801,7 @@ export default function ProfileScreen() {
                       <Text
                         style={[
                           typography.body.sm,
-                          { color: "rgba(255, 255, 255, 0.78)", marginTop: 2 },
+                          { color: "rgba(255, 255, 255, 0.78)", marginTop: 1 },
                         ]}
                         numberOfLines={1}
                       >
@@ -788,79 +813,82 @@ export default function ProfileScreen() {
                       </Text>
                     </>
                   )}
+                  {/* glass chips */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: 6,
+                      marginTop: spacing.sm,
+                    }}
+                  >
+                    <GlassChip
+                      icon={isDoctor ? Stethoscope : HeartPulse}
+                      label={t(`profile.v2.role_${role}`, role.replace("_", " "))}
+                    />
+                    {isDoctor && doctorProfileData?.doctor?.doctors?.specialization ? (
+                      <GlassChip
+                        label={doctorProfileData.doctor.doctors.specialization}
+                      />
+                    ) : null}
+                    {isDoctor && doctorProfileData?.doctor?.doctors?.registrationNumber ? (
+                      <GlassChip
+                        label={`SLMC: ${doctorProfileData.doctor.doctors.registrationNumber}`}
+                      />
+                    ) : null}
+                    {userRow?.verified || user?.verified ? (
+                      <GlassChip icon={ShieldCheck} label={t("profile.verified")} />
+                    ) : null}
+                  </View>
                 </View>
               </View>
 
-              {/* glass chips */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.sm,
-                }}
-              >
-                <GlassChip
-                  icon={isDoctor ? Stethoscope : HeartPulse}
-                  label={role.replace("_", " ")}
-                />
-                {isDoctor && doctorProfileData?.doctor?.doctors?.specialization ? (
-                  <GlassChip
-                    label={doctorProfileData.doctor.doctors.specialization}
+              {/* ─── Health stats strip ─── */}
+              {!isDoctor && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "stretch",
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.xl,
+                    borderCurve: "continuous",
+                    backgroundColor: "rgba(255, 255, 255, 0.12)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.2)",
+                  }}
+                >
+                  <HeroStat
+                    icon={Droplet}
+                    value={patient?.bloodGroup || "—"}
+                    label={t("profile.v2.bloodType")}
                   />
-                ) : null}
-                {isDoctor && doctorProfileData?.doctor?.doctors?.registrationNumber ? (
-                  <GlassChip
-                    label={`SLMC: ${doctorProfileData.doctor.doctors.registrationNumber}`}
+                  <View style={{ width: 1, backgroundColor: "rgba(255, 255, 255, 0.18)" }} />
+                  <HeroStat
+                    icon={HeartPulse}
+                    value={bmi ? bmi.toFixed(1) : "—"}
+                    label={bmiInfo ? `${t("profile.statCard.bmi")} · ${bmiInfo.label}` : t("profile.statCard.bmi")}
+                    dot={bmiInfo ? toneDot[bmiInfo.tone] : undefined}
                   />
-                ) : null}
-                {userRow?.verified || user?.verified ? (
-                  <GlassChip icon={ShieldCheck} label={t("profile.verified")} />
-                ) : null}
-              </View>
+                  <View style={{ width: 1, backgroundColor: "rgba(255, 255, 255, 0.18)" }} />
+                  <HeroStat
+                    icon={PillIcon}
+                    value={String(medCount)}
+                    label={t("profile.v2.medicines")}
+                    onPress={() => router.push("/(app)/prescriptions" as any)}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </View>
-
-        {/* ─── Floating health stats ─── */}
-        {!isDoctor && (
-          <View
-            style={{
-              flexDirection: "row",
-              gap: spacing.sm,
-              marginHorizontal: spacing.xxl,
-              marginTop: -spacing.xxl - spacing.xs,
-            }}
-          >
-            <StatTile
-              icon={Droplet}
-              tone="danger"
-              label={t("profile.statCard.blood")}
-              value={patient?.bloodGroup || "—"}
-            />
-            <StatTile
-              icon={HeartPulse}
-              tone={bmiInfo?.tone ?? "info"}
-              label={t("profile.statCard.bmi")}
-              value={bmi ? bmi.toFixed(1) : "—"}
-              hint={bmiInfo?.label}
-            />
-            <StatTile
-              icon={Activity}
-              tone="primary"
-              label={t("profile.statCard.active")}
-              value={String(medCount)}
-              hint={t("profile.statCard.medicine", { count: medCount })}
-            />
-          </View>
-        )}
 
         {/* ─── Quick actions ─── */}
         {!isDoctor && (
           <View
             style={{
               flexDirection: "row",
-              justifyContent: "space-between",
-              marginHorizontal: spacing.xl,
+              gap: spacing.sm,
+              marginHorizontal: spacing.lg,
               marginTop: spacing.xl,
             }}
           >
@@ -871,6 +899,7 @@ export default function ProfileScreen() {
                 label={a.label}
                 tone={a.tone}
                 onPress={a.onPress}
+                size={54}
               />
             ))}
           </View>
@@ -881,7 +910,7 @@ export default function ProfileScreen() {
           <View
             style={{
               marginHorizontal: spacing.lg,
-              marginTop: spacing.lg,
+              marginTop: spacing.xl,
             }}
           >
             <Card
@@ -898,32 +927,14 @@ export default function ProfileScreen() {
                   gap: spacing.md,
                 }}
               >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: radius.lg,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: colors.warningSoft,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <AlertTriangle
-                    size={20}
-                    color={colors.warning}
-                    strokeWidth={2.25}
-                  />
-                </View>
+                <IconTile icon={HeartPulse} tone="primary" appearance="solid" size={42} />
                 <View style={{ flex: 1 }}>
                   <Text style={[typography.title.sm, { color: colors.text }]}>
                     {t("profile.healthCard.title")}
                   </Text>
                   <Text
                     style={[
-                      typography.body.sm,
+                      typography.caption,
                       { color: colors.textMuted, marginTop: 2 },
                     ]}
                     numberOfLines={2}
@@ -936,7 +947,7 @@ export default function ProfileScreen() {
                     width: 28,
                     height: 28,
                     borderRadius: 999,
-                    backgroundColor: colors.surfaceMuted,
+                    backgroundColor: colors.well,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -949,78 +960,69 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <Divider />
-              <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-                <HealthRow
-                  icon={AlertTriangle}
-                  tone="danger"
-                  label={t("profile.allergiesHeading")}
-                >
-                  {allergies.length === 0 ? (
-                    <EmptyValue label={t("profile.noneRecorded")} />
-                  ) : (
-                    <ChipWrap items={allergies} tone="danger" icon={AlertTriangle} />
-                  )}
-                </HealthRow>
-                <HealthRow
-                  icon={Activity}
-                  tone="warning"
-                  label={t("profile.conditionsHeading")}
-                >
-                  {conditions.length === 0 ? (
-                    <EmptyValue label={t("profile.noneRecorded")} />
-                  ) : (
-                    <ChipWrap items={conditions} tone="warning" icon={Activity} />
-                  )}
-                </HealthRow>
-                <HealthRow
-                  icon={Phone}
-                  tone="info"
-                  label={t("profile.emergencyContactsHeading")}
-                >
-                  {emergencyContacts.length === 0 ? (
-                    <EmptyValue label={t("profile.noneRecorded")} />
-                  ) : (
-                    <Text
-                      style={[
-                        typography.body.md,
-                        { color: colors.text, fontWeight: "600" },
-                      ]}
-                    >
-                      {t("profile.onFile", { count: emergencyContacts.length })}
-                    </Text>
-                  )}
-                </HealthRow>
-              </View>
+              <HealthRow
+                icon={AlertTriangle}
+                tone="danger"
+                label={t("profile.v2.allergies")}
+                count={allergies.length}
+              >
+                {allergies.length > 0 ? (
+                  <ChipWrap items={allergies} tone="danger" icon={AlertTriangle} />
+                ) : null}
+              </HealthRow>
+              <Divider inset={62} />
+              <HealthRow
+                icon={Activity}
+                tone="warning"
+                label={t("profile.v2.conditions")}
+                count={conditions.length}
+              >
+                {conditions.length > 0 ? (
+                  <ChipWrap items={conditions} tone="warning" icon={Activity} />
+                ) : null}
+              </HealthRow>
+              <Divider inset={62} />
+              <HealthRow
+                icon={Phone}
+                tone="info"
+                label={t("profile.v2.emergencyContacts")}
+                count={emergencyContacts.length}
+                countLabel={t("profile.onFile", { count: emergencyContacts.length })}
+              />
             </Card>
           </View>
         )}
 
-        {/* ─── Account section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
-          <SectionHeader
-            title={t("profile.section.account")}
-            style={{ paddingHorizontal: spacing.lg }}
-          />
-          <View style={{ marginHorizontal: spacing.lg }}>
-            <Card padded={false}>
-              {accountItems.map((item, i) => (
-                <View key={item.labelKey}>
-                  <ListItem
-                    icon={item.icon}
-                    iconTone={item.tone}
-                    title={t(item.labelKey)}
-                    subtitle={item.subtitle}
-                    pill={item.pill}
-                    onPress={item.onPress}
-                    showChevron
-                    bordered={false}
-                  />
-                  {i < accountItems.length - 1 ? <Divider inset={60} /> : null}
-                </View>
-              ))}
-            </Card>
-          </View>
-        </View>
+        {/* ─── Menu groups ─── */}
+        {menuGroups
+          .filter((g) => g.items.length > 0 && !(g.patientOnly && isDoctor))
+          .map((g) => (
+            <View key={g.key} style={{ marginTop: spacing.xl }}>
+              <SectionHeader
+                title={g.title}
+                style={{ paddingHorizontal: spacing.lg }}
+              />
+              <View style={{ marginHorizontal: spacing.lg }}>
+                <Card padded={false}>
+                  {g.items.map((item, i) => (
+                    <View key={item.labelKey}>
+                      <ListItem
+                        icon={item.icon}
+                        iconTone={item.tone}
+                        title={t(item.labelKey)}
+                        subtitle={item.subtitle}
+                        pill={item.pill}
+                        onPress={item.onPress}
+                        showChevron
+                        bordered={false}
+                      />
+                      {i < g.items.length - 1 ? <Divider inset={60} /> : null}
+                    </View>
+                  ))}
+                </Card>
+              </View>
+            </View>
+          ))}
 
         {isDoctor && (
           <View style={{ marginTop: spacing.lg }}>
@@ -1044,37 +1046,8 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ─── Health section ─── */}
-        {!isDoctor && (
-          <View style={{ marginTop: spacing.lg }}>
-            <SectionHeader
-              title={t("profile.section.health")}
-              style={{ paddingHorizontal: spacing.lg }}
-            />
-            <View style={{ marginHorizontal: spacing.lg }}>
-              <Card padded={false}>
-                {healthItems.map((item, i) => (
-                  <View key={item.labelKey}>
-                    <ListItem
-                      icon={item.icon}
-                      iconTone={item.tone}
-                      title={t(item.labelKey)}
-                      subtitle={item.subtitle}
-                      pill={item.pill}
-                      onPress={item.onPress}
-                      showChevron
-                      bordered={false}
-                    />
-                    {i < healthItems.length - 1 ? <Divider inset={60} /> : null}
-                  </View>
-                ))}
-              </Card>
-            </View>
-          </View>
-        )}
-
         {/* ─── Support section ─── */}
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.xl }}>
           <SectionHeader
             title={t("profile.section.support")}
             style={{ paddingHorizontal: spacing.lg }}
@@ -1155,213 +1128,137 @@ function GlassChip({ icon: Icon, label }: { icon?: LucideIcon; label: string }) 
   );
 }
 
-/** Elevated metric tile that overlaps the hero card. */
-function StatTile({
+const toneDot: Record<string, string> = {
+  info: "#7DD3FC",
+  success: "#6EE7B7",
+  warning: "#FCD34D",
+  danger: "#FCA5A5",
+};
+
+/** One column of the glass stats strip inside the hero card. */
+function HeroStat({
   icon: Icon,
-  tone,
-  label,
   value,
-  hint,
+  label,
+  dot,
+  onPress,
 }: {
   icon: LucideIcon;
-  tone: Tone;
-  label: string;
   value: string;
-  hint?: string;
+  label: string;
+  dot?: string;
+  onPress?: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow } = useTheme();
-  const pal = useTone(tone);
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colors.surface,
-        borderRadius: radius.xl,
-        borderCurve: "continuous",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.hairline,
-        padding: spacing.md,
-        gap: spacing.sm,
-        ...shadow.md,
-      }}
-      accessibilityRole="text"
-      accessibilityLabel={`${label}: ${value}${hint ? `, ${hint}` : ""}`}
-    >
-      <View
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 10,
-          borderCurve: "continuous",
-          backgroundColor: pal.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+  const { typography } = useTheme();
+  const body = (
+    <View style={{ alignItems: "center", paddingHorizontal: 6, gap: 2 }}>
+      <Icon size={14} color="rgba(255, 255, 255, 0.72)" strokeWidth={2.4} />
+      <Text
+        style={[
+          typography.title.lg,
+          { color: "#FFFFFF", fontWeight: "800", marginTop: 2, fontVariant: ["tabular-nums"] },
+        ]}
+        numberOfLines={1}
       >
-        <Icon size={15} color={pal.fg} strokeWidth={2.5} />
-      </View>
-      <View>
+        {value}
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        {dot ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dot }} /> : null}
         <Text
-          style={[typography.title.md, { color: colors.text, fontWeight: "800" }]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        <Text
-          style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}
+          style={[typography.caption, { color: "rgba(255, 255, 255, 0.75)", fontSize: 11 }]}
           numberOfLines={1}
         >
           {label}
         </Text>
-        {hint ? (
-          <Text
-            style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}
-            numberOfLines={1}
-          >
-            {hint}
-          </Text>
-        ) : null}
       </View>
     </View>
   );
-}
-
-/** Rounded icon tile + label for the quick-actions row. */
-function QuickAction({
-  icon: Icon,
-  label,
-  tone,
-  onPress,
-}: {
-  icon: LucideIcon;
-  label: string;
-  tone: Tone;
-  onPress: () => void;
-}) {
-  const { colors, spacing, radius, typography } = useTheme();
-  const pal = useTone(tone);
-  return (
+  return onPress ? (
     <Pressable
       onPress={onPress}
       haptic="light"
       accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{ alignItems: "center", gap: spacing.sm, width: 72 }}
+      accessibilityLabel={`${label}: ${value}`}
+      style={{ flex: 1 }}
     >
-      <View
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: radius.lg,
-          borderCurve: "continuous",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: pal.bg,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-      >
-        <Icon size={20} color={pal.fg} strokeWidth={2.25} />
-      </View>
-      <Text
-        style={[
-          typography.caption,
-          { color: colors.textMuted, fontWeight: "600" },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      {body}
     </Pressable>
+  ) : (
+    <View style={{ flex: 1 }} accessibilityRole="text" accessibilityLabel={`${label}: ${value}`}>
+      {body}
+    </View>
   );
 }
 
-/** Labelled row inside the health profile card. */
+/** Row inside the health profile card: icon tile, label, count or add pill, optional chips. */
 function HealthRow({
-  icon: Icon,
+  icon,
   tone,
   label,
+  count,
+  countLabel,
   children,
 }: {
   icon: LucideIcon;
   tone: Tone;
   label: string;
-  children: React.ReactNode;
+  count: number;
+  countLabel?: string;
+  children?: React.ReactNode;
 }) {
   const { colors, spacing, typography } = useTheme();
+  const { t } = useTranslation();
   const pal = useTone(tone);
   return (
-    <View style={{ gap: spacing.sm }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.sm,
-        }}
-      >
-        <View
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 8,
-            backgroundColor: pal.bg,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={13} color={pal.fg} strokeWidth={2.5} />
+    <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.sm }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <IconTile icon={icon} tone={tone} size={34} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.title.xs, { color: colors.text }]} numberOfLines={1}>
+            {label}
+          </Text>
+          {count === 0 ? (
+            <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]} numberOfLines={1}>
+              {t("profile.noneRecorded")}
+            </Text>
+          ) : null}
         </View>
-        <Text
-          style={[
-            typography.overline,
-            { color: colors.textMuted, letterSpacing: 1.1 },
-          ]}
-        >
-          {label}
-        </Text>
+        {count === 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 3,
+              paddingHorizontal: 10,
+              height: 26,
+              borderRadius: 13,
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <Plus size={12} color={colors.primary} strokeWidth={2.75} />
+            <Text style={[typography.label.sm, { color: colors.primary }]}>
+              {t("profile.v2.add")}
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={{
+              minWidth: 26,
+              height: 24,
+              paddingHorizontal: 8,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: pal.bg,
+            }}
+          >
+            <Text style={[typography.label.sm, { color: pal.fg, fontVariant: ["tabular-nums"] }]}>
+              {countLabel ?? count}
+            </Text>
+          </View>
+        )}
       </View>
-      <View style={{ paddingLeft: 24 + spacing.sm }}>{children}</View>
-    </View>
-  );
-}
-
-/** Muted "none recorded" text with a subtle add affordance. */
-function EmptyValue({ label }: { label: string }) {
-  const { colors, spacing, typography } = useTheme();
-  const { t } = useTranslation();
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-      <Text
-        style={[
-          typography.body.sm,
-          { color: colors.textSubtle, fontWeight: "500" },
-        ]}
-      >
-        {label}
-      </Text>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 3,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 3,
-          borderRadius: 999,
-          backgroundColor: colors.primarySoft,
-        }}
-      >
-        <Plus size={10} color={colors.primary} strokeWidth={3} />
-        <Text
-          style={{
-            color: colors.primary,
-            fontSize: 10,
-            fontWeight: "800",
-            letterSpacing: 0.4,
-          }}
-        >
-          {t("common.add").toUpperCase()}
-        </Text>
-      </View>
+      {children ? <View style={{ paddingLeft: 34 + spacing.md }}>{children}</View> : null}
     </View>
   );
 }

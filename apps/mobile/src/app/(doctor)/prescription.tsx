@@ -43,6 +43,8 @@ import { tonePalette, type Tone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
+  LargeHeader,
+  IconButton,
   TextInput,
   Card,
   Pill as PillCmp,
@@ -54,6 +56,7 @@ import {
   EmptyState,
   ListItem,
   BottomSheet,
+  IconTile,
   useToast,
 } from "@/components/ui";
 import type { DrugWarning, SafetyCheckCandidate } from "@/hooks/useApi";
@@ -77,9 +80,9 @@ const AVATAR_TONES: Tone[] = ["primary", "accent", "info", "accent2", "success",
 function getAvatarPalette(name: string, colors: any) {
   let hash = 0;
   for (let i = 0; i < (name || "").length; i++) {
-    hash = (hash + name.charCodeAt(i)) % AVATAR_TONES.length;
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   }
-  const tp = tonePalette(AVATAR_TONES[hash], colors);
+  const tp = tonePalette(AVATAR_TONES[hash % AVATAR_TONES.length], colors);
   return { bg: tp.bg, fg: tp.fg, border: "transparent" };
 }
 
@@ -163,26 +166,31 @@ export default function PrescriptionScreen() {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 6,
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
     borderCurve: "continuous" as const,
-    backgroundColor: active ? colors.primarySoft : colors.fill,
+    backgroundColor: active ? colors.primary : colors.surface,
+    borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+    borderColor: hairline,
+    ...(isDark || active ? {} : shadow.xs),
   });
   const chipText = (active: boolean) => [
-    active ? typography.label.md : typography.body.sm,
-    { color: active ? colors.primary : colors.textMuted },
+    typography.label.md,
+    { color: active ? colors.onPrimary : colors.text },
   ];
   const chipCount = (active: boolean) => ({
+    minWidth: 20,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
     borderCurve: "continuous" as const,
-    backgroundColor: active ? colors.primary : colors.fillStrong,
+    alignItems: "center" as const,
+    backgroundColor: active ? "rgba(255,255,255,0.24)" : colors.fill,
   });
   const chipCountText = (active: boolean) => [
     typography.label.xs,
-    { fontSize: 10.5, color: active ? colors.onPrimary : colors.textMuted },
+    { color: active ? colors.onPrimary : colors.textMuted },
   ];
   const { t } = useTranslation();
 
@@ -584,53 +592,18 @@ export default function PrescriptionScreen() {
         style={{ backgroundColor: colors.bg }}
       >
         {/* ── Screen Header ── */}
-        <View
-          style={{
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
-            paddingBottom: spacing.sm,
-            backgroundColor: colors.bg,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-            <Pressable
-              onPress={() => setSelectedPatient(null)}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                backgroundColor: pressed ? colors.fillStrong : colors.fill,
-                alignItems: "center",
-                justifyContent: "center",
-              })}
-            >
-              <ChevronRight
-                size={20}
-                color={colors.text}
-                style={{ transform: [{ rotate: "180deg" }] }}
-              />
-            </Pressable>
-            <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
-                {t("doctorPrescription.newTitle", { defaultValue: "New Prescription" })}
-              </Text>
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                E-Prescription • Clinical Order
-              </Text>
-            </View>
-          </View>
-
-          <PillCmp
-            label={t("doctorPrescription.draft", { defaultValue: "Draft" })}
-            tone="warning"
-            size="sm"
-          />
-        </View>
+        <ScreenHeader
+          back={() => setSelectedPatient(null)}
+          title={t("doctorPrescription.newTitle", { defaultValue: "New prescription" })}
+          subtitle={t("doctorPrescription.newSubtitle", "Electronic prescription · signed on issue")}
+          right={
+            <PillCmp
+              label={t("doctorPrescription.draft", { defaultValue: "Draft" })}
+              tone="warning"
+              size="sm"
+            />
+          }
+        />
 
         {/* ── Selected Patient Card ── */}
         <View
@@ -663,19 +636,7 @@ export default function PrescriptionScreen() {
               >
                 {patientName}
               </Text>
-              <View
-                style={{
-                  backgroundColor: colors.primarySoft,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1.5,
-                  borderRadius: 6,
-                  borderCurve: "continuous",
-                }}
-              >
-                <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
-                  {t("doctorPrescription.patientFallback", { defaultValue: "Patient" })}
-                </Text>
-              </View>
+
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
               <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
@@ -703,12 +664,11 @@ export default function PrescriptionScreen() {
               height: 32,
               borderRadius: 999,
               borderCurve: "continuous",
-              backgroundColor: colors.fill,
-              opacity: pressed ? 0.7 : 1,
+              backgroundColor: pressed ? colors.primary : colors.primarySoft,
             })}
           >
-            <X size={13} color={colors.textMuted} />
-            <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+            <X size={13} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.label.sm, { color: colors.primary }]}>
               {t("doctorPrescription.changePill", { defaultValue: "Change" })}
             </Text>
           </Pressable>
@@ -730,30 +690,17 @@ export default function PrescriptionScreen() {
               style={{
                 paddingHorizontal: spacing.lg,
                 paddingTop: spacing.md + 2,
-                paddingBottom: spacing.sm,
+                paddingBottom: 0,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.separator,
+                gap: 10,
               }}
             >
-              <View
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9,
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Stethoscope size={15} color={colors.primary} strokeWidth={2.4} />
-              </View>
+              <IconTile icon={Stethoscope} tone="primary" appearance="solid" size={30} />
               <Text
                 style={[
-                  typography.title.sm,
-                  { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+                  typography.title.md,
+                  { color: colors.text },
                 ]}
               >
                 {t("doctorPrescription.assessment", { defaultValue: "Clinical Assessment" })}
@@ -783,7 +730,6 @@ export default function PrescriptionScreen() {
                   leadingIcon={FileText}
                   multiline
                   numberOfLines={3}
-                  tone="soft"
                 />
               </FormField>
             </View>
@@ -793,21 +739,22 @@ export default function PrescriptionScreen() {
               the doctor can autofill the medicine list with one tap.
               Hidden when no templates exist (avoid empty UI). */}
           {templates.length > 0 && (
-            <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            <View>
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "space-between",
                   marginBottom: spacing.sm,
+                  paddingHorizontal: 2,
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Layers size={14} color={colors.textMuted} strokeWidth={2.2} />
+                  <Layers size={14} color={colors.textSubtle} strokeWidth={2.2} />
                   <Text
                     style={[
-                      typography.label.lg,
-                      { color: colors.textMuted },
+                      typography.kicker,
+                      { color: colors.textSubtle, textTransform: "uppercase" },
                     ]}
                   >
                     {t("doctorPrescription.templatesHeading")}
@@ -832,7 +779,8 @@ export default function PrescriptionScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingRight: spacing.lg }}
+                style={{ marginHorizontal: -spacing.lg, marginVertical: -8 }}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg, paddingVertical: 8 }}
               >
                 {templates.map((tpl) => {
                   const count = (tpl.medicines || []).length;
@@ -845,16 +793,19 @@ export default function PrescriptionScreen() {
                         height: 36,
                         borderRadius: 999,
                         borderCurve: "continuous",
-                        backgroundColor: pressed ? colors.primary : colors.primarySoft,
+                        backgroundColor: pressed ? colors.primarySoft : colors.surface,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: hairline,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 6,
+                        ...(isDark ? {} : shadow.xs),
                       })}
                     >
                       <Text
                         style={[
                           typography.label.md,
-                          { color: colors.primary },
+                          { color: colors.text },
                         ]}
                         numberOfLines={1}
                       >
@@ -865,10 +816,10 @@ export default function PrescriptionScreen() {
                           paddingHorizontal: 6,
                           paddingVertical: 1,
                           borderRadius: 999,
-                          backgroundColor: colors.primary,
+                          backgroundColor: colors.primarySoft,
                         }}
                       >
-                        <Text style={[typography.label.xs, { fontSize: 10, color: colors.onPrimary }]}>
+                        <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
                           {count}
                         </Text>
                       </View>
@@ -899,31 +850,18 @@ export default function PrescriptionScreen() {
               style={{
                 paddingHorizontal: spacing.lg,
                 paddingTop: spacing.md + 2,
-                paddingBottom: spacing.sm,
+                paddingBottom: 0,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.separator,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 9,
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <PillIcon size={15} color={colors.primary} strokeWidth={2.4} />
-                </View>
+                <IconTile icon={PillIcon} tone="primary" appearance="solid" size={30} />
                 <Text
                   style={[
-                    typography.title.sm,
-                    { color: colors.text, fontWeight: "700", fontSize: 14.5 },
+                    typography.title.md,
+                    { color: colors.text },
                   ]}
                 >
                   {t("doctorPrescription.medicinesHeading", {
@@ -1045,88 +983,29 @@ export default function PrescriptionScreen() {
   return (
     <Screen scroll padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       {/* ── Top Header Bar ── */}
+      <LargeHeader
+        kicker={t("doctorPrescription.kicker", "New prescription")}
+        title={t("doctorPrescription.title", { defaultValue: "Prescribe" })}
+        subtitle={t("doctorPrescription.subtitle", {
+          defaultValue: "Select a patient to issue an electronic Rx",
+        })}
+        right={
+          <IconButton
+            icon={Layers}
+            variant="surface"
+            badge={templates.length}
+            onPress={() => router.push("/(doctor)/rx-templates" as any)}
+            accessibilityLabel={t("doctorPrescription.templatesAction", { defaultValue: "Templates" })}
+          />
+        }
+        style={{ paddingBottom: 0 }}
+      />
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
           paddingBottom: spacing.sm,
-          backgroundColor: colors.bg,
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <FilePenLine size={20} color={colors.primary} strokeWidth={2.4} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[typography.display.md, { color: colors.text }]}>
-                {t("doctorPrescription.title", { defaultValue: "Prescribe" })}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
-              >
-                {t("doctorPrescription.subtitle", {
-                  defaultValue: "Select a patient to issue an electronic Rx",
-                })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Templates Shortcut Button */}
-          <Pressable
-            onPress={() => router.push("/(doctor)/rx-templates" as any)}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingHorizontal: 12,
-              height: 36,
-              borderRadius: 999,
-              borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Layers size={14} color={colors.primary} strokeWidth={2.4} />
-            <Text style={[typography.label.md, { color: colors.primary }]}>
-              {t("doctorPrescription.templatesAction", { defaultValue: "Templates" })}
-            </Text>
-            {templates.length > 0 && (
-              <View
-                style={{
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                }}
-              >
-                <Text style={[typography.label.xs, { fontSize: 10.5, color: colors.onPrimary }]}>
-                  {templates.length}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-
         {/* ── Active Draft Banner ── */}
         {hasDraft && (
           <View
@@ -1174,13 +1053,16 @@ export default function PrescriptionScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.fill,
-            borderRadius: 12,
+            backgroundColor: colors.surface,
+            borderRadius: 14,
             borderCurve: "continuous",
-            paddingHorizontal: 12,
-            height: 42,
-            marginTop: spacing.lg,
-            gap: 8,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: hairline,
+            paddingHorizontal: 14,
+            height: 46,
+            marginTop: spacing.md,
+            gap: 10,
+            ...(isDark ? {} : shadow.xs),
           }}
         >
           <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
@@ -1227,7 +1109,10 @@ export default function PrescriptionScreen() {
             alignItems: "center",
             gap: 8,
             paddingTop: 12,
+            paddingBottom: 12,
+            paddingHorizontal: spacing.lg,
           }}
+          style={{ marginHorizontal: -spacing.lg }}
         >
           <Pressable
             onPress={() => setPatientFilter("all")}
@@ -1249,7 +1134,7 @@ export default function PrescriptionScreen() {
           >
             <Users
               size={13}
-              color={patientFilter === "careTeam" ? colors.primary : colors.textMuted}
+              color={patientFilter === "careTeam" ? colors.onPrimary : colors.textMuted}
               strokeWidth={2.4}
             />
             <Text style={chipText(patientFilter === "careTeam")}>
@@ -1284,13 +1169,23 @@ export default function PrescriptionScreen() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.sm,
+          paddingTop: 2,
           paddingBottom: 150, // Clearance for floating navigation bar!
-          gap: 10,
         }}
       >
         {displayedPatients.length > 0 ? (
-          displayedPatients.map((p) => {
+          <View
+            style={{
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
+              paddingVertical: 4,
+              ...(isDark ? {} : shadow.card),
+            }}
+          >
+          {displayedPatients.map((p, idx) => {
             const pId = p.patient?.id || p.patients?.id || p.id;
             const pName = p.user?.name || p.users?.name || p.name || t("doctorPrescription.patientFallback");
             const pPhone = p.user?.phone || p.users?.phone || p.phone;
@@ -1300,31 +1195,47 @@ export default function PrescriptionScreen() {
             );
             const palette = getAvatarPalette(pName, colors);
             const initials = getInitials(pName);
+            const isLast = idx === displayedPatients.length - 1;
 
             return (
               <Pressable
                 key={pId}
                 onPress={() => setSelectedPatient(p)}
+                accessibilityRole="button"
+                accessibilityLabel={`${t("doctorPrescription.pillPrescribe", { defaultValue: "Prescribe" })}: ${pName}`}
                 style={({ pressed }) => ({
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.xl,
+                  marginHorizontal: 5,
+                  borderRadius: 18,
                   borderCurve: "continuous",
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: hairline,
-                  padding: 14,
-                  ...(isDark ? {} : shadow.sm),
-                  opacity: pressed ? 0.92 : 1,
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
+                  backgroundColor: pressed ? colors.fill : "transparent",
                 })}
               >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  {/* Dynamic Squircle Avatar */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    paddingHorizontal: spacing.md,
+                    gap: 12,
+                  }}
+                >
+                  {!isLast ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: spacing.md,
+                        left: spacing.md + 44 + 12,
+                        height: StyleSheet.hairlineWidth,
+                        backgroundColor: colors.separator,
+                      }}
+                    />
+                  ) : null}
                   <View
                     style={{
                       width: 44,
                       height: 44,
                       borderRadius: 22,
-                      borderCurve: "continuous",
                       backgroundColor: palette.bg,
                       alignItems: "center",
                       justifyContent: "center",
@@ -1333,85 +1244,67 @@ export default function PrescriptionScreen() {
                     <Text style={[typography.title.sm, { color: palette.fg }]}>
                       {initials}
                     </Text>
-                  </View>
-
-                  {/* Patient Details */}
-                  <View style={{ flex: 1, marginLeft: 12, minWidth: 0, paddingRight: 8 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
-                      <Text
-                        numberOfLines={1}
-                        style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]}
+                    {isCareTeam ? (
+                      <View
+                        style={{
+                          position: "absolute",
+                          right: -2,
+                          bottom: -2,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 9,
+                          backgroundColor: colors.primary,
+                          borderWidth: 2,
+                          borderColor: colors.surface,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
-                        {pName}
-                      </Text>
-                      {isCareTeam && (
-                        <View
-                          style={{
-                            backgroundColor: colors.primarySoft,
-                            paddingHorizontal: 6,
-                            paddingVertical: 1.5,
-                            borderRadius: 6,
-                            borderCurve: "continuous",
-                          }}
-                        >
-                          <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
-                            {t("doctorPrescription.filterCareTeam", { defaultValue: "Care Team" })}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                        marginTop: 3,
-                      }}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
-                        <Text
-                          style={[typography.body.sm, { color: colors.textMuted }]}
-                          numberOfLines={1}
-                        >
-                          {pPhone || t("doctorPrescription.noPhone")}
-                        </Text>
+                        <Users size={9} color={colors.onPrimary} strokeWidth={3} />
                       </View>
-
-                      {pNic ? (
-                        <Text
-                          style={[typography.caption, { color: colors.textSubtle }]}
-                          numberOfLines={1}
-                        >
-                          • NIC: {pNic}
-                        </Text>
-                      ) : null}
-                    </View>
+                    ) : null}
                   </View>
 
-                  {/* Action Pill */}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={[typography.title.sm, { color: colors.text }]}
+                    >
+                      {pName}
+                    </Text>
+                    <Text
+                      style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {[
+                        pPhone || t("doctorPrescription.noPhone"),
+                        pNic ? `NIC ${pNic}` : null,
+                        isCareTeam
+                          ? t("doctorPrescription.filterCareTeam", { defaultValue: "Care Team" })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join("  ·  ")}
+                    </Text>
+                  </View>
+
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
                       backgroundColor: colors.primarySoft,
-                      paddingHorizontal: 12,
-                      height: 32,
-                      borderRadius: 999,
-                      borderCurve: "continuous",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <FilePenLine size={13} color={colors.primary} strokeWidth={2.4} />
-                    <Text style={[typography.label.sm, { color: colors.primary }]}>
-                      {t("doctorPrescription.pillPrescribe", { defaultValue: "Prescribe" })}
-                    </Text>
+                    <FilePenLine size={17} color={colors.primary} strokeWidth={2.3} />
                   </View>
                 </View>
               </Pressable>
             );
-          })
+          })}
+          </View>
         ) : searchQuery.length > 0 ? (
           <View
             style={{
@@ -1728,14 +1621,13 @@ function MedicineCard({
             <View
               key={m.id}
               style={{
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
                 borderBottomWidth:
-                  idx === Math.min(4, localResults.medicines.length - 1) ? 0 : 1,
-                borderBottomColor: colors.border,
+                  idx === Math.min(4, localResults.medicines.length - 1) ? 0 : StyleSheet.hairlineWidth,
+                borderBottomColor: colors.separator,
               }}
             >
               <ListItem
+                bordered={false}
                 title={m.brandName ? `${m.brandName} (${m.genericName})` : m.genericName}
                 subtitle={[m.strength, m.scheduleClass].filter(Boolean).join(" • ") || undefined}
                 iconTone="primary"

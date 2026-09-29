@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AlertTriangle,
   ShieldAlert,
@@ -51,6 +52,8 @@ import {
   useToast,
   IconButton,
   Pressable,
+  IconTile,
+  SectionHeader,
 } from "@/components/ui";
 
 type Severity = "mild" | "moderate" | "severe" | "critical";
@@ -62,15 +65,28 @@ const SEVERITIES: { value: Severity; key: string; tone: any }[] = [
   { value: "critical", key: "allergies.severity.critical", tone: "danger" },
 ];
 
-const COMMON_ALLERGENS = [
-  "Penicillin",
-  "Amoxicillin",
-  "Aspirin / NSAIDs",
-  "Peanuts",
-  "Shellfish",
-  "Latex",
-  "Sulfa drugs",
-  "Dairy / Lactose",
+const ALLERGEN_GROUPS: { key: string; title: string; icon: any; tone: Tone; items: string[] }[] = [
+  {
+    key: "medications",
+    title: "Medications",
+    icon: PillIcon,
+    tone: "accent2",
+    items: ["Penicillin", "Amoxicillin", "Aspirin / NSAIDs", "Sulfa drugs", "Codeine"],
+  },
+  {
+    key: "food",
+    title: "Food",
+    icon: Apple,
+    tone: "warning",
+    items: ["Peanuts", "Tree nuts", "Shellfish", "Eggs", "Dairy / Lactose", "Gluten"],
+  },
+  {
+    key: "environmental",
+    title: "Latex & environment",
+    icon: Leaf,
+    tone: "success",
+    items: ["Latex", "Pollen", "Dust mites", "Bee venom"],
+  },
 ];
 
 const COMMON_REACTIONS = [
@@ -93,6 +109,7 @@ export default function AllergiesScreen() {
   const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
   const toast = useToast();
+  const insets = useSafeAreaInsets();
   const { data, isLoading, isError, refetch } = useAllergies();
   const addAllergy = useAddAllergy();
   const updateAllergy = useUpdateAllergy();
@@ -221,7 +238,7 @@ export default function AllergiesScreen() {
         });
 
   return (
-    <Screen>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
         title={t("allergies.title", "Allergies")}
         subtitle={subtitle}
@@ -237,7 +254,7 @@ export default function AllergiesScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: allergies.length > 0 ? spacing.xl * 4 : spacing.xl * 2,
+          paddingBottom: 96 + insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -443,147 +460,85 @@ export default function AllergiesScreen() {
               onAction={() => refetch()}
             />
           ) : allergies.length === 0 ? (
-            /* ── Welcoming Medical Safety Onboarding Hero (Zero State) ── */
-            <View style={{ gap: spacing.lg, marginTop: spacing.xs }}>
-              <LinearGradient
-                colors={
-                  isDark
-                    ? [colors.surfaceElevated, colors.surface]
-                    : [colors.primarySoft, colors.surface]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0.4, y: 1 }}
-                style={{
-                  borderRadius: 28,
-                  borderCurve: "continuous",
-                  padding: spacing.xl,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDark ? colors.borderStrong : colors.separator,
-                  alignItems: "center",
-                  gap: spacing.lg,
-                }}
-              >
-                {/* Frosted Glass Emblem */}
-                <LinearGradient
-                  colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 68,
-                    height: 68,
-                    borderRadius: 22,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ShieldAlert size={32} color="#FFFFFF" strokeWidth={2.2} />
-                </LinearGradient>
-
-                {/* Hero Headline & Subtitle */}
-                <View style={{ alignItems: "center", gap: 6 }}>
-                  <Text
-                    style={[
-                      typography.title.lg,
-                      { color: colors.text, textAlign: "center" },
-                    ]}
-                  >
-                    {t("allergies.empty.title", "No allergies recorded")}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      {
-                        color: colors.textMuted,
-                        textAlign: "center",
-                        paddingHorizontal: spacing.sm,
-                      },
-                    ]}
-                  >
+            /* ── Zero state: safety hero + one-tap category presets ── */
+            <View style={{ marginTop: spacing.xs }}>
+              <Card variant="brand" padded={false}>
+                <ShieldAlert
+                  size={150}
+                  color="#FFFFFF"
+                  strokeWidth={1}
+                  style={{ position: "absolute", right: -30, bottom: -34, opacity: 0.1 }}
+                  pointerEvents="none"
+                />
+                <View style={{ padding: spacing.xl, gap: spacing.lg }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                    <IconTile icon={ShieldAlert} appearance="glass" size={48} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[typography.kicker, { color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }]}>
+                        {t("allergies.empty.kicker", "Safety profile")}
+                      </Text>
+                      <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 2 }]}>
+                        {t("allergies.empty.title", "No allergies recorded")}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.88)" }]}>
                     {t(
                       "allergies.empty.message",
                       "Record medication, food, latex, and environmental triggers so your care team avoids contraindications."
                     )}
                   </Text>
-                </View>
-
-                {/* 3 Medical Protection Pillars */}
-                <View
-                  style={{
-                    width: "100%",
-                    gap: spacing.sm,
-                    paddingTop: spacing.xs,
-                  }}
-                >
-                  <PillarRow
-                    icon={PillIcon}
-                    title="Medications & Antibiotics"
-                    desc="Penicillin, NSAIDs, Sulfa, Anesthesia"
-                    tone="accent2"
-                  />
-                  <PillarRow
-                    icon={Apple}
-                    title="Food & Dietary Triggers"
-                    desc="Peanuts, Shellfish, Gluten, Dairy"
-                    tone="warning"
-                  />
-                  <PillarRow
-                    icon={Leaf}
-                    title="Latex & Environmental"
-                    desc="Latex gloves, Pollen, Dust, Bee venom"
-                    tone="info"
-                  />
-                </View>
-
-                {/* Quick-Add Presets Strip */}
-                <View style={{ width: "100%", gap: spacing.sm, paddingTop: spacing.xs }}>
-                  <Text
-                    style={[
-                      typography.overline,
-                      { color: colors.textSubtle, textTransform: "uppercase" },
-                    ]}
-                  >
-                    Common allergen shortcuts
-                  </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-                    {COMMON_ALLERGENS.map((item) => (
-                      <Pressable
-                        key={item}
-                        onPress={() => openAdd(item)}
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                          paddingHorizontal: 12,
-                          height: 32,
-                          borderRadius: 16,
-                          backgroundColor: colors.fill,
-                        }}
-                      >
-                        <Plus size={12} color={colors.primary} />
-                        <Text
-                          style={[
-                            typography.label.sm,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {item}
-                        </Text>
-                      </Pressable>
-                    ))}
+                    <HeroChip label={t("allergies.empty.sharedDoctors", "Shared with doctors")} icon={Check} />
+                    <HeroChip label={t("allergies.empty.sharedPharmacy", "Checked at pharmacy")} icon={Check} />
                   </View>
                 </View>
+              </Card>
 
-                {/* Single Clear Primary CTA */}
-                <Button
-                  title={t("allergies.addButton", "Add custom allergy")}
-                  icon={Plus}
-                  onPress={() => openAdd()}
-                  size="lg"
-                  fullWidth
-                  style={{ marginTop: spacing.xs }}
-                />
-              </LinearGradient>
+              <SectionHeader
+                kicker={t("allergies.presets.kicker", "One-tap add")}
+                title={t("allergies.presets.title", "Common allergens")}
+              />
+              <View style={{ gap: spacing.md }}>
+                {ALLERGEN_GROUPS.map((g) => (
+                  <PresetGroup
+                    key={g.key}
+                    icon={g.icon}
+                    tone={g.tone}
+                    title={t(`allergies.presets.${g.key}`, g.title)}
+                    items={g.items}
+                    onPick={openAdd}
+                  />
+                ))}
+              </View>
+
+              <Pressable
+                onPress={() => openAdd()}
+                accessibilityRole="button"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                  marginTop: spacing.md,
+                  padding: spacing.lg,
+                  borderRadius: radius.card,
+                  borderCurve: "continuous",
+                  borderWidth: 1.5,
+                  borderStyle: "dashed",
+                  borderColor: colors.borderStrong,
+                }}
+              >
+                <IconTile icon={Plus} tone="primary" size={40} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
+                    {t("allergies.presets.customTitle", "Something else?")}
+                  </Text>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                    {t("allergies.presets.customBody", "Add any substance with its severity and reaction")}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={colors.textSubtle} />
+              </Pressable>
             </View>
           ) : (
             <View style={{ gap: spacing.md }}>
@@ -601,8 +556,8 @@ export default function AllergiesScreen() {
         </View>
       </ScrollView>
 
-      {/* Persistent Bottom CTA only when items exist */}
-      {allergies.length > 0 && (
+      {/* Persistent bottom CTA */}
+      {!isLoading && !isError && (
         <View
           style={{
             position: "absolute",
@@ -611,14 +566,18 @@ export default function AllergiesScreen() {
             right: 0,
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
-            paddingBottom: spacing.xl,
+            paddingBottom: Math.max(insets.bottom, spacing.lg),
             backgroundColor: isDark ? colors.bgElevated : colors.surface,
             borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: colors.separator,
           }}
         >
           <Button
-            title={t("allergies.addButton", "Add allergy")}
+            title={
+              allergies.length === 0
+                ? t("allergies.addCustom", "Add custom allergy")
+                : t("allergies.addButton", "Add allergy")
+            }
             icon={Plus}
             onPress={() => openAdd()}
             size="lg"
@@ -741,62 +700,67 @@ export default function AllergiesScreen() {
   );
 }
 
-function PillarRow({
-  icon: Icon,
-  title,
-  desc,
+function PresetGroup({
+  icon,
   tone,
+  title,
+  items,
+  onPick,
 }: {
   icon: any;
-  title: string;
-  desc: string;
   tone: Tone;
+  title: string;
+  items: string[];
+  onPick: (item: string) => void;
 }) {
   const { colors, typography, spacing } = useTheme();
   const palette = useTone(tone);
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        borderRadius: 16,
-        borderCurve: "continuous",
-        backgroundColor: colors.fill,
-      }}
-    >
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 10,
-          borderCurve: "continuous",
-          backgroundColor: palette.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={16} color={palette.fg} strokeWidth={2.2} />
+    <Card padded={false}>
+      <View style={{ padding: spacing.lg, gap: spacing.md }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <IconTile icon={icon} tone={tone} size={36} />
+          <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]}>{title}</Text>
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {items.map((item) => (
+            <Pressable
+              key={item}
+              onPress={() => onPick(item)}
+              haptic="light"
+              pressedScale={0.95}
+              accessibilityRole="button"
+              accessibilityLabel={item}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                height: 34,
+                paddingLeft: 10,
+                paddingRight: 13,
+                borderRadius: 999,
+                backgroundColor: palette.bg,
+              }}
+            >
+              <Plus size={13} color={palette.fg} strokeWidth={2.6} />
+              <Text style={[typography.label.md, { color: colors.text }]}>{item}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text style={[typography.title.xs, { color: colors.text }]}>
-          {title}
-        </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
-          {desc}
-        </Text>
-      </View>
-    </View>
+    </Card>
   );
 }
 
-function HeroChip({ label }: { label: string }) {
+function HeroChip({ label, icon: Icon }: { label: string; icon?: any }) {
   const { spacing, typography } = useTheme();
   return (
     <View
       style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
         paddingHorizontal: spacing.md,
         paddingVertical: 6,
         borderRadius: 999,
@@ -806,6 +770,7 @@ function HeroChip({ label }: { label: string }) {
         alignSelf: "flex-start",
       }}
     >
+      {Icon ? <Icon size={13} color="#FFFFFF" strokeWidth={2.6} /> : null}
       <Text
         style={[
           typography.label.sm,

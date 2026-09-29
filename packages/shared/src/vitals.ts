@@ -320,12 +320,14 @@ export function classifyReading(input: ClassifyInput): ClassifyResult {
 
   // Generic bands
   const { low, high, criticalLow, criticalHigh } = r;
+  // VitalRange carries no unit — read it from the registry so notes don't say "undefined".
+  const unit = VITAL_REGISTRY[input.type]?.unit ?? "";
   if (criticalLow != null && input.value < criticalLow)
-    return { classification: "critical", range: r, note: `Critically low (<${criticalLow}${r.unit === "mmHg" || r.unit === "mg/dL" ? " " + r.unit : ""})` };
+    return { classification: "critical", range: r, note: `Critically low (<${criticalLow} ${unit})`.replace(" )", ")") };
   if (criticalHigh != null && input.value > criticalHigh)
-    return { classification: "critical", range: r, note: `Critically high (>${criticalHigh} ${r.unit})` };
-  if (input.value < low) return { classification: "low", range: r, note: `Below ${low} ${r.unit}` };
-  if (input.value > high) return { classification: "elevated", range: r, note: `Above ${high} ${r.unit}` };
+    return { classification: "critical", range: r, note: `Critically high (>${criticalHigh} ${unit})`.replace(" )", ")") };
+  if (input.value < low) return { classification: "low", range: r, note: `Below ${low} ${unit}`.trim() };
+  if (input.value > high) return { classification: "elevated", range: r, note: `Above ${high} ${unit}`.trim() };
   return { classification: "normal", range: r, note: "Within range" };
 }
 

@@ -5,7 +5,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope, ChevronRight, Building2 } from "lucide-react-native";
+import { Plus, CalendarPlus, Clock, X, Loader, FileText, AlertCircle, Wallet, Video, Stethoscope, ChevronRight, Hash } from "lucide-react-native";
 import { useMyAppointments, useCancelAppointment, useActiveTeleconsultSession } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
@@ -24,6 +24,7 @@ import {
   Timeline,
   BottomSheet,
   Button,
+  Chip,
   useToast,
 } from "@/components/ui";
 
@@ -201,9 +202,6 @@ export default function AppointmentsScreen() {
     (filter === "all" || filter === "upcoming");
 
   const upcomingCount = counts.upcoming;
-  const upcomingPct = all.length
-    ? Math.round((upcomingCount / all.length) * 100)
-    : 0;
   const contentPadding = spacing.lg;
 
   return (
@@ -212,10 +210,11 @@ export default function AppointmentsScreen() {
         title={t("appointments.title")}
         back={router.canGoBack()}
         onBack={() => router.back()}
-        subtitle={t("appointments.subtitle", {
-          total: all.length,
-          pct: upcomingPct,
-        })}
+        subtitle={
+          upcomingCount > 0
+            ? t("appointments.subtitleUpcoming", { count: upcomingCount })
+            : t("appointments.subtitleNone")
+        }
         right={
           <IconButton
             icon={Plus}
@@ -258,17 +257,21 @@ export default function AppointmentsScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -contentPadding }}
             contentContainerStyle={{
               flexDirection: "row",
               gap: spacing.sm,
               alignItems: "center",
+              paddingHorizontal: contentPadding,
+              paddingVertical: 6,
             }}
           >
             {MODE_FILTER_VALUES.map((v) => {
               const Icon = v === "video" ? Video : v === "in_person" ? Stethoscope : null;
               return (
-                <ModePill
+                <Chip
                   key={v}
+                  size="sm"
                   label={t(
                     v === "all"
                       ? "appointments.modeFilter.all"
@@ -276,8 +279,9 @@ export default function AppointmentsScreen() {
                       ? "appointments.modeFilter.video"
                       : "appointments.modeFilter.inPerson"
                   )}
-                  Icon={Icon}
-                  active={modeFilter === v}
+                  icon={Icon ?? undefined}
+                  selected={modeFilter === v}
+                  tone={modeFilter === v ? "primary" : "neutral"}
                   onPress={() => setModeFilter(v)}
                 />
               );
@@ -285,6 +289,48 @@ export default function AppointmentsScreen() {
           </ScrollView>
         </View>
       </View>
+
+      {!isLoading && !isError && all.length > 0 && upcomingCount === 0 && filter === "all" ? (
+        <View style={{ paddingHorizontal: contentPadding, paddingBottom: spacing.lg }}>
+          <Pressable
+            onPress={() => router.push("/(app)/book-appointment")}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              padding: spacing.md,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.primary,
+              }}
+            >
+              <CalendarPlus size={19} color={colors.onPrimary} strokeWidth={2.3} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[typography.title.sm, { color: colors.text }]}>
+                {t("appointments.nextVisitTitle")}
+              </Text>
+              <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={1}>
+                {t("appointments.nextVisitBody")}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.primary} strokeWidth={2.4} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Pinned upcoming video consultations — quick-join entries surfaced
           above the timeline whenever a video visit is approaching. */}
@@ -384,7 +430,7 @@ export default function AppointmentsScreen() {
 
               return (
                 <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", overflow: "hidden" }}>
-                  <View style={{ padding: spacing.lg }}>
+                  <View style={{ padding: spacing.md + 2 }}>
                     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
                       <Pressable
                         onPress={() =>
@@ -468,32 +514,17 @@ export default function AppointmentsScreen() {
                         )}
 
                         {/* Appointment Info */}
-                        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                          {/* Badges row: mode + status */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: spacing.xs,
-                              flexWrap: "wrap",
-                              marginBottom: 2,
-                            }}
-                          >
-                            {item.mode === "video" ? (
-                              <Pill
-                                icon={Video}
-                                label={t("appointments.mode.video")}
-                                tone="primary"
-                                size="sm"
-                              />
-                            ) : item.mode === "in_person" ? (
-                              <Pill
-                                icon={Stethoscope}
-                                label={t("appointments.mode.inPerson")}
-                                tone="neutral"
-                                size="sm"
-                              />
-                            ) : null}
+                        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                            <Text
+                              style={[typography.title.md, { color: colors.text, flex: 1 }]}
+                              numberOfLines={1}
+                            >
+                              {doctorDisplayName ||
+                                item.reason ||
+                                item.specialty ||
+                                t("appointments.fallbackTitle")}
+                            </Text>
                             {item.status ? (
                               <Pill
                                 label={
@@ -507,75 +538,49 @@ export default function AppointmentsScreen() {
                             ) : null}
                           </View>
 
-                          {/* Primary title: Doctor's name or reason */}
-                          <Text
-                            style={[
-                              typography.title.md,
-                              { color: colors.text },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {doctorDisplayName ||
-                              item.reason ||
-                              item.specialty ||
-                              t("appointments.fallbackTitle")}
-                          </Text>
-
-                          {/* Subtitle: Specialization / Hospital / Reason */}
                           {subDetails ? (
                             <Text
-                              style={[
-                                typography.body.sm,
-                                { color: colors.textMuted },
-                              ]}
+                              style={[typography.body.sm, { color: colors.textMuted }]}
                               numberOfLines={1}
                             >
                               {subDetails}
                             </Text>
                           ) : null}
 
-                          {/* Meta row: Time + Queue + Records */}
+                          {/* Meta: time · mode · queue · notes */}
                           <View
                             style={{
                               flexDirection: "row",
                               alignItems: "center",
-                              gap: spacing.sm,
+                              columnGap: spacing.md,
+                              rowGap: 4,
                               flexWrap: "wrap",
-                              marginTop: 2,
+                              marginTop: 4,
                             }}
                           >
                             {item.time ? (
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                                <Clock size={13} color={colors.textSubtle} strokeWidth={2.25} />
-                                <Text style={[typography.label.sm, { color: colors.textMuted }]}>
-                                  {item.time}
-                                </Text>
-                              </View>
+                              <MetaItem icon={Clock} label={item.time} />
+                            ) : null}
+                            {item.mode === "video" ? (
+                              <MetaItem icon={Video} label={t("appointments.mode.video")} color={colors.primary} />
+                            ) : item.mode === "in_person" ? (
+                              <MetaItem icon={Stethoscope} label={t("appointments.mode.inPerson")} />
                             ) : null}
                             {item.queueNumber ? (
-                              <Text style={[typography.label.sm, { color: colors.primary }]}>
-                                Queue #{item.queueNumber}
-                              </Text>
+                              <MetaItem
+                                icon={Hash}
+                                label={t("appointments.queue", { n: item.queueNumber })}
+                              />
                             ) : null}
                             {item.recordCount ? (
-                              <Pill
+                              <MetaItem
                                 icon={FileText}
-                                label={t("appointments.note", {
-                                  count: item.recordCount,
-                                })}
-                                tone="info"
-                                size="sm"
+                                label={t("appointments.note", { count: item.recordCount })}
+                                color={colors.info}
                               />
                             ) : null}
                           </View>
                         </View>
-
-                        <ChevronRight
-                          size={18}
-                          color={colors.textSubtle}
-                          strokeWidth={2}
-                          style={{ alignSelf: "center", marginLeft: 2 }}
-                        />
                       </Pressable>
 
                       {/* Cancel button */}
@@ -677,9 +682,23 @@ export default function AppointmentsScreen() {
                       </View>
                     ) : null}
 
-                    {/* Missed visits: compact outline recovery pill */}
+                    {/* Missed visits: slim recovery row */}
                     {item.bucket === "missed" ? (
-                      <View style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: spacing.sm,
+                          marginTop: spacing.md,
+                          paddingTop: spacing.sm + 2,
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: colors.separator,
+                        }}
+                      >
+                        <Text style={[typography.caption, { color: colors.textSubtle, flex: 1 }]} numberOfLines={1}>
+                          {t("appointments.missedNote")}
+                        </Text>
                         <Pressable
                           onPress={() =>
                             router.push({
@@ -689,21 +708,15 @@ export default function AppointmentsScreen() {
                           }
                           accessibilityRole="button"
                           accessibilityLabel={t("appointments.bookAgain")}
-                          hitSlop={6}
+                          hitSlop={8}
                           style={({ pressed }) => ({
-                            height: 36,
-                            alignSelf: "flex-start",
-                            paddingHorizontal: spacing.lg,
-                            borderRadius: radius.full,
                             flexDirection: "row",
                             alignItems: "center",
-                            justifyContent: "center",
-                            gap: 6,
-                            backgroundColor: colors.primarySoft,
-                            opacity: pressed ? 0.7 : 1,
+                            gap: 5,
+                            opacity: pressed ? 0.6 : 1,
                           })}
                         >
-                          <CalendarPlus size={14} color={colors.primary} strokeWidth={2.25} />
+                          <CalendarPlus size={14} color={colors.primary} strokeWidth={2.3} />
                           <Text style={[typography.label.md, { color: colors.primary }]}>
                             {t("appointments.bookAgain")}
                           </Text>
@@ -868,50 +881,16 @@ function FilterPill({
   );
 }
 
-function ModePill({
-  label,
-  Icon,
-  active,
-  onPress,
-}: {
-  label: string;
-  Icon: any;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const { colors, spacing, typography, radius } = useTheme();
+function MetaItem({ icon: Icon, label, color }: { icon: any; label: string; color?: string }) {
+  const { colors, typography } = useTheme();
+  const fg = color ?? colors.textMuted;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 34,
-        flexShrink: 0,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        paddingHorizontal: spacing.md + 2,
-        borderRadius: radius.full,
-        backgroundColor: active ? colors.primarySoft : colors.fill,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      {Icon ? <Icon size={13} color={active ? colors.primary : colors.textMuted} strokeWidth={2.25} /> : null}
-      <Text
-        numberOfLines={1}
-        style={[
-          typography.label.md,
-          {
-            color: active ? colors.primary : colors.textMuted,
-          },
-        ]}
-      >
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Icon size={13} color={fg} strokeWidth={2.25} />
+      <Text style={[typography.label.sm, { color: fg }]} numberOfLines={1}>
         {label}
       </Text>
-    </Pressable>
+    </View>
   );
 }
 

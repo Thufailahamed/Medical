@@ -1,9 +1,9 @@
 // @ts-nocheck
 // Caretaker Profiles: Marketplace — patient discovery list.
 //
-// Browse verified, available caretakers. Filter chips for district /
-// role / language. Tap a card → detail screen. Top-right "My sent
-// inquiries" → patient's own inquiry list.
+// Browse verified, available caretakers. Role chips inline; district /
+// language live behind a "Filters" panel. Tap a card → detail screen.
+// Top-right inbox → patient's own sent inquiries.
 
 import { useState } from "react";
 import {
@@ -22,18 +22,24 @@ import {
   MapPin,
   ChevronRight,
   Inbox,
+  SlidersHorizontal,
+  ShieldCheck,
+  UserPlus,
+  X,
+  RotateCcw,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
   Card,
+  IconButton,
+  Pressable,
   Chip,
   Pill,
   Avatar,
   Button,
   Divider,
-  EmptyState,
   Skeleton,
 } from "@/components/ui";
 import {
@@ -71,7 +77,7 @@ function languageName(code: string, t: any): string {
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
 
   const [district, setDistrict] = useState<string>("Any");
   const [role, setRole] = useState<CareRole | null>(null);
@@ -85,61 +91,125 @@ export default function MarketplaceScreen() {
   const search = useMarketplaceSearch(filters);
 
   const caretakers = search.data?.caretakers ?? [];
-  const refreshing = search.isFetching;
+  const refreshing = search.isFetching && !search.isLoading;
+
+  const [showMore, setShowMore] = useState(false);
+  const activeFilters =
+    (district !== "Any" ? 1 : 0) + (role ? 1 : 0) + (language !== "Any" ? 1 : 0);
+  const extraActive = (district !== "Any" ? 1 : 0) + (language !== "Any" ? 1 : 0);
+  const clearAll = () => {
+    setDistrict("Any");
+    setRole(null);
+    setLanguage("Any");
+  };
+  const goInvite = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(app)/caretakers" as any);
+  };
+  const filtersOn = showMore || extraActive > 0;
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
         back
         title={t("marketplace.title")}
-        subtitle={t("marketplace.subtitle")}
         right={
-          <Button
-            label={t("marketplace.ctaMyInquiries")}
-            onPress={() => router.push("/(app)/marketplace-inquiries" as any)}
+          <IconButton
             icon={Inbox}
-            variant="secondary"
-            compact
+            variant="surface"
+            onPress={() => router.push("/(app)/marketplace-inquiries" as any)}
+            accessibilityLabel={t("marketplace.ctaMyInquiries")}
           />
         }
       />
 
-      {/* ─── Filter chips ─── */}
+      {/* ─── Trust line ─── */}
       <View
         style={{
-          gap: spacing.sm,
-          paddingTop: spacing.xs,
-          paddingBottom: spacing.sm,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.separator,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: spacing.lg,
+          marginTop: -spacing.xs,
+          marginBottom: spacing.sm,
         }}
       >
-        <FilterLabel label={t("marketplace.filters.district")} />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}
+        <ShieldCheck size={14} color={colors.success} strokeWidth={2.4} />
+        <Text
+          style={[typography.body.sm, { color: colors.textMuted, flexShrink: 1 }]}
+          numberOfLines={1}
         >
-          {DISTRICTS.map((d) => (
-            <Chip
-              key={d}
-              label={d === "Any" ? t("marketplace.filters.any") : d}
-              selected={district === d}
-              tone={district === d ? "primary" : "neutral"}
-              onPress={() => setDistrict(d)}
-            />
-          ))}
-        </ScrollView>
+          {t("marketplace.trustLine")}
+        </Text>
+      </View>
 
-        <FilterLabel
-          label={t("marketplace.filters.role")}
-          style={{ marginTop: spacing.sm }}
-        />
+      {/* ─── Filters ─── */}
+      <View style={{ gap: spacing.sm, paddingBottom: spacing.sm }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}
+          // Vertical padding keeps the selected chip's coloured lift from
+          // being clipped into a hard-edged box by the scroll viewport.
+          contentContainerStyle={{
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: 6,
+            alignItems: "center",
+          }}
         >
+          <Pressable
+            onPress={() => setShowMore((v) => !v)}
+            haptic="light"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showMore }}
+            accessibilityLabel={t("marketplace.filtersCta")}
+            style={[
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                height: 36,
+                paddingLeft: spacing.md,
+                paddingRight: extraActive ? 6 : spacing.md,
+                borderRadius: radius.full,
+                backgroundColor: filtersOn ? colors.primarySoft : colors.surface,
+                borderWidth: StyleSheet.hairlineWidth * 2,
+                borderColor: filtersOn ? "transparent" : colors.hairline,
+              },
+              scheme === "dark" || filtersOn ? null : shadow.xs,
+            ]}
+          >
+            <SlidersHorizontal size={15} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.label.md, { color: colors.primary }]}>
+              {t("marketplace.filtersCta")}
+            </Text>
+            {extraActive ? (
+              <View
+                style={{
+                  minWidth: 22,
+                  height: 22,
+                  paddingHorizontal: 6,
+                  borderRadius: 11,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Text style={[typography.caption, { color: colors.onPrimary, fontWeight: "700" }]}>
+                  {extraActive}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+
+          <View
+            style={{
+              width: StyleSheet.hairlineWidth * 2,
+              height: 20,
+              backgroundColor: colors.separator,
+            }}
+          />
+
           <Chip
             label={t("marketplace.filters.any")}
             selected={role === null}
@@ -157,40 +227,107 @@ export default function MarketplaceScreen() {
           ))}
         </ScrollView>
 
-        <FilterLabel
-          label={t("marketplace.filters.language")}
-          style={{ marginTop: spacing.sm }}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            gap: spacing.sm,
-            paddingHorizontal: spacing.lg,
-            paddingBottom: spacing.xs,
-          }}
-        >
-          {LANGUAGES.map((l) => (
-            <Chip
-              key={l}
-              label={
-                l === "Any" ? t("marketplace.filters.any") : languageName(l, t)
-              }
-              selected={language === l}
-              tone={language === l ? "primary" : "neutral"}
-              onPress={() => setLanguage(l)}
+        {showMore ? (
+          <Card
+            variant="outline"
+            style={{ marginHorizontal: spacing.lg, gap: spacing.sm }}
+          >
+            <FilterLabel label={t("marketplace.filters.district")} />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              {DISTRICTS.map((d) => (
+                <Chip
+                  key={d}
+                  size="sm"
+                  label={d === "Any" ? t("marketplace.filters.any") : d}
+                  selected={district === d}
+                  tone={district === d ? "primary" : "neutral"}
+                  onPress={() => setDistrict(d)}
+                />
+              ))}
+            </View>
+            <FilterLabel
+              label={t("marketplace.filters.language")}
+              style={{ marginTop: spacing.sm }}
             />
-          ))}
-        </ScrollView>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              {LANGUAGES.map((l) => (
+                <Chip
+                  key={l}
+                  size="sm"
+                  label={l === "Any" ? t("marketplace.filters.any") : languageName(l, t)}
+                  selected={language === l}
+                  tone={language === l ? "primary" : "neutral"}
+                  onPress={() => setLanguage(l)}
+                />
+              ))}
+            </View>
+          </Card>
+        ) : extraActive ? (
+          // Collapsed panel: surface the hidden filters as removable tokens.
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: spacing.sm,
+              paddingHorizontal: spacing.lg,
+            }}
+          >
+            {district !== "Any" ? (
+              <ActiveToken
+                icon={MapPin}
+                label={district}
+                onRemove={() => setDistrict("Any")}
+              />
+            ) : null}
+            {language !== "Any" ? (
+              <ActiveToken
+                label={languageName(language, t)}
+                onRemove={() => setLanguage("Any")}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {!search.isLoading ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: spacing.lg,
+              minHeight: 24,
+            }}
+          >
+            <Text style={[typography.label.md, { color: colors.textMuted }]}>
+              {t("marketplace.resultCount", { count: caretakers.length })}
+            </Text>
+            {activeFilters > 0 ? (
+              <Pressable
+                onPress={clearAll}
+                haptic="light"
+                accessibilityRole="button"
+                hitSlop={8}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                <RotateCcw size={13} color={colors.primary} strokeWidth={2.4} />
+                <Text style={[typography.label.md, { color: colors.primary }]}>
+                  {t("marketplace.clearFilters")}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {/* ─── Caretaker list ─── */}
       <FlatList
         data={caretakers}
         keyExtractor={(c) => c.caretakerUserId}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          flexGrow: 1,
           padding: spacing.lg,
-          paddingTop: spacing.xl,
+          paddingTop: spacing.xs,
           gap: spacing.md,
           paddingBottom: spacing.xxxxl,
         }}
@@ -224,10 +361,10 @@ export default function MarketplaceScreen() {
               ))}
             </View>
           ) : (
-            <EmptyState
-              icon={Search}
-              title={t("marketplace.empty")}
-              body={t("marketplace.emptyBody")}
+            <EmptyResults
+              hasFilters={activeFilters > 0}
+              onClear={clearAll}
+              onInvite={goInvite}
             />
           )
         }
@@ -244,6 +381,139 @@ export default function MarketplaceScreen() {
   );
 }
 
+function EmptyResults({
+  hasFilters,
+  onClear,
+  onInvite,
+}: {
+  hasFilters: boolean;
+  onClear: () => void;
+  onInvite: () => void;
+}) {
+  const { t } = useTranslation();
+  const { spacing, colors, typography, shadow, scheme } = useTheme();
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.xxxl,
+        gap: spacing.lg,
+      }}
+    >
+      {/* Layered halo: two soft rings around a lifted icon disc. */}
+      <View
+        style={{
+          width: 148,
+          height: 148,
+          borderRadius: 74,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.primarySoft,
+        }}
+      >
+        <View
+          style={{
+            width: 108,
+            height: 108,
+            borderRadius: 54,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+          }}
+        >
+          <View
+            style={[
+              {
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.primary,
+              },
+              scheme === "dark" ? null : shadow.primary,
+            ]}
+          >
+            <Search size={28} color={colors.onPrimary} strokeWidth={2.4} />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ gap: spacing.xs, alignItems: "center", maxWidth: 320 }}>
+        <Text style={[typography.title.lg, { color: colors.text, textAlign: "center" }]}>
+          {t("marketplace.empty")}
+        </Text>
+        <Text
+          style={[
+            typography.body.md,
+            { color: colors.textMuted, textAlign: "center", lineHeight: 21 },
+          ]}
+        >
+          {t("marketplace.emptyBody")}
+        </Text>
+      </View>
+
+      <View style={{ alignSelf: "stretch", gap: spacing.sm }}>
+        {hasFilters ? (
+          <Button
+            title={t("marketplace.clearFilters")}
+            icon={RotateCcw}
+            onPress={onClear}
+            fullWidth
+          />
+        ) : null}
+        <Button
+          title={t("marketplace.inviteCta")}
+          icon={UserPlus}
+          variant={hasFilters ? "secondary" : "primary"}
+          onPress={onInvite}
+          fullWidth
+        />
+      </View>
+    </View>
+  );
+}
+
+function ActiveToken({
+  label,
+  icon: Icon,
+  onRemove,
+}: {
+  label: string;
+  icon?: any;
+  onRemove: () => void;
+}) {
+  const { spacing, colors, typography, radius } = useTheme();
+  return (
+    <Pressable
+      onPress={onRemove}
+      haptic="light"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        height: 30,
+        paddingLeft: spacing.sm + 2,
+        paddingRight: spacing.sm,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+      }}
+    >
+      {Icon ? <Icon size={12} color={colors.primary} strokeWidth={2.4} /> : null}
+      <Text style={[typography.caption, { color: colors.primary, fontWeight: "600" }]}>
+        {label}
+      </Text>
+      <X size={12} color={colors.primary} strokeWidth={2.6} />
+    </Pressable>
+  );
+}
+
 function FilterLabel({
   label,
   style,
@@ -251,16 +521,12 @@ function FilterLabel({
   label: string;
   style?: any;
 }) {
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography } = useTheme();
   return (
     <Text
       style={[
         typography.overline,
-        {
-          color: colors.textSubtle,
-          textTransform: "uppercase",
-          paddingHorizontal: spacing.lg,
-        },
+        { color: colors.textSubtle, textTransform: "uppercase" },
         style,
       ]}
     >

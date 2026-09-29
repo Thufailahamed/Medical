@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -185,6 +186,7 @@ export default function RegisterScreen() {
     });
   }, [specialtiesData]);
   const hospitals: any[] = hospitalsData?.hospitals || [];
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
@@ -331,504 +333,536 @@ export default function RegisterScreen() {
     }
   };
 
+  const passwordValue = watch("password") || "";
+
   return (
-    <Screen
-      padded={false}
-      keyboard
-      scroll
-      edges={["top", "bottom"]}
-      style={{ backgroundColor: colors.surface }}
-      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
-    >
-      {/* Branding Header with Back button */}
-      <View
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Soft brand glow behind the header (fixed; content scrolls over it) */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.primarySoft, colors.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginTop: 40,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 360,
         }}
+      />
+      <Screen
+        padded={false}
+        keyboard
+        scroll
+        edges={["top", "bottom"]}
+        style={{ backgroundColor: "transparent" }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
-            backgroundColor: pressed ? colors.fillStrong : colors.fill,
-          })}
-        >
-          <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} />
-        </Pressable>
+        {/* Header: back + brand */}
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 11,
-            borderCurve: "continuous",
-            overflow: "hidden",
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            marginTop: 16,
           }}
         >
-          <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Heart size={18} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
-        </View>
-        <Text
-          style={{
-            fontSize: 18,
-            color: colors.text,
-            letterSpacing: -0.4,
-            fontFamily: fontFamily.heavy,
-            marginLeft: 10,
-          }}
-        >
-          HealthHub
-        </Text>
-      </View>
-
-      {/* Heading Section */}
-      <View style={{ marginTop: 40, marginBottom: 28 }}>
-        <Text style={[typography.display.lg, { color: colors.text }]}>
-          Create account.
-        </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            color: colors.textMuted,
-            marginTop: 8,
-            fontFamily: fontFamily.body,
-            lineHeight: 22,
-          }}
-        >
-          {role === "doctor"
-            ? "Set up your practice profile so patients can find and book you."
-            : "Start managing your health today. It takes less than a minute."}
-        </Text>
-      </View>
-
-      {/* Segmented role selector — hidden for staff invites since role
-          is forced to hospital_staff. The invite banner below stands
-          in for it. */}
-      {!inviteToken ? (
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: colors.fill,
-          borderRadius: 14,
-          borderCurve: "continuous",
-          padding: 3,
-          marginBottom: 28,
-        }}
-      >
-        {(
-          [
-            { value: "patient", label: "Patient" },
-            { value: "doctor", label: "Doctor" },
-          ] as const
-        ).map(({ value, label }) => {
-          const active = role === value;
-          return (
-            <Pressable
-              key={value}
-              onPress={() => {
-                setRole(value);
-                setValue("role", value);
-                if (value === "patient") {
-                  setValue("doctorProfile.specialization", "");
-                  setValue("doctorProfile.registrationNumber", "");
-                  setValue("doctorProfile.hospitalId", "");
-                  setShowOtherSpecialty(false);
-                }
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Register as ${label}`}
-              accessibilityState={{ selected: active }}
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.hairline,
+              opacity: pressed ? 0.8 : 1,
+              ...shadow.xs,
+            })}
+          >
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} />
+          </Pressable>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", marginRight: 40 }}>
+            <View
               style={{
-                flex: 1,
+                width: 28,
+                height: 28,
+                borderRadius: 9,
+                borderCurve: "continuous",
+                overflow: "hidden",
                 alignItems: "center",
                 justifyContent: "center",
-                paddingVertical: 10,
-                borderRadius: 11,
-                borderCurve: "continuous",
-                backgroundColor: active
-                  ? scheme === "dark"
-                    ? colors.surfaceElevated
-                    : colors.surface
-                  : "transparent",
-                shadowColor: colors.shadow,
-                shadowOpacity: active && scheme !== "dark" ? 0.1 : 0,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: active ? 2 : 0,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "700",
-                  color: active ? colors.text : colors.textMuted,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      ) : (
-        // Phase 3.1 slice 3: staff-invite banner replaces the role selector.
-        // Tells the user what hospital they're joining and as which role.
-        <View
-          style={{
-            backgroundColor: colors.primarySoft,
-            borderRadius: radius.lg,
-            borderCurve: "continuous",
-            paddingVertical: spacing.md,
-            paddingHorizontal: spacing.lg,
-            marginBottom: 28,
-            gap: 4,
-          }}
-        >
-          <Text
-            style={[typography.overline, { color: colors.primary, textTransform: "uppercase" }]}
-          >
-            {`Joining ${inviteData?.hospitalName || "your hospital"}`}
-          </Text>
-          <Text style={[typography.title.sm, { color: colors.text }]}>
-            {`Role: ${inviteData?.role || role}`}
-          </Text>
-        </View>
-      )}
-
-      {/* Form Fields */}
-      <View style={{ gap: 16 }}>
-        {/* Full Name */}
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Full name"
-              value={value || ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="John Doe"
-              icon={User}
-              autoCapitalize="words"
-              autoComplete="name"
-              error={errors.name?.message}
-            />
-          )}
-        />
-
-        {/* Email */}
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Email"
-              value={value || ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="you@example.com"
-              icon={Mail}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              error={errors.email?.message}
-            />
-          )}
-        />
-
-        {/* Phone */}
-        <Controller
-          control={control}
-          name="phone"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Phone (optional)"
-              value={value || ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="+94 77 123 4567"
-              icon={Phone}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              error={errors.phone?.message}
-            />
-          )}
-        />
-
-        {/* Phase 1.2b: NIC field hidden entirely when DOB indicates under 16.
-            Most SL kids don't have an NIC issued yet at that age. Adults
-            can register once their child outgrows the threshold and gets an
-            NIC of their own, or a parent can manage them via the Family
-            screen. */}
-        {role !== "hospital_staff" ? (() => {
-          const dobValue = (watch("dob") || "").trim();
-          const age = ageFromDob(dobValue);
-          const isMinorSelfRegistering =
-            role === "patient" && age !== null && age < MINOR_NIC_THRESHOLD;
-          if (isMinorSelfRegistering) {
-            return (
-              <View
-                style={{
-                  backgroundColor: colors.primarySoft,
-                  padding: spacing.md,
-                  borderRadius: radius.md,
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  gap: spacing.sm,
-                }}
-              >
-                <Calendar size={16} color={colors.primary} strokeWidth={2.25} style={{ marginTop: 2 }} />
-                <Text
-                  style={[
-                    typography.caption,
-                    { color: colors.text, flex: 1, lineHeight: 18 },
-                  ]}
-                >
-                  {`Children under ${MINOR_NIC_THRESHOLD} can register without a NIC. A parent or guardian can manage your records from the Family screen once you're signed in.`}
-                </Text>
-              </View>
-            );
-          }
-          return (
-            <Controller
-              control={control}
-              name="nic"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <CustomUnderlineInput
-                  label={role === "patient" ? "National ID *" : "National ID (optional)"}
-                  value={value || ""}
-                  onChangeText={(t) => onChange(t.toUpperCase())}
-                  onBlur={onBlur}
-                  placeholder="200012345678 or 123456789V"
-                  icon={IdCard}
-                  autoCapitalize="characters"
-                  error={errors.nic?.message}
-                />
-              )}
-            />
-          );
-        })() : null}
-
-        {/* NIC hint — shows the DOB encoded in the NIC. Auto-fills the
-            DOB field if the user hasn't typed anything yet so they just
-            confirm. Hidden for minors since their NIC field is hidden. */}
-        {(() => {
-          const nicValue = (watch("nic") || "").trim();
-          const dobValue = (watch("dob") || "").trim();
-          const age = ageFromDob(dobValue);
-          if (age !== null && age < MINOR_NIC_THRESHOLD) return null;
-          if (!nicValue || !isStructurallyValidNic(nicValue)) return null;
-          const encoded = nicEncodedDob(nicValue);
-          if (!encoded) return null;
-          // Auto-fill once: only when DOB field is empty so we don't clobber.
-          if (!dobValue) {
-            setTimeout(() => setValue("dob", encoded, { shouldValidate: true }), 0);
-          }
-          const matches = dobValue && nicMatchesDob(nicValue, dobValue);
-          return (
+              <LinearGradient
+                colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Heart size={14} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+            </View>
             <Text
               style={{
-                fontSize: 12,
-                marginTop: -10,
-                color: matches ? colors.success : colors.textMuted,
-                fontFamily: fontFamily.body,
+                fontSize: 16,
+                color: colors.text,
+                letterSpacing: -0.4,
+                fontFamily: fontFamily.heavy,
+                marginLeft: 8,
               }}
             >
-              {matches
-                ? "✓ DOB matches the NIC."
-                : `This NIC encodes birthdate ${encoded}. Make sure the date below matches.`}
+              HealthHub
             </Text>
-          );
-        })()}
+          </View>
+        </View>
 
-        {/* DOB (required for patient) */}
-        {role === "patient" ? (
+        {/* Heading Section */}
+        <View style={{ marginTop: 32, marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.primary,
+              fontFamily: fontFamily.bodyBold,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              marginBottom: 8,
+            }}
+          >
+            {inviteToken ? "Staff invite" : role === "doctor" ? "For doctors" : "Get started"}
+          </Text>
+          <Text style={[typography.display.lg, { color: colors.text }]}>
+            Create account
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              color: colors.textMuted,
+              marginTop: 8,
+              fontFamily: fontFamily.body,
+              lineHeight: 22,
+            }}
+          >
+            {role === "doctor"
+              ? "Set up your practice profile so patients can find and book you."
+              : "Start managing your health today. It takes less than a minute."}
+          </Text>
+        </View>
+
+        {/* Role selector — hidden for staff invites since role is forced to
+            hospital_staff. The invite banner below stands in for it. */}
+        {!inviteToken ? (
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: 28 }}>
+            {(
+              [
+                { value: "patient", label: "Patient", hint: "Track my health", icon: User },
+                { value: "doctor", label: "Doctor", hint: "Run my practice", icon: Stethoscope },
+              ] as const
+            ).map(({ value, label, hint, icon: Icon }) => {
+              const active = role === value;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => {
+                    setRole(value);
+                    setValue("role", value);
+                    if (value === "patient") {
+                      setValue("doctorProfile.specialization", "");
+                      setValue("doctorProfile.registrationNumber", "");
+                      setValue("doctorProfile.hospitalId", "");
+                      setShowOtherSpecialty(false);
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Register as ${label}`}
+                  accessibilityState={{ selected: active }}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    padding: 14,
+                    borderRadius: 18,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.surface,
+                    borderWidth: 1.5,
+                    borderColor: active ? colors.primary : colors.hairline,
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    ...(active ? shadow.sm : shadow.xs),
+                  })}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 11,
+                        borderCurve: "continuous",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: active ? colors.primarySoft : colors.well,
+                      }}
+                    >
+                      <Icon
+                        size={18}
+                        color={active ? colors.primary : colors.textMuted}
+                        strokeWidth={2.25}
+                      />
+                    </View>
+                    <View
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: active ? 6 : 1.5,
+                        borderColor: active ? colors.primary : colors.borderStrong,
+                        backgroundColor: colors.surface,
+                      }}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: colors.text,
+                      fontFamily: fontFamily.bodyBold,
+                      marginTop: 12,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textMuted,
+                      fontFamily: fontFamily.body,
+                      marginTop: 2,
+                    }}
+                  >
+                    {hint}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          // Phase 3.1 slice 3: staff-invite banner replaces the role selector.
+          // Tells the user what hospital they're joining and as which role.
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.hairline,
+              padding: spacing.lg,
+              marginBottom: 28,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              ...shadow.xs,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.primarySoft,
+              }}
+            >
+              <ShieldCheck size={20} color={colors.primary} strokeWidth={2.25} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text
+                style={[typography.overline, { color: colors.primary, textTransform: "uppercase" }]}
+              >
+                {`Joining ${inviteData?.hospitalName || "your hospital"}`}
+              </Text>
+              <Text style={[typography.title.sm, { color: colors.text }]}>
+                {`Role: ${inviteData?.role || role}`}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* ─── About you ─── */}
+        <FormSection title="About you">
           <Controller
             control={control}
-            name="dob"
-            render={({ field: { onChange, value } }) => (
-              <CustomUnderlineDatePicker
-                label="Date of birth *"
+            name="name"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                label="Full name"
+                required
                 value={value || ""}
-                onChange={onChange}
-                placeholder="YYYY-MM-DD"
-                icon={Calendar}
-                error={errors.dob?.message}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="e.g. Nimali Perera"
+                icon={User}
+                autoCapitalize="words"
+                autoComplete="name"
+                error={errors.name?.message}
               />
             )}
           />
+
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                label="Email"
+                required
+                value={value || ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="you@example.com"
+                icon={Mail}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                error={errors.email?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                label="Mobile number"
+                optional
+                value={value || ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="+94 77 123 4567"
+                icon={Phone}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                hint={role === "patient" ? "We'll text a code to verify it." : undefined}
+                error={errors.phone?.message}
+              />
+            )}
+          />
+        </FormSection>
+
+        {/* ─── Identity ─── */}
+        {role !== "hospital_staff" ? (
+          <FormSection title="Identity">
+            {/* Phase 1.2b: NIC field hidden entirely when DOB indicates under 16.
+                Most SL kids don't have an NIC issued yet at that age. Adults
+                can register once their child outgrows the threshold and gets an
+                NIC of their own, or a parent can manage them via the Family
+                screen. */}
+            {(() => {
+              const dobValue = (watch("dob") || "").trim();
+              const age = ageFromDob(dobValue);
+              const isMinorSelfRegistering =
+                role === "patient" && age !== null && age < MINOR_NIC_THRESHOLD;
+              if (isMinorSelfRegistering) {
+                return (
+                  <View
+                    style={{
+                      backgroundColor: colors.primarySoft,
+                      padding: spacing.md,
+                      borderRadius: radius.md,
+                      borderCurve: "continuous",
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: spacing.sm,
+                    }}
+                  >
+                    <Calendar size={16} color={colors.primary} strokeWidth={2.25} style={{ marginTop: 2 }} />
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.text, flex: 1, lineHeight: 18 },
+                      ]}
+                    >
+                      {`Children under ${MINOR_NIC_THRESHOLD} can register without a NIC. A parent or guardian can manage your records from the Family screen once you're signed in.`}
+                    </Text>
+                  </View>
+                );
+              }
+
+              // NIC hint — shows the DOB encoded in the NIC. Auto-fills the
+              // DOB field if the user hasn't typed anything yet so they just
+              // confirm.
+              const nicValue = (watch("nic") || "").trim();
+              let hint: string | undefined;
+              let hintTone: "success" | "muted" = "muted";
+              if (nicValue && isStructurallyValidNic(nicValue)) {
+                const encoded = nicEncodedDob(nicValue);
+                if (encoded) {
+                  // Auto-fill once: only when DOB field is empty so we don't clobber.
+                  if (!dobValue) {
+                    setTimeout(() => setValue("dob", encoded, { shouldValidate: true }), 0);
+                  }
+                  const matches = dobValue && nicMatchesDob(nicValue, dobValue);
+                  hint = matches
+                    ? "✓ Date of birth matches this NIC."
+                    : `This NIC encodes birthdate ${encoded}. Make sure the date below matches.`;
+                  hintTone = matches ? "success" : "muted";
+                }
+              }
+
+              return (
+                <Controller
+                  control={control}
+                  name="nic"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <FormInput
+                      label="National ID (NIC)"
+                      required={role === "patient"}
+                      optional={role !== "patient"}
+                      value={value || ""}
+                      onChangeText={(t) => onChange(t.toUpperCase())}
+                      onBlur={onBlur}
+                      placeholder="200012345678 or 123456789V"
+                      icon={IdCard}
+                      autoCapitalize="characters"
+                      hint={hint}
+                      hintTone={hintTone}
+                      error={errors.nic?.message}
+                    />
+                  )}
+                />
+              );
+            })()}
+
+            {/* DOB (required for patient) */}
+            {role === "patient" ? (
+              <Controller
+                control={control}
+                name="dob"
+                render={({ field: { onChange, value } }) => (
+                  <FormDatePicker
+                    label="Date of birth"
+                    value={value || ""}
+                    onChange={onChange}
+                    placeholder="Select your birthday"
+                    icon={Calendar}
+                    error={errors.dob?.message}
+                  />
+                )}
+              />
+            ) : null}
+          </FormSection>
         ) : null}
 
-        {/* Password */}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Password"
-              value={value || ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="At least 8 characters"
-              icon={Lock}
-              secureTextEntry={!showPassword}
-              rightIcon={showPassword ? EyeOff : Eye}
-              onRightIconPress={() => setShowPassword(!showPassword)}
-              error={errors.password?.message}
-            />
-          )}
-        />
-
-        {/* Confirm Password */}
-        <Controller
-          control={control}
-          name="confirm"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomUnderlineInput
-              label="Confirm password"
-              value={value || ""}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="Repeat password"
-              icon={Lock}
-              secureTextEntry={!showConfirmPassword}
-              rightIcon={showConfirmPassword ? EyeOff : Eye}
-              onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              error={errors.confirm?.message}
-            />
-          )}
-        />
-
-        {/* Doctor profile details */}
+        {/* ─── Practice details (doctor) ─── */}
         {role === "doctor" ? (
-          <View style={{ marginTop: 12, gap: 16 }}>
-            {/* Specialty Field */}
-            <View style={{ marginBottom: 4 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.bodySemibold,
-                  marginLeft: 2,
-                  marginBottom: 8,
-                }}
-              >
-                Specialty *
-              </Text>
+          <FormSection title="Practice details">
+            {/* Specialty */}
+            <View>
+              <FieldLabel label="Specialty" required />
               <View
                 style={{
                   flexDirection: "row",
                   flexWrap: "wrap",
                   gap: spacing.sm,
-                  marginBottom: spacing.sm,
                 }}
               >
-                {specialties.map((s) => (
-                  <Pressable
-                    key={s}
-                    onPress={() => {
-                      setValue("doctorProfile.specialization", s, {
-                        shouldValidate: true,
-                      });
-                      setShowOtherSpecialty(false);
-                    }}
-                    style={{
-                      paddingHorizontal: 14,
-                      height: 34,
-                      justifyContent: "center",
-                      borderRadius: radius.full,
-                      borderWidth: 1,
-                      borderColor: selectedSpecialization === s ? colors.primary : "transparent",
-                      backgroundColor: selectedSpecialization === s ? colors.primarySoft : colors.fill,
-                    }}
-                  >
-                    <Text
+                {[...specialties, "__other__"].map((s) => {
+                  const isOther = s === "__other__";
+                  const active = isOther ? showOtherSpecialty : selectedSpecialization === s;
+                  return (
+                    <Pressable
+                      key={s}
+                      onPress={() => {
+                        if (isOther) {
+                          setShowOtherSpecialty((v) => !v);
+                          setValue("doctorProfile.specialization", "", {
+                            shouldValidate: false,
+                          });
+                        } else {
+                          setValue("doctorProfile.specialization", s, {
+                            shouldValidate: true,
+                          });
+                          setShowOtherSpecialty(false);
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
                       style={{
-                        fontSize: 13,
-                        fontWeight: "700",
-                        color: selectedSpecialization === s ? colors.primary : colors.textMuted,
+                        paddingHorizontal: 14,
+                        height: 34,
+                        justifyContent: "center",
+                        borderRadius: radius.full,
+                        borderWidth: 1,
+                        borderColor: active ? colors.primary : "transparent",
+                        backgroundColor: active ? colors.primarySoft : colors.fill,
                       }}
                     >
-                      {s}
-                    </Text>
-                  </Pressable>
-                ))}
-                <Pressable
-                  onPress={() => {
-                    setShowOtherSpecialty((v) => !v);
-                    setValue("doctorProfile.specialization", "", {
-                      shouldValidate: false,
-                    });
-                  }}
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: active ? colors.primary : colors.textMuted,
+                          fontFamily: fontFamily.bodyBold,
+                        }}
+                      >
+                        {isOther ? "Other" : s}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {errors.doctorProfile?.specialization?.message && !showOtherSpecialty ? (
+                <Text
                   style={{
-                    paddingHorizontal: 14,
-                    height: 34,
-                    justifyContent: "center",
-                    borderRadius: radius.full,
-                    borderWidth: 1,
-                    borderColor: showOtherSpecialty ? colors.primary : "transparent",
-                    backgroundColor: showOtherSpecialty ? colors.primarySoft : colors.fill,
+                    fontSize: 12,
+                    color: colors.danger,
+                    marginTop: 6,
+                    marginLeft: 2,
+                    fontFamily: fontFamily.body,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: showOtherSpecialty ? colors.primary : colors.textMuted,
-                    }}
-                  >
-                    Other
-                  </Text>
-                </Pressable>
-              </View>
-
-              {showOtherSpecialty ? (
-                <Controller
-                  control={control}
-                  name="doctorProfile.specialization"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <CustomUnderlineInput
-                      label="Custom specialty"
-                      value={value || ""}
-                      onChangeText={(t) => onChange(t, { shouldValidate: true })}
-                      onBlur={onBlur}
-                      placeholder="e.g. Cardiology"
-                      icon={Stethoscope}
-                      error={errors.doctorProfile?.specialization?.message}
-                    />
-                  )}
-                />
+                  {errors.doctorProfile.specialization.message}
+                </Text>
               ) : null}
             </View>
 
-            {/* Registration number */}
+            {showOtherSpecialty ? (
+              <Controller
+                control={control}
+                name="doctorProfile.specialization"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormInput
+                    label="Custom specialty"
+                    required
+                    value={value || ""}
+                    onChangeText={(t) => onChange(t)}
+                    onBlur={onBlur}
+                    placeholder="e.g. Cardiology"
+                    icon={Stethoscope}
+                    error={errors.doctorProfile?.specialization?.message}
+                  />
+                )}
+              />
+            ) : null}
+
             <Controller
               control={control}
               name="doctorProfile.registrationNumber"
               render={({ field: { onChange, onBlur, value } }) => (
-                <CustomUnderlineInput
+                <FormInput
                   label="SLMC registration number"
+                  optional
                   value={value || ""}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholder="e.g., 12345"
+                  placeholder="e.g. 12345"
                   icon={IdCard}
                   autoCapitalize="characters"
                   error={errors.doctorProfile?.registrationNumber?.message}
@@ -837,25 +871,15 @@ export default function RegisterScreen() {
             />
 
             {/* Hospital Search */}
-            <View style={{ marginBottom: 4 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.bodySemibold,
-                  marginLeft: 2,
-                  marginBottom: 8,
-                }}
-              >
-                Hospital (optional)
-              </Text>
+            <View>
+              <FieldLabel label="Hospital" optional />
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  minHeight: 44,
-                  paddingHorizontal: 12,
-                  borderRadius: radius.md,
+                  minHeight: 54,
+                  paddingHorizontal: 14,
+                  borderRadius: radius.field,
                   borderCurve: "continuous",
                   backgroundColor: colors.fill,
                 }}
@@ -868,10 +892,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={colors.textSubtle}
                   style={{
                     flex: 1,
-                    fontSize: 15,
+                    fontSize: 16,
                     color: colors.text,
                     fontFamily: fontFamily.body,
-                    padding: 0,
+                    paddingVertical: 14,
                   }}
                   autoCapitalize="none"
                 />
@@ -907,7 +931,7 @@ export default function RegisterScreen() {
                   </Pressable>
                 </View>
               ) : hospitalsLoading ? (
-                <View style={{ marginTop: spacing.sm, height: 56, backgroundColor: colors.fill, borderRadius: radius.md, borderCurve: "continuous" }} />
+                <Skeleton height={56} style={{ marginTop: spacing.sm, borderRadius: radius.md }} />
               ) : hospitals.length > 0 && hospitalQuery ? (
                 <View
                   style={{
@@ -959,8 +983,60 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
             </View>
-          </View>
+          </FormSection>
         ) : null}
+
+        {/* ─── Security ─── */}
+        <FormSection title="Security">
+          <View>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <FormInput
+                  label="Password"
+                  required
+                  value={value || ""}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="At least 8 characters"
+                  icon={Lock}
+                  secureTextEntry={!showPassword}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  rightIcon={showPassword ? EyeOff : Eye}
+                  onRightIconPress={() => setShowPassword(!showPassword)}
+                  error={errors.password?.message}
+                />
+              )}
+            />
+            {passwordValue && !errors.password ? (
+              <PasswordStrength value={passwordValue} />
+            ) : null}
+          </View>
+
+          <Controller
+            control={control}
+            name="confirm"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                label="Confirm password"
+                required
+                value={value || ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Repeat password"
+                icon={Lock}
+                secureTextEntry={!showConfirmPassword}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                rightIcon={showConfirmPassword ? EyeOff : Eye}
+                onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                error={errors.confirm?.message}
+              />
+            )}
+          />
+        </FormSection>
 
         {/* Error Banner */}
         {errors.root ? (
@@ -970,10 +1046,11 @@ export default function RegisterScreen() {
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
               borderRadius: radius.md,
+              borderCurve: "continuous",
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
-              marginTop: 10,
+              marginBottom: spacing.md,
             }}
           >
             <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
@@ -992,68 +1069,201 @@ export default function RegisterScreen() {
         <Pressable
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: submitting, busy: submitting }}
           style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.primary,
-            height: 54,
             borderRadius: radius.button,
             borderCurve: "continuous",
-            overflow: "hidden",
-            marginTop: 16,
-            opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
+            opacity: submitting ? 0.7 : 1,
             transform: [{ scale: pressed ? 0.98 : 1 }],
-            gap: 8,
+            ...shadow.primary,
           })}
         >
           <LinearGradient
-            pointerEvents="none"
             colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "700",
-                  color: "#FFFFFF",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {role === "doctor" ? "Create doctor account" : "Create account"}
-              </Text>
-              <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
-            </>
-          )}
+            style={{
+              height: 54,
+              borderRadius: radius.button,
+              borderCurve: "continuous",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: "#FFFFFF",
+                    fontFamily: fontFamily.bodyBold,
+                  }}
+                >
+                  {role === "doctor" ? "Create doctor account" : "Create account"}
+                </Text>
+                <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.25} />
+              </>
+            )}
+          </LinearGradient>
         </Pressable>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            marginTop: spacing.md,
+          }}
+        >
+          <ShieldCheck size={13} color={colors.success} strokeWidth={2.5} />
+          <Text style={{ fontSize: 12, color: colors.textMuted, fontFamily: fontFamily.body }}>
+            Your health data is encrypted and private.
+          </Text>
+        </View>
 
         {/* Footer Link */}
         <Pressable
           onPress={() => router.push("/(auth)/login" as any)}
           accessibilityRole="link"
           hitSlop={8}
-          style={{ alignItems: "center", paddingVertical: spacing.xs, marginBottom: 60 }}
+          style={{ alignItems: "center", paddingVertical: spacing.md, marginTop: spacing.sm, marginBottom: spacing.xl }}
         >
           <Text style={{ fontSize: 15, color: colors.textMuted, fontFamily: fontFamily.body }}>
             Already have an account?{" "}
-            <Text style={{ color: colors.primary, fontWeight: "700", fontFamily: fontFamily.bodyBold }}>
+            <Text style={{ color: colors.primary, fontFamily: fontFamily.bodyBold }}>
               Sign in
             </Text>
           </Text>
         </Pressable>
-      </View>
-    </Screen>
+      </Screen>
+    </View>
   );
 }
 
-function CustomUnderlineInput({
+// ─── Section: overline title + floating card ───────────────
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  const { colors, fontFamily, spacing, shadow } = useTheme();
+  return (
+    <View style={{ marginBottom: spacing.xl }}>
+      <Text
+        style={{
+          fontSize: 12,
+          color: colors.textMuted,
+          fontFamily: fontFamily.bodyBold,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          marginBottom: 10,
+          marginLeft: 4,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: 22,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
+          padding: spacing.lg,
+          gap: 18,
+          ...shadow.card,
+        }}
+      >
+        {children}
+      </View>
+    </View>
+  );
+}
+
+// ─── Field label with required dot / optional tag ──────────
+function FieldLabel({
   label,
+  required,
+  optional,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+}) {
+  const { colors, fontFamily } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+        marginHorizontal: 2,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 13,
+          color: colors.textMuted,
+          fontFamily: fontFamily.bodySemibold,
+        }}
+      >
+        {label}
+        {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
+      </Text>
+      {optional ? (
+        <Text style={{ fontSize: 12, color: colors.textSubtle, fontFamily: fontFamily.body }}>
+          Optional
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+// ─── 4-step password strength meter ────────────────────────
+function PasswordStrength({ value }: { value: string }) {
+  const { colors, fontFamily } = useTheme();
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^A-Za-z0-9]/.test(value) || value.length >= 14) score++;
+  const levels = [
+    { label: "Too short", color: colors.danger },
+    { label: "Weak", color: colors.danger },
+    { label: "Fair", color: colors.warning },
+    { label: "Good", color: colors.primary },
+    { label: "Strong", color: colors.success },
+  ];
+  const level = levels[score];
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, marginHorizontal: 2 }}>
+      <View style={{ flex: 1, flexDirection: "row", gap: 4 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: i < score ? level.color : colors.fill,
+            }}
+          />
+        ))}
+      </View>
+      <Text style={{ fontSize: 12, color: level.color, fontFamily: fontFamily.bodySemibold, minWidth: 56, textAlign: "right" }}>
+        {level.label}
+      </Text>
+    </View>
+  );
+}
+
+function FormInput({
+  label,
+  required,
+  optional,
   value,
   onChangeText,
   placeholder,
@@ -1061,11 +1271,15 @@ function CustomUnderlineInput({
   secureTextEntry,
   rightIcon: RightIcon,
   onRightIconPress,
+  hint,
+  hintTone = "muted",
   error,
   onBlur,
   ...props
 }: {
   label: string;
+  required?: boolean;
+  optional?: boolean;
   value: string;
   onChangeText: (v: string) => void;
   placeholder: string;
@@ -1073,6 +1287,8 @@ function CustomUnderlineInput({
   secureTextEntry?: boolean;
   rightIcon?: any;
   onRightIconPress?: () => void;
+  hint?: string;
+  hintTone?: "success" | "muted";
   error?: string;
   onBlur?: () => void;
   [key: string]: any;
@@ -1081,23 +1297,9 @@ function CustomUnderlineInput({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={{ marginBottom: 2 }}>
-      {/* Label */}
-      <View style={{ flexDirection: "row", marginBottom: 8 }}>
-        <Text
-          style={{
-            fontSize: 13,
-            color: colors.textMuted,
-            fontFamily: fontFamily.bodySemibold,
-            marginLeft: 2,
-          }}
-        >
-          {label}
-        </Text>
-        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
-      </View>
+    <View>
+      <FieldLabel label={label} required={required} optional={optional} />
 
-      {/* Input Row */}
       <View
         style={{
           flexDirection: "row",
@@ -1106,13 +1308,17 @@ function CustomUnderlineInput({
           paddingHorizontal: 14,
           borderRadius: radius.field,
           borderCurve: "continuous",
-          backgroundColor: colors.fill,
+          backgroundColor: focused ? colors.surface : colors.fill,
           borderWidth: 1.5,
           borderColor: error ? colors.danger : focused ? colors.primary : "transparent",
         }}
       >
-        <Icon size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
-        
+        <Icon
+          size={18}
+          color={error ? colors.danger : focused ? colors.primary : colors.textSubtle}
+          style={{ marginRight: 10 }}
+        />
+
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -1135,30 +1341,48 @@ function CustomUnderlineInput({
         />
 
         {RightIcon && (
-          <Pressable onPress={onRightIconPress} hitSlop={8}>
+          <Pressable
+            onPress={onRightIconPress}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={secureTextEntry ? "Show password" : "Hide password"}
+          >
             <RightIcon size={18} color={colors.textSubtle} />
           </Pressable>
         )}
       </View>
 
-      {/* Error text */}
-      {error && (
+      {error ? (
         <Text
           style={{
             fontSize: 12,
-            color: colors.danger || "#FF3B30",
+            color: colors.danger,
             marginTop: 6,
+            marginLeft: 2,
             fontFamily: fontFamily.body,
           }}
         >
           {error}
         </Text>
-      )}
+      ) : hint ? (
+        <Text
+          style={{
+            fontSize: 12,
+            color: hintTone === "success" ? colors.success : colors.textMuted,
+            marginTop: 6,
+            marginLeft: 2,
+            fontFamily: fontFamily.body,
+            lineHeight: 17,
+          }}
+        >
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-function CustomUnderlineDatePicker({
+function FormDatePicker({
   label,
   value,
   onChange,
@@ -1176,7 +1400,10 @@ function CustomUnderlineDatePicker({
   const { colors, fontFamily, radius } = useTheme();
   const [show, setShow] = useState(false);
 
-  const dateValue = value ? new Date(value) : new Date();
+  // Open near a typical adult birth year rather than today.
+  const [yy, mm, dd] = value.split("-").map(Number);
+  const parsed = value && yy && mm && dd ? new Date(yy, mm - 1, dd) : null;
+  const dateValue = parsed ?? new Date(2000, 0, 1);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -1190,26 +1417,23 @@ function CustomUnderlineDatePicker({
     }
   };
 
-  return (
-    <View style={{ marginBottom: 4 }}>
-      {/* Label */}
-      <View style={{ flexDirection: "row", marginBottom: 6 }}>
-        <Text
-          style={{
-            fontSize: 13,
-            color: colors.textMuted,
-            fontFamily: fontFamily.bodySemibold,
-            marginLeft: 2,
-          }}
-        >
-          {label}
-        </Text>
-        <Text style={{ fontSize: 11, color: colors.danger || "#FF3B30", marginLeft: 2 }}>*</Text>
-      </View>
+  const display = parsed
+    ? parsed.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : placeholder;
 
-      {/* Pressable Field Row */}
+  return (
+    <View>
+      <FieldLabel label={label} required />
+
       <Pressable
-        onPress={() => setShow(true)}
+        onPress={() => {
+          Keyboard.dismiss();
+          setShow((s) => !s);
+        }}
         accessibilityRole="button"
         accessibilityLabel={label}
         style={{
@@ -1219,13 +1443,16 @@ function CustomUnderlineDatePicker({
           paddingHorizontal: 14,
           borderRadius: radius.field,
           borderCurve: "continuous",
-          backgroundColor: colors.fill,
+          backgroundColor: show ? colors.surface : colors.fill,
           borderWidth: 1.5,
           borderColor: error ? colors.danger : show ? colors.primary : "transparent",
         }}
       >
-        <Icon size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
-
+        <Icon
+          size={18}
+          color={error ? colors.danger : show ? colors.primary : colors.textSubtle}
+          style={{ marginRight: 10 }}
+        />
         <Text
           style={{
             flex: 1,
@@ -1235,33 +1462,50 @@ function CustomUnderlineDatePicker({
             paddingVertical: 14,
           }}
         >
-          {value || placeholder}
+          {display}
         </Text>
       </Pressable>
 
       {show && (
-        <DateTimePicker
-          value={dateValue}
-          mode="date"
-          onChange={handleDateChange}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          maximumDate={new Date()}
-        />
+        <View>
+          <DateTimePicker
+            value={dateValue}
+            mode="date"
+            onChange={handleDateChange}
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            maximumDate={new Date()}
+          />
+          {Platform.OS === "ios" ? (
+            <Pressable
+              onPress={() => {
+                if (!value) handleDateChange(null, dateValue);
+                setShow(false);
+              }}
+              accessibilityRole="button"
+              hitSlop={8}
+              style={{ alignSelf: "flex-end", paddingHorizontal: 8, paddingVertical: 4 }}
+            >
+              <Text style={{ fontSize: 15, color: colors.primary, fontFamily: fontFamily.bodyBold }}>
+                Done
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       )}
 
-      {/* Error text */}
-      {error && (
+      {error ? (
         <Text
           style={{
             fontSize: 12,
-            color: colors.danger || "#FF3B30",
+            color: colors.danger,
             marginTop: 6,
+            marginLeft: 2,
             fontFamily: fontFamily.body,
           }}
         >
           {error}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }

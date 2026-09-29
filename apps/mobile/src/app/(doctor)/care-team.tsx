@@ -5,7 +5,6 @@ import {
   Text,
   Pressable,
   ScrollView,
-  TextInput as RNTextInput,
   RefreshControl,
   StyleSheet,
   Image,
@@ -15,7 +14,6 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import {
   Users,
-  ChevronLeft,
   ChevronRight,
   Search,
   X,
@@ -31,7 +29,7 @@ import { useDoctorCareTeamPatients } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
 import { tonePalette, type Tone } from "@/theme/tone";
-import { Screen, Skeleton } from "@/components/ui";
+import { Screen, ScreenHeader, SearchField, Skeleton } from "@/components/ui";
 import { parseDob } from "@/lib/format";
 
 // Avatar tints are derived from theme tones so they adapt to dark mode.
@@ -40,9 +38,9 @@ const AVATAR_TONES: Tone[] = ["primary", "accent", "info", "accent2", "success",
 function getAvatarPalette(name: string, colors: any) {
   let hash = 0;
   for (let i = 0; i < (name || "").length; i++) {
-    hash = (hash + name.charCodeAt(i)) % AVATAR_TONES.length;
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   }
-  const tp = tonePalette(AVATAR_TONES[hash], colors);
+  const tp = tonePalette(AVATAR_TONES[hash % AVATAR_TONES.length], colors);
   return { bg: tp.bg, fg: tp.fg, border: "transparent" };
 }
 
@@ -73,26 +71,31 @@ export default function DoctorCareTeamScreen() {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 6,
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
     borderCurve: "continuous" as const,
-    backgroundColor: active ? colors.primarySoft : colors.fill,
+    backgroundColor: active ? colors.primary : colors.surface,
+    borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+    borderColor: hairline,
+    ...(isDark || active ? {} : shadow.xs),
   });
   const chipText = (active: boolean) => [
-    active ? typography.label.md : typography.body.sm,
-    { color: active ? colors.primary : colors.textMuted },
+    typography.label.md,
+    { color: active ? colors.onPrimary : colors.text },
   ];
   const chipCount = (active: boolean) => ({
+    minWidth: 20,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
     borderCurve: "continuous" as const,
-    backgroundColor: active ? colors.primary : colors.fillStrong,
+    alignItems: "center" as const,
+    backgroundColor: active ? "rgba(255,255,255,0.24)" : colors.fill,
   });
   const chipCountText = (active: boolean) => [
     typography.label.xs,
-    { fontSize: 10.5, color: active ? colors.onPrimary : colors.textMuted },
+    { color: active ? colors.onPrimary : colors.textMuted },
   ];
 
   const { data, isLoading, refetch, isRefetching } = useDoctorCareTeamPatients();
@@ -133,120 +136,40 @@ export default function DoctorCareTeamScreen() {
   return (
     <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       {/* ── Top Header ── */}
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: spacing.sm,
-          backgroundColor: colors.bg,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                backgroundColor: pressed ? colors.fillStrong : colors.fill,
-                alignItems: "center",
-                justifyContent: "center",
-              })}
-            >
-              <ChevronLeft size={20} color={colors.text} strokeWidth={2.4} />
-            </Pressable>
-
-            <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
-                {t("careTeam.doctorTitle", { defaultValue: "My Care Team" })}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
-              >
-                {t("careTeam.doctorSubtitle", {
-                  count: patients.length,
-                  defaultValue: `${patients.length} patients granted you clinical access`,
-                })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Quick Access Badge */}
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title={t("careTeam.doctorTitle", { defaultValue: "My care team" })}
+        subtitle={t("careTeam.doctorSubtitle", {
+          count: patients.length,
+          defaultValue: `${patients.length} patients granted you clinical access`,
+        })}
+        right={
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 5,
               paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 999,
+              height: 30,
+              borderRadius: 15,
               borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
+              backgroundColor: colors.successSoft,
             }}
           >
-            <ShieldCheck size={14} color={colors.primary} strokeWidth={2.4} />
-            <Text style={[typography.label.sm, { color: colors.primary }]}>
+            <ShieldCheck size={13} color={colors.success} strokeWidth={2.4} />
+            <Text style={[typography.label.sm, { color: colors.success }]}>
               {t("careTeam.verified")}
             </Text>
           </View>
-        </View>
-
-        {/* ── Search Bar ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colors.fill,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            paddingHorizontal: 12,
-            height: 40,
-            marginTop: spacing.lg,
-            gap: 8,
-          }}
-        >
-          <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
-          <RNTextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t("careTeam.doctorSearchPlaceholder")}
-            placeholderTextColor={colors.textSubtle}
-            autoCapitalize="none"
-            style={{
-              flex: 1,
-              ...typography.body.md,
-              color: colors.text,
-              paddingVertical: 0,
-            }}
-          />
-          {search.length > 0 && (
-            <Pressable
-              onPress={() => setSearch("")}
-              hitSlop={8}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                borderCurve: "continuous",
-                backgroundColor: colors.fillStrong,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={12} color={colors.textMuted} strokeWidth={2.6} />
-            </Pressable>
-          )}
-        </View>
+        }
+      />
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <SearchField
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("careTeam.doctorSearchPlaceholder")}
+        />
 
         {/* ── Filter Segment Chips ── */}
         <ScrollView
@@ -257,8 +180,10 @@ export default function DoctorCareTeamScreen() {
             alignItems: "center",
             gap: 8,
             paddingTop: 12,
-            paddingBottom: 2,
+            paddingBottom: 12,
+            paddingHorizontal: spacing.lg,
           }}
+          style={{ marginHorizontal: -spacing.lg }}
         >
           <Pressable
             onPress={() => setRoleFilter("all")}
@@ -311,7 +236,7 @@ export default function DoctorCareTeamScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.sm,
+          paddingTop: 2,
           paddingBottom: 140, // Clearance for bottom navigation
           gap: 12,
         }}
@@ -581,15 +506,15 @@ export default function DoctorCareTeamScreen() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 6,
-                      height: 36,
+                      height: 38,
                       borderRadius: 999,
                       borderCurve: "continuous",
-                      backgroundColor: colors.primarySoft,
-                      opacity: pressed ? 0.7 : 1,
+                      backgroundColor: colors.primary,
+                      opacity: pressed ? 0.85 : 1,
                     })}
                   >
-                    <FilePenLine size={14} color={colors.primary} strokeWidth={2.4} />
-                    <Text style={[typography.label.md, { color: colors.primary }]}>
+                    <FilePenLine size={14} color={colors.onPrimary} strokeWidth={2.4} />
+                    <Text style={[typography.label.md, { color: colors.onPrimary }]}>
                       {t("careTeam.writePrescription")}
                     </Text>
                   </Pressable>
@@ -608,10 +533,12 @@ export default function DoctorCareTeamScreen() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 6,
-                      height: 36,
+                      height: 38,
                       borderRadius: 999,
                       borderCurve: "continuous",
-                      backgroundColor: colors.fill,
+                      backgroundColor: colors.surface,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: hairline,
                       opacity: pressed ? 0.7 : 1,
                     })}
                   >

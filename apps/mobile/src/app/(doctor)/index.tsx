@@ -30,7 +30,6 @@ import {
   Wallet,
   Inbox,
   Video,
-  Building2,
   Sparkles,
   ArrowRight,
   ArrowUpRight,
@@ -154,8 +153,9 @@ export default function DoctorHub() {
   const verified = doctorData?.doctor?.users?.verified;
 
   const doctorInitials = useMemo(() => {
-    if (!displayName) return "DR";
-    const parts = displayName.trim().split(/\s+/);
+    const cleaned = displayName.replace(/^dr\.?\s+/i, "").trim();
+    if (!cleaned || /^(dr\.?|doctor)$/i.test(cleaned)) return "DR";
+    const parts = cleaned.split(/\s+/);
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }, [displayName]);
@@ -348,38 +348,8 @@ export default function DoctorHub() {
             />
           </View>
 
-          {/* Integrated Workspace Bar */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: spacing.sm,
-              minHeight: 44,
-              paddingVertical: 6,
-              paddingLeft: spacing.md,
-              paddingRight: 6,
-              borderRadius: radius.lg,
-              borderCurve: "continuous",
-              backgroundColor: colors.surface,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: hairline,
-              ...(isDark ? {} : shadow.xs),
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-              <IconTile icon={Building2} tone="primary" appearance="soft" size={30} />
-              <Text
-                style={[
-                  typography.kicker,
-                  { color: colors.textSubtle, textTransform: "uppercase" },
-                ]}
-              >
-                {t("doctor.workspaceLabel", "Workspace")}
-              </Text>
-            </View>
-            <TenantSwitcher />
-          </View>
+          {/* Workspace — renders nothing when the doctor has no memberships */}
+          <TenantSwitcher variant="row" caption={t("doctor.workspaceLabel", "Workspace")} />
         </View>
 
         {/* ─── Hero Card ──────────────────────────────────────────── */}
@@ -610,23 +580,39 @@ export default function DoctorHub() {
           {/* Today's Pulse */}
           <View style={{ gap: spacing.md }}>
             <SectionHeader kicker={t("doctor.kicker.today", "Live")} title={t("doctor.statsStrip.label", "Today's Pulse")} style={{ paddingTop: 0, paddingBottom: 0 }} />
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "stretch",
+                paddingVertical: spacing.sm,
+                paddingHorizontal: 6,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                ...(isDark ? {} : shadow.card),
+              }}
+            >
               <StatTile
                 icon={Clock4}
-                label={t("doctor.stats.inQueue", "In Queue")}
+                label={t("doctor.stats.inQueue", "In queue")}
                 value={upcoming}
                 sub={t("doctor.statsSub.waiting")}
                 tone="primary"
+                live={upcoming > 0}
                 onPress={() => router.push("/queue" as any)}
               />
+              <PulseDivider />
               <StatTile
                 icon={FileText}
-                label={t("doctor.stats.rxWritten", "Rx Written")}
+                label={t("doctor.stats.rxWritten", "Rx written")}
                 value={rxCount}
                 sub={t("doctor.statsSub.issued")}
                 tone="accent"
                 onPress={() => router.push("/(doctor)/prescriptions" as any)}
               />
+              <PulseDivider />
               <StatTile
                 icon={Edit3}
                 label={t("doctor.stats.notes", "Notes")}
@@ -995,8 +981,18 @@ function QuickTile({
         borderColor: isDark ? colors.borderStrong : colors.hairline,
         minHeight: 140,
         justifyContent: "space-between",
+        overflow: "hidden",
       }}
     >
+      {/* Soft tone wash — lit from the icon corner, fading into the card */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[palette.bg, isDark ? "rgba(0,0,0,0)" : "rgba(255,255,255,0)"]}
+        locations={[0, 0.75]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View
         style={{
           flexDirection: "row",
@@ -1057,12 +1053,26 @@ function QuickTile({
   );
 }
 
+function PulseDivider() {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={{
+        width: StyleSheet.hairlineWidth,
+        marginVertical: 14,
+        backgroundColor: colors.separator,
+      }}
+    />
+  );
+}
+
 function StatTile({
   icon: Icon,
   label,
   value,
   sub,
   tone = "primary",
+  live,
   onPress,
 }: {
   icon: any;
@@ -1070,63 +1080,47 @@ function StatTile({
   value: number | string;
   sub?: string;
   tone?: Tone;
+  /** Shows a pulsing-style dot beside the value (e.g. patients waiting). */
+  live?: boolean;
   onPress?: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow, scheme, fontFamily } = useTheme();
-  const isDark = scheme === "dark";
+  const { colors, spacing, typography, fontFamily } = useTheme();
+  const palette = useTone(tone);
 
   return (
-    <Touchable
+    <Pressable
       onPress={onPress}
       disabled={!onPress}
-      haptic="light"
-      pressedScale={0.97}
-      pressedOpacity={0.96}
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.xl }]}
-      style={{
+      accessibilityLabel={sub ? `${label}: ${value}. ${sub}` : `${label}: ${value}`}
+      style={({ pressed }) => ({
         flex: 1,
-        minHeight: 132,
-        backgroundColor: colors.surface,
-        borderRadius: radius.xl,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md - 2,
+        borderRadius: 18,
         borderCurve: "continuous",
-        padding: spacing.md + 2,
-        paddingTop: spacing.md,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.hairline,
-        justifyContent: "space-between",
-      }}
+        backgroundColor: pressed ? colors.fill : "transparent",
+      })}
     >
       <View
         style={{
-          flexDirection: "row",
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          borderCurve: "continuous",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "center",
+          backgroundColor: palette.bg,
         }}
       >
-        <IconTile icon={Icon} tone={tone} appearance="solid" size={36} />
-        {onPress ? (
-          <View
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.well,
-            }}
-          >
-            <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.5} />
-          </View>
-        ) : null}
+        <Icon size={16} color={palette.fg} strokeWidth={2.3} />
       </View>
-      <View style={{ marginTop: spacing.md, gap: 3 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.md }}>
         <Text
           style={{
             fontFamily: fontFamily.heavy,
             fontSize: 30,
-            lineHeight: 32,
+            lineHeight: 34,
             letterSpacing: -1.1,
             color: colors.text,
             fontVariant: ["tabular-nums"],
@@ -1134,24 +1128,36 @@ function StatTile({
         >
           {value}
         </Text>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={[typography.label.sm, { color: colors.textMuted }]}
-        >
-          {label}
-        </Text>
-        {sub ? (
-          <Text
-            numberOfLines={1}
-            style={[typography.caption, { fontSize: 11, color: colors.textSubtle }]}
-          >
-            {sub}
-          </Text>
+        {live ? (
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: palette.fg,
+              borderWidth: 2,
+              borderColor: palette.bg,
+            }}
+          />
         ) : null}
       </View>
-    </Touchable>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[typography.label.md, { color: colors.text, marginTop: 2 }]}
+      >
+        {label}
+      </Text>
+      {sub ? (
+        <Text
+          numberOfLines={1}
+          style={[typography.caption, { fontSize: 11.5, color: colors.textSubtle, marginTop: 1 }]}
+        >
+          {sub}
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 

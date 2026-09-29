@@ -8,16 +8,24 @@
 // component only if they've explicitly picked one.
 
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import { Building2, Stethoscope } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Building2, ChevronsUpDown, Stethoscope } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useActiveTenantStore } from "@/stores/tenant-store";
 import { TenantPickerSheet } from "./TenantPickerSheet";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 
-export function TenantSwitcher() {
-  const { colors, spacing, typography } = useTheme();
+type Props = {
+  /** `pill` (default) — compact outlined capsule for top bars.
+   *  `row` — full-width card row: tone tile + "Workspace" eyebrow + name. */
+  variant?: "pill" | "row";
+  /** Eyebrow shown above the name in the `row` variant. */
+  caption?: string;
+};
+
+export function TenantSwitcher({ variant = "pill", caption = "Workspace" }: Props = {}) {
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
   const myHospitals = useActiveTenantStore((s) => s.myHospitals);
   const myClinics = useActiveTenantStore((s) => s.myClinics);
   const activeHospId = useActiveTenantStore((s) => s.activeHospitalId);
@@ -65,9 +73,11 @@ export function TenantSwitcher() {
     label = c?.name ?? "Clinic";
     Icon = Stethoscope;
   }
+  let unset = false;
   if (!label) {
     if (myHospitals.length > 0 || myClinics.length > 0) {
       label = "Select workspace";
+      unset = true;
       Icon = Building2;
     } else {
       return null;
@@ -92,8 +102,72 @@ export function TenantSwitcher() {
     qc.invalidateQueries();
   }
 
-  return (
-    <>
+  const isDark = scheme === "dark";
+  const trigger =
+    variant === "row" ? (
+      <Pressable
+        onPress={() => {
+          setOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Active workspace: ${label}. Tap to switch.`}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          minHeight: 56,
+          paddingVertical: 8,
+          paddingLeft: 8,
+          paddingRight: spacing.md,
+          borderRadius: radius.xl,
+          borderCurve: "continuous",
+          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
+          ...(isDark ? {} : shadow.xs),
+        })}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 13,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Icon size={19} color={colors.primary} strokeWidth={2.2} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            numberOfLines={1}
+            style={[typography.kicker, { color: colors.textSubtle, textTransform: "uppercase" }]}
+          >
+            {caption}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={[typography.title.sm, { color: unset ? colors.primary : colors.text, marginTop: 1 }]}
+          >
+            {label}
+          </Text>
+        </View>
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronsUpDown size={14} color={colors.textMuted} strokeWidth={2.4} />
+        </View>
+      </Pressable>
+    ) : (
       <Pressable
         onPress={() => {
           setOpen(true);
@@ -123,6 +197,11 @@ export function TenantSwitcher() {
           {label}
         </Text>
       </Pressable>
+    );
+
+  return (
+    <>
+      {trigger}
       <TenantPickerSheet
         visible={open}
         onDismiss={() => {

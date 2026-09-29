@@ -11,16 +11,14 @@ import {
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import {
   Search,
   Package,
   TrendingDown,
-  TestTube2,
-  Clock,
   ChevronRight,
   X,
-  Sparkles,
   AlertCircle,
   FlaskConical,
 } from "lucide-react-native";
@@ -268,193 +266,217 @@ export default function TestPackagesScreen() {
   }, [data, debouncedSearch]);
 
   const renderPackageCard = useCallback(
-    ({ item }: { item: TestPackage }) => {
-      const effectivePrice = item.discountPrice ?? item.price;
-      const savings = item.savings || item.price - effectivePrice;
+    ({ item, index }: { item: TestPackage; index: number }) => {
+      const p: any = item; // curated bundles carry extra fields (tag, reportTimeHours)
+      const effectivePrice = p.discountPrice ?? p.price;
+      const savings = p.savings || p.price - effectivePrice;
       const hasSavings = savings > 0;
+      const turnaround = p.turnaroundHours ?? p.reportTimeHours;
+      const featured = index === 0 && !debouncedSearch;
+      const metaLine = [
+        p.testCount ? `${p.testCount} tests` : null,
+        turnaround ? `${turnaround}h results` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
-      return (
-        <Pressable
-          onPress={() => router.push(`/test-package-detail/${item.slug}`)}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.85 : 1,
-            transform: [{ scale: pressed ? 0.985 : 1 }],
-          })}
-        >
-          <Card
-            style={{
-              marginHorizontal: 16,
-              marginBottom: 14,
-              padding: 0,
-              overflow: "hidden",
-            }}
-          >
-            {/* Savings Banner */}
-            {hasSavings && (
-              <View
-                style={{
-                  backgroundColor: colors.successSoft,
-                  paddingHorizontal: 16,
-                  paddingVertical: 7,
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <TrendingDown size={14} color={colors.success} strokeWidth={2.4} />
-                <Text
-                  style={{
-                    ...typography.label.sm,
-                    color: colors.success,
-                    marginLeft: 6,
-                  }}
-                >
-                  Save {formatPrice(savings)}
-                </Text>
-              </View>
-            )}
+      const onPress = () => router.push(`/test-package-detail/${item.slug}`);
+      const pressStyle = ({ pressed }: { pressed: boolean }) => ({
+        opacity: pressed ? 0.85 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      });
 
-            <View style={{ padding: 16, paddingVertical: 18 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                }}
-              >
-                {/* Package Illustration */}
-                <View style={{ marginRight: 14 }}>
-                  <PackageThumbnail item={item} size={72} borderRadius={18} />
-                </View>
-
-                {/* Package Info */}
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      ...typography.title.md,
-                      color: colors.text,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {item.name}
-                  </Text>
-
-                  {item.description && (
-                    <Text
-                      style={{
-                        ...typography.body.sm,
-                        color: colors.textMuted,
-                        marginBottom: 10,
-                      }}
-                      numberOfLines={2}
-                    >
-                      {item.description}
-                    </Text>
-                  )}
-
+      if (featured) {
+        return (
+          <Pressable onPress={onPress} style={pressStyle}>
+            <Card
+              variant="elevated"
+              style={{ marginHorizontal: 16, marginBottom: 14, padding: 0, overflow: "hidden" }}
+            >
+              <View style={{ height: 138 }}>
+                <Image source={packageImage(p)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                <LinearGradient
+                  colors={["rgba(4,18,32,0.35)", "rgba(4,18,32,0.0)", "rgba(4,18,32,0.55)"]}
+                  locations={[0, 0.45, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                {p.tag && (
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 12,
+                      position: "absolute",
+                      top: 10,
+                      left: 10,
+                      backgroundColor: "rgba(255,255,255,0.92)",
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                      borderRadius: 999,
                     }}
                   >
-                    {item.testCount && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                        }}
-                      >
-                        <TestTube2 size={13} color={colors.textSubtle} />
-                        <Text
-                          style={{
-                            ...typography.caption,
-                            color: colors.textSubtle,
-                            marginLeft: 4,
-                          }}
-                        >
-                          {item.testCount} tests
-                        </Text>
-                      </View>
-                    )}
-
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Clock size={13} color={colors.textSubtle} />
-                      <Text
-                        style={{
-                          ...typography.caption,
-                          color: colors.textSubtle,
-                          marginLeft: 4,
-                        }}
-                      >
-                        Results in {item.turnaroundHours}h
-                      </Text>
-                    </View>
+                    <Text style={{ ...typography.label.xs, fontSize: 9.5, color: colors.primary, letterSpacing: 0.7 }}>
+                      {p.tag}
+                    </Text>
                   </View>
-                </View>
+                )}
+                {hasSavings && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      backgroundColor: "rgba(5,150,105,0.92)",
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <TrendingDown size={11} color="#FFFFFF" strokeWidth={2.6} />
+                    <Text style={{ ...typography.label.xs, fontSize: 10, color: "#FFFFFF" }}>
+                      Save {formatPrice(savings)}
+                    </Text>
+                  </View>
+                )}
+              </View>
 
-                {/* Price */}
+              <View style={{ padding: 16 }}>
+                <Text
+                  style={{ ...typography.title.lg, fontSize: 16.5, lineHeight: 21, color: colors.text }}
+                  numberOfLines={2}
+                >
+                  {item.name}
+                </Text>
                 <View
                   style={{
-                    alignItems: "flex-end",
-                    marginLeft: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 10,
                   }}
                 >
-                  {item.discountPrice ? (
-                    <>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+                    <Text style={{ ...typography.title.lg, fontSize: 19, color: colors.text }}>
+                      {formatPrice(effectivePrice)}
+                    </Text>
+                    {item.discountPrice != null && item.discountPrice !== item.price && (
                       <Text
                         style={{
-                          ...typography.caption,
+                          ...typography.body.sm,
                           color: colors.textSubtle,
                           textDecorationLine: "line-through",
                         }}
                       >
                         {formatPrice(item.price)}
                       </Text>
-                      <Text
-                        style={{
-                          ...typography.title.lg,
-                          color: colors.text,
-                        }}
-                      >
-                        {formatPrice(item.discountPrice)}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text
-                      style={{
-                        ...typography.title.lg,
-                        color: colors.text,
-                      }}
-                    >
-                      {formatPrice(item.price)}
-                    </Text>
-                  )}
-                  <View
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      backgroundColor: colors.primarySoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: 8,
-                    }}
-                  >
-                    <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
+                    )}
                   </View>
+                  <Text style={{ ...typography.caption, color: colors.textSubtle, flexShrink: 1 }} numberOfLines={1}>
+                    {metaLine}
+                  </Text>
                 </View>
+              </View>
+            </Card>
+          </Pressable>
+        );
+      }
+
+      return (
+        <Pressable onPress={onPress} style={pressStyle}>
+          <Card
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 14,
+              padding: 14,
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              {/* Package Illustration */}
+              <PackageThumbnail item={item} size={74} borderRadius={16} />
+
+              {/* Package Info */}
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text
+                  style={{ ...typography.title.sm, fontSize: 15, lineHeight: 19, color: colors.text }}
+                  numberOfLines={2}
+                >
+                  {item.name}
+                </Text>
+                {item.description && (
+                  <Text
+                    style={{ ...typography.body.sm, color: colors.textMuted, marginTop: 3 }}
+                    numberOfLines={1}
+                  >
+                    {item.description}
+                  </Text>
+                )}
+                <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 6 }} numberOfLines={1}>
+                  {metaLine}
+                </Text>
+              </View>
+            </View>
+
+            {/* Price row */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+              }}
+            >
+              <Text style={{ ...typography.title.md, fontSize: 17, color: colors.text }}>
+                {formatPrice(effectivePrice)}
+              </Text>
+              {item.discountPrice != null && item.discountPrice !== item.price && (
+                <Text
+                  style={{
+                    ...typography.body.sm,
+                    color: colors.textSubtle,
+                    textDecorationLine: "line-through",
+                    marginLeft: 7,
+                  }}
+                >
+                  {formatPrice(item.price)}
+                </Text>
+              )}
+              {hasSavings && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginLeft: 8,
+                    gap: 3,
+                  }}
+                >
+                  <TrendingDown size={12} color={colors.success} strokeWidth={2.6} />
+                  <Text style={{ ...typography.label.sm, color: colors.success }}>
+                    {formatPrice(savings)}
+                  </Text>
+                </View>
+              )}
+
+              <View
+                style={{
+                  marginLeft: "auto",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: colors.well,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ChevronRight size={15} color={colors.textSubtle} strokeWidth={2.5} />
               </View>
             </View>
           </Card>
         </Pressable>
       );
     },
-    [colors, router, typography]
+    [colors, router, typography, debouncedSearch]
   );
 
   return (

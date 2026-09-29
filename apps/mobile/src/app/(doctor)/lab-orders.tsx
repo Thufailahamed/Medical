@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -25,6 +25,7 @@ import {
   ChipGroup,
   useToast,
   Button,
+  IconTile,
 } from "@/components/ui";
 
 function statusTone(s: string): any {
@@ -93,7 +94,7 @@ export default function LabOrdersList() {
   }
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
+    <Screen padded={false} scroll edges={["top"]} bottomInset onRefresh={() => refetch()} refreshing={false}>
       <ScreenHeader
         back
         onBack={() => router.back()}
@@ -106,6 +107,7 @@ export default function LabOrdersList() {
           options={STATUS_TABS}
           value={status}
           onChange={setStatus}
+          scrollable
         />
       </View>
 
@@ -132,7 +134,7 @@ export default function LabOrdersList() {
           />
         </View>
       ) : (
-        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs, gap: spacing.md }}>
           {orders.map((o: any) => {
             const tests = (() => {
               try {
@@ -148,31 +150,47 @@ export default function LabOrdersList() {
               o.status === "in_progress";
             return (
               <Card key={o.id} padded={false}>
-                <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+                <View style={{ padding: spacing.lg, gap: spacing.md }}>
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: spacing.sm,
+                      gap: spacing.md,
                     }}
                   >
-                    <FlaskConical
-                      size={18}
-                      color={
+                    <IconTile
+                      icon={FlaskConical}
+                      tone={
                         o.priority === "stat"
-                          ? colors.danger
+                          ? "danger"
                           : o.priority === "urgent"
-                          ? colors.warning
-                          : colors.primary
+                          ? "warning"
+                          : "info"
                       }
-                      strokeWidth={2.2}
+                      appearance="soft"
+                      size={40}
                     />
-                    <Text
-                      style={[typography.title.sm, { color: colors.text, flex: 1 }]}
-                      numberOfLines={2}
-                    >
-                      {tests.join(", ") || t("doctorLabOrders.fallbackName")}
-                    </Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text
+                        style={[typography.title.sm, { color: colors.text }]}
+                        numberOfLines={2}
+                      >
+                        {tests.join(", ") || t("doctorLabOrders.fallbackName")}
+                      </Text>
+                      <Text
+                        style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]}
+                        numberOfLines={1}
+                      >
+                        {[
+                          fmtDate(new Date(o.orderedAt), locale),
+                          o.priority && o.priority !== "routine"
+                            ? String(o.priority).toUpperCase()
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join("  ·  ")}
+                      </Text>
+                    </View>
                     <PillCmp
                       label={t(`status.${o.status}`, { defaultValue: o.status.replace(/_/g, " ") })}
                       tone={statusTone(o.status)}
@@ -180,24 +198,7 @@ export default function LabOrdersList() {
                     />
                   </View>
 
-                  <View style={{ flexDirection: "row", gap: spacing.xs, flexWrap: "wrap" }}>
-                    <PillCmp
-                      label={o.priority}
-                      tone={
-                        o.priority === "stat"
-                          ? "danger"
-                          : o.priority === "urgent"
-                          ? "warning"
-                          : "neutral"
-                      }
-                      size="sm"
-                    />
-                    <PillCmp
-                      label={fmtDate(new Date(o.orderedAt), locale)}
-                      tone="neutral"
-                      size="sm"
-                    />
-                  </View>
+                  {o.status !== "cancelled" ? <LabProgress status={o.status} /> : null}
 
                   {o.resultSummary ? (
                     <Text
@@ -211,7 +212,15 @@ export default function LabOrdersList() {
                   ) : null}
 
                   {canAdvance ? (
-                    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: spacing.sm,
+                        paddingTop: spacing.md,
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: colors.separator,
+                      }}
+                    >
                       <Button
                         title={t("doctorLabOrders.advance")}
                         icon={Icon}
@@ -239,5 +248,58 @@ export default function LabOrdersList() {
         </View>
       )}
     </Screen>
+  );
+}
+
+const LAB_STEPS = ["ordered", "sample_collected", "in_progress", "completed"] as const;
+const LAB_STEP_LABELS: Record<string, string> = {
+  ordered: "Ordered",
+  sample_collected: "Collected",
+  in_progress: "Processing",
+  completed: "Done",
+};
+
+/** Four-segment progress rail: ordered → collected → processing → done. */
+function LabProgress({ status }: { status: string }) {
+  const { colors, typography } = useTheme();
+  const { t } = useTranslation();
+  const idx = Math.max(0, LAB_STEPS.indexOf(status as any));
+  const done = status === "completed";
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        {LAB_STEPS.map((step, i) => (
+          <View
+            key={step}
+            style={{
+              flex: 1,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor:
+                i <= idx ? (done ? colors.success : colors.primary) : colors.fill,
+            }}
+          />
+        ))}
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {LAB_STEPS.map((step, i) => (
+          <Text
+            key={step}
+            style={[
+              typography.caption,
+              {
+                fontSize: 10.5,
+                color: i === idx ? colors.text : colors.textSubtle,
+                fontWeight: i === idx ? "700" : "400",
+              },
+            ]}
+          >
+            {t(`doctorLabOrders.steps.${step}`, {
+              defaultValue: LAB_STEP_LABELS[step],
+            })}
+          </Text>
+        ))}
+      </View>
+    </View>
   );
 }

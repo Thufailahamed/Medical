@@ -10,7 +10,6 @@ import {
   Play,
   CheckCircle2,
   XCircle,
-  Hash,
   Sparkles,
   UserPlus,
   Video,
@@ -32,6 +31,7 @@ import {
   ErrorState,
   Skeleton,
   Button,
+  MetricStrip,
   useToast,
 } from "@/components/ui";
 
@@ -52,6 +52,13 @@ export default function DoctorQueue() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const queue = data?.queue || [];
+  const waitingN = queue.filter(
+    (q: any) => q.status === "scheduled" || q.status === "confirmed" || q.status === "waiting"
+  ).length;
+  const activeN = queue.filter(
+    (q: any) => q.status === "in_progress" || q.status === "in_consultation"
+  ).length;
+  const doneN = queue.filter((q: any) => q.status === "completed").length;
 
   async function setStatus(
     id: string,
@@ -83,13 +90,41 @@ export default function DoctorQueue() {
   }
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
+    <Screen padded={false} scroll edges={["top"]} bottomInset onRefresh={() => refetch()} refreshing={false}>
       <ScreenHeader
+        kicker={data?.date || undefined}
         title={t("doctorQueue.title")}
-        subtitle={data?.date || ""}
         back
         onBack={() => router.back()}
       />
+
+      {!isLoading && !isError && queue.length > 0 ? (
+        <MetricStrip
+          size="md"
+          style={{ marginHorizontal: spacing.lg, marginTop: spacing.xs }}
+          items={[
+            {
+              icon: Clock,
+              label: t("doctorQueue.summary.waiting", "Waiting"),
+              value: waitingN,
+              tone: "primary",
+              live: waitingN > 0,
+            },
+            {
+              icon: Play,
+              label: t("doctorQueue.summary.inProgress", "In progress"),
+              value: activeN,
+              tone: "warning",
+            },
+            {
+              icon: CheckCircle2,
+              label: t("doctorQueue.summary.done", "Done"),
+              value: doneN,
+              tone: "success",
+            },
+          ]}
+        />
+      ) : null}
 
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
@@ -114,7 +149,7 @@ export default function DoctorQueue() {
           />
         </View>
       ) : (
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.md }}>
           {queue.map((q: any) => {
             const tone = statusTone(q.status);
             const canStart = q.status === "scheduled" || q.status === "confirmed";
@@ -131,12 +166,41 @@ export default function DoctorQueue() {
                       gap: spacing.md,
                     }}
                   >
-                    <Avatar
-                      name={q.patientName}
-                      size="md"
-                      tone={isWalkIn ? "warning" : "primary"}
-                      source={q.patientPhoto ? { uri: q.patientPhoto } : undefined}
-                    />
+                    <View>
+                      <Avatar
+                        name={q.patientName}
+                        size="md"
+                        tone={isWalkIn ? "warning" : "primary"}
+                        source={q.patientPhoto ? { uri: q.patientPhoto } : undefined}
+                      />
+                      {!isWalkIn && q.queueNumber != null ? (
+                        <View
+                          style={{
+                            position: "absolute",
+                            right: -6,
+                            bottom: -4,
+                            minWidth: 22,
+                            height: 20,
+                            paddingHorizontal: 5,
+                            borderRadius: 10,
+                            backgroundColor: colors.text,
+                            borderWidth: 2,
+                            borderColor: colors.surface,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            style={[
+                              typography.label.xs,
+                              { fontSize: 10, color: colors.surface, fontVariant: ["tabular-nums"] },
+                            ]}
+                          >
+                            {q.queueNumber}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text numberOfLines={1} style={[typography.title.md, { color: colors.text }]}>
                         {q.patientName || t("doctorQueue.patientFallback")}
@@ -150,8 +214,30 @@ export default function DoctorQueue() {
                       >
                         {q.reason || t("doctorQueue.noReason")}
                       </Text>
+                      {q.time || q.bloodGroup || q.hospitalName ? (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                            marginTop: 4,
+                          }}
+                        >
+                          {q.time ? <Clock size={11} color={colors.textSubtle} strokeWidth={2.4} /> : null}
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              typography.caption,
+                              { color: colors.textSubtle, fontVariant: ["tabular-nums"], flexShrink: 1 },
+                            ]}
+                          >
+                            {[q.time, q.bloodGroup, q.hospitalName].filter(Boolean).join("  ·  ")}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                    <View style={{ flexDirection: "row", gap: 6, flexShrink: 0 }}>
+                    <View style={{ alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                      <Pill label={statusLabel(t, q.status)} tone={tone} size="sm" />
                       {isWalkIn ? (
                         <Pill
                           icon={UserPlus}
@@ -160,35 +246,7 @@ export default function DoctorQueue() {
                           size="sm"
                         />
                       ) : null}
-                      <Pill label={statusLabel(t, q.status)} tone={tone} size="sm" />
                     </View>
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: spacing.sm,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {q.time ? (
-                      <Pill icon={Clock} label={q.time || "—"} tone="neutral" size="sm" />
-                    ) : null}
-                    {!isWalkIn ? (
-                      <Pill
-                        icon={Hash}
-                        label={`#${q.queueNumber ?? "—"}`}
-                        tone="neutral"
-                        size="sm"
-                      />
-                    ) : null}
-                    {q.bloodGroup ? (
-                      <Pill label={q.bloodGroup} tone="info" size="sm" />
-                    ) : null}
-                    {q.hospitalName ? (
-                      <Pill label={q.hospitalName} tone="neutral" size="sm" />
-                    ) : null}
                   </View>
 
                   <View

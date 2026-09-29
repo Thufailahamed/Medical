@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -26,6 +27,7 @@ const PILL_PAD_R = 15;
 const CELL_MIN = 40;
 /** Below this much label room, the active pill renders icon-only. */
 const LABEL_MIN = 40;
+const RADIUS = (ITEM + PAD * 2) / 2;
 
 /**
  * Shared screenOptions for every role's (Tabs) layout. Pair with
@@ -63,6 +65,7 @@ export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
   if (hiddenBar) return null;
 
+  const dark = scheme === "dark";
   const count = routes.length;
   const barWidth = width - BAR_MARGIN * 2;
   // Width left for the label after capsule padding, inter-item gaps, the
@@ -101,18 +104,55 @@ export function IslandTabBar({ state, descriptors, navigation }: BottomTabBarPro
           alignItems: "center",
           gap: GAP,
           padding: PAD,
-          borderRadius: (ITEM + PAD * 2) / 2,
+          borderRadius: RADIUS,
           borderCurve: "continuous",
-          backgroundColor: colors.surface,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.hairline,
+          backgroundColor: Platform.OS === "ios" ? "transparent" : dark ? "rgba(28,28,32,0.92)" : "rgba(255,255,255,0.94)",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: scheme === "dark" ? 0.5 : 0.16,
-          shadowRadius: 24,
-          elevation: 14,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: dark ? 0.45 : 0.12,
+          shadowRadius: 28,
+          elevation: 12,
         }}
       >
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { borderRadius: RADIUS, borderCurve: "continuous", overflow: "hidden" }]}
+        >
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={dark ? 60 : 70}
+              tint={dark ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: dark ? "rgba(40,40,46,0.28)" : "rgba(255,255,255,0.38)" },
+            ]}
+          />
+          <LinearGradient
+            colors={
+              dark
+                ? ["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]
+                : ["rgba(255,255,255,0.65)", "rgba(255,255,255,0)"]
+            }
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.6 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: RADIUS,
+                borderCurve: "continuous",
+                borderWidth: 1,
+                borderColor: dark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.75)",
+              },
+            ]}
+          />
+        </View>
         {routes.map((route) => {
           const { options } = descriptors[route.key];
           const focused = state.routes[state.index].key === route.key;

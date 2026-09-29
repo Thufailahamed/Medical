@@ -6,8 +6,6 @@ import {
   Text,
   Switch,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
 } from "react-native";
@@ -15,7 +13,6 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   Save,
-  Clock4,
   Plus,
   Trash2,
   CalendarOff,
@@ -61,7 +58,8 @@ function todayPlus(days: number): string {
 export default function AvailabilityScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const toast = useToast();
 
   const days = t("doctorAvailability.days", { returnObjects: true }) as string[];
@@ -216,220 +214,314 @@ export default function AvailabilityScreen() {
     : 30;
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title={t("doctorAvailability.title")}
+        subtitle={t("doctorAvailability.subtitle", {
+          count: activeCount,
+          min: minSlot,
+        })}
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingBottom: spacing.xl * 2,
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScreenHeader
-          back
-          onBack={() => router.back()}
-          title={t("doctorAvailability.title")}
-          subtitle={t("doctorAvailability.subtitle", {
-            count: activeCount,
-            min: minSlot,
+        {/* Week at a glance */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 6,
+            padding: 6,
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            backgroundColor: colors.surface,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? colors.borderStrong : colors.hairline,
+            ...(isDark ? {} : shadow.card),
+          }}
+        >
+          {Array.from({ length: 7 }).map((_, d) => {
+            const on = activeDays.has(d);
+            return (
+              <Pressable
+                key={d}
+                onPress={() => toggleDayActive(d, !on)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={days[d]}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  height: 52,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  backgroundColor: on ? colors.primary : pressed ? colors.fill : "transparent",
+                })}
+              >
+                <Text
+                  style={[
+                    typography.label.md,
+                    { color: on ? colors.onPrimary : colors.textMuted },
+                  ]}
+                >
+                  {(days[d] || "").slice(0, 3)}
+                </Text>
+                <View
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: on ? "rgba(255,255,255,0.85)" : "transparent",
+                  }}
+                />
+              </Pressable>
+            );
           })}
+        </View>
+
+        <SectionHeader
+          kicker={t("doctorAvailability.kicker", "Hours")}
+          title={t("doctorAvailability.weeklySchedule")}
         />
 
-        <ScrollView
-          contentContainerStyle={{
-            padding: spacing.lg,
-            gap: spacing.md,
-            paddingBottom: spacing.xl * 2,
+        <View
+          style={{
+            borderRadius: radius.card,
+            borderCurve: "continuous",
+            backgroundColor: colors.surface,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? colors.borderStrong : colors.hairline,
+            ...(isDark ? {} : shadow.card),
           }}
-          keyboardShouldPersistTaps="handled"
         >
-          <SectionHeader title={t("doctorAvailability.weeklySchedule")} />
-
           {Array.from({ length: 7 }).map((_, dOfWeek) => {
             const dayShifts = schedule
               .map((s, flatIdx) => ({ ...s, flatIdx }))
               .filter((s) => s.dayOfWeek === dOfWeek);
             const isDayActive = dayShifts.some((s) => s.active);
+            const activeDayShifts = dayShifts.filter((s) => s.active);
+            const summary = activeDayShifts
+              .map((s) => `${s.startTime}–${s.endTime}`)
+              .join(", ");
 
             return (
-              <Card key={dOfWeek} padded={false}>
-                <View style={{ padding: spacing.lg, gap: spacing.md }}>
+              <View
+                key={dOfWeek}
+                style={{
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  gap: spacing.md,
+                  borderTopWidth: dOfWeek > 0 ? StyleSheet.hairlineWidth : 0,
+                  borderTopColor: colors.separator,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.md,
+                  }}
+                >
                   <View
                     style={{
-                      flexDirection: "row",
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                      backgroundColor: isDayActive ? colors.primarySoft : colors.fill,
                       alignItems: "center",
-                      gap: spacing.md,
+                      justifyContent: "center",
                     }}
                   >
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        borderCurve: "continuous",
-                        backgroundColor: isDayActive ? colors.primary : colors.fill,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Clock4
-                        size={17}
-                        color={isDayActive ? colors.onPrimary : colors.textSubtle}
-                        strokeWidth={2.2}
-                      />
-                    </View>
                     <Text
                       style={[
-                        typography.title.md,
-                        { color: isDayActive ? colors.text : colors.textMuted, flex: 1 },
+                        typography.label.md,
+                        { color: isDayActive ? colors.primary : colors.textSubtle },
+                      ]}
+                    >
+                      {(days[dOfWeek] || "").slice(0, 2)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={[
+                        typography.title.sm,
+                        { color: isDayActive ? colors.text : colors.textMuted },
                       ]}
                     >
                       {days[dOfWeek]}
                     </Text>
-                    <Switch
-                      value={isDayActive}
-                      onValueChange={(v) => toggleDayActive(dOfWeek, v)}
-                      trackColor={{ true: colors.primary, false: colors.fillStrong }}
-                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        typography.caption,
+                        {
+                          color: isDayActive ? colors.textMuted : colors.textSubtle,
+                          marginTop: 1,
+                          fontVariant: ["tabular-nums"],
+                        },
+                      ]}
+                    >
+                      {isDayActive ? summary : t("doctorAvailability.closed", "Closed")}
+                    </Text>
                   </View>
-
-                  {isDayActive ? (
-                    <View style={{ gap: spacing.lg }}>
-                      {dayShifts
-                        .filter((s) => s.active)
-                        .map((s, idx) => (
-                          <View
-                            key={s.flatIdx}
-                            style={{
-                              borderTopWidth: idx > 0 ? StyleSheet.hairlineWidth : 0,
-                              borderTopColor: colors.separator,
-                              paddingTop: idx > 0 ? spacing.md : 0,
-                              gap: spacing.sm,
-                            }}
-                          >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              <Text
-                                style={[
-                                  typography.overline,
-                                  { color: colors.textMuted, letterSpacing: 0.6 },
-                                ]}
-                              >
-                                {t("doctorAvailability.shiftNumber", {
-                                  num: idx + 1,
-                                })}
-                              </Text>
-                              <Pressable
-                                onPress={() => removeShift(s.flatIdx)}
-                                hitSlop={8}
-                                style={({ pressed }) => ({
-                                  width: 30,
-                                  height: 30,
-                                  borderRadius: 15,
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  backgroundColor: colors.dangerSoft,
-                                  opacity: pressed ? 0.6 : 1,
-                                })}
-                              >
-                                <Trash2
-                                  size={14}
-                                  color={colors.danger}
-                                  strokeWidth={2}
-                                />
-                              </Pressable>
-                            </View>
-
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                gap: spacing.sm,
-                              }}
-                            >
-                              <View style={{ flex: 1 }}>
-                                <FormField label={t("doctorAvailability.start")}>
-                                  <TextInput
-                                    value={s.startTime}
-                                    onChangeText={(v) =>
-                                      updateShift(s.flatIdx, { startTime: v })
-                                    }
-                                    placeholder={t(
-                                      "doctorAvailability.timePlaceholder"
-                                    )}
-                                    keyboardType="numbers-and-punctuation"
-                                  />
-                                </FormField>
-                              </View>
-                              <View style={{ flex: 1 }}>
-                                <FormField label={t("doctorAvailability.end")}>
-                                  <TextInput
-                                    value={s.endTime}
-                                    onChangeText={(v) =>
-                                      updateShift(s.flatIdx, { endTime: v })
-                                    }
-                                    placeholder={t(
-                                      "doctorAvailability.timePlaceholder"
-                                    )}
-                                    keyboardType="numbers-and-punctuation"
-                                  />
-                                </FormField>
-                              </View>
-                              <View style={{ flex: 1 }}>
-                                <FormField
-                                  label={t("doctorAvailability.slotMin")}
-                                >
-                                  <TextInput
-                                    value={String(s.slotMinutes)}
-                                    onChangeText={(v) =>
-                                      updateShift(s.flatIdx, {
-                                        slotMinutes: parseInt(v, 10) || 30,
-                                      })
-                                    }
-                                    placeholder="30"
-                                    keyboardType="number-pad"
-                                  />
-                                </FormField>
-                              </View>
-                            </View>
-                          </View>
-                        ))}
-
-                      <Button
-                        title={t("doctorAvailability.addShift")}
-                        variant="ghost"
-                        size="sm"
-                        icon={Plus}
-                        onPress={() => addShift(dOfWeek)}
-                        style={{ alignSelf: "flex-start" }}
-                      />
-                    </View>
-                  ) : null}
+                  <Switch
+                    value={isDayActive}
+                    onValueChange={(v) => toggleDayActive(dOfWeek, v)}
+                    trackColor={{ true: colors.primary, false: colors.fillStrong }}
+                    ios_backgroundColor={colors.fillStrong}
+                  />
                 </View>
-              </Card>
+
+                {isDayActive ? (
+                  <View style={{ gap: spacing.sm, paddingLeft: 38 + spacing.md }}>
+                    {activeDayShifts.map((s, idx) => (
+                      <View
+                        key={s.flatIdx}
+                        style={{
+                          padding: spacing.md,
+                          gap: spacing.sm,
+                          borderRadius: 16,
+                          borderCurve: "continuous",
+                          backgroundColor: colors.surfaceMuted,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={[
+                              typography.kicker,
+                              { color: colors.textSubtle, textTransform: "uppercase" },
+                            ]}
+                          >
+                            {t("doctorAvailability.shiftNumber", { num: idx + 1 })}
+                          </Text>
+                          <Pressable
+                            onPress={() => removeShift(s.flatIdx)}
+                            hitSlop={8}
+                            accessibilityRole="button"
+                            style={({ pressed }) => ({
+                              width: 28,
+                              height: 28,
+                              borderRadius: 14,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: pressed ? colors.dangerSoft : "transparent",
+                            })}
+                          >
+                            <Trash2 size={14} color={colors.danger} strokeWidth={2.2} />
+                          </Pressable>
+                        </View>
+                        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                          <View style={{ flex: 1 }}>
+                            <FormField label={t("doctorAvailability.start")}>
+                              <TextInput
+                                value={s.startTime}
+                                onChangeText={(v) => updateShift(s.flatIdx, { startTime: v })}
+                                placeholder={t("doctorAvailability.timePlaceholder")}
+                                keyboardType="numbers-and-punctuation"
+                              />
+                            </FormField>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <FormField label={t("doctorAvailability.end")}>
+                              <TextInput
+                                value={s.endTime}
+                                onChangeText={(v) => updateShift(s.flatIdx, { endTime: v })}
+                                placeholder={t("doctorAvailability.timePlaceholder")}
+                                keyboardType="numbers-and-punctuation"
+                              />
+                            </FormField>
+                          </View>
+                          <View style={{ flex: 0.8 }}>
+                            <FormField label={t("doctorAvailability.slotMin")}>
+                              <TextInput
+                                value={String(s.slotMinutes)}
+                                onChangeText={(v) =>
+                                  updateShift(s.flatIdx, {
+                                    slotMinutes: parseInt(v, 10) || 30,
+                                  })
+                                }
+                                placeholder="30"
+                                keyboardType="number-pad"
+                              />
+                            </FormField>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+
+                    <Pressable
+                      onPress={() => addShift(dOfWeek)}
+                      accessibilityRole="button"
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        alignSelf: "flex-start",
+                        gap: 6,
+                        height: 32,
+                        paddingHorizontal: 12,
+                        borderRadius: 16,
+                        backgroundColor: pressed ? colors.primary : colors.primarySoft,
+                      })}
+                    >
+                      {({ pressed }) => (
+                        <>
+                          <Plus size={14} color={pressed ? colors.onPrimary : colors.primary} strokeWidth={2.5} />
+                          <Text
+                            style={[
+                              typography.label.sm,
+                              { color: pressed ? colors.onPrimary : colors.primary },
+                            ]}
+                          >
+                            {t("doctorAvailability.addShift")}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
             );
           })}
+        </View>
 
-          <Button
-            title={t("doctorAvailability.saveSchedule")}
-            onPress={save}
-            loading={update.isPending}
-            icon={Save}
-            size="lg"
-          />
+        <Button
+          title={t("doctorAvailability.saveSchedule")}
+          onPress={save}
+          loading={update.isPending}
+          icon={Save}
+          size="lg"
+          style={{ marginTop: spacing.lg }}
+        />
 
-          <SectionHeader title={t("doctorAvailability.timeOff")} />
+        <SectionHeader
+          kicker={t("doctorAvailability.timeOffKicker", "Away")}
+          title={t("doctorAvailability.timeOff")}
+        />
 
-          <TimeOffSection
-            colors={colors}
-            spacing={spacing}
-            typography={typography}
-            radius={radius}
-            toast={toast}
-            t={t}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <TimeOffSection
+          colors={colors}
+          spacing={spacing}
+          typography={typography}
+          radius={radius}
+          toast={toast}
+          t={t}
+        />
+      </ScrollView>
     </Screen>
   );
 }
@@ -524,7 +616,7 @@ function TimeOffSection({
                     backgroundColor: colors.surfaceMuted,
                     paddingVertical: spacing.sm + 2,
                     paddingHorizontal: spacing.md,
-                    borderRadius: 14,
+                    borderRadius: 16,
                     borderCurve: "continuous",
                   }}
                 >

@@ -28,6 +28,8 @@ import {
   Button,
   Skeleton,
   ErrorState,
+  IconTile,
+  MetricStrip,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
@@ -128,7 +130,7 @@ export default function DoctorRelationships() {
       padded={false}
       edges={["top"]}
       bottomInset
-      style={{ backgroundColor: colors.surfaceSubtle }}
+      style={{ backgroundColor: colors.bg }}
     >
       <ScreenHeader
         back
@@ -155,18 +157,23 @@ export default function DoctorRelationships() {
           />
         }
       >
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <RelationshipStat
-            icon={Users}
-            label={t("doctorRelationships.patients")}
-            value={uniquePatients}
-          />
-          <RelationshipStat
-            icon={Building2}
-            label={t("doctorRelationships.workspaces")}
-            value={grouped.length}
-          />
-        </View>
+        <MetricStrip
+          size="md"
+          items={[
+            {
+              icon: Users,
+              label: t("doctorRelationships.patients"),
+              value: uniquePatients,
+              tone: "primary",
+            },
+            {
+              icon: Building2,
+              label: t("doctorRelationships.workspaces"),
+              value: grouped.length,
+              tone: "info",
+            },
+          ]}
+        />
 
         {initialLoading ? (
           <Card padded={false}>
@@ -245,51 +252,6 @@ export default function DoctorRelationships() {
   );
 }
 
-function RelationshipStat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: any;
-  label: string;
-  value: number;
-}) {
-  const { colors, spacing, typography } = useTheme();
-  return (
-    <Card padded={false} style={{ flex: 1 }}>
-      <View
-        style={{
-          minHeight: 92,
-          padding: spacing.md,
-          justifyContent: "space-between",
-        }}
-      >
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.primarySoft,
-          }}
-        >
-          <Icon size={18} color={colors.primary} strokeWidth={2.3} />
-        </View>
-        <View>
-          <Text style={[typography.display.sm, { color: colors.text }]}>
-            {value}
-          </Text>
-          <Text style={[typography.label.sm, { color: colors.textMuted }]}>
-            {label}
-          </Text>
-        </View>
-      </View>
-    </Card>
-  );
-}
-
 function RelationshipGroup({
   icon: Icon,
   title,
@@ -316,19 +278,7 @@ function RelationshipGroup({
           paddingBottom: spacing.md,
         }}
       >
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.primarySoft,
-          }}
-        >
-          <Icon size={19} color={colors.primary} strokeWidth={2.3} />
-        </View>
+        <IconTile icon={Icon} tone="primary" appearance="solid" size={38} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}

@@ -17,6 +17,7 @@ import {
   useUpdateFollowUpStatus,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -106,7 +107,7 @@ export default function FollowUpsScreen() {
   }
 
   return (
-    <Screen padded={false} edges={["top"]} bottomInset>
+    <Screen padded={false} scroll edges={["top"]} bottomInset onRefresh={() => refetch()} refreshing={false}>
       <ScreenHeader
         back
         onBack={() => router.back()}
@@ -147,7 +148,7 @@ export default function FollowUpsScreen() {
           />
         </View>
       ) : (
-        <View style={{ padding: spacing.lg, paddingBottom: 80, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs, gap: spacing.md }}>
           {list.map((f: any) => {
             const today = new Date().toISOString().split("T")[0];
             const upcoming = (f.followUpDate || "") >= today;
@@ -162,37 +163,13 @@ export default function FollowUpsScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: spacing.sm,
+                      gap: spacing.md,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 11,
-                        borderCurve: "continuous",
-                        backgroundColor:
-                          isDone
-                            ? colors.successSoft
-                            : isCancelled
-                            ? colors.dangerSoft
-                            : colors.primarySoft,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <StatusIcon
-                        size={16}
-                        color={
-                          isDone
-                            ? colors.success
-                            : isCancelled
-                            ? colors.danger
-                            : colors.primary
-                        }
-                        strokeWidth={2.3}
-                      />
-                    </View>
+                    <DateBlock
+                      iso={f.followUpDate}
+                      tone={isDone ? "success" : isCancelled ? "neutral" : upcoming ? "primary" : "warning"}
+                    />
                     <Text
                       style={[
                         typography.title.md,
@@ -209,30 +186,6 @@ export default function FollowUpsScreen() {
                       {f.title}
                     </Text>
                     <PillCmp label={meta.label} tone={meta.tone} size="sm" />
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <PillCmp
-                      label={f.followUpDate || t("doctorFollowUps.noDate")}
-                      tone={upcoming ? "primary" : "neutral"}
-                      size="sm"
-                    />
-                    {upcoming && !isDone && !isCancelled ? (
-                      <Text
-                        style={[
-                          typography.caption,
-                          { color: colors.textMuted },
-                        ]}
-                      >
-                        {t("doctorFollowUps.scheduled")}
-                      </Text>
-                    ) : null}
                   </View>
 
                   {f.notes ? (
@@ -294,7 +247,7 @@ export default function FollowUpsScreen() {
                             borderCurve: "continuous",
                             backgroundColor: pressed
                               ? colors.dangerSoft
-                              : colors.fill,
+                              : colors.well,
                             alignItems: "center",
                             justifyContent: "center",
                           })}
@@ -353,7 +306,7 @@ export default function FollowUpsScreen() {
                           borderCurve: "continuous",
                           backgroundColor: pressed
                             ? colors.fillStrong
-                            : colors.fill,
+                            : colors.well,
                           alignItems: "center",
                           justifyContent: "center",
                         })}
@@ -373,5 +326,46 @@ export default function FollowUpsScreen() {
         </View>
       )}
     </Screen>
+  );
+}
+/** Calendar-leaf date: short month over a bold day number. */
+function DateBlock({ iso, tone }: { iso?: string; tone: "primary" | "success" | "warning" | "neutral" }) {
+  const { colors, typography, fontFamily } = useTheme();
+  const palette = useTone(tone);
+  const d = iso ? new Date(`${iso}T00:00:00`) : null;
+  const valid = d && !isNaN(d.getTime());
+  return (
+    <View
+      style={{
+        width: 48,
+        height: 52,
+        borderRadius: 14,
+        borderCurve: "continuous",
+        backgroundColor: palette.bg,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        style={[
+          typography.overline,
+          { fontSize: 9.5, color: palette.fg, textTransform: "uppercase", letterSpacing: 0.8 },
+        ]}
+      >
+        {valid ? d!.toLocaleDateString("en-US", { month: "short" }) : "—"}
+      </Text>
+      <Text
+        style={{
+          fontFamily: fontFamily.heavy,
+          fontSize: 20,
+          lineHeight: 23,
+          letterSpacing: -0.5,
+          color: tone === "neutral" ? colors.textMuted : colors.text,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {valid ? d!.getDate() : "?"}
+      </Text>
+    </View>
   );
 }

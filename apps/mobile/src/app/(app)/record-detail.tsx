@@ -76,7 +76,9 @@ import {
   IconButton,
   ErrorState,
   Skeleton,
+  IconTile,
 } from "@/components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { metaFor, type RecordType } from "@/lib/recordImportance";
 import { FamilyPickerSheet } from "@/components/FamilyPickerSheet";
 import { TagPickerSheet } from "@/components/TagPickerSheet";
@@ -191,6 +193,7 @@ export default function RecordDetailScreen() {
   const locale = useLocaleStore((s) => s.locale);
   const { spacing, colors, typography, fontFamily, radius, shadow, scheme } = useTheme();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
   const isDark = scheme === "dark";
   const cardLift = isDark ? null : shadow.sm;
 
@@ -549,40 +552,38 @@ export default function RecordDetailScreen() {
           backgroundColor: colors.bg,
         }}
       >
-        <IconButton
-          icon={ChevronLeft}
-          accessibilityLabel={t("recordDetail.notFound.back")}
+        <Pressable
           onPress={() => router.back()}
-          variant="ghost"
-          tint={colors.primary}
-          size="md"
-        />
-
-        <View
-          style={{
-            flexDirection: "row",
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("recordDetail.notFound.back")}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             alignItems: "center",
-            gap: 6,
-            paddingHorizontal: 12,
-            height: 30,
-            borderRadius: radius.full,
-            backgroundColor: `${meta.tone}1F`,
-          }}
+            justifyContent: "center",
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          })}
         >
-          <IconComp size={14} color={meta.tone} strokeWidth={2.5} />
-          <Text style={[typography.label.sm, { color: meta.tone }]}>
-            {meta.label}
-          </Text>
-        </View>
+          <ChevronLeft size={22} color={colors.text} strokeWidth={2.4} />
+        </Pressable>
+
+        <Text
+          style={[typography.title.sm, { color: colors.text, flex: 1, textAlign: "center", marginHorizontal: spacing.sm }]}
+          numberOfLines={1}
+        >
+          {meta.label}
+        </Text>
 
         <Pressable
           onPress={() => setShowSheet(true)}
+          accessibilityRole="button"
           accessibilityLabel={t("recordDetail.a11y.moreOptions")}
           style={({ pressed }) => ({
             width: 40,
             height: 40,
             borderRadius: 20,
-            borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: pressed ? colors.fillStrong : colors.fill,
@@ -602,35 +603,42 @@ export default function RecordDetailScreen() {
           style={{
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.sm,
-            paddingBottom: spacing.xl,
+            paddingBottom: spacing.lg,
           }}
         >
           <View
             style={[
-              isDark ? null : shadow.md,
+              isDark ? null : shadow.card,
               {
                 backgroundColor: colors.surface,
                 borderRadius: radius.xxl,
                 borderCurve: "continuous",
-                padding: spacing.xl,
+                overflow: "hidden",
                 borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.separator,
-                gap: spacing.lg,
+                borderColor: isDark ? colors.borderStrong : colors.hairline,
               },
             ]}
           >
-            {/* Kind identity row — gradient icon tile + type + owner/date */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+            {/* Kind-tinted wash behind the identity block */}
+            <LinearGradient
+              colors={[`${(DETAIL_GRADIENT[recordKind ?? "other"] ?? DETAIL_GRADIENT.other)[0]}${isDark ? "26" : "1F"}`, "transparent"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, height: 150 }}
+            />
+            <View style={{ padding: spacing.xl, paddingBottom: spacing.lg, gap: spacing.md }}>
               <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 18,
-                  borderCurve: "continuous",
-                  overflow: "hidden",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                style={[
+                  {
+                    width: 56,
+                    height: 56,
+                    borderRadius: 18,
+                    borderCurve: "continuous",
+                    overflow: "hidden",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
               >
                 <LinearGradient
                   colors={DETAIL_GRADIENT[recordKind ?? "other"] ?? DETAIL_GRADIENT.other}
@@ -640,197 +648,189 @@ export default function RecordDetailScreen() {
                 />
                 <IconComp size={24} color="#FFFFFF" strokeWidth={2.25} />
               </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text
-                  style={[typography.overline, { color: meta.tone }]}
-                  numberOfLines={1}
-                >
-                  {meta.label.toUpperCase()}
+              <View style={{ gap: 4 }}>
+                <Text style={[typography.display.sm, { color: colors.text }]}>
+                  {record.title}
                 </Text>
-                <Text
-                  style={[typography.body.sm, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {ownerLabel} · {formatDate(record.date, locale)}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {isArchived ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        paddingHorizontal: 8,
+                        height: 22,
+                        borderRadius: 11,
+                        backgroundColor: colors.warningSoft,
+                      }}
+                    >
+                      <Archive size={11} color={colors.warning} strokeWidth={2.5} />
+                      <Text style={[typography.label.xs, { color: colors.warning }]}>
+                        {t("recordDetail.archivedBadge.title")}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
             </View>
 
-            <Text style={[typography.display.sm, { color: colors.text }]}>
-              {record.title}
-            </Text>
-
+            {/* Key facts */}
             <View
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: spacing.sm,
-                paddingTop: spacing.lg,
                 borderTopWidth: StyleSheet.hairlineWidth,
                 borderTopColor: colors.separator,
               }}
             >
-              {record.doctor?.name ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    backgroundColor: colors.infoSoft,
-                    paddingHorizontal: 12,
-                    height: 32,
-                    borderRadius: radius.full,
-                  }}
-                >
-                  <User size={14} color={colors.info} strokeWidth={2.25} />
-                  <Text style={[typography.label.md, { color: colors.info }]}>
-                    {record.doctor.name}
-                  </Text>
-                </View>
-              ) : null}
-              {record.hospital?.name ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    backgroundColor: colors.accentSoft,
-                    paddingHorizontal: 12,
-                    height: 32,
-                    borderRadius: radius.full,
-                  }}
-                >
-                  <Hospital size={14} color={colors.accent} strokeWidth={2.25} />
-                  <Text style={[typography.label.md, { color: colors.accent }]}>
-                    {record.hospital.name}
-                  </Text>
-                </View>
-              ) : null}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  backgroundColor: colors.fill,
-                  paddingHorizontal: 12,
-                  height: 32,
-                  borderRadius: radius.full,
-                }}
-              >
-                <Calendar size={14} color={colors.textMuted} strokeWidth={2.25} />
-                <Text style={[typography.label.md, { color: colors.textMuted }]}>
-                  {formatDate(record.date, locale)}
-                </Text>
-              </View>
+              {[
+                record.doctor?.name
+                  ? { key: "doctor", icon: Stethoscope, tone: colors.info, value: record.doctor.name }
+                  : null,
+                record.hospital?.name
+                  ? { key: "hospital", icon: Hospital, tone: colors.accent, value: record.hospital.name }
+                  : null,
+                { key: "date", icon: Calendar, tone: colors.warning, value: formatDate(record.date, locale) },
+                { key: "owner", icon: User, tone: colors.primary, value: ownerLabel },
+              ]
+                .filter(Boolean)
+                .map((f: any, i: number, all: any[]) => {
+                  const FIcon = f.icon;
+                  const fullRow = all.length % 2 === 1 && i === all.length - 1;
+                  return (
+                    <View
+                      key={f.key}
+                      style={{
+                        width: fullRow ? "100%" : "50%",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md,
+                        borderLeftWidth: i % 2 === 1 ? StyleSheet.hairlineWidth : 0,
+                        borderTopWidth: i >= 2 ? StyleSheet.hairlineWidth : 0,
+                        borderColor: colors.separator,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 10,
+                          borderCurve: "continuous",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: `${f.tone}1A`,
+                        }}
+                      >
+                        <FIcon size={14} color={f.tone} strokeWidth={2.4} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+                          {t(`recordDetail.v2.${f.key}`)}
+                        </Text>
+                        <Text style={[typography.label.md, { color: colors.text }]} numberOfLines={1}>
+                          {f.value}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
             </View>
           </View>
         </View>
 
         {isArchived ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <Card
+            <View
               style={{
-                borderColor: colors.warning,
-                backgroundColor: `${colors.warning}10`,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                padding: spacing.md,
+                borderRadius: radius.xl,
+                borderCurve: "continuous",
+                backgroundColor: colors.warningSoft,
               }}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                }}
-              >
-                <Archive size={18} color={colors.warning} strokeWidth={2.25} />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "700",
-                    color: colors.warning,
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  {t("recordDetail.archivedBadge.title")}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  typography.body.sm,
-                  {
-                    color: colors.textMuted,
-                    marginTop: 4,
-                  },
-                ]}
-              >
+              <Archive size={18} color={colors.warning} strokeWidth={2.25} />
+              <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
                 {t("recordDetail.archivedBadge.body")}
               </Text>
-              <Button
-                title={t("recordDetail.archivedBadge.restore")}
-                variant="ghost"
-                size="sm"
+              <Pressable
                 onPress={doRestore}
-                style={{ marginTop: spacing.sm, alignSelf: "flex-start" }}
-              />
-            </Card>
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  paddingHorizontal: 12,
+                  height: 32,
+                  borderRadius: 16,
+                  justifyContent: "center",
+                  backgroundColor: colors.surface,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Text style={[typography.label.sm, { color: colors.warning }]}>
+                  {t("recordDetail.archivedBadge.restore")}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
-        {/* Sections */}
-        <View
-          style={{
-            paddingHorizontal: spacing.lg,
-            marginBottom: spacing.md,
-            gap: spacing.md,
-          }}
-        >
-          {[
+        {/* Clinical summary — diagnosis / summary / notes / follow-up in one card */}
+        {(() => {
+          const secs = [
             { key: "diagnosis", value: record.diagnosis, icon: Stethoscope, color: colors.accent },
             { key: "summary", value: record.summary, icon: FileText, color: colors.primary },
             { key: "notes", value: record.notes, icon: Pencil, color: colors.info },
-            { key: "followUp", value: record.followUpDate, icon: Calendar, color: colors.warning },
-          ].map((sec) => {
-            if (!sec.value || (sec.key === "followUp" && !record.followUpDate))
-              return null;
-            const SecIcon = sec.icon;
-            return (
-              <Card key={sec.key} style={{ padding: spacing.lg + 2 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            {
+              key: "followUp",
+              value: record.followUpDate ? formatDate(record.followUpDate, locale) : null,
+              icon: Calendar,
+              color: colors.warning,
+            },
+          ].filter((sec) => !!sec.value);
+          if (!secs.length) return null;
+          return (
+            <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+              <Card padded={false}>
+                <View style={{ padding: spacing.lg, paddingBottom: spacing.sm }}>
+                  <SectionTitle icon={Activity} tone="accent" title={t("recordDetail.v2.clinical")} />
+                </View>
+                {secs.map((sec, i) => (
                   <View
+                    key={sec.key}
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 10,
-                      borderCurve: "continuous",
-                      backgroundColor: `${sec.color}1F`,
-                      alignItems: "center",
-                      justifyContent: "center",
+                      flexDirection: "row",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
-                    <SecIcon size={15} color={sec.color} strokeWidth={2.5} />
+                    <View style={{ width: 3, borderRadius: 2, backgroundColor: sec.color }} />
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Text style={[typography.caption, { color: colors.textSubtle }]}>
+                        {t(`recordDetail.sections.${sec.key}`)}
+                      </Text>
+                      <Text
+                        style={[
+                          sec.key === "followUp" ? typography.title.sm : typography.body.md,
+                          { color: colors.text, lineHeight: sec.key === "followUp" ? undefined : 22 },
+                        ]}
+                      >
+                        {sec.value}
+                      </Text>
+                    </View>
                   </View>
-                  <Text
-                    style={[typography.overline, { color: colors.textSubtle }]}
-                  >
-                    {t(`recordDetail.sections.${sec.key}`).toUpperCase()}
-                  </Text>
-                </View>
-                {sec.key === "followUp" ? (
-                  <Text
-                    style={[typography.title.md, { color: colors.text }]}
-                  >
-                    {new Date(sec.value).toDateString()}
-                  </Text>
-                ) : (
-                  <Text
-                    style={[typography.body.md, { color: colors.text, lineHeight: 22 }]}
-                  >
-                    {sec.value}
-                  </Text>
-                )}
+                ))}
+                <View style={{ height: spacing.sm }} />
               </Card>
-            );
-          })}
-        </View>
+            </View>
+          );
+        })()}
 
         {/* Structured data (migration 0070) — child-table counts
             per extraction kind + re-extract button. Shown only for
@@ -847,126 +847,76 @@ export default function RecordDetailScreen() {
 
         {/* Tags — tap anywhere on the card to edit */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Pressable
+          <Card
             onPress={() => setShowTagPicker(true)}
-            accessibilityRole="button"
             accessibilityLabel={t("recordDetail.a11y.editTags", "Edit tags")}
-            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+            style={{ padding: spacing.lg }}
           >
-            <Card style={{ padding: spacing.lg + 2 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Tag size={15} color={colors.primary} strokeWidth={2.5} />
-                </View>
-                <Text
-                  style={[typography.overline, { flex: 1, color: colors.textSubtle }]}
-                >
-                  {t("recordDetail.tagsHeading").toUpperCase()}
-                </Text>
-                <View
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Plus size={15} color={colors.primary} strokeWidth={2.75} />
-                </View>
-              </View>
-              {record.tags?.length ? (
+            <SectionTitle
+              icon={Tag}
+              tone="primary"
+              title={t("recordDetail.tagsHeading")}
+              right={
                 <View
                   style={{
                     flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 6,
-                  }}
-                >
-                  {record.tags.map((tag: string) => (
-                    <View
-                      key={tag}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 4,
-                        paddingHorizontal: 12,
-                        height: 30,
-                        borderRadius: 999,
-                        backgroundColor: colors.primarySoft,
-                      }}
-                    >
-                      <Tag size={11} color={colors.primary} strokeWidth={2.5} />
-                      <Text
-                        style={[typography.label.sm, { color: colors.primary }]}
-                      >
-                        {tag}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <View
-                  style={{
-                    borderRadius: 16,
-                    borderCurve: "continuous",
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: colors.borderStrong,
-                    backgroundColor: colors.fill,
-                    paddingVertical: 16,
-                    paddingHorizontal: 14,
                     alignItems: "center",
+                    gap: 4,
+                    paddingHorizontal: 10,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: colors.primarySoft,
                   }}
                 >
-                  <Text
-                    style={[typography.body.sm, { color: colors.textMuted }]}
-                  >
-                    {t("recordDetail.noTags")}
+                  <Plus size={13} color={colors.primary} strokeWidth={2.75} />
+                  <Text style={[typography.label.sm, { color: colors.primary }]}>
+                    {t("recordDetail.v2.addTag")}
                   </Text>
                 </View>
-              )}
-            </Card>
-          </Pressable>
+              }
+            />
+            {record.tags?.length ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginTop: spacing.md,
+                }}
+              >
+                {record.tags.map((tag: string) => (
+                  <View
+                    key={tag}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      paddingHorizontal: 12,
+                      height: 30,
+                      borderRadius: 999,
+                      backgroundColor: colors.primarySoft,
+                    }}
+                  >
+                    <Text style={[typography.label.sm, { color: colors.primary }]}>
+                      #{tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={[typography.body.sm, { color: colors.textSubtle, marginTop: spacing.sm }]}>
+                {t("recordDetail.v2.noTagsInline")}
+              </Text>
+            )}
+          </Card>
         </View>
 
         {/* Details — extracted fields as key/value rows */}
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <Card style={{ padding: spacing.lg + 2 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.fill,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ListChecks size={16} color={colors.textMuted} strokeWidth={2.5} />
-              </View>
-              <Text
-                style={[typography.overline, { color: colors.textSubtle }]}
-              >
-                {t("recordDetail.detailsHeading").toUpperCase()}
-              </Text>
-            </View>
+          <Card style={{ padding: spacing.lg }}>
+            <SectionTitle icon={ListChecks} tone="neutral" title={t("recordDetail.detailsHeading")} />
             {record.extractedData && Object.keys(record.extractedData).length ? (
-              <View>
+              <View style={{ marginTop: spacing.sm }}>
                 {Object.entries(record.extractedData)
                   .slice(0, 14)
                   .map(([key, val], i) => (
@@ -1011,25 +961,9 @@ export default function RecordDetailScreen() {
                   ))}
               </View>
             ) : (
-              <View
-                style={{
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  borderWidth: 1,
-                  borderStyle: "dashed",
-                  borderColor: colors.borderStrong,
-                  backgroundColor: colors.fill,
-                  paddingVertical: 16,
-                  paddingHorizontal: 14,
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={[typography.body.sm, { color: colors.textMuted, textAlign: "center" }]}
-                >
-                  {t("recordDetail.emptyDetails")}
-                </Text>
-              </View>
+              <Text style={[typography.body.sm, { color: colors.textSubtle, marginTop: spacing.sm }]}>
+                {t("recordDetail.emptyDetails")}
+              </Text>
             )}
           </Card>
         </View>
@@ -1066,15 +1000,13 @@ export default function RecordDetailScreen() {
         {/* Attachments */}
         {attachments.length ? (
           <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-            <Card style={{ padding: spacing.lg + 2 }}>
-              <Text
-                style={[typography.overline, { color: colors.textSubtle, marginBottom: 12 }]}
-              >
-                {t("recordDetail.attachments", {
-                  count: attachments.length,
-                })}
-              </Text>
-              <View style={{ gap: spacing.sm }}>
+            <Card style={{ padding: spacing.lg }}>
+              <SectionTitle
+                icon={FileText}
+                tone="info"
+                title={t("recordDetail.attachments", { count: attachments.length })}
+              />
+              <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
                 {attachments.map((att: any) => {
                   const isImage = att.type === "image";
                   const sizeKb =
@@ -1179,28 +1111,47 @@ export default function RecordDetailScreen() {
       <View
         style={{
           position: "absolute",
-          bottom: 12,
-          left: 12,
-          right: 12,
+          bottom: Math.max(insets.bottom, 12),
+          left: spacing.lg,
+          right: spacing.lg,
           backgroundColor: colors.glassStrong,
           borderWidth: StyleSheet.hairlineWidth,
-          borderColor: isDark ? colors.borderStrong : colors.separator,
-          borderRadius: 24,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
+          borderRadius: 26,
           borderCurve: "continuous",
-          paddingHorizontal: 10,
-          paddingTop: 10,
-          paddingBottom: 10,
+          padding: 8,
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          shadowColor: "#0B2942",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: isDark ? 0 : 0.14,
-          shadowRadius: 24,
-          elevation: 12,
+          gap: 8,
+          ...(isDark ? {} : shadow.glass),
         }}
       >
+        <Pressable
+          onPress={doShare}
+          accessibilityRole="button"
+          accessibilityLabel={t("recordDetail.quickActions.share")}
+          style={({ pressed }) => ({
+            width: 48,
+            height: 48,
+            borderRadius: 18,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          })}
+        >
+          <Share2 size={19} color={colors.text} strokeWidth={2.25} />
+        </Pressable>
+        {attachments.length ? (
+          <Button
+            title={t("recordDetail.v2.openFile")}
+            variant="secondary"
+            size="md"
+            onPress={() => openAttachment(attachments[0])}
+            style={{ flex: 1, height: 48, borderRadius: 18 }}
+            icon={ExternalLink}
+          />
+        ) : null}
         <Button
           title={t("recordDetail.quickActions.edit")}
           variant="primary"
@@ -1211,24 +1162,8 @@ export default function RecordDetailScreen() {
               params: { id: params.id },
             })
           }
-          style={{ flex: 1, height: 48, borderRadius: 16 }}
+          style={{ flex: 1, height: 48, borderRadius: 18 }}
           icon={Pencil}
-        />
-        <Button
-          title={t("recordDetail.quickActions.share")}
-          variant="secondary"
-          size="md"
-          onPress={doShare}
-          style={{ flex: 1, height: 48, borderRadius: 16 }}
-          icon={Share2}
-        />
-        <Button
-          title={t("recordDetail.quickActions.link")}
-          variant="outline"
-          size="md"
-          onPress={() => router.push("/(app)/notifications")}
-          style={{ flex: 1, height: 48, borderRadius: 16 }}
-          icon={ExternalLink}
         />
       </View>
 
@@ -1386,6 +1321,30 @@ export default function RecordDetailScreen() {
         excludeOwn={false}
       />
     </Screen>
+  );
+}
+
+/** Card heading: tinted icon tile + sentence-case title + optional trailing element. */
+function SectionTitle({
+  icon,
+  tone,
+  title,
+  right,
+}: {
+  icon: any;
+  tone: string;
+  title: string;
+  right?: React.ReactNode;
+}) {
+  const { colors, typography } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <IconTile icon={icon} tone={tone as any} size={32} />
+      <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+        {title}
+      </Text>
+      {right}
+    </View>
   );
 }
 
@@ -1561,38 +1520,34 @@ function StructuredDataCard({
 
   return (
     <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
-      <Card style={{ padding: spacing.lg + 2 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              borderCurve: "continuous",
-              backgroundColor: colors.accentSoft,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Sparkles size={16} color={colors.accent} strokeWidth={2.5} />
-          </View>
-          <Text
-            style={[typography.overline, { color: colors.textSubtle }]}
-          >
-            {t("recordDetail.structured.title", "STRUCTURED DATA").toUpperCase()}
-          </Text>
+      <Card style={{ padding: spacing.lg }}>
+        <View style={{ marginBottom: spacing.md }}>
+          <SectionTitle
+            icon={Sparkles}
+            tone="accent"
+            title={t("recordDetail.structured.title", "Structured data")}
+            right={
+              !isLoading && totalCount > 0 ? (
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    height: 22,
+                    borderRadius: 11,
+                    justifyContent: "center",
+                    backgroundColor: colors.accentSoft,
+                  }}
+                >
+                  <Text style={[typography.label.xs, { color: colors.accent }]}>AI</Text>
+                </View>
+              ) : null
+            }
+          />
         </View>
         {isLoading ? (
-          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-            {t("common.loading", "Loading…")}
-          </Text>
+          <View style={{ gap: 8 }}>
+            <Skeleton width="70%" height={14} radius={6} />
+            <Skeleton width="100%" height={38} radius={12} />
+          </View>
         ) : totalCount === 0 ? (
           <View style={{ gap: 12 }}>
             <Text style={[typography.body.sm, { color: colors.textMuted }]}>
@@ -1607,12 +1562,12 @@ function StructuredDataCard({
                   ? t("recordDetail.structured.reExtracting", "Extracting with AI…")
                   : t("recordDetail.structured.reExtract", "Re-extract with AI")
               }
-              variant="primary"
-              size="md"
+              variant="secondary"
+              size="sm"
               onPress={onReExtract}
               disabled={isExtracting}
-              style={{ borderRadius: 12, height: 42 }}
-              icon={<Sparkles size={15} color="#FFFFFF" />}
+              style={{ borderRadius: 12, height: 40 }}
+              icon={<Sparkles size={15} color={colors.primary} />}
             />
           </View>
         ) : (

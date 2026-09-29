@@ -1,10 +1,11 @@
-import { useState } from "react";
 import {
   View,
   Text,
   ActivityIndicator,
+  Alert,
   Linking,
   Platform,
+  Share,
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,6 +20,9 @@ import {
   Send,
   FileText,
   ListChecks,
+  Share2,
+  Lock,
+  QrCode,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -30,20 +34,22 @@ import {
   ScreenHeader,
   Card,
   SectionHeader,
-  Divider,
   ListItem,
   Pressable,
+  Skeleton,
   useToast,
 } from "@/components/ui";
+
+const MONO = Platform.OS === "ios" ? "Menlo" : "monospace";
 
 export default function EmailImportScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, shadow } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
   const toast = useToast();
   const { data, isLoading } = useEmailAlias();
   const rotate = useRotateEmailAlias();
-  const [confirmingRotate, setConfirmingRotate] = useState(false);
+  const ready = !isLoading && !!data;
 
   async function copyAlias() {
     if (!data?.address) return;
@@ -51,18 +57,30 @@ export default function EmailImportScreen() {
     toast.show(t("emailImport.copiedToast"), "success");
   }
 
+  function shareAlias() {
+    if (!data?.address) return;
+    Share.share({ message: data.address });
+  }
+
   function onRotate() {
-    if (confirmingRotate) {
-      setConfirmingRotate(false);
-      rotate.mutate(undefined, {
-        onSuccess: () =>
-          toast.show(t("emailImport.rotateToast"), "success"),
-        onError: () =>
-          toast.show(t("emailImport.rotateError"), "danger"),
-      });
-    } else {
-      setConfirmingRotate(true);
-    }
+    Alert.alert(
+      t("emailImport.rotateConfirmTitle"),
+      t("emailImport.rotateConfirmBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("emailImport.rotateButton"),
+          style: "destructive",
+          onPress: () =>
+            rotate.mutate(undefined, {
+              onSuccess: () =>
+                toast.show(t("emailImport.rotateToast"), "success"),
+              onError: () =>
+                toast.show(t("emailImport.rotateError"), "danger"),
+            }),
+        },
+      ]
+    );
   }
 
   function openMailto() {
@@ -70,10 +88,10 @@ export default function EmailImportScreen() {
     Linking.openURL(`mailto:${data.email}`);
   }
 
-  const steps: { icon: LucideIcon; tone: Tone; text: string }[] = [
-    { icon: Send, tone: "primary", text: t("emailImport.howStep1") },
-    { icon: FileText, tone: "accent", text: t("emailImport.howStep2") },
-    { icon: ListChecks, tone: "info", text: t("emailImport.howStep3") },
+  const steps: { icon: LucideIcon; tone: Tone; title: string; text: string }[] = [
+    { icon: Send, tone: "primary", title: t("emailImport.stepTitle1"), text: t("emailImport.howStep1") },
+    { icon: FileText, tone: "accent", title: t("emailImport.stepTitle2"), text: t("emailImport.howStep2") },
+    { icon: ListChecks, tone: "info", title: t("emailImport.stepTitle3"), text: t("emailImport.howStep3") },
   ];
 
   return (
@@ -88,19 +106,21 @@ export default function EmailImportScreen() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
+          paddingTop: spacing.sm,
           paddingBottom: spacing.xxxl,
           gap: spacing.xl,
         }}
       >
-        {/* ─── Personal inbox hero (gradient + ticket) ─── */}
+        {/* ─── Personal inbox hero ─── */}
         <View
-          style={{
-            borderRadius: radius.xxxl,
-            borderCurve: "continuous",
-            overflow: "hidden",
-            ...shadow.hero,
-          }}
+          style={[
+            {
+              borderRadius: radius.xxxl,
+              borderCurve: "continuous",
+              overflow: "hidden",
+            },
+            scheme === "dark" ? null : shadow.hero,
+          ]}
         >
           <LinearGradient
             colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
@@ -108,30 +128,17 @@ export default function EmailImportScreen() {
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          {/* radial accent overlays */}
           <View
             style={{
               position: "absolute",
-              top: -80,
-              right: -60,
-              width: 220,
-              height: 220,
-              borderRadius: 110,
-              backgroundColor: "rgba(56, 189, 248, 0.30)",
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              bottom: -100,
-              left: -60,
+              top: -90,
+              right: -70,
               width: 240,
               height: 240,
               borderRadius: 120,
-              backgroundColor: "rgba(14, 165, 233, 0.28)",
+              backgroundColor: "rgba(56, 189, 248, 0.22)",
             }}
           />
-          {/* top sheen */}
           <View
             style={{
               position: "absolute",
@@ -139,146 +146,182 @@ export default function EmailImportScreen() {
               left: 0,
               right: 0,
               height: 1,
-              backgroundColor: "rgba(255, 255, 255, 0.25)",
+              backgroundColor: "rgba(255, 255, 255, 0.22)",
             }}
           />
-          {/* mail watermark */}
-          <View
-            pointerEvents="none"
-            style={{ position: "absolute", right: -14, top: -14, opacity: 0.08 }}
-          >
-            <Mail size={140} color="#FFFFFF" strokeWidth={1.5} />
-          </View>
 
-          <View
-            style={{
-              padding: spacing.xl,
-              gap: spacing.lg,
-              alignItems: "stretch",
-            }}
-          >
-            <Text
-              style={[
-                typography.overline,
-                {
-                  color: "rgba(255, 255, 255, 0.75)",
-                  letterSpacing: 1.4,
-                  textAlign: "center",
-                },
-              ]}
-            >
-              {t("emailImport.aliasHeading").toUpperCase()}
-            </Text>
-
-            {/* white ticket */}
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: radius.xl,
-                borderCurve: "continuous",
-                padding: spacing.lg,
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
-              {isLoading || !data ? (
-                <View
-                  style={{
-                    height: 170,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ActivityIndicator color={colors.primary} />
-                </View>
-              ) : (
-                <>
-                  <QRCode
-                    value={`mailto:${data.address}`}
-                    size={170}
-                    color={colors.text}
-                    backgroundColor="#FFFFFF"
-                  />
-                  <DashLine />
-                  <Text
-                    selectable
-                    style={[
-                      typography.title.sm,
-                      {
-                        fontFamily:
-                          Platform.OS === "ios" ? "Menlo" : "monospace",
-                        color: colors.text,
-                        textAlign: "center",
-                        letterSpacing: -0.2,
-                      },
-                    ]}
-                  >
-                    {data.address}
-                  </Text>
-                </>
-              )}
-            </View>
-
-            {/* glass actions */}
-            {!isLoading && data ? (
+          <View style={{ padding: spacing.xl, gap: spacing.lg }}>
+            {/* Title row */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: radius.lg,
+                  borderCurve: "continuous",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.24)",
+                }}
+              >
+                <Mail size={20} color="#FFFFFF" strokeWidth={2.2} />
+              </View>
+              <Text
+                style={[typography.title.md, { color: "#FFFFFF", flex: 1 }]}
+                numberOfLines={1}
+              >
+                {t("emailImport.aliasHeading")}
+              </Text>
               <View
                 style={{
                   flexDirection: "row",
-                  justifyContent: "center",
-                  gap: spacing.sm,
-                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: "rgba(16, 185, 129, 0.22)",
                 }}
               >
-                <GlassButton
-                  icon={Copy}
-                  label={t("emailImport.copyButton")}
-                  onPress={copyAlias}
-                />
-                <GlassButton
-                  icon={RefreshCw}
-                  label={
-                    confirmingRotate
-                      ? t("emailImport.confirmRotate")
-                      : t("emailImport.rotateButton")
-                  }
-                  danger={confirmingRotate}
-                  loading={rotate.isPending}
-                  onPress={onRotate}
-                />
+                <Lock size={11} color="#A7F3D0" strokeWidth={2.6} />
+                <Text style={[typography.caption, { color: "#D1FAE5", fontWeight: "700" }]}>
+                  {t("emailImport.privateBadge")}
+                </Text>
               </View>
-            ) : null}
+            </View>
 
-            <Text
-              style={[
-                typography.caption,
-                {
-                  color: "rgba(255, 255, 255, 0.75)",
-                  textAlign: "center",
-                },
-              ]}
+            {/* Address field — tap to copy */}
+            <Pressable
+              onPress={copyAlias}
+              disabled={!ready}
+              haptic="light"
+              accessibilityRole="button"
+              accessibilityLabel={t("emailImport.copyButton")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                minHeight: 56,
+                paddingLeft: spacing.lg,
+                paddingRight: spacing.sm,
+                borderRadius: radius.xl,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(4, 18, 31, 0.28)",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.14)",
+              }}
             >
-              {t("emailImport.qrCaption")}
-            </Text>
+              {ready ? (
+                <Text
+                  selectable
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={[
+                    typography.body.md,
+                    { flex: 1, fontFamily: MONO, color: "#FFFFFF", letterSpacing: -0.3 },
+                  ]}
+                >
+                  {data.address}
+                </Text>
+              ) : (
+                <View style={{ flex: 1 }}>
+                  <ActivityIndicator color="#FFFFFF" style={{ alignSelf: "flex-start" }} />
+                </View>
+              )}
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(255, 255, 255, 0.14)",
+                }}
+              >
+                <Copy size={16} color="#FFFFFF" strokeWidth={2.4} />
+              </View>
+            </Pressable>
+
+            {/* Actions */}
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <HeroButton
+                icon={Copy}
+                label={t("emailImport.copyButton")}
+                onPress={copyAlias}
+                disabled={!ready}
+                solid
+              />
+              <HeroButton
+                icon={Share2}
+                label={t("emailImport.shareButton")}
+                onPress={shareAlias}
+                disabled={!ready}
+              />
+            </View>
           </View>
         </View>
 
-        {/* ─── How it works ────────────────────────────── */}
+        {/* ─── QR for another device ─── */}
+        <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
+          <View
+            style={{
+              padding: 8,
+              borderRadius: radius.lg,
+              borderCurve: "continuous",
+              backgroundColor: "#FFFFFF",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.hairline,
+            }}
+          >
+            {ready ? (
+              <QRCode
+                value={`mailto:${data.address}`}
+                size={96}
+                color="#0B1220"
+                backgroundColor="#FFFFFF"
+              />
+            ) : (
+              <Skeleton width={96} height={96} radius={8} />
+            )}
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <QrCode size={14} color={colors.primary} strokeWidth={2.4} />
+              <Text style={[typography.title.sm, { color: colors.text }]}>
+                {t("emailImport.qrTitle")}
+              </Text>
+            </View>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              {t("emailImport.qrHint")}
+            </Text>
+          </View>
+        </Card>
+
+        {/* ─── How it works ─── */}
         <View>
           <SectionHeader title={t("emailImport.howHeading")} />
-          <Card padded={false}>
+          <Card style={{ paddingVertical: spacing.lg }}>
             {steps.map((s, i) => (
-              <View key={i}>
-                <StepRow step={i + 1} icon={s.icon} tone={s.tone} text={s.text} />
-                {i < steps.length - 1 ? <Divider /> : null}
-              </View>
+              <StepRow
+                key={i}
+                step={i + 1}
+                icon={s.icon}
+                tone={s.tone}
+                title={s.title}
+                text={s.text}
+                last={i === steps.length - 1}
+              />
             ))}
           </Card>
         </View>
 
-        {/* ─── Legacy path ─────────────────────────────── */}
+        {/* ─── Legacy path ─── */}
         {data?.email ? (
           <View>
-            <SectionHeader title={t("emailImport.legacyHeading")} />
+            <SectionHeader title={t("emailImport.legacyTitle")} />
             <Card padded={false}>
               <ListItem
                 icon={MailQuestion}
@@ -293,56 +336,73 @@ export default function EmailImportScreen() {
             </Card>
           </View>
         ) : null}
+
+        {/* ─── Manage ─── */}
+        {ready ? (
+          <View>
+            <SectionHeader title={t("emailImport.manageHeading")} />
+            <Card padded={false}>
+              <ListItem
+                icon={RefreshCw}
+                iconTone="danger"
+                title={t("emailImport.rotateButton")}
+                subtitle={t("emailImport.rotateHint")}
+                onPress={rotate.isPending ? undefined : onRotate}
+                trailing={
+                  rotate.isPending ? (
+                    <ActivityIndicator size="small" color={colors.textMuted} />
+                  ) : undefined
+                }
+                showChevron={!rotate.isPending}
+                bordered={false}
+              />
+            </Card>
+          </View>
+        ) : null}
       </View>
     </Screen>
   );
 }
 
-/** Translucent pill button rendered on the gradient hero card. */
-function GlassButton({
+/** Pill button on the gradient hero: solid white (primary) or glass. */
+function HeroButton({
   icon: Icon,
   label,
   onPress,
-  danger,
-  loading,
+  solid,
+  disabled,
 }: {
   icon: LucideIcon;
   label: string;
   onPress: () => void;
-  danger?: boolean;
-  loading?: boolean;
+  solid?: boolean;
+  disabled?: boolean;
 }) {
   const { spacing, typography } = useTheme();
-  const fg = danger ? "#B91C1C" : "#FFFFFF";
+  const fg = solid ? "#0B2B64" : "#FFFFFF";
   return (
     <Pressable
       onPress={onPress}
-      disabled={loading}
+      disabled={disabled}
       haptic="light"
       accessibilityRole="button"
       accessibilityLabel={label}
       style={{
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
-        paddingHorizontal: spacing.md + 2,
-        height: 38,
+        justifyContent: "center",
+        gap: 8,
+        paddingHorizontal: spacing.md,
+        height: 48,
         borderRadius: 999,
-        backgroundColor: danger
-          ? "rgba(254, 226, 226, 0.95)"
-          : "rgba(255, 255, 255, 0.16)",
-        borderWidth: 1,
-        borderColor: danger
-          ? "rgba(254, 226, 226, 1)"
-          : "rgba(255, 255, 255, 0.32)",
-        opacity: loading ? 0.7 : 1,
+        backgroundColor: solid ? "#FFFFFF" : "rgba(255, 255, 255, 0.14)",
+        borderWidth: solid ? 0 : 1,
+        borderColor: "rgba(255, 255, 255, 0.28)",
+        opacity: disabled ? 0.6 : 1,
       }}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={fg} />
-      ) : (
-        <Icon size={14} color={fg} strokeWidth={2.5} />
-      )}
+      <Icon size={16} color={fg} strokeWidth={2.5} />
       <Text
         style={[typography.label.md, { color: fg, fontWeight: "700" }]}
         numberOfLines={1}
@@ -353,80 +413,63 @@ function GlassButton({
   );
 }
 
-/** Numbered step row for the "How it works" card. */
+/** Timeline step: tinted icon node + connector, bold title, body. */
 function StepRow({
   step,
   icon: Icon,
   tone,
+  title,
   text,
+  last,
 }: {
   step: number;
   icon: LucideIcon;
   tone: Tone;
+  title: string;
   text: string;
+  last: boolean;
 }) {
   const { colors, spacing, radius, typography } = useTheme();
   const { t } = useTranslation();
   const pal = useTone(tone);
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        gap: spacing.md,
-        padding: spacing.lg,
-        alignItems: "flex-start",
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: radius.lg,
-          borderCurve: "continuous",
-          backgroundColor: pal.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={18} color={pal.fg} strokeWidth={2.25} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text
-          style={[
-            typography.overline,
-            { color: pal.fg, letterSpacing: 1.1, fontSize: 10 },
-          ]}
-        >
-          {t("emailImport.step", { n: step }).toUpperCase()}
-        </Text>
-        <Text style={[typography.body.sm, { color: colors.text }]}>{text}</Text>
-      </View>
-    </View>
-  );
-}
-
-/** Dashed divider used inside the QR ticket. */
-function DashLine() {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignSelf: "stretch",
-      }}
-    >
-      {Array.from({ length: 22 }).map((_, i) => (
+    <View style={{ flexDirection: "row", gap: spacing.md }}>
+      <View style={{ alignItems: "center", width: 40 }}>
         <View
-          key={i}
           style={{
-            width: 6,
-            height: 1.5,
-            borderRadius: 1,
-            backgroundColor: colors.border,
+            width: 40,
+            height: 40,
+            borderRadius: radius.lg,
+            borderCurve: "continuous",
+            backgroundColor: pal.bg,
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
-      ))}
+        >
+          <Icon size={18} color={pal.fg} strokeWidth={2.25} />
+        </View>
+        {!last ? (
+          <View
+            style={{
+              flex: 1,
+              width: 2,
+              minHeight: 16,
+              marginVertical: 6,
+              borderRadius: 1,
+              backgroundColor: colors.separator,
+            }}
+          />
+        ) : null}
+      </View>
+      <View style={{ flex: 1, gap: 2, paddingBottom: last ? 0 : spacing.lg }}>
+        <Text style={[typography.caption, { color: pal.fg, fontWeight: "700" }]}>
+          {t("emailImport.step", { n: step })}
+        </Text>
+        <Text style={[typography.title.sm, { color: colors.text }]}>{title}</Text>
+        <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 20 }]}>
+          {text}
+        </Text>
+      </View>
     </View>
   );
 }

@@ -7,12 +7,11 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-  TextInput as RNTextInput,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Edit3, Search, ChevronRight, CalendarDays } from "lucide-react-native";
+import { Edit3 } from "lucide-react-native";
 import { useDoctorClinicalNotes } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -20,6 +19,8 @@ import {
   ScreenHeader,
   EmptyState,
   ErrorState,
+  IconTile,
+  SearchField,
   Skeleton,
 } from "@/components/ui";
 
@@ -77,45 +78,13 @@ export default function DoctorClinicalNotesScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* Search bar */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-              paddingHorizontal: 12,
-              backgroundColor: colors.fill,
-              borderRadius: 12,
-              borderCurve: "continuous",
-              minHeight: 40,
-            }}
-          >
-            <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
-            <TextInputShim
-              value={q}
-              onChangeText={setQ}
-              placeholder={t("doctorClinicalNotes.searchPlaceholder")}
-              placeholderTextColor={colors.textSubtle}
-              style={{
-                flex: 1,
-                ...typography.body.md,
-                color: colors.text,
-                paddingVertical: 8,
-              }}
-            />
-            {q ? (
-              <Pressable
-                onPress={() => setQ("")}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t("doctorClinicalNotes.clearA11y")}
-              >
-                <Text style={[typography.label.sm, { color: colors.primary }]}>
-                  {t("doctorClinicalNotes.clear")}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
+          <SearchField
+            value={q}
+            onChangeText={setQ}
+            placeholder={t("doctorClinicalNotes.searchPlaceholder")}
+            clearLabel={t("doctorClinicalNotes.clearA11y")}
+          />
         </View>
 
         {isLoading ? (
@@ -149,14 +118,19 @@ export default function DoctorClinicalNotesScreen() {
             }
           />
         ) : (
-          <View
-            style={{
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.md,
-              gap: spacing.sm,
-            }}
-          >
-            {filtered.map((r: any) => (
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            <View
+              style={{
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDark ? colors.borderStrong : colors.hairline,
+                paddingVertical: 4,
+                ...(isDark ? {} : shadow.card),
+              }}
+            >
+            {filtered.map((r: any, idx: number) => (
               <Pressable
                 key={r.id}
                 onPress={() =>
@@ -171,108 +145,76 @@ export default function DoctorClinicalNotesScreen() {
                   title: r.title,
                 })}
                 style={({ pressed }) => ({
-                  backgroundColor: pressed
-                    ? colors.surfaceMuted
-                    : colors.surface,
-                  borderRadius: radius.xl,
+                  marginHorizontal: 5,
+                  borderRadius: 18,
                   borderCurve: "continuous",
-                  padding: spacing.md,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDark ? colors.borderStrong : colors.hairline,
-                  ...(isDark ? {} : shadow.sm),
+                  backgroundColor: pressed ? colors.fill : "transparent",
                 })}
               >
                 <View
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: spacing.md,
+                    paddingVertical: 14,
+                    paddingHorizontal: spacing.md,
                   }}
                 >
-                  <View
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 13,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.accentSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Edit3
-                      size={19}
-                      color={colors.accent}
-                      strokeWidth={2.25}
+                  {idx < filtered.length - 1 ? (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: spacing.md,
+                        left: spacing.md + 40 + spacing.md,
+                        height: StyleSheet.hairlineWidth,
+                        backgroundColor: colors.separator,
+                      }}
                     />
-                  </View>
+                  ) : null}
+                  <IconTile icon={Edit3} tone="accent2" appearance="soft" size={40} />
                   <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text
+                        style={[typography.title.sm, { color: colors.text, flex: 1 }]}
+                        numberOfLines={1}
+                      >
+                        {r.title || t("doctorClinicalNotes.noteFallback")}
+                      </Text>
+                      <Text
+                        style={[
+                          typography.caption,
+                          { color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+                        ]}
+                      >
+                        {r.date || ""}
+                      </Text>
+                    </View>
                     <Text
-                      style={[
-                        typography.title.md,
-                        { color: colors.text },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {r.title || t("doctorClinicalNotes.noteFallback")}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted, marginTop: 2 },
-                      ]}
+                      style={[typography.label.sm, { color: colors.primary, marginTop: 2 }]}
                       numberOfLines={1}
                     >
                       {r.patient?.name || t("doctorClinicalNotes.unknownPatient")}
-                      {r.diagnosis ? ` · ${r.diagnosis}` : ""}
+                      {r.diagnosis ? (
+                        <Text style={{ color: colors.textMuted }}>{`  ·  ${r.diagnosis}`}</Text>
+                      ) : null}
                     </Text>
                     {r.notes ? (
                       <Text
-                        style={[
-                          typography.body.sm,
-                          {
-                            color: colors.textSubtle,
-                            marginTop: 6,
-                          },
-                        ]}
+                        style={[typography.body.sm, { color: colors.textMuted, marginTop: 4 }]}
                         numberOfLines={2}
                       >
                         {r.notes}
                       </Text>
                     ) : null}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 4,
-                        marginTop: 8,
-                      }}
-                    >
-                      <CalendarDays
-                        size={11}
-                        color={colors.textSubtle}
-                        strokeWidth={2.2}
-                      />
-                      <Text style={[typography.caption, { color: colors.textSubtle }]}>
-                        {(r.date || "").toUpperCase()}
-                      </Text>
-                    </View>
                   </View>
-                  <ChevronRight
-                    size={18}
-                    color={colors.textSubtle}
-                    strokeWidth={2.2}
-                  />
                 </View>
               </Pressable>
             ))}
+            </View>
           </View>
         )}
       </ScrollView>
     </Screen>
   );
-}
-
-function TextInputShim(props: any) {
-  return <RNTextInput {...props} />;
 }

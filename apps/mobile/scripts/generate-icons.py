@@ -161,23 +161,84 @@ def masked(img, shape):
     return out
 
 
+def font_at(weight, size):
+    path = os.path.join(
+        ROOT, "node_modules", "@expo-google-fonts", "outfit",
+        weight, f"Outfit_{weight}.ttf",
+    )
+    return ImageFont.truetype(path, size)
+
+
 def splash(w=1284, h=2778):
     img = brand_background(w, h)
     logo = 420
-    tile = masked(full_icon(logo, 0.58), "rounded")
-    halo = Image.new("L", (w, h), 0)
+    cx = w // 2
     top = int(h * 0.40) - logo // 2
-    left = (w - logo) // 2
+    left = cx - logo // 2
+    cy = top + logo // 2
+
+    # Concentric "signal" rings radiating from the logo, fading outward.
+    rings = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(rings)
+    for i, r in enumerate((330, 500, 700, 940, 1230)):
+        alpha = int(70 * (1 - i / 5.5) ** 1.6) + 6
+        rd.ellipse((cx - r, cy - r, cx + r, cy + r), outline=WHITE + (alpha,), width=3)
+    img.alpha_composite(rings)
+
+    # Soft radial glow behind the tile.
+    glow = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(glow).ellipse((cx - 420, cy - 420, cx + 420, cy + 420), fill=95)
+    img.paste(solid((w, h), SKY_300), (0, 0), glow.filter(ImageFilter.GaussianBlur(160)))
+
+    # Faint ECG trace running edge to edge behind the tile, fading at the sides.
+    trace = Image.new("L", (w, h), 0)
+    ty = cy + 6
+    pts = [(-20, ty), (cx - 560, ty), (cx - 500, ty - 40), (cx - 440, ty + 70),
+           (cx - 380, ty - 130), (cx - 330, ty), (cx - 250, ty),
+           (cx + 250, ty), (cx + 330, ty), (cx + 380, ty - 60), (cx + 440, ty + 90),
+           (cx + 500, ty - 30), (cx + 560, ty), (w + 20, ty)]
+    ImageDraw.Draw(trace).line(pts, fill=255, width=5, joint="curve")
+    fade = Image.linear_gradient("L").rotate(90, expand=True).resize((w, h))
+    edge = ImageChops.multiply(fade, ImageChops.invert(fade)).point(lambda v: min(255, v * 4))
+    trace = ImageChops.multiply(trace, edge).point(lambda v: int(v * 0.35))
+    img.paste(solid((w, h), WHITE), (0, 0), trace)
+
+    # Tile: drop shadow, icon, and a thin top-lit glass edge.
+    halo = Image.new("L", (w, h), 0)
     ImageDraw.Draw(halo).rounded_rectangle(
-        (left, top + 30, left + logo, top + logo + 30), radius=logo * 0.22, fill=110)
-    img.paste(solid((w, h), SKY_900), (0, 0), halo.filter(ImageFilter.GaussianBlur(40)))
+        (left, top + 40, left + logo, top + logo + 40), radius=logo * 0.22, fill=120)
+    img.paste(solid((w, h), SKY_900), (0, 0), halo.filter(ImageFilter.GaussianBlur(46)))
+    tile = masked(full_icon(logo, 0.58), "rounded")
     img.alpha_composite(tile, (left, top))
+    edge_layer = Image.new("RGBA", (logo * SS, logo * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(edge_layer).rounded_rectangle(
+        (2, 2, logo * SS - 3, logo * SS - 3), radius=logo * SS * 0.22, outline=WHITE + (110,), width=SS * 3)
+    img.alpha_composite(edge_layer.resize((logo, logo), Image.LANCZOS), (left, top))
 
     d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT, 132)
-    text = "HealthHub"
-    tw = d.textlength(text, font=font)
-    d.text(((w - tw) / 2, top + logo + 90), text, font=font, fill=WHITE)
+    name_font = font_at("800ExtraBold", 132)
+    name = "HealthHub"
+    tw = d.textlength(name, font=name_font)
+    name_y = top + logo + 100
+    d.text(((w - tw) / 2, name_y), name, font=name_font, fill=WHITE)
+
+    tag_font = font_at("500Medium", 44)
+    tag = "YOUR HEALTH, ALL IN ONE PLACE"
+    spacing = 6
+    widths = [d.textlength(c, font=tag_font) + spacing for c in tag]
+    x = (w - (sum(widths) - spacing)) / 2
+    for c, cw in zip(tag, widths):
+        d.text((x, name_y + 190), c, font=tag_font, fill=SKY_50 + (215,))
+        x += cw
+
+    # Loading dots near the bottom, leading dot brightest.
+    dots = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    dd = ImageDraw.Draw(dots)
+    dy = int(h * 0.90)
+    for i, a in enumerate((255, 140, 70)):
+        dx = cx + (i - 1) * 64
+        dd.ellipse((dx - 13, dy - 13, dx + 13, dy + 13), fill=WHITE + (a,))
+    img.alpha_composite(dots)
     return img.convert("RGB")
 
 

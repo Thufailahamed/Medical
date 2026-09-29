@@ -104,7 +104,6 @@ export default function NewFollowUpScreen() {
                 leadingIcon={FileText}
                 multiline
                 numberOfLines={4}
-                tone="soft"
               />
             </FormField>
           </View>

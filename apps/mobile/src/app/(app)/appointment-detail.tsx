@@ -221,6 +221,16 @@ export default function AppointmentDetailScreen() {
     appt?.hospitalName || (appt?.mode === "video" ? t("appointments.mode.video") : null);
 
   const formattedDate = formatAppointmentDate(appt?.date);
+  // The records endpoint doesn't carry the list's `bucket`; fall back to the
+  // cached list row / status so missed + upcoming states still resolve.
+  const bucket = appt?.bucket ?? cachedAppt?.bucket;
+  const isMissed = bucket === "missed" || appt?.status === "no_show";
+  const isUpcomingVisit =
+    ["scheduled", "confirmed"].includes(appt?.status) && !isMissed;
+  const dateObj = (() => {
+    const m = appt?.date?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  })();
   const isLiveVideo =
     activeSession?.session?.appointmentId === id &&
     activeSession?.session?.roomId;
@@ -267,127 +277,40 @@ export default function AppointmentDetailScreen() {
             />
           ) : (
             <>
-              {/* ─── Hero Doctor & Status Card ─── */}
+              {/* ─── Visit ticket: doctor, when, where ─── */}
               <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", overflow: "hidden" }}>
                 <LinearGradient
-                  colors={[withOpacity(colors.primary, scheme === "dark" ? 0.2 : 0.1), withOpacity(colors.primary, 0)]}
+                  colors={[withOpacity(colors.primary, scheme === "dark" ? 0.18 : 0.08), withOpacity(colors.primary, 0)]}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 0.6, y: 1 }}
-                  style={{ padding: spacing.xl, gap: spacing.lg }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{ padding: spacing.lg, gap: spacing.lg }}
                 >
-                  {/* Status & Mode badges row */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: spacing.xs,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, flexWrap: "wrap" }}>
-                      <PillCmp
-                        label={
-                          t(`appointments.statusLabel.${appt.status}`, {
-                            defaultValue: appt.status.replace("_", " "),
-                          }) as string
-                        }
-                        tone={STATUS_TONE[appt.status] || "neutral"}
-                        size="sm"
-                      />
-                      {appt.mode === "video" ? (
-                        <PillCmp
-                          icon={Video}
-                          label={t("appointments.mode.video")}
-                          tone="primary"
-                          size="sm"
-                        />
-                      ) : appt.mode === "in_person" ? (
-                        <PillCmp
-                          icon={Stethoscope}
-                          label={t("appointments.mode.inPerson")}
-                          tone="neutral"
-                          size="sm"
-                        />
-                      ) : null}
-                    </View>
-
-                    {appt.queueNumber ? (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 4,
-                          paddingHorizontal: spacing.md,
-                          paddingVertical: 5,
-                          borderRadius: radius.full,
-                          backgroundColor: colors.primarySoft,
-                        }}
-                      >
-                        <Hash size={12} color={colors.primary} strokeWidth={2.5} />
-                        <Text style={[typography.label.sm, { color: colors.primary }]}>
-                          Queue #{appt.queueNumber}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* Doctor Profile Banner */}
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                     <LinearGradient
                       colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: 32,
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Text
-                        style={[
-                          typography.title.lg,
-                          { color: "#FFFFFF", letterSpacing: 0.5 },
-                        ]}
-                      >
+                      <Text style={[typography.title.md, { color: "#FFFFFF", letterSpacing: 0.5 }]}>
                         {getInitials(doctorDisplayName)}
                       </Text>
                     </LinearGradient>
-
-                    <View style={{ flex: 1, gap: 3 }}>
-                      <Text
-                        style={[
-                          typography.display.sm,
-                          { color: colors.text },
-                        ]}
-                        numberOfLines={1}
-                      >
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text style={[typography.title.lg, { color: colors.text }]} numberOfLines={1}>
                         {doctorDisplayName}
                       </Text>
-
                       {specialization ? (
-                        <Text
-                          style={[typography.label.lg, { color: colors.primary }]}
-                          numberOfLines={1}
-                        >
+                        <Text style={[typography.label.md, { color: colors.primary }]} numberOfLines={1}>
                           {specialization}
                         </Text>
                       ) : null}
-
-                      {hospitalName ? (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
-                          <Building2 size={13} color={colors.textSubtle} strokeWidth={2} />
-                          <Text
-                            style={[typography.body.sm, { color: colors.textMuted }]}
-                            numberOfLines={1}
-                          >
-                            {hospitalName}
-                          </Text>
-                        </View>
-                      ) : null}
-
                       {doctor?.slmcRegistrationNo || doctor?.slmcVerifiedAt ? (
                         <View style={{ marginTop: 2 }}>
                           <VerifiedBadgeWithRegNo
@@ -397,141 +320,98 @@ export default function AppointmentDetailScreen() {
                         </View>
                       ) : null}
                     </View>
+                    <PillCmp
+                      label={
+                        t(`appointments.statusLabel.${appt.status}`, {
+                          defaultValue: appt.status.replace("_", " "),
+                        }) as string
+                      }
+                      tone={STATUS_TONE[appt.status] || "neutral"}
+                      size="sm"
+                    />
+                  </View>
+
+                  {/* When: date · time · queue */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderRadius: 16,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.hairline,
+                      paddingVertical: spacing.md,
+                    }}
+                  >
+                    <TicketCell
+                      label={dateObj ? dateObj.toLocaleDateString("en-GB", { weekday: "short" }) : t("appointmentDetail.dateLabel", { defaultValue: "Date" })}
+                      value={dateObj ? dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : formattedDate}
+                      first
+                    />
+                    <TicketCell
+                      label={t("appointmentDetail.timeLabel", { defaultValue: "Time" })}
+                      value={appt.time || "—"}
+                    />
+                    {appt.queueNumber ? (
+                      <TicketCell
+                        label={t("appointmentDetail.queueLabel", { defaultValue: "Queue" })}
+                        value={`#${appt.queueNumber}`}
+                        accent
+                      />
+                    ) : null}
+                  </View>
+
+                  {/* Where + contextual hint */}
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
+                    {appt.mode === "video" ? (
+                      <Video size={18} color={colors.primary} strokeWidth={2.2} style={{ marginTop: 1 }} />
+                    ) : (
+                      <Building2 size={18} color={colors.textMuted} strokeWidth={2.1} style={{ marginTop: 1 }} />
+                    )}
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[typography.title.xs ?? typography.title.sm, { color: colors.text }]}>
+                        {appt.mode === "video"
+                          ? t("appointmentDetail.videoTitle", { defaultValue: "Video visit" })
+                          : appt.hospitalName ||
+                            t("appointmentDetail.inPersonTitle", { defaultValue: "In-person visit" })}
+                      </Text>
+                      {isUpcomingVisit ? (
+                        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                          {appt.mode === "video"
+                            ? t("appointmentDetail.videoHint", {
+                                defaultValue: "Join from this app when your doctor opens the call.",
+                              })
+                            : t("appointmentDetail.arriveHint", {
+                                defaultValue: "Arrive 15 minutes early and show your queue number.",
+                              })}
+                        </Text>
+                      ) : isMissed ? (
+                        <Text style={[typography.body.sm, { color: colors.danger }]}>
+                          {t("appointmentDetail.missedHint", {
+                            defaultValue: "This visit was missed. You can book again below.",
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
                 </LinearGradient>
               </Card>
 
-              {/* ─── Schedule Details Card ─── */}
-              <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
-                <View style={{ gap: spacing.md }}>
-                  <Text style={[typography.title.md, { color: colors.text }]}>
-                    Visit Schedule
-                  </Text>
-
-                  <View style={{ flexDirection: "row", gap: spacing.md }}>
-                    {/* Date Block */}
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.sm,
-                        padding: spacing.md,
-                        backgroundColor: colors.fill,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          borderCurve: "continuous",
-                          backgroundColor: colors.primarySoft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Calendar size={18} color={colors.primary} strokeWidth={2.2} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[typography.caption, { color: colors.textSubtle }]}>Date</Text>
-                        <Text
-                          style={[typography.title.xs, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {formattedDate}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Time Block */}
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.sm,
-                        padding: spacing.md,
-                        backgroundColor: colors.fill,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          borderCurve: "continuous",
-                          backgroundColor: colors.primarySoft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Clock size={18} color={colors.primary} strokeWidth={2.2} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[typography.caption, { color: colors.textSubtle }]}>Time</Text>
-                        <Text
-                          style={[typography.title.xs, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {appt.time || "—"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Mode / Location Info Banner */}
-                  {appt.mode === "video" ? (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.sm,
-                        padding: spacing.md,
-                        backgroundColor: colors.primarySoft,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                      }}
-                    >
-                      <Video size={18} color={colors.primary} strokeWidth={2.2} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[typography.title.xs, { color: colors.primary }]}>
-                          Online Video Visit
-                        </Text>
-                        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
-                          Consult directly from your phone. Join when doctor opens the call.
-                        </Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.sm,
-                        padding: spacing.md,
-                        backgroundColor: colors.fill,
-                        borderRadius: 16,
-                        borderCurve: "continuous",
-                      }}
-                    >
-                      <Building2 size={18} color={colors.textMuted} strokeWidth={2} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[typography.title.xs, { color: colors.text }]}>
-                          {appt.hospitalName || "Hospital Consultation Desk"}
-                        </Text>
-                        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
-                          Please arrive 15 minutes before your slot and present queue #{appt.queueNumber || "1"}.
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              </Card>
+              {/* ─── Primary actions ─── */}
+              {isMissed ? (
+                <Button
+                  title={t("appointments.bookAgain", { defaultValue: "Book again" })}
+                  icon={CalendarPlus}
+                  variant="primary"
+                  size="lg"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(app)/book-appointment" as any,
+                      params: { prefillDoctorId: appt.doctorId ?? cachedAppt?.doctorId ?? "" },
+                    })
+                  }
+                />
+              ) : null}
 
               {/* ─── Live Video Call CTA (if applicable) ─── */}
               {isLiveVideo ? (
@@ -592,7 +472,7 @@ export default function AppointmentDetailScreen() {
               ) : null}
 
               {/* ─── Actions Row (Reschedule, Cancel, Book Again) ─── */}
-              {["scheduled", "confirmed"].includes(appt.status) ? (
+              {isUpcomingVisit ? (
                 <View style={{ flexDirection: "row", gap: spacing.md }}>
                   <View style={{ flex: 1 }}>
                     <Button
@@ -616,33 +496,16 @@ export default function AppointmentDetailScreen() {
                 </View>
               ) : null}
 
-              {appt.bucket === "missed" ? (
-                <Button
-                  title={t("appointments.bookAgain", { defaultValue: "Book Again with Doctor" })}
-                  icon={CalendarPlus}
-                  variant="primary"
-                  size="lg"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(app)/book-appointment" as any,
-                      params: { prefillDoctorId: appt.doctorId ?? "" },
-                    })
-                  }
-                />
-              ) : null}
-
               {/* ─── Records tied to this appointment ─── */}
               <View style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
                 <SectionHeader
-                  title={t("appointmentDetail.visitNotes", {
-                    count: records.length,
-                    defaultValue: `Visit Notes & Documents (${records.length})`,
-                  })}
+                  title={t("appointmentDetail.documentsTitle", { defaultValue: "Notes & documents" })}
+                  count={records.length || undefined}
                 />
               </View>
 
               {records.length === 0 ? (
-                <Card padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.lg }}>
+                <Card variant="muted" padded={false} style={{ borderRadius: radius.card, borderCurve: "continuous", padding: spacing.md }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                     <View
                       style={{
@@ -650,7 +513,7 @@ export default function AppointmentDetailScreen() {
                         height: 40,
                         borderRadius: 12,
                         borderCurve: "continuous",
-                        backgroundColor: colors.fill,
+                        backgroundColor: colors.surface,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
@@ -777,7 +640,7 @@ export default function AppointmentDetailScreen() {
                     variant="secondary"
                     size="md"
                     style={{ marginTop: spacing.md }}
-                    iconLeft={Sparkles}
+                    icon={Sparkles}
                   />
                 </Card>
               ) : null}
@@ -809,11 +672,12 @@ export default function AppointmentDetailScreen() {
                   accessibilityRole="link"
                   accessibilityLabel={t("appointmentDetail.helpCta")}
                   style={({ pressed }) => ({
-                    backgroundColor: colors.primarySoft,
-                    opacity: pressed ? 0.75 : 1,
+                    backgroundColor: pressed ? colors.fill : "transparent",
                     borderRadius: radius.card,
                     borderCurve: "continuous",
-                    padding: spacing.lg,
+                    borderWidth: 1,
+                    borderColor: colors.hairline,
+                    padding: spacing.md,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: spacing.md,
@@ -825,12 +689,12 @@ export default function AppointmentDetailScreen() {
                       height: 40,
                       borderRadius: 12,
                       borderCurve: "continuous",
-                      backgroundColor: colors.primary,
+                      backgroundColor: colors.successSoft,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <MessageCircle size={20} color={colors.onPrimary} strokeWidth={2.2} />
+                    <MessageCircle size={20} color={colors.success} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
@@ -850,7 +714,7 @@ export default function AppointmentDetailScreen() {
                       {t("appointmentDetail.helpBody")}
                     </Text>
                   </View>
-                  <ChevronRight size={18} color={colors.primary} strokeWidth={2.5} />
+                  <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.2} />
                 </Pressable>
               ) : null}
             </>
@@ -887,5 +751,36 @@ export default function AppointmentDetailScreen() {
         </BottomSheet>
       </KeyboardAvoidingView>
     </Screen>
+  );
+}
+function TicketCell({
+  label,
+  value,
+  first,
+  accent,
+}: {
+  label: string;
+  value: string;
+  first?: boolean;
+  accent?: boolean;
+}) {
+  const { colors, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        gap: 2,
+        borderLeftWidth: first ? 0 : 1,
+        borderLeftColor: colors.separator,
+      }}
+    >
+      <Text style={[typography.caption, { color: colors.textSubtle, textTransform: "uppercase", letterSpacing: 0.6, fontSize: 11 }]}>
+        {label}
+      </Text>
+      <Text style={[typography.title.md, { color: accent ? colors.primary : colors.text }]} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
   );
 }

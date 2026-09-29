@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { useState, useMemo } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,13 +12,12 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Calendar,
-  AlertCircle,
-  Sparkles,
-  Check,
+  CalendarClock,
+  Send,
 } from "lucide-react-native";
 import { useRefillDue } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone } from "@/theme/tone";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDateLong } from "@/lib/format";
 import {
@@ -28,9 +27,9 @@ import {
   Button,
   EmptyState,
   Skeleton,
-  Pill as PillCmp,
+  IconTile,
+  SectionHeader,
   useToast,
-  Pressable,
 } from "@/components/ui";
 
 function formatFrequency(raw?: string | null): string {
@@ -45,40 +44,33 @@ function formatFrequency(raw?: string | null): string {
     every_morning: "Every morning",
     with_meals: "With meals",
   };
-  const normalized = raw.toLowerCase().trim();
+  // Accept "three_times_daily", "Three Times Daily" and "three-times daily" alike.
+  const normalized = raw.toLowerCase().trim().replace(/[\s-]+/g, "_");
   if (map[normalized]) return map[normalized];
-  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const words = raw.replace(/_/g, " ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-function formatEndDate(iso: string, locale: any): string {
+function formatDate(iso: string, locale: any): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return fmtDateLong(d, locale);
 }
 
-function formatOverdue(days: number, t: (k: string, opts?: any) => string): string {
-  const count = Math.abs(days);
-  return t("refill.daysOverdue", {
-    count,
-    days: count,
-    defaultValue: `${count}d overdue`,
-  });
-}
-
-function formatDaysLeft(days: number, t: (k: string, opts?: any) => string): string {
-  return t("refill.daysLeft", {
-    count: days,
-    days,
-    defaultValue: `${days}d left`,
-  });
+/** Fraction of the prescribed course that has elapsed (1 once it has ended). */
+function courseProgress(startIso: string, endIso: string, daysRemaining: number): number {
+  if (daysRemaining < 0) return 1;
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (isNaN(start) || isNaN(end) || end <= start) return 0.85;
+  return Math.min(1, Math.max(0.04, (Date.now() - start) / (end - start)));
 }
 
 export default function RefillScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
-  const isDark = scheme === "dark";
+  const { spacing, radius } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
   const toast = useToast();
 
@@ -86,87 +78,78 @@ export default function RefillScreen() {
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
 
   const candidates = data?.refills ?? [];
-  const overdue = useMemo(() => candidates.filter((c) => c.daysRemaining < 0), [candidates]);
+  const overdue = useMemo(
+    () => candidates.filter((c) => c.daysRemaining < 0).sort((a, b) => a.daysRemaining - b.daysRemaining),
+    [candidates]
+  );
   const dueSoon = useMemo(
-    () => candidates.filter((c) => c.daysRemaining >= 0 && c.daysRemaining <= 14),
+    () =>
+      candidates
+        .filter((c) => c.daysRemaining >= 0 && c.daysRemaining <= 14)
+        .sort((a, b) => a.daysRemaining - b.daysRemaining),
     [candidates]
   );
 
   function handleRenew(id: string, name: string) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setRequestedIds((prev) => new Set(prev).add(id));
-    toast.show(
-      t("refill.renewSent", `Renewal request sent for ${name}`),
-      "success"
-    );
+    toast.show(t("refill.renewSentFor", { name, defaultValue: `Renewal request sent for ${name}` }), "success");
   }
 
   function handleRequestAll() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    const allIds = candidates.map((c) => c.id);
-    setRequestedIds(new Set(allIds));
-    toast.show(
-      t("refill.renewSent", "Renewal requests sent to your doctor for all medicines"),
-      "success"
-    );
+    setRequestedIds(new Set(candidates.map((c) => c.id)));
+    toast.show(t("refill.renewSent", "Renewal request sent to your doctor"), "success");
   }
+
+  const header = (
+    <ScreenHeader
+      back
+      onBack={() => router.back()}
+      title={t("refill.title", "Refills")}
+      subtitle={t("refill.subtitle", "Medicines that need a renewal soon")}
+    />
+  );
 
   if (isLoading) {
     return (
       <Screen padded={false} edges={["top"]} bottomInset>
-        <ScreenHeader
-          back
-          onBack={() => router.back()}
-          title={t("refill.title", "Refills")}
-          subtitle={t("refill.subtitle", "Medicines that need a renewal soon")}
-        />
+        {header}
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          <Skeleton width="100%" height={100} radius={radius.lg} />
-          <Skeleton width="100%" height={130} radius={radius.lg} />
-          <Skeleton width="100%" height={130} radius={radius.lg} />
+          <Skeleton width="100%" height={210} radius={radius.card} />
+          <Skeleton width="100%" height={170} radius={radius.card} />
+          <Skeleton width="100%" height={170} radius={radius.card} />
         </View>
       </Screen>
     );
   }
 
-  const unrequestedCount = candidates.filter((c) => !requestedIds.has(c.id)).length;
+  const requestedCount = candidates.filter((c) => requestedIds.has(c.id)).length;
+  const unrequestedCount = candidates.length - requestedCount;
+
+  const renderCard = (c: (typeof candidates)[number], isOverdue: boolean) => (
+    <RefillCard
+      key={c.id}
+      candidate={c}
+      locale={locale}
+      isOverdue={isOverdue}
+      isRequested={requestedIds.has(c.id)}
+      onRenew={() => handleRenew(c.id, c.name)}
+    />
+  );
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset>
-      <ScreenHeader
-        back
-        onBack={() => router.back()}
-        title={t("refill.title", "Refills")}
-        subtitle={t("refill.subtitle", "Medicines that need a renewal soon")}
-        right={
-          candidates.length > 0 ? (
-            <PillCmp
-              icon={RefreshCw}
-              label={t("refill.dueCount", {
-                count: candidates.length,
-                defaultValue: `${candidates.length} due`,
-              })}
-              tone={overdue.length > 0 ? "warning" : "primary"}
-              size="sm"
-            />
-          ) : null
-        }
-      />
+      {header}
 
       <ScrollView
         contentContainerStyle={{
-          padding: spacing.lg,
-          gap: spacing.lg,
-          paddingBottom: spacing.xxl,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxl * 2,
         }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => refetch()}
-            tintColor={colors.primary}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
       >
         {candidates.length === 0 ? (
           <EmptyState
@@ -176,158 +159,35 @@ export default function RefillScreen() {
           />
         ) : (
           <>
-            {/* Health Overview Hero */}
-            <LinearGradient
-              colors={
-                overdue.length > 0
-                  ? isDark
-                    ? [colors.surfaceElevated, colors.surface]
-                    : [colors.warningSoft, colors.surface]
-                  : isDark
-                  ? [colors.surfaceElevated, colors.surface]
-                  : [colors.primarySoft, colors.surface]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                borderRadius: 20,
-                borderCurve: "continuous",
-                padding: spacing.md,
-                borderWidth: 1,
-                borderColor: overdue.length > 0 ? colors.warning + "40" : colors.border,
-                gap: spacing.md,
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-                <View
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 15,
-                    borderCurve: "continuous",
-                    backgroundColor: overdue.length > 0 ? colors.warning : colors.primary,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: overdue.length > 0 ? colors.warning : colors.primary,
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 8,
-                    elevation: 4,
-                  }}
-                >
-                  <Pill size={24} color={colors.onPrimary} />
-                </View>
+            <SummaryHero
+              total={candidates.length}
+              overdueCount={overdue.length}
+              soonCount={dueSoon.length}
+              requestedCount={requestedCount}
+              unrequestedCount={unrequestedCount}
+              onRequestAll={handleRequestAll}
+            />
 
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
-                    Prescription Refill Hub
-                  </Text>
-                  <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 17 }]}>
-                    {overdue.length > 0
-                      ? `${overdue.length} medication${overdue.length > 1 ? "s are" : " is"} overdue for clinical renewal.`
-                      : `${dueSoon.length} medication${dueSoon.length > 1 ? "s" : ""} approaching end date.`}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Status breakdown tags & Request all */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingTop: spacing.xs,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.border + "60",
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-                  {overdue.length > 0 && (
-                    <PillCmp
-                      label={`${overdue.length} Overdue`}
-                      tone="warning"
-                      size="sm"
-                    />
-                  )}
-                  {dueSoon.length > 0 && (
-                    <PillCmp
-                      label={`${dueSoon.length} Due Soon`}
-                      tone="info"
-                      size="sm"
-                    />
-                  )}
-                </View>
-
-                {unrequestedCount > 1 && (
-                  <Pressable
-                    onPress={handleRequestAll}
-                    style={{
-                      paddingHorizontal: spacing.sm + 2,
-                      paddingVertical: 5,
-                      borderRadius: 14,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.primary,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.label.sm,
-                        { color: colors.onPrimary, fontWeight: "700", fontSize: 12 },
-                      ]}
-                    >
-                      Request all ({unrequestedCount})
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            </LinearGradient>
-
-            {/* Overdue Section */}
             {overdue.length > 0 && (
-              <View style={{ gap: spacing.sm }}>
-                <SectionHeaderBadge
-                  icon={AlertTriangle}
-                  title={t("refill.sectionOverdue", {
-                    count: overdue.length,
-                    defaultValue: `${overdue.length} Overdue`,
-                  })}
-                  tone="warning"
+              <>
+                <SectionHeader
+                  kicker={t("refill.kickerUrgent", "Needs attention")}
+                  title={t("refill.overdueTitle", "Overdue")}
+                  count={overdue.length}
                 />
-                {overdue.map((c) => (
-                  <RefillCard
-                    key={c.id}
-                    candidate={c}
-                    locale={locale}
-                    isOverdue={true}
-                    isRequested={requestedIds.has(c.id)}
-                    onRenew={() => handleRenew(c.id, c.name)}
-                  />
-                ))}
-              </View>
+                <View style={{ gap: spacing.md }}>{overdue.map((c) => renderCard(c, true))}</View>
+              </>
             )}
 
-            {/* Due Soon Section */}
             {dueSoon.length > 0 && (
-              <View style={{ gap: spacing.sm }}>
-                <SectionHeaderBadge
-                  icon={Clock}
-                  title={t("refill.sectionSoon", {
-                    count: dueSoon.length,
-                    defaultValue: `${dueSoon.length} Due within 2 weeks`,
-                  })}
-                  tone="primary"
+              <>
+                <SectionHeader
+                  kicker={t("refill.kickerUpcoming", "Next 2 weeks")}
+                  title={t("refill.soonTitle", "Due soon")}
+                  count={dueSoon.length}
                 />
-                {dueSoon.map((c) => (
-                  <RefillCard
-                    key={c.id}
-                    candidate={c}
-                    locale={locale}
-                    isOverdue={false}
-                    isRequested={requestedIds.has(c.id)}
-                    onRenew={() => handleRenew(c.id, c.name)}
-                  />
-                ))}
-              </View>
+                <View style={{ gap: spacing.md }}>{dueSoon.map((c) => renderCard(c, false))}</View>
+              </>
             )}
           </>
         )}
@@ -336,37 +196,119 @@ export default function RefillScreen() {
   );
 }
 
-function SectionHeaderBadge({
-  icon: Icon,
-  title,
-  tone,
+function SummaryHero({
+  total,
+  overdueCount,
+  soonCount,
+  requestedCount,
+  unrequestedCount,
+  onRequestAll,
 }: {
-  icon: any;
-  title: string;
-  tone: "primary" | "warning";
+  total: number;
+  overdueCount: number;
+  soonCount: number;
+  requestedCount: number;
+  unrequestedCount: number;
+  onRequestAll: () => void;
 }) {
-  const { spacing, colors, typography } = useTheme();
-  const tint = tone === "warning" ? colors.warning : colors.primary;
+  const { t } = useTranslation();
+  const { spacing, colors, typography, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  const allSent = unrequestedCount === 0;
+  const tone = allSent ? "success" : overdueCount > 0 ? "warning" : "primary";
+  const p = useTone(tone);
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.xs,
-        paddingHorizontal: spacing.xs,
-        paddingTop: spacing.xs,
-      }}
-    >
-      <Icon size={15} color={tint} strokeWidth={2.2} />
-      <Text
-        style={[
-          typography.label.md,
-          { color: tint, fontWeight: "700", letterSpacing: -0.1 },
-        ]}
-      >
-        {title}
-      </Text>
+    <Card variant="floating" padded={false}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[p.bg, isDark ? "rgba(0,0,0,0)" : colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.4, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <IconTile icon={allSent ? CheckCircle2 : Pill} tone={tone} appearance="solid" size={52} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[typography.kicker, { color: p.fg, textTransform: "uppercase" }]} numberOfLines={1}>
+              {t("refill.heroKicker", "Renewal status")}
+            </Text>
+            {allSent ? (
+              <>
+                <Text style={[typography.title.lg, { color: colors.text, marginTop: 2 }]}>
+                  {t("refill.allSent", "All renewals requested")}
+                </Text>
+                <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>
+                  {t("refill.allSentBody", "Your doctor has been notified.")}
+                </Text>
+              </>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm, marginTop: 2 }}>
+                <Text style={[typography.display.md, { color: colors.text }]}>{unrequestedCount}</Text>
+                <Text style={[typography.body.md, { color: colors.textMuted, flex: 1 }]} numberOfLines={2}>
+                  {t("refill.heroCount", {
+                    count: unrequestedCount,
+                    defaultValue: unrequestedCount === 1 ? "medicine needs renewal" : "medicines need renewal",
+                  })}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: isDark ? colors.well : colors.surface,
+            borderRadius: 16,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? colors.borderStrong : colors.hairline,
+            paddingVertical: spacing.md,
+          }}
+        >
+          <HeroStat value={overdueCount} label={t("refill.statOverdue", "Overdue")} dot={colors.warning} />
+          <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
+          <HeroStat value={soonCount} label={t("refill.statSoon", "Due soon")} dot={colors.primary} />
+          <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
+          <HeroStat value={requestedCount} label={t("refill.statSent", "Requested")} dot={colors.success} />
+        </View>
+
+        {!allSent && (
+          <Button
+            title={
+              unrequestedCount === total && total > 1
+                ? t("refill.requestAll", { count: unrequestedCount, defaultValue: `Request all (${unrequestedCount})` })
+                : unrequestedCount > 1
+                ? t("refill.requestRemaining", {
+                    count: unrequestedCount,
+                    defaultValue: `Request remaining (${unrequestedCount})`,
+                  })
+                : t("refill.renew", "Request renewal")
+            }
+            icon={Send}
+            size="md"
+            onPress={onRequestAll}
+          />
+        )}
+      </View>
+    </Card>
+  );
+}
+
+function HeroStat({ value, label, dot }: { value: number; label: string; dot: string }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
+      <Text style={[typography.title.lg, { color: value > 0 ? colors.text : colors.textSubtle }]}>{value}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dot }} />
+        <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -395,145 +337,107 @@ function RefillCard({
 }) {
   const { spacing, colors, typography } = useTheme();
   const { t } = useTranslation();
+  const tone = isRequested ? "success" : isOverdue ? "warning" : "primary";
+  const p = useTone(tone);
 
-  const formattedFreq = formatFrequency(candidate.frequency);
-  const formattedEnd = formatEndDate(candidate.expectedEndDate, locale);
-  const statusLabel = isOverdue
-    ? formatOverdue(candidate.daysRemaining, t)
-    : formatDaysLeft(candidate.daysRemaining, t);
+  const days = Math.abs(candidate.daysRemaining);
+  const progress = courseProgress(candidate.startDate, candidate.expectedEndDate, candidate.daysRemaining);
+  const endLabel = isOverdue ? t("refill.ended", "Ended") : t("refill.ends", "Ends");
 
   return (
-    <Card
-      style={{
-        padding: spacing.md,
-        borderRadius: 20,
-        borderCurve: "continuous",
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: isOverdue ? colors.warningSoft : colors.border,
-        gap: spacing.md,
-      }}
-    >
-      {/* Top Header: Icon + Name + Urgency Badge */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-        <View
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 13,
-            borderCurve: "continuous",
-            backgroundColor: isOverdue ? colors.warningSoft : colors.primarySoft,
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: isOverdue ? colors.warning + "30" : colors.primary + "30",
-          }}
-        >
-          <Pill
-            size={20}
-            color={isOverdue ? colors.warning : colors.primary}
-            strokeWidth={2.2}
-          />
-        </View>
-
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text
-            style={[
-              typography.title.sm,
-              { color: colors.text, fontWeight: "700" },
-            ]}
-            numberOfLines={1}
+    <Card padded={false}>
+      <View style={{ padding: spacing.lg, gap: spacing.md }}>
+        {/* Identity + countdown */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <IconTile icon={Pill} tone={tone} size={44} />
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+              {candidate.name}
+            </Text>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={1}>
+              {[candidate.dosage, formatFrequency(candidate.frequency)].filter(Boolean).join(" · ")}
+            </Text>
+          </View>
+          <View
+            style={{
+              alignItems: "center",
+              minWidth: 60,
+              paddingHorizontal: spacing.sm,
+              paddingVertical: 6,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              backgroundColor: p.bg,
+            }}
           >
-            {candidate.name}
-          </Text>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {candidate.dosage || "Prescription dosage"}
-          </Text>
+            <Text style={[typography.title.lg, { color: p.fg, fontVariant: ["tabular-nums"] }]}>{days}</Text>
+            <Text style={[typography.label.xs, { color: p.fg, opacity: 0.85 }]} numberOfLines={1}>
+              {isOverdue ? t("refill.unitOverdue", "days over") : t("refill.unitLeft", "days left")}
+            </Text>
+          </View>
         </View>
 
-        <PillCmp
-          label={statusLabel}
-          tone={isOverdue ? "warning" : "info"}
-          size="sm"
-        />
-      </View>
-
-      {/* Clinical Metrics Mini Tiles */}
-      <View
-        style={{
-          flexDirection: "row",
-          gap: spacing.xs,
-          backgroundColor: colors.surfaceSubtle,
-          borderRadius: 14,
-          borderCurve: "continuous",
-          padding: spacing.sm,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-      >
-        <MetricTile label={t("refill.dosage", "Dose")} value={candidate.dosage || "—"} />
-        <View style={{ width: 1, height: "100%", backgroundColor: colors.border }} />
-        <MetricTile label={t("refill.frequency", "Schedule")} value={formattedFreq} />
-        <View style={{ width: 1, height: "100%", backgroundColor: colors.border }} />
-        <MetricTile label={t("refill.expectedEnd", "End Date")} value={formattedEnd} />
-      </View>
-
-      {/* Renewal CTA Button / Confirmed State */}
-      {isRequested ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            paddingVertical: 10,
-            borderRadius: 12,
-            borderCurve: "continuous",
-            backgroundColor: colors.successSoft,
-            borderWidth: 1,
-            borderColor: colors.success + "30",
-          }}
-        >
-          <CheckCircle2 size={16} color={colors.success} />
-          <Text style={[typography.label.md, { color: colors.success, fontWeight: "700" }]}>
-            Renewal Requested · Doctor Notified
-          </Text>
+        {/* Course progress */}
+        <View style={{ gap: 6 }}>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.well, overflow: "hidden" }}>
+            <View
+              style={{
+                width: `${Math.round(progress * 100)}%`,
+                height: "100%",
+                borderRadius: 3,
+                backgroundColor: p.fg,
+              }}
+            />
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.sm }}>
+            <MetaItem icon={Clock} text={`${t("refill.started", "Started")} ${formatDate(candidate.startDate, locale)}`} />
+            <MetaItem
+              icon={isOverdue ? AlertTriangle : CalendarClock}
+              text={`${endLabel} ${formatDate(candidate.expectedEndDate, locale)}`}
+              color={isOverdue && !isRequested ? colors.warning : undefined}
+            />
+          </View>
         </View>
-      ) : (
-        <Button
-          title={t("refill.renew", "Request renewal")}
-          variant={isOverdue ? "primary" : "secondary"}
-          onPress={onRenew}
-          icon={RefreshCw}
-          size="md"
-        />
-      )}
+
+        {/* Action */}
+        {isRequested ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              height: 38,
+              borderRadius: 999,
+              backgroundColor: colors.successSoft,
+            }}
+          >
+            <CheckCircle2 size={16} color={colors.success} strokeWidth={2.4} />
+            <Text style={[typography.label.md, { color: colors.success }]} numberOfLines={1}>
+              {t("refill.requested", "Requested · Doctor notified")}
+            </Text>
+          </View>
+        ) : (
+          <Button
+            title={t("refill.renew", "Request renewal")}
+            variant={isOverdue ? "secondary" : "outline"}
+            onPress={onRenew}
+            icon={RefreshCw}
+            size="sm"
+          />
+        )}
+      </View>
     </Card>
   );
 }
 
-function MetricTile({ label, value }: { label: string; value: string }) {
+function MetaItem({ icon: Icon, text, color }: { icon: any; text: string; color?: string }) {
   const { colors, typography } = useTheme();
-
+  const c = color ?? colors.textSubtle;
   return (
-    <View style={{ flex: 1, gap: 2, paddingHorizontal: 4 }}>
-      <Text
-        style={[
-          typography.caption,
-          { color: colors.textSubtle, fontSize: 10, textTransform: "uppercase", fontWeight: "600" },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[
-          typography.label.sm,
-          { color: colors.text, fontWeight: "600", fontSize: 12 },
-        ]}
-        numberOfLines={1}
-      >
-        {value}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 }}>
+      <Icon size={12} color={c} strokeWidth={2.2} />
+      <Text style={[typography.caption, { color: c }]} numberOfLines={1}>
+        {text}
       </Text>
     </View>
   );

@@ -1,32 +1,33 @@
 // @ts-nocheck
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Syringe,
   Plus,
   CheckCircle2,
   CalendarClock,
   AlertCircle,
-  Clock,
   Camera,
   Sparkles,
   ShieldCheck,
   Building2,
-  Calendar,
-  ArrowRight,
   ChevronRight,
   Check,
+  Wind,
+  Shield,
+  Baby,
+  Globe,
 } from "lucide-react-native";
 import {
   useVaccinations,
@@ -52,15 +53,19 @@ import {
   Pill,
   TextInput,
   Pressable,
+  IconTile,
+  SectionHeader,
+  Skeleton,
 } from "@/components/ui";
+import type { Tone } from "@/theme/tone";
 
-const ROUTINE_VACCINES = [
-  { name: "Tetanus / Tdap", schedule: "Booster every 10 years", category: "Adult Routine" },
-  { name: "Influenza (Flu)", schedule: "Annual seasonal shot", category: "Annual" },
-  { name: "Hepatitis B", schedule: "3-dose primary series", category: "Protection" },
-  { name: "COVID-19", schedule: "Updated annual booster", category: "Respiratory" },
-  { name: "MMR (Measles, Mumps, Rubella)", schedule: "2 doses in childhood/adulthood", category: "Core" },
-  { name: "HPV", schedule: "2-3 dose series", category: "Preventative" },
+const ROUTINE_VACCINES: { name: string; schedule: string; icon: any; tone: Tone; match: string[] }[] = [
+  { name: "Tetanus / Tdap", schedule: "Booster every 10 years", icon: Shield, tone: "primary", match: ["tetanus", "tdap", "td "] },
+  { name: "Influenza (Flu)", schedule: "Annual seasonal shot", icon: Wind, tone: "info", match: ["influenza", "flu"] },
+  { name: "Hepatitis B", schedule: "3-dose primary series", icon: Syringe, tone: "accent", match: ["hepatitis b", "hep b"] },
+  { name: "COVID-19", schedule: "Updated annual booster", icon: ShieldCheck, tone: "accent2", match: ["covid"] },
+  { name: "MMR (Measles, Mumps, Rubella)", schedule: "2 doses, childhood or adult catch-up", icon: Baby, tone: "warning", match: ["mmr", "measles"] },
+  { name: "HPV", schedule: "2–3 dose series", icon: Globe, tone: "success", match: ["hpv"] },
 ];
 
 function formatDate(iso: string | null | undefined, locale: any): string {
@@ -77,6 +82,7 @@ export default function VaccinationsScreen() {
   const isDark = scheme === "dark";
   const locale = useLocaleStore((s) => s.locale);
   const toast = useToast();
+  const insets = useSafeAreaInsets();
 
   const { data, isLoading, isError, refetch } = useVaccinations();
   const { data: dueData, isLoading: dueLoading } = useVaccinationsDue();
@@ -106,6 +112,18 @@ export default function VaccinationsScreen() {
     setSelectedCatalogId(null);
     setSheetOpen(true);
   }
+
+  function openScan() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    router.push("/(app)/ai/vaccination-card");
+  }
+
+  const loggedNames = useMemo(
+    () => administered.map((a) => String(a.vaccineName || "").toLowerCase()),
+    [administered]
+  );
+  const isLogged = (match: string[]) =>
+    loggedNames.some((n) => match.some((m) => n.includes(m)));
 
   function pickFromCatalog(v: any) {
     Haptics.selectionAsync().catch(() => {});
@@ -151,100 +169,28 @@ export default function VaccinationsScreen() {
         subtitle={subtitle}
         onBack={() => router.back()}
         right={
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            <IconButton
-              icon={Camera}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                router.push("/(app)/ai/vaccination-card");
-              }}
-              accessibilityLabel={t("vaccinations.scanCard", "Scan card with AI")}
-            />
-            <IconButton
-              icon={Plus}
-              onPress={() => openSheet()}
-              accessibilityLabel={t("vaccinations.logLabel", "Log vaccination")}
-            />
-          </View>
+          <IconButton
+            icon={Plus}
+            onPress={() => openSheet()}
+            accessibilityLabel={t("vaccinations.logLabel", "Log vaccination")}
+          />
         }
       />
 
       <ScrollView
         contentContainerStyle={{
-          padding: spacing.lg,
-          gap: spacing.lg,
-          paddingBottom: 120,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: 110 + insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── AI Vaccination Card Scan Banner ── */}
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            router.push("/(app)/ai/vaccination-card");
-          }}
-        >
-          <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 28,
-              borderCurve: "continuous",
-              padding: spacing.xl,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.lg,
-              ...(isDark ? {} : shadow.hero),
-            }}
-          >
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                backgroundColor: "rgba(255,255,255,0.18)",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Camera size={24} color="#FFFFFF" />
-            </View>
-
-            <View style={{ flex: 1, gap: 4 }}>
-              <View
-                style={{
-                  alignSelf: "flex-start",
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 999,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
-                }}
-              >
-                <Text style={[typography.label.xs, { color: "#FFFFFF", fontSize: 10 }]}>
-                  AI CAMERA
-                </Text>
-              </View>
-              <Text style={[typography.title.md, { color: "#FFFFFF" }]}>
-                Scan Paper Card with AI
-              </Text>
-              <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)" }]}>
-                Snap a photo of your immunization booklet to auto-extract dose dates & batch numbers.
-              </Text>
-            </View>
-
-            <ArrowRight size={18} color="#FFFFFF" />
-          </LinearGradient>
-        </Pressable>
-
-        {/* Status banners */}
         {isLoading || dueLoading ? (
-          <ActivityIndicator color={colors.primary} />
+          <View style={{ gap: spacing.md }}>
+            <Skeleton height={200} radius={radius.card} />
+            <Skeleton height={76} radius={radius.card} />
+            <Skeleton height={160} radius={radius.card} />
+          </View>
         ) : isError ? (
           <ErrorState
             title={t("recordDetail.errorTitle", "Couldn't load vaccinations")}
@@ -254,206 +200,258 @@ export default function VaccinationsScreen() {
           />
         ) : (
           <>
-            {overdue.length > 0 && (
-              <BannerCard
-                tone="danger"
-                icon={AlertCircle}
-                title={t("vaccinations.banners.overdue", {
-                  count: overdue.length,
-                  defaultValue: `${overdue.length} Overdue Vaccine${overdue.length > 1 ? "s" : ""}`,
-                })}
-                body={overdue
-                  .slice(0, 3)
-                  .map((o) => `${o.vaccine} (${o.doseLabel})`)
-                  .join(", ")}
+            {/* ── Immunization status hero ── */}
+            <LinearGradient
+              colors={
+                overdue.length > 0
+                  ? [colors.danger, colors.accent2]
+                  : due.length > 0
+                  ? [colors.warning, colors.accent2]
+                  : [colors.primaryGradientStart, colors.primaryGradientEnd]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                padding: spacing.xl,
+                gap: spacing.lg,
+                overflow: "hidden",
+                ...(isDark ? {} : shadow.hero),
+              }}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.7, y: 0.8 }}
+                style={StyleSheet.absoluteFill}
               />
-            )}
-            {due.length > 0 && (
-              <BannerCard
-                tone="warning"
-                icon={CalendarClock}
-                title={t("vaccinations.banners.dueCount", {
-                  count: due.length,
-                  defaultValue: `${due.length} Vaccine${due.length > 1 ? "s" : ""} Due Soon`,
-                })}
-                body={due
-                  .slice(0, 3)
-                  .map((d) => `${d.vaccine} (${d.doseLabel})`)
-                  .join(", ")}
+              <Syringe
+                size={140}
+                color="#FFFFFF"
+                strokeWidth={1}
+                style={{ position: "absolute", right: -28, top: -20, opacity: 0.1 }}
+                pointerEvents="none"
               />
-            )}
-            {overdue.length === 0 && due.length === 0 && (
-              <BannerCard
-                tone="success"
-                icon={CheckCircle2}
-                title={t("vaccinations.banners.upToDate", "Immunizations Up to Date")}
-                body={t("vaccinations.banners.upToDateBody", "No routine vaccinations or boosters are due in the next 30 days.")}
-              />
-            )}
-          </>
-        )}
-
-        {/* Administered list */}
-        <View style={{ gap: spacing.md }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 }}>
-            <Text style={[typography.overline, { color: colors.textSubtle }]}>
-              {t("vaccinations.sections.administered", "ADMINISTERED DOSES")} · {administered.length}
-            </Text>
-          </View>
-
-          {administered.length === 0 ? (
-            <EmptyState
-              icon={Syringe}
-              title={t("vaccinations.empty.title", "No vaccinations recorded")}
-              message={t("vaccinations.empty.message", "Keep a verified digital record of all childhood, travel, and routine vaccinations.")}
-              actionLabel={t("vaccinations.logFirstAction", "Log first vaccination")}
-              onAction={() => openSheet()}
-            />
-          ) : (
-            administered.map((a) => (
-              <Card
-                key={a.id}
-                style={{
-                  padding: spacing.lg,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.successSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Syringe size={20} color={colors.success} strokeWidth={2.2} />
-                  </View>
-
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
-                      <Text
-                        style={[
-                          typography.title.md,
-                          { color: colors.text, flexShrink: 1 },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {a.vaccineName}
-                      </Text>
-                      <Pill
-                        label={a.dose ? `Dose ${a.dose}` : "Dose 1"}
-                        tone="primary"
-                        size="sm"
-                      />
-                    </View>
-
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Calendar size={12} color={colors.textSubtle} />
-                        <Text style={[typography.caption, { color: colors.textMuted }]}>
-                          {formatDate(a.administeredAt || a.recordDate || a.createdAt, locale)}
-                        </Text>
-                      </View>
-
-                      {a.provider ? (
-                        <>
-                          <Text style={[typography.caption, { color: colors.textSubtle }]}>•</Text>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 3, flex: 1 }}>
-                            <Building2 size={12} color={colors.textSubtle} />
-                            <Text
-                              style={[typography.caption, { color: colors.textMuted }]}
-                              numberOfLines={1}
-                            >
-                              {a.provider}
-                            </Text>
-                          </View>
-                        </>
-                      ) : null}
-                    </View>
-
-                    {a.notes ? (
-                      <Text
-                        style={[
-                          typography.caption,
-                          { color: colors.textSubtle, marginTop: 1 },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {a.notes}
-                      </Text>
-                    ) : null}
-                  </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                <IconTile
+                  icon={overdue.length > 0 ? AlertCircle : due.length > 0 ? CalendarClock : ShieldCheck}
+                  appearance="glass"
+                  size={48}
+                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[typography.kicker, { color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }]}>
+                    {t("vaccinations.hero.kicker", "Immunization card")}
+                  </Text>
+                  <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 2 }]} numberOfLines={2}>
+                    {overdue.length > 0
+                      ? t("vaccinations.banners.overdue", {
+                          count: overdue.length,
+                          defaultValue: `${overdue.length} overdue vaccine${overdue.length > 1 ? "s" : ""}`,
+                        })
+                      : due.length > 0
+                      ? t("vaccinations.banners.dueCount", {
+                          count: due.length,
+                          defaultValue: `${due.length} vaccine${due.length > 1 ? "s" : ""} due soon`,
+                        })
+                      : t("vaccinations.hero.upToDate", "You're up to date")}
+                  </Text>
+                  <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)", marginTop: 2 }]} numberOfLines={2}>
+                    {overdue.length + due.length > 0
+                      ? [...overdue, ...due].slice(0, 3).map((d) => d.vaccine).join(", ")
+                      : t("vaccinations.hero.upToDateBody", "Nothing due in the next 30 days")}
+                  </Text>
                 </View>
-              </Card>
-            ))
-          )}
-        </View>
+              </View>
 
-        {/* ── Routine Vaccine Schedule Reference ── */}
-        <View style={{ gap: spacing.md }}>
-          <View style={{ paddingHorizontal: 2, gap: 2 }}>
-            <Text style={[typography.overline, { color: colors.textSubtle }]}>
-              RECOMMENDED IMMUNIZATION SCHEDULE
-            </Text>
-            <Text style={[typography.caption, { color: colors.textSubtle }]}>
-              Standard adult & travel immunization reference schedule
-            </Text>
-          </View>
-
-          <Card padded={false}>
-            {ROUTINE_VACCINES.map((v, i) => (
-              <Pressable
-                key={v.name}
-                onPress={() => openSheet(v.name)}
+              <View
                 style={{
                   flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  minHeight: 60,
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.24)",
                   paddingVertical: spacing.md,
-                  marginLeft: spacing.lg,
-                  paddingRight: spacing.lg,
-                  borderBottomWidth: i < ROUTINE_VACCINES.length - 1 ? StyleSheet.hairlineWidth : 0,
-                  borderBottomColor: colors.separator,
                 }}
               >
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[typography.title.sm, { color: colors.text }]}>
-                    {v.name}
-                  </Text>
-                  <Text style={[typography.caption, { color: colors.textSubtle }]}>
-                    {v.schedule} · {v.category}
+                <HeroStat value={administered.length} label={t("vaccinations.hero.onRecord", "On record")} />
+                <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.3)" }} />
+                <HeroStat value={due.length + upcoming.length} label={t("vaccinations.hero.upcoming", "Coming up")} />
+                <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.3)" }} />
+                <HeroStat value={overdue.length} label={t("vaccinations.hero.overdue", "Overdue")} />
+              </View>
+            </LinearGradient>
+
+            {/* ── AI scan shortcut ── */}
+            <Card
+              padded={false}
+              onPress={openScan}
+              accessibilityLabel={t("vaccinations.scanCard", "Scan card with AI")}
+              style={{ marginTop: spacing.md }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg }}>
+                <IconTile icon={Camera} tone="primary" appearance="solid" size={44} />
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={[typography.title.sm, { color: colors.text, flexShrink: 1 }]} numberOfLines={1}>
+                      {t("vaccinations.scan.title", "Scan your paper card")}
+                    </Text>
+                    <Pill label="AI" tone="primary" size="sm" icon={Sparkles} />
+                  </View>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={2}>
+                    {t("vaccinations.scan.body", "Auto-fill dose dates and batch numbers from a photo")}
                   </Text>
                 </View>
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 4,
-                    paddingHorizontal: 12,
+                    width: 30,
                     height: 30,
                     borderRadius: 15,
-                    backgroundColor: colors.primarySoft,
+                    backgroundColor: colors.well,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <Text style={[typography.label.sm, { color: colors.primary }]}>
-                    Log
-                  </Text>
-                  <Plus size={14} color={colors.primary} />
+                  <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.4} />
                 </View>
-              </Pressable>
-            ))}
-          </Card>
-        </View>
+              </View>
+            </Card>
+
+            {/* ── Due / overdue ── */}
+            {overdue.length + due.length + upcoming.length > 0 ? (
+              <>
+                <SectionHeader
+                  kicker={t("vaccinations.sectionsV2.dueKicker", "Schedule")}
+                  title={t("vaccinations.sectionsV2.due", "Coming up")}
+                  count={overdue.length + due.length + upcoming.length}
+                />
+                <Card padded={false}>
+                  {[...overdue, ...due, ...upcoming].map((d, i, arr) => {
+                    const tone = d.daysUntil < 0 ? "danger" : d.daysUntil <= 30 ? "warning" : "primary";
+                    return (
+                      <Row key={`${d.vaccineId}-${d.dose}`} last={i === arr.length - 1} onPress={() => openSheet(d.vaccine)}>
+                        <IconTile icon={d.daysUntil < 0 ? AlertCircle : CalendarClock} tone={tone} size={38} />
+                        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                          <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+                            {d.vaccine}
+                          </Text>
+                          <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+                            {d.doseLabel} · {formatDate(d.dueDate, locale)}
+                          </Text>
+                        </View>
+                        <Pill
+                          label={
+                            d.daysUntil < 0
+                              ? t("vaccinations.daysOverdue", { count: -d.daysUntil, defaultValue: `${-d.daysUntil}d overdue` })
+                              : t("vaccinations.daysUntil", { count: d.daysUntil, defaultValue: `in ${d.daysUntil}d` })
+                          }
+                          tone={tone}
+                          size="sm"
+                        />
+                      </Row>
+                    );
+                  })}
+                </Card>
+              </>
+            ) : null}
+
+            {/* ── Administered doses ── */}
+            <SectionHeader
+              kicker={t("vaccinations.sectionsV2.recordKicker", "Your record")}
+              title={t("vaccinations.sectionsV2.administeredTitle", "Administered")}
+              count={administered.length}
+            />
+            {administered.length === 0 ? (
+              <EmptyState
+                icon={Syringe}
+                title={t("vaccinations.empty.title", "No vaccinations recorded")}
+                message={t("vaccinations.empty.message", "Keep a verified digital record of all childhood, travel, and routine vaccinations.")}
+                actionLabel={t("vaccinations.logFirstAction", "Log first vaccination")}
+                onAction={() => openSheet()}
+              />
+            ) : (
+              <Card padded={false}>
+                {administered.map((a, i) => (
+                  <Row key={a.id} last={i === administered.length - 1}>
+                    <IconTile icon={Syringe} tone="success" size={38} />
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+                        {a.vaccineName}
+                      </Text>
+                      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+                        {[formatDate(a.administeredAt || a.recordDate || a.createdAt, locale), a.provider]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text>
+                      {a.notes ? (
+                        <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+                          {a.notes}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Pill
+                      label={t("vaccinations.doseN", { n: a.dose || 1, defaultValue: `Dose ${a.dose || 1}` })}
+                      tone="success"
+                      size="sm"
+                    />
+                  </Row>
+                ))}
+              </Card>
+            )}
+
+            {/* ── Routine schedule reference ── */}
+            <SectionHeader
+              kicker={t("vaccinations.sectionsV2.routineKicker", "Adult & travel")}
+              title={t("vaccinations.sectionsV2.routineTitle", "Recommended vaccines")}
+            />
+            <Card padded={false}>
+              {ROUTINE_VACCINES.map((v, i) => {
+                const logged = isLogged(v.match);
+                return (
+                  <Row
+                    key={v.name}
+                    last={i === ROUTINE_VACCINES.length - 1}
+                    onPress={() => openSheet(v.name)}
+                    accessibilityLabel={t("vaccinations.logNamed", { name: v.name, defaultValue: `Log ${v.name}` })}
+                  >
+                    <IconTile icon={v.icon} tone={logged ? "success" : v.tone} size={38} />
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+                        {v.name}
+                      </Text>
+                      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+                        {v.schedule}
+                      </Text>
+                    </View>
+                    {logged ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <CheckCircle2 size={15} color={colors.success} strokeWidth={2.4} />
+                        <Text style={[typography.label.sm, { color: colors.success }]}>
+                          {t("vaccinations.logged", "Logged")}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: colors.primarySoft,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Plus size={16} color={colors.primary} strokeWidth={2.6} />
+                      </View>
+                    )}
+                  </Row>
+                );
+              })}
+            </Card>
+          </>
+        )}
       </ScrollView>
 
       {/* Sticky Bottom Log Button */}
@@ -465,7 +463,7 @@ export default function VaccinationsScreen() {
           right: 0,
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.md,
-          paddingBottom: spacing.xl,
+          paddingBottom: Math.max(insets.bottom, spacing.lg),
           backgroundColor: isDark ? colors.bgElevated : colors.surface,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: colors.separator,
@@ -585,64 +583,52 @@ export default function VaccinationsScreen() {
   );
 }
 
-function BannerCard({
-  tone,
-  icon: Icon,
-  title,
-  body,
-}: {
-  tone: "danger" | "warning" | "success";
-  icon: any;
-  title: string;
-  body: string;
-}) {
-  const { spacing, colors, typography } = useTheme();
-  const tint =
-    tone === "danger"
-      ? colors.danger
-      : tone === "warning"
-      ? colors.warning
-      : colors.success;
-  const bg =
-    tone === "danger"
-      ? colors.dangerSoft
-      : tone === "warning"
-      ? colors.warningSoft
-      : colors.successSoft;
-
+function HeroStat({ value, label }: { value: number; label: string }) {
+  const { typography } = useTheme();
   return (
+    <View style={{ flex: 1, alignItems: "center", gap: 1 }}>
+      <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>{value}</Text>
+      <Text style={[typography.caption, { color: "rgba(255,255,255,0.82)" }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** Inset-divided list row used by every grouped card on this screen. */
+function Row({
+  children,
+  last,
+  onPress,
+  accessibilityLabel,
+}: {
+  children: React.ReactNode;
+  last: boolean;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+}) {
+  const { spacing, colors } = useTheme();
+  const inner = (
     <View
       style={{
-        borderRadius: 22,
-        borderCurve: "continuous",
-        padding: spacing.lg,
-        backgroundColor: bg,
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
+        minHeight: 64,
+        paddingVertical: spacing.md,
+        paddingRight: spacing.lg,
+        marginLeft: spacing.lg,
+        borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: colors.separator,
       }}
     >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: tint,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={20} color="#FFFFFF" strokeWidth={2.2} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[typography.title.sm, { color: colors.text }]}>
-          {title}
-        </Text>
-        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-          {body}
-        </Text>
-      </View>
+      {children}
     </View>
+  );
+  if (!onPress) return inner;
+  return (
+    <Pressable onPress={onPress} haptic="light" pressedScale={0.99} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+      {inner}
+    </Pressable>
   );
 }

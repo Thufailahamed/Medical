@@ -27,7 +27,19 @@ import {
   CheckCheck,
 } from "lucide-react-native";
 import { useDoctorConversations } from "@/hooks/useApi";
-import { Screen, ErrorState, Skeleton, Card, Avatar, Pill } from "@/components/ui";
+import {
+  Screen,
+  ErrorState,
+  Skeleton,
+  Card,
+  Avatar,
+  IconButton,
+  IconTile,
+  LargeHeader,
+  ListCard,
+  ListItem,
+  SectionHeader,
+} from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocaleStore } from "@/stores/locale";
 import { withOpacity } from "@/constants/theme";
@@ -80,87 +92,6 @@ function ConversationCardSkeleton({ colors }: { colors: any }) {
         <Skeleton width="70%" height={12} radius={6} />
       </View>
     </View>
-  );
-}
-
-/** Quick actionable route card for doctor empty state */
-function DoctorPathwayCard({
-  icon: Icon,
-  iconTint,
-  iconBg,
-  title,
-  subtitle,
-  badge,
-  onPress,
-}: {
-  icon: any;
-  iconTint: string;
-  iconBg: string;
-  title: string;
-  subtitle: string;
-  badge?: string;
-  onPress: () => void;
-}) {
-  const { colors, typography, shadow, scheme } = useTheme();
-  const isDark = scheme === "dark";
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        padding: 14,
-        minHeight: 64,
-        borderRadius: 20,
-        borderCurve: "continuous",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.hairline,
-        backgroundColor: colors.surface,
-        ...(isDark ? {} : shadow.sm),
-        opacity: pressed ? 0.88 : 1,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-      })}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: iconBg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={20} color={iconTint} strokeWidth={2.2} />
-      </View>
-
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text
-            style={[
-              typography.title.sm,
-              { color: colors.text },
-            ]}
-          >
-            {title}
-          </Text>
-          {badge ? <Pill label={badge} tone="accent" size="sm" /> : null}
-        </View>
-        <Text
-          style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}
-          numberOfLines={1}
-        >
-          {subtitle}
-        </Text>
-      </View>
-
-      <ChevronRight size={17} color={colors.textSubtle} strokeWidth={2.4} />
-    </Pressable>
   );
 }
 
@@ -398,101 +329,50 @@ export default function DoctorInboxScreen() {
   return (
     <Screen scroll={false} padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       {/* ── Header ── */}
+      <LargeHeader
+        kicker={
+          totalUnread > 0
+            ? t("inbox.subtitleWithUnread", {
+                count: totalUnread,
+                defaultValue: `${totalUnread} unread messages`,
+              })
+            : t("inbox.subtitleEmpty", {
+                defaultValue: "All patient messages up to date",
+              })
+        }
+        kickerColor={totalUnread > 0 ? colors.primary : colors.textSubtle}
+        title={t("inbox.title", { defaultValue: "Inbox" })}
+        right={
+          <IconButton
+            icon={MessageSquarePlus}
+            variant="solid"
+            onPress={() => router.push("/(doctor)/inbox/new" as any)}
+            accessibilityLabel={t("inbox.newChat", { defaultValue: "New Chat" })}
+          />
+        }
+        style={{ paddingBottom: 0 }}
+      />
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
           paddingBottom: spacing.sm,
-          backgroundColor: colors.bg,
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          {/* Title and dynamic badge */}
-          <View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <MessageSquare size={17} color={colors.primary} strokeWidth={2.4} />
-              </View>
-              <Text style={[typography.display.md, { color: colors.text }]}>
-                {t("inbox.title", { defaultValue: "Inbox" })}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <View
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: 4,
-                  backgroundColor: totalUnread > 0 ? colors.primary : colors.success,
-                }}
-              />
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                {totalUnread > 0
-                  ? t("inbox.subtitleWithUnread", {
-                      count: totalUnread,
-                      defaultValue: `${totalUnread} unread messages`,
-                    })
-                  : t("inbox.subtitleEmpty", {
-                      defaultValue: "All patient messages up to date",
-                    })}
-              </Text>
-            </View>
-          </View>
-
-          {/* New Chat Primary Action Button */}
-          <Pressable
-            onPress={() => router.push("/(doctor)/inbox/new" as any)}
-            accessibilityRole="button"
-            accessibilityLabel={t("inbox.startCta", { defaultValue: "New Message" })}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              backgroundColor: colors.primarySoft,
-              height: 36,
-              paddingHorizontal: 14,
-              borderRadius: 999,
-              borderCurve: "continuous",
-              opacity: pressed ? 0.75 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <MessageSquarePlus size={16} color={colors.primary} strokeWidth={2.4} />
-            <Text style={[typography.label.md, { color: colors.primary }]}>
-              {t("inbox.newChat", { defaultValue: "New Chat" })}
-            </Text>
-          </Pressable>
-        </View>
-
         {/* ── Search Bar (Always accessible when there are conversations or search active) ── */}
         {(conversations.length > 0 || searchQuery.length > 0) && (
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.fill,
-              borderRadius: 12,
+              backgroundColor: colors.surface,
+              borderRadius: 14,
               borderCurve: "continuous",
-              paddingHorizontal: 12,
-              height: 40,
-              marginTop: spacing.lg,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
+              paddingHorizontal: 14,
+              height: 44,
+              marginTop: spacing.md,
+              ...(isDark ? {} : shadow.xs),
             }}
           >
             <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
@@ -531,7 +411,7 @@ export default function DoctorInboxScreen() {
               gap: 2,
               padding: 3,
               marginTop: spacing.sm,
-              borderRadius: 12,
+              borderRadius: 13,
               borderCurve: "continuous",
               backgroundColor: colors.fill,
             }}
@@ -541,7 +421,7 @@ export default function DoctorInboxScreen() {
               style={segStyle(activeFilter === "all")}
             >
               <Text numberOfLines={1} style={segText(activeFilter === "all")}>
-                All ({conversations.length})
+                {t("inbox.filter.all", "All")} · {conversations.length}
               </Text>
             </Pressable>
 
@@ -556,7 +436,7 @@ export default function DoctorInboxScreen() {
                   activeFilter !== "unread" && totalUnread > 0 ? { color: colors.primary } : null,
                 ]}
               >
-                Unread ({totalUnread})
+                {t("inbox.filter.unread", "Unread")} · {totalUnread}
               </Text>
             </Pressable>
 
@@ -565,7 +445,7 @@ export default function DoctorInboxScreen() {
               style={segStyle(activeFilter === "active")}
             >
               <Text numberOfLines={1} style={segText(activeFilter === "active")}>
-                Active ({activeCount})
+                {t("inbox.filter.active", "Active")} · {activeCount}
               </Text>
             </Pressable>
 
@@ -574,7 +454,7 @@ export default function DoctorInboxScreen() {
               style={segStyle(activeFilter === "closed")}
             >
               <Text numberOfLines={1} style={segText(activeFilter === "closed")}>
-                Closed ({closedCount})
+                {t("inbox.filter.closed", "Closed")} · {closedCount}
               </Text>
             </Pressable>
           </View>
@@ -624,20 +504,13 @@ export default function DoctorInboxScreen() {
             }}
           >
             {/* Layered Icon Well */}
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 24,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: spacing.lg,
-              }}
-            >
-              <Inbox size={34} color={colors.primary} strokeWidth={2} />
-            </View>
+            <IconTile
+              icon={Inbox}
+              tone="primary"
+              appearance="soft"
+              size={64}
+              style={{ marginBottom: spacing.lg }}
+            />
 
             <Text
               style={[
@@ -674,9 +547,9 @@ export default function DoctorInboxScreen() {
                 alignItems: "center",
                 gap: 8,
                 backgroundColor: colors.primary,
-                height: 48,
-                paddingHorizontal: 22,
-                borderRadius: 16,
+                height: 50,
+                paddingHorizontal: 24,
+                borderRadius: 25,
                 borderCurve: "continuous",
                 marginBottom: 16,
                 opacity: pressed ? 0.9 : 1,
@@ -711,49 +584,50 @@ export default function DoctorInboxScreen() {
           </Card>
 
           {/* Quick Clinical Pathways */}
-          <View style={{ gap: spacing.xs + 3 }}>
-            <Text
-              style={[
-                typography.title.lg,
-                { color: colors.text, paddingHorizontal: 4, marginBottom: 2 },
-              ]}
-            >
-              {t("inbox.quickPathways", { defaultValue: "Quick Pathways" })}
-            </Text>
-
-            <DoctorPathwayCard
-              icon={Users}
-              iconTint={colors.primary}
-              iconBg={colors.primarySoft}
-              title={t("inbox.pathRecentTitle", { defaultValue: "Message Recent Patient" })}
-              subtitle={t("inbox.pathRecentSubtitle", {
-                defaultValue: "Quickly start a thread with recently visited patients",
-              })}
-              badge={t("inbox.pathRecentBadge", { defaultValue: "Fast" })}
-              onPress={() => router.push("/(doctor)/inbox/new" as any)}
+          <View>
+            <SectionHeader
+              kicker={t("inbox.pathwaysKicker", "Shortcuts")}
+              title={t("inbox.quickPathways", { defaultValue: "Quick pathways" })}
+              style={{ paddingTop: spacing.xs }}
             />
-
-            <DoctorPathwayCard
-              icon={Stethoscope}
-              iconTint={colors.accent}
-              iconBg={colors.accentSoft}
-              title={t("inbox.pathDirectoryTitle", { defaultValue: "Browse Patient Directory" })}
-              subtitle={t("inbox.pathDirectorySubtitle", {
-                defaultValue: "Find clinical charts, lab results, and patient profiles",
-              })}
-              onPress={() => router.push("/(doctor)/patients" as any)}
-            />
-
-            <DoctorPathwayCard
-              icon={CalendarCheck}
-              iconTint={colors.info}
-              iconBg={colors.infoSoft}
-              title={t("inbox.pathScheduleTitle", { defaultValue: "Check Today's Schedule" })}
-              subtitle={t("inbox.pathScheduleSubtitle", {
-                defaultValue: "View confirmed appointments and waiting room queue",
-              })}
-              onPress={() => router.push("/(doctor)/schedule" as any)}
-            />
+            <ListCard>
+              <ListItem
+                bordered={false}
+                icon={Users}
+                iconTone="primary"
+                title={t("inbox.pathRecentTitle", { defaultValue: "Message recent patient" })}
+                subtitle={t("inbox.pathRecentSubtitle", {
+                  defaultValue: "Quickly start a thread with recently visited patients",
+                })}
+                subtitleMaxLines={1}
+                showChevron
+                onPress={() => router.push("/(doctor)/inbox/new" as any)}
+              />
+              <ListItem
+                bordered={false}
+                icon={Stethoscope}
+                iconTone="accent"
+                title={t("inbox.pathDirectoryTitle", { defaultValue: "Browse patient directory" })}
+                subtitle={t("inbox.pathDirectorySubtitle", {
+                  defaultValue: "Find clinical charts, lab results, and patient profiles",
+                })}
+                subtitleMaxLines={1}
+                showChevron
+                onPress={() => router.push("/(doctor)/care-team" as any)}
+              />
+              <ListItem
+                bordered={false}
+                icon={CalendarCheck}
+                iconTone="info"
+                title={t("inbox.pathScheduleTitle", { defaultValue: "Check today's schedule" })}
+                subtitle={t("inbox.pathScheduleSubtitle", {
+                  defaultValue: "View confirmed appointments and waiting room queue",
+                })}
+                subtitleMaxLines={1}
+                showChevron
+                onPress={() => router.push("/(doctor)/schedule" as any)}
+              />
+            </ListCard>
           </View>
         </ScrollView>
       ) : filteredConversations.length === 0 ? (

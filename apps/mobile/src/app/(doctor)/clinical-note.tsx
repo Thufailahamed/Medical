@@ -96,7 +96,6 @@ export default function ClinicalNoteScreen() {
                 placeholder={t("clinicalNote.notesPlaceholder")}
                 multiline
                 numberOfLines={8}
-                tone="soft"
               />
             </FormField>
           </View>

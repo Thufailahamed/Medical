@@ -9,19 +9,18 @@ import {
   Stethoscope,
   Download,
   FileText,
-  CalendarDays,
   ShieldCheck,
-  ScanLine,
+  ShieldAlert,
   Share2,
   Repeat,
-  CheckCircle2,
   PackageCheck,
   XCircle,
   Clock,
-  Sparkles,
   Copy,
   Check,
-  Activity,
+  ChevronRight,
+  ClipboardList,
+  Link2,
 } from "lucide-react-native";
 import {
   useMyPrescription,
@@ -29,6 +28,7 @@ import {
   useCreateShareLink,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone, type Tone } from "@/theme/tone";
 import { useLocaleStore } from "@/stores/locale";
 import { fmtDateLong, fmtLKR } from "@/lib/format";
 import { getPublicBaseUrl } from "@/lib/api";
@@ -40,6 +40,7 @@ import {
   Skeleton,
   EmptyState,
   ErrorState,
+  SectionHeader,
   useToast,
   Pressable,
 } from "@/components/ui";
@@ -88,11 +89,21 @@ function formatDateTime(iso: string | null | undefined, locale: any): string {
   return `${dateStr} at ${timeStr}`;
 }
 
+
+function statusMeta(status: string): { tone: Tone; icon: any; key: string | null } {
+  if (status === "signed" || status === "active")
+    return { tone: "success", icon: ShieldCheck, key: "patientPrescriptionDetail.statusSigned" };
+  if (status === "dispensed" || status === "completed")
+    return { tone: "primary", icon: PackageCheck, key: "patientPrescriptionDetail.statusDispensed" };
+  if (status === "cancelled")
+    return { tone: "danger", icon: XCircle, key: "patientPrescriptionDetail.statusCancelled" };
+  return { tone: "neutral", icon: ShieldAlert, key: null };
+}
+
 export default function PatientPrescriptionDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius, scheme } = useTheme();
-  const isDark = scheme === "dark";
+  const { spacing, colors, typography, radius } = useTheme();
   const locale = useLocaleStore((s) => s.locale);
   const toast = useToast();
 
@@ -106,12 +117,13 @@ export default function PatientPrescriptionDetailScreen() {
   const rx = data?.prescription;
   const status: string = rx?.status ?? "signed";
   const isSigned = status === "signed" || status === "active";
-  const isDispensed = status === "dispensed" || status === "completed";
-  const isCancelled = status === "cancelled";
+  const sMeta = statusMeta(status);
+  const statusPal = useTone(sMeta.tone);
 
   const slmcBadge = formatSlmc(rx?.doctorSlmcNo);
   const formattedDate = rx?.date ? fmtDateLong(new Date(rx.date), locale) : "—";
   const formattedSignedAt = rx?.signedAt ? formatDateTime(rx.signedAt, locale) : null;
+  const medCount = rx?.medicines?.length ?? 0;
 
   async function onDownload() {
     if (!id) return;
@@ -141,7 +153,6 @@ export default function PatientPrescriptionDetailScreen() {
       const fullUrl = `${base}${res.url}`;
       setShareUrl(fullUrl);
       copyToClipboard(fullUrl);
-      toast.show(t("patientPrescriptionDetail.shareCreated"), "success");
     } catch (err: any) {
       const msg =
         err?.message && err.message !== "{}" && err.message !== "[object Object]"
@@ -163,19 +174,26 @@ export default function PatientPrescriptionDetailScreen() {
     }
   }
 
+  function openVerify() {
+    router.push({
+      pathname: "/(app)/verify/[id]" as any,
+      params: { id: id as string },
+    });
+  }
+
   return (
-    <Screen scroll padded={false} edges={["top"]} bottomInset={false}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
         title={t("patientPrescriptionDetail.title")}
-        subtitle={formattedDate}
+        subtitle={rx ? formattedDate : undefined}
         onBack={() => router.back()}
       />
 
       {isLoading ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          <Skeleton height={140} radius={radius.xl} />
-          <Skeleton height={120} radius={radius.xl} />
           <Skeleton height={200} radius={radius.xl} />
+          <Skeleton height={90} radius={radius.xl} />
+          <Skeleton height={160} radius={radius.xl} />
         </View>
       ) : isError ? (
         <View style={{ padding: spacing.xl }}>
@@ -199,536 +217,140 @@ export default function PatientPrescriptionDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             padding: spacing.lg,
-            gap: spacing.md,
+            paddingTop: spacing.sm,
             paddingBottom: 120,
           }}
         >
-          {/* Prescribing Practitioner Header Card */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? colors.borderStrong : colors.separator,
-            }}
-          >
-            {/* Top row: Label & Status Badge */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: spacing.sm,
-              }}
-            >
-              <Text
-                style={[
-                  typography.overline,
-                  { color: colors.textMuted, letterSpacing: 0.8 },
-                ]}
-              >
-                {t("patientPrescriptionDetail.doctor").toUpperCase()}
-              </Text>
-              <StatusBadge status={status} />
-            </View>
-
-            {/* Doctor Info Row */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Stethoscope
-                  size={24}
-                  color={colors.primary}
-                  strokeWidth={2.2}
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.title.md,
-                    { color: colors.text, fontWeight: "800" },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {rx.doctorName || "Licensed Practitioner"}
-                </Text>
-
+          {/* ─── Doctor + signature ─── */}
+          <Card padded={false} style={{ overflow: "hidden" }}>
+            <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                 <View
                   style={{
-                    flexDirection: "row",
+                    width: 52,
+                    height: 52,
+                    borderRadius: radius.lg,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
                     alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 3,
+                    justifyContent: "center",
                   }}
                 >
-                  {rx.doctorSpecialization && (
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted, fontWeight: "600" },
-                      ]}
-                    >
-                      {rx.doctorSpecialization}
-                    </Text>
-                  )}
-                  {slmcBadge && (
-                    <View
-                      style={{
-                        paddingHorizontal: 7,
-                        paddingVertical: 1,
-                        borderRadius: radius.xs,
-                        backgroundColor: colors.fill,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: colors.textSubtle,
-                        }}
-                      >
-                        {slmcBadge}
-                      </Text>
-                    </View>
-                  )}
+                  <Stethoscope size={24} color={colors.primary} strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>
+                    {t("patientPrescriptionDetail.doctor")}
+                  </Text>
+                  <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+                    {rx.doctorName || "Licensed Practitioner"}
+                  </Text>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={1}>
+                    {[rx.doctorSpecialization, slmcBadge].filter(Boolean).join(" · ")}
+                  </Text>
                 </View>
               </View>
-            </View>
 
-            {/* Meta Row: Issue Date & Fee */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: spacing.md,
-                paddingTop: spacing.sm,
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.separator,
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <CalendarDays size={13} color={colors.textSubtle} strokeWidth={2.2} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.textSubtle,
-                  }}
-                >
-                  {formattedDate}
-                </Text>
-              </View>
-
-              {rx.doctorConsultationFee ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: colors.text,
-                    }}
-                  >
-                    {fmtLKR(Number(rx.doctorConsultationFee), locale)}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: colors.textMuted,
-                    }}
-                  >
-                    ({t("patientPrescriptionDetail.feePaidNote")})
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </Card>
-
-          {/* Clinical Assessment & Instructions Card (Merged Diagnosis & Notes) */}
-          {(rx.diagnosis || rx.notes) && (
-            <Card
-              style={{
-                padding: spacing.lg,
-                borderRadius: radius.card,
-                borderCurve: "continuous",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.separator,
-                gap: spacing.sm,
-              }}
-            >
-              {rx.diagnosis && (
-                <View>
-                  <Text
-                    style={[
-                      typography.overline,
-                      { color: colors.textMuted, marginBottom: 4 },
-                    ]}
-                  >
-                    {t("patientPrescriptionDetail.diagnosis").toUpperCase()}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.md,
-                      { color: colors.text, fontWeight: "600", lineHeight: 22 },
-                    ]}
-                  >
-                    {rx.diagnosis}
-                  </Text>
-                </View>
-              )}
-
-              {rx.diagnosis && rx.notes && (
-                <View
-                  style={{
-                    height: StyleSheet.hairlineWidth,
-                    backgroundColor: colors.separator,
-                    marginVertical: spacing.xs,
-                  }}
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <MetaTile label={t("patientPrescriptionDetail.issued")} value={formattedDate} />
+                <MetaTile
+                  label={t("patientPrescriptionDetail.medicines")}
+                  value={t("patientPrescriptionDetail.itemCount", { count: medCount })}
                 />
-              )}
-
-              {rx.notes && (
-                <View>
-                  <Text
-                    style={[
-                      typography.overline,
-                      { color: colors.textMuted, marginBottom: 4 },
-                    ]}
-                  >
-                    {t("patientPrescriptionDetail.notes").toUpperCase()}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textMuted, lineHeight: 20 },
-                    ]}
-                  >
-                    {rx.notes}
-                  </Text>
-                </View>
-              )}
-            </Card>
-          )}
-
-          {/* Medicines Schedule Card */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? colors.borderStrong : colors.separator,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: spacing.md,
-              }}
-            >
-              <Text
-                style={[
-                  typography.overline,
-                  { color: colors.textMuted, letterSpacing: 0.8 },
-                ]}
-              >
-                {t("patientPrescriptionDetail.medicines").toUpperCase()}
-              </Text>
-              <View
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.primarySoft,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: "700",
-                    color: colors.primary,
-                  }}
-                >
-                  {rx.medicines?.length || 0}{" "}
-                  {rx.medicines?.length === 1 ? "Item" : "Items"}
-                </Text>
-              </View>
-            </View>
-
-            {rx.medicines?.length ? (
-              <View style={{ gap: spacing.md }}>
-                {rx.medicines.map((med: any, i: number) => {
-                  const frequencyHuman = humanizeDirection(med.frequency);
-                  const timingHuman = humanizeDirection(med.timing);
-
-                  return (
-                    <View
-                      key={med.id || i}
-                      style={{
-                        paddingTop: i === 0 ? 0 : spacing.md,
-                        borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                        borderColor: colors.separator,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "flex-start",
-                          gap: spacing.md,
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 12,
-                            borderCurve: "continuous",
-                            backgroundColor: colors.primarySoft,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginTop: 2,
-                          }}
-                        >
-                          <Pill size={18} color={colors.primary} strokeWidth={2.4} />
-                        </View>
-
-                        <View style={{ flex: 1 }}>
-                          {/* Name and Dosage */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: spacing.xs,
-                            }}
-                          >
-                            <Text
-                              style={[
-                                typography.body.md,
-                                { color: colors.text, fontWeight: "700" },
-                              ]}
-                            >
-                              {med.name}
-                            </Text>
-
-                            {med.dosage && (
-                              <View
-                                style={{
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 2,
-                                  borderRadius: radius.xs,
-                                  backgroundColor: colors.fill,
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: "700",
-                                    color: colors.text,
-                                  }}
-                                >
-                                  {med.dosage}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-
-                          {/* Directions Tags (Humanized frequency & timing) */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              flexWrap: "wrap",
-                              gap: 6,
-                              marginTop: 6,
-                            }}
-                          >
-                            {frequencyHuman ? (
-                              <View
-                                style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 3,
-                                  borderRadius: radius.full,
-                                  backgroundColor: colors.primarySoft,
-                                }}
-                              >
-                                <Clock size={11} color={colors.primary} />
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: "600",
-                                    color: colors.primary,
-                                  }}
-                                >
-                                  {frequencyHuman}
-                                </Text>
-                              </View>
-                            ) : null}
-
-                            {timingHuman ? (
-                              <View
-                                style={{
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 3,
-                                  borderRadius: radius.full,
-                                  backgroundColor: colors.surfaceMuted,
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: "600",
-                                    color: colors.textMuted,
-                                  }}
-                                >
-                                  {timingHuman}
-                                </Text>
-                              </View>
-                            ) : null}
-                          </View>
-
-                          {/* Instructions note callout if present */}
-                          {med.instructions ? (
-                            <View
-                              style={{
-                                marginTop: 6,
-                                paddingHorizontal: spacing.sm,
-                                paddingVertical: 4,
-                                borderRadius: 12,
-                                borderCurve: "continuous",
-                                backgroundColor: colors.fill,
-                              }}
-                            >
-                              <Text
-                                style={[
-                                  typography.caption,
-                                  { color: colors.textSubtle, fontStyle: "italic" },
-                                ]}
-                              >
-                                Note: {med.instructions}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                No medicines recorded in this prescription.
-              </Text>
-            )}
-          </Card>
-
-          {/* Cryptographic Digital Signature & Verification Card */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? colors.borderStrong : colors.separator,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  borderCurve: "continuous",
-                  backgroundColor: isSigned
-                    ? colors.successSoft
-                    : colors.surfaceMuted,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShieldCheck
-                  size={22}
-                  color={isSigned ? colors.success : colors.textMuted}
-                  strokeWidth={2.4}
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.body.md,
-                    { color: colors.text, fontWeight: "800" },
-                  ]}
-                >
-                  {status === "cancelled"
-                    ? t("patientPrescriptionDetail.statusCancelled")
-                    : status === "dispensed"
-                    ? t("patientPrescriptionDetail.statusDispensed")
-                    : isSigned
-                    ? t("patientPrescriptionDetail.statusSigned")
-                    : status}
-                </Text>
-
-                {isSigned && formattedSignedAt ? (
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textMuted, marginTop: 2 },
-                    ]}
-                  >
-                    {t("patientPrescriptionDetail.signedAtLabel")} {formattedSignedAt}
-                  </Text>
+                {rx.doctorConsultationFee ? (
+                  <MetaTile
+                    label={t("patientPrescriptionDetail.consultationFee")}
+                    value={fmtLKR(Number(rx.doctorConsultationFee), locale)}
+                  />
                 ) : null}
               </View>
             </View>
 
-            <View style={{ marginTop: spacing.md }}>
-              <Button
-                title={t("patientPrescriptionDetail.verify")}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(app)/verify/[id]" as any,
-                    params: { id: id as string },
-                  })
-                }
-                variant="secondary"
-                iconLeft={ScanLine}
-                size="md"
-                fullWidth
-              />
-            </View>
+            {/* Signature strip — tap to verify */}
+            <Pressable
+              onPress={isSigned ? openVerify : undefined}
+              haptic="light"
+              accessibilityRole={isSigned ? "button" : undefined}
+              accessibilityLabel={t("patientPrescriptionDetail.verify")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                backgroundColor: statusPal.bg,
+              }}
+            >
+              <sMeta.icon size={20} color={statusPal.fg} strokeWidth={2.4} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[typography.label.md, { color: statusPal.fg }]} numberOfLines={1}>
+                  {sMeta.key ? t(sMeta.key) : status}
+                </Text>
+                {isSigned && formattedSignedAt ? (
+                  <Text style={[typography.caption, { color: statusPal.fg, opacity: 0.8 }]} numberOfLines={1}>
+                    {t("patientPrescriptionDetail.signedOn", { when: formattedSignedAt })}
+                  </Text>
+                ) : null}
+              </View>
+              {isSigned ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <Text style={[typography.label.md, { color: statusPal.fg }]}>
+                    {t("patientPrescriptionDetail.verifyShort")}
+                  </Text>
+                  <ChevronRight size={16} color={statusPal.fg} strokeWidth={2.4} />
+                </View>
+              ) : null}
+            </Pressable>
           </Card>
 
-          {/* Action Buttons: Download PDF & Quick Refill */}
-          <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+          {/* ─── Diagnosis & notes ─── */}
+          {rx.diagnosis || rx.notes ? (
+            <>
+              <SectionHeader title={t("patientPrescriptionDetail.diagnosis")} />
+              <Card style={{ flexDirection: "row", gap: spacing.md }}>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: radius.md,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.well,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ClipboardList size={17} color={colors.textMuted} strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1, gap: 4, paddingTop: 2 }}>
+                  {rx.diagnosis ? (
+                    <Text style={[typography.title.sm, { color: colors.text }]}>{rx.diagnosis}</Text>
+                  ) : null}
+                  {rx.notes ? (
+                    <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 20 }]}>
+                      {rx.notes}
+                    </Text>
+                  ) : null}
+                </View>
+              </Card>
+            </>
+          ) : null}
+
+          {/* ─── Medicines ─── */}
+          <SectionHeader title={t("patientPrescriptionDetail.medicines")} count={medCount} />
+          <Card padded={false}>
+            {medCount ? (
+              rx.medicines.map((med: any, i: number) => (
+                <MedicineRow key={med.id || i} med={med} first={i === 0} />
+              ))
+            ) : (
+              <Text style={[typography.body.sm, { color: colors.textMuted, padding: spacing.lg }]}>
+                {t("patientPrescriptionDetail.noMedicines")}
+              </Text>
+            )}
+          </Card>
+
+          {/* ─── Actions ─── */}
+          <View style={{ gap: spacing.sm, marginTop: spacing.xl }}>
             <Button
               title={
                 downloading
@@ -740,100 +362,92 @@ export default function PatientPrescriptionDetailScreen() {
               onPress={onDownload}
               loading={downloading}
               disabled={downloading || !isSigned}
-              iconRight={Download}
+              icon={Download}
               size="lg"
-              fullWidth
             />
-
-            {isSigned && (
+            {isSigned ? (
               <Button
                 title={t("myPrescriptions.requestRefill", "Request refill")}
                 onPress={() => router.push("/(app)/refill")}
-                variant="outline"
-                iconLeft={Repeat}
-                size="md"
-                fullWidth
+                variant="secondary"
+                icon={Repeat}
               />
-            )}
+            ) : null}
           </View>
 
-          {/* Secure 7-Day Sharing Hub */}
+          {/* ─── Share with another doctor ─── */}
           {isSigned ? (
-            <Card
-              style={{
-                padding: spacing.lg,
-                borderRadius: radius.card,
-                borderCurve: "continuous",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: isDark ? colors.borderStrong : colors.separator,
-                marginTop: spacing.xs,
-              }}
-            >
-              <Text
-                style={[
-                  typography.overline,
-                  { color: colors.textMuted, marginBottom: 4 },
-                ]}
-              >
-                {t("patientPrescriptionDetail.shareWithDoctor").toUpperCase()}
-              </Text>
-              <Text
-                style={[
-                  typography.body.sm,
-                  { color: colors.textMuted, lineHeight: 18 },
-                ]}
-              >
-                {t("patientPrescriptionDetail.shareWithDoctorBody")}
-              </Text>
-
-              <View style={{ marginTop: spacing.md }}>
-                <Button
-                  title={
-                    shareUrl
-                      ? copied
-                        ? "Copied to clipboard ✓"
-                        : t("patientPrescriptionDetail.shareLinkCreated")
-                      : createShare.isPending
-                      ? t("patientPrescriptionDetail.creatingShare")
-                      : t("patientPrescriptionDetail.createShareLink")
-                  }
-                  onPress={shareUrl ? () => copyToClipboard(shareUrl) : onShareWithDoctor}
-                  loading={createShare.isPending}
-                  disabled={createShare.isPending}
-                  iconLeft={shareUrl ? (copied ? Check : Copy) : Share2}
-                  variant="secondary"
-                  size="md"
-                  fullWidth
-                />
+            <Card style={{ marginTop: spacing.lg, gap: spacing.md }}>
+              <View style={{ flexDirection: "row", gap: spacing.md }}>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: radius.md,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Share2 size={17} color={colors.primary} strokeWidth={2.3} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[typography.title.sm, { color: colors.text }]}>
+                    {t("patientPrescriptionDetail.shareWithDoctor")}
+                  </Text>
+                  <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 19 }]}>
+                    {t("patientPrescriptionDetail.shareWithDoctorBody")}
+                  </Text>
+                </View>
               </View>
 
               {shareUrl ? (
                 <Pressable
                   onPress={() => copyToClipboard(shareUrl)}
+                  haptic="light"
+                  accessibilityRole="button"
                   style={{
-                    marginTop: spacing.sm,
-                    padding: spacing.sm,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.fill,
                     flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    gap: spacing.sm,
+                    padding: spacing.md,
+                    borderRadius: radius.lg,
+                    borderCurve: "continuous",
+                    backgroundColor: colors.fill,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: 11,
-                      color: colors.primary,
-                      flex: 1,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {shareUrl}
-                  </Text>
-                  <Copy size={13} color={colors.primary} />
+                  <Link2 size={16} color={colors.primary} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[typography.label.md, { color: colors.primary }]} numberOfLines={1}>
+                      {shareUrl}
+                    </Text>
+                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                      {copied
+                        ? t("patientPrescriptionDetail.copied")
+                        : `${t("patientPrescriptionDetail.shareLinkReady")} · ${t("patientPrescriptionDetail.shareExpires")}`}
+                    </Text>
+                  </View>
+                  {copied ? (
+                    <Check size={16} color={colors.success} strokeWidth={2.6} />
+                  ) : (
+                    <Copy size={16} color={colors.primary} />
+                  )}
                 </Pressable>
-              ) : null}
+              ) : (
+                <Button
+                  title={
+                    createShare.isPending
+                      ? t("patientPrescriptionDetail.creatingShare")
+                      : t("patientPrescriptionDetail.createShareLink")
+                  }
+                  onPress={onShareWithDoctor}
+                  loading={createShare.isPending}
+                  disabled={createShare.isPending}
+                  icon={Link2}
+                  variant="outline"
+                />
+              )}
             </Card>
           ) : null}
         </ScrollView>
@@ -842,121 +456,110 @@ export default function PatientPrescriptionDetailScreen() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function MetaTile({ label, value }: { label: string; value: string }) {
+  const { colors, typography, radius, spacing } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        paddingVertical: spacing.sm + 2,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.lg,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
+        gap: 2,
+      }}
+    >
+      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={[typography.label.md, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function MedicineRow({ med, first }: { med: any; first: boolean }) {
   const { t } = useTranslation();
-  const { colors, spacing, radius } = useTheme();
-
-  const isSigned = status === "signed" || status === "active";
-  const isDispensed = status === "dispensed" || status === "completed";
-  const isCancelled = status === "cancelled";
-
-  if (isSigned) {
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 3,
-          borderRadius: radius.full,
-          backgroundColor: colors.successSoft,
-        }}
-      >
-        <ShieldCheck size={11} color={colors.success} strokeWidth={2.6} />
-        <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "800",
-            color: colors.success,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          {t("patientPrescriptionDetail.statusSigned")}
-        </Text>
-      </View>
-    );
-  }
-
-  if (isDispensed) {
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 3,
-          borderRadius: radius.full,
-          backgroundColor: colors.primarySoft,
-        }}
-      >
-        <PackageCheck size={11} color={colors.primary} strokeWidth={2.6} />
-        <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "800",
-            color: colors.primary,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          {t("patientPrescriptionDetail.statusDispensed")}
-        </Text>
-      </View>
-    );
-  }
-
-  if (isCancelled) {
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 3,
-          borderRadius: radius.full,
-          backgroundColor: colors.dangerSoft ?? colors.surfaceMuted,
-        }}
-      >
-        <XCircle size={11} color={colors.danger ?? colors.textMuted} strokeWidth={2.6} />
-        <Text
-          style={{
-            fontSize: 10,
-            fontWeight: "800",
-            color: colors.danger ?? colors.textMuted,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          {t("patientPrescriptionDetail.statusCancelled")}
-        </Text>
-      </View>
-    );
-  }
+  const { colors, typography, radius, spacing } = useTheme();
+  const frequencyHuman = humanizeDirection(med.frequency);
+  const timingHuman = humanizeDirection(med.timing);
+  const duration = med.durationDays ? `${med.durationDays}d` : med.duration;
 
   return (
     <View
       style={{
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: colors.surfaceMuted,
+        flexDirection: "row",
+        gap: spacing.md,
+        padding: spacing.lg,
+        borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+        borderTopColor: colors.separator,
       }}
     >
-      <Text
+      <View
         style={{
-          fontSize: 10,
-          fontWeight: "800",
-          color: colors.textMuted,
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
+          width: 40,
+          height: 40,
+          borderRadius: radius.md,
+          borderCurve: "continuous",
+          backgroundColor: colors.primarySoft,
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {status}
-      </Text>
+        <Pill size={18} color={colors.primary} strokeWidth={2.4} />
+      </View>
+
+      <View style={{ flex: 1, minWidth: 0, gap: spacing.sm }}>
+        <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: 6 }}>
+          <Text style={[typography.title.sm, { color: colors.text }]}>{med.name}</Text>
+          {med.dosage ? (
+            <Text style={[typography.body.sm, { color: colors.textMuted, fontWeight: "600" }]}>
+              {med.dosage}
+            </Text>
+          ) : null}
+        </View>
+
+        {frequencyHuman || timingHuman || duration ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {frequencyHuman ? <DirectionChip icon={Clock} label={frequencyHuman} strong /> : null}
+            {timingHuman ? <DirectionChip label={timingHuman} /> : null}
+            {duration ? <DirectionChip label={String(duration)} /> : null}
+          </View>
+        ) : null}
+
+        {med.instructions ? (
+          <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 19 }]}>
+            <Text style={{ fontWeight: "700", color: colors.text }}>
+              {t("patientPrescriptionDetail.instructionNote")}:{" "}
+            </Text>
+            {med.instructions}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function DirectionChip({ label, icon: Icon, strong }: { label: string; icon?: any; strong?: boolean }) {
+  const { colors, typography, radius } = useTheme();
+  const fg = strong ? colors.primary : colors.textMuted;
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 10,
+        height: 26,
+        borderRadius: radius.full,
+        backgroundColor: strong ? colors.primarySoft : colors.fill,
+      }}
+    >
+      {Icon ? <Icon size={12} color={fg} strokeWidth={2.4} /> : null}
+      <Text style={[typography.caption, { color: fg, fontWeight: "600" }]}>{label}</Text>
     </View>
   );
 }

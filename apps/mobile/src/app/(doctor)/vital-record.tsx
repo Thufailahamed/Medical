@@ -102,7 +102,7 @@ export default function DoctorVitalRecordScreen() {
   }
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
         back
         onBack={() => router.back()}
@@ -192,7 +192,6 @@ export default function DoctorVitalRecordScreen() {
                 placeholder={t("vitals.compose.notesPlaceholder")}
                 multiline
                 numberOfLines={3}
-                tone="soft"
               />
             </FormField>
           </View>

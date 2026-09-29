@@ -31,6 +31,7 @@ import {
   Pill,
   Skeleton,
   ErrorState,
+  SectionHeader,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -205,7 +206,7 @@ export default function EarningsScreen() {
 
   if (isError) {
     return (
-      <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.surfaceSubtle }}>
+      <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
         <ScreenHeader
           variant="hero"
           back
@@ -228,7 +229,7 @@ export default function EarningsScreen() {
       padded={false}
       scroll={false}
       edges={["top"]}
-      style={{ backgroundColor: colors.surfaceSubtle }}
+      style={{ backgroundColor: colors.bg }}
     >
       <ScreenHeader
         variant="hero"
@@ -579,22 +580,12 @@ export default function EarningsScreen() {
 
         {/* Payout history */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: spacing.sm,
-              paddingHorizontal: 4,
-            }}
-          >
-            <Text style={[typography.title.lg, { color: colors.text }]}>
-              {t("earnings.payoutsTitle")}
-            </Text>
-            {payouts.length ? (
-              <Pill label={`${payouts.length}`} tone="neutral" size="sm" />
-            ) : null}
-          </View>
+          <SectionHeader
+            kicker={t("earnings.payoutsKicker", "Payouts")}
+            title={t("earnings.payoutsTitle")}
+            count={payouts.length || undefined}
+            style={{ paddingTop: 0 }}
+          />
 
           {payoutsLoading ? (
             <Card padded={false}>

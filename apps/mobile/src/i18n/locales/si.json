@@ -37,6 +37,10 @@
       "weakPin": "1111 හෝ 1234 වැනි පුනරාවර්තන ඉලක්කම් වළක්වන්න."
     },
     "unlock": {
+      "kicker": "HealthHub අගුළු දමා ඇත",
+      "welcomeName": "නැවත සාදරයෙන් පිළිගනිමු, {{name}}",
+      "pinPrompt": "ඉදිරියට යාමට ඔබේ ඉලක්කම් 6 PIN ඇතුළත් කරන්න.",
+      "secureNote": "ඔබේ සෞඛ්‍ය දත්ත මෙම උපාංගයේ සංකේතනය කර ඇත",
       "title": "ඔබේ PIN ඇතුළත් කරන්න",
       "subtitle": "HealthHub වෙතට නැවත සාදරයෙන් පිළිගනිමු.",
       "wrongPin": "PIN වැරදියි. නැවත උත්සාහ කරන්න.",
@@ -74,7 +78,20 @@
       "stateHeading": "PIN",
       "biometricHeading": "ජෛවමිතික",
       "biometricSubtitle": "PIN ටයිප් කිරීම වෙනුවට {{name}} සමඟ අගුළු හරින්න",
-      "timeoutHeading": "ස්වයං-අගුළ"
+      "timeoutHeading": "ස්වයං-අගුළ",
+      "summaryImmediate": "ඔබ යෙදුමෙන් ඉවත් වූ විගස අගුළු වැටේ",
+      "summaryAfter": "ඔබ යෙදුමෙන් ඉවත් වී {{time}} කින් අගුළු වැටේ",
+      "summaryNever": "ඔබ අතින් අගුළු දැමූ විට පමණක් අගුළු වැටේ",
+      "offBody": "ඔබට පමණක් ඔබේ සෞඛ්‍ය වාර්තා විවෘත කළ හැකි වන පරිදි PIN එකක් එක් කරන්න.",
+      "timeoutShort0": "වහාම",
+      "timeoutShort30": "තත්. 30",
+      "timeoutShort60": "මි. 1",
+      "timeoutShort300": "මි. 5",
+      "timeoutShortNever": "කිසිදා නැත",
+      "timeoutHint": "PIN එක ඉල්ලීමට පෙර HealthHub පසුබිමේ තිබිය හැකි කාලය.",
+      "biometricOn": "{{name}} ක්‍රියාත්මකයි",
+      "biometricOff": "{{name}} අක්‍රියයි",
+      "dangerHeading": "අවදානම් කලාපය"
     },
     "errors": {
       "biometricLocked": "අසාර්ථක උත්සාහයන් වැඩියි. PIN භාවිත කරන්න.",
@@ -415,6 +432,23 @@
     "noneRecorded": "None recorded",
     "onFile": "{{count}} on file",
     "manageInFamily": "Manage in Family",
+    "v2": {
+      "records": "වාර්තා සහ ඉතිහාසය",
+      "care": "සත්කාර සහ ආවරණ",
+      "privacy": "බෙදාගැනීම සහ පෞද්ගලිකත්වය",
+      "preferences": "මනාප සහ ආරක්ෂාව",
+      "medicines": "ඖෂධ",
+      "bloodType": "රුධිර වර්ගය",
+      "quickRecords": "වාර්තා",
+      "allergies": "අසාත්මිකතා",
+      "conditions": "රෝග තත්ත්ව",
+      "emergencyContacts": "හදිසි සම්බන්ධතා",
+      "add": "එක් කරන්න",
+      "role_patient": "රෝගියා",
+      "role_doctor": "වෛද්‍යවරයා",
+      "role_hospital_admin": "රෝහල් පරිපාලක",
+      "role_hospital_staff": "රෝහල් කාර්ය මණ්ඩලය"
+    },
     "quick": {
       "edit": "Edit",
       "healthId": "Health ID",
@@ -635,8 +669,19 @@
     "addLabel": "Add family member",
     "addButton": "Add member",
     "composeTitle": "Add family member",
-    "heroTitle": "Care together",
-    "heroBody": "Add family to share health info and unlock emergency access.",
+    "heroTitle": "එකටම රක්ෂණය කරමු",
+    "heroBody": "ඔබට රක්ෂා කරන අය සමඟ ඔබේ වාර්තා බෙදාගන්න.",
+    "heroNumeralLabel": "ඔබගේ රක්ෂණ කවර්ගයේ අය",
+    "emergencyReady": "හදිසි අවස්ථාවකට සූදානම්",
+    "features": {
+      "sectionTitle": "ඔබට ලැබෙන දේ",
+      "emergencyTitle": "හදිසි අවස්ථා සඳහා සූදානම්",
+      "emergencyDesc": "රුධිර ශ්‍රේණිය, පවුල් අනතර්ගත අනයුක්ති සහ ICE සම්බන්ධිත්ව තොරතුරු.",
+      "dependentsTitle": "සංයුක්ත රක්ෂණය",
+      "dependentsDesc": "දරුවරුන්ගේ සහ දෙමාපිතුන්ගේ ඖැයවන සහ පරීක්ෂණ.",
+      "privacyTitle": "පෙරනිමිත රහිතය",
+      "privacyDesc": "ඕනෑම වාර්තාවක් අගුළු දාන්න හෝ ආරක්ෂිත සබැඳියකින් ආරාධනා කරන්න."
+    },
     "empty": {
       "title": "No family members",
       "message": "Invite a family member to share health info and emergency access"
@@ -1147,6 +1192,27 @@
   },
   "changePassword": {
     "title": "මුරපදය වෙනස් කරන්න",
+    "ui": {
+      "subtitle": "ඔබේ සෞඛ්‍ය වාර්තාව සුරක්ෂිතව තබා ගන්න",
+      "currentSection": "එය ඔබ බව තහවුරු කරන්න",
+      "newSection": "නව මුරපදයක් තෝරන්න",
+      "forgot": "මුරපදය අමතකද?",
+      "currentPlaceholder": "වර්තමාන මුරපදය ඇතුළත් කරන්න",
+      "strength": "ශක්තිය",
+      "weak": "දුර්වල",
+      "fair": "සාමාන්‍ය",
+      "good": "හොඳ",
+      "strong": "ශක්තිමත්",
+      "ruleLength": "අවම වශයෙන් අක්ෂර 8ක්",
+      "ruleNumber": "අංකයක් අඩංගුයි",
+      "ruleCase": "කැපිටල් අකුරක් හෝ සංකේතයක්",
+      "ruleDifferent": "වර්තමාන මුරපදයට වඩා වෙනස්",
+      "match": "මුරපද ගැළපේ",
+      "mismatch": "නොගැළපේ",
+      "footnote": "ඔබ මෙම උපාංගයේ පුරනය වී සිටිනු ඇත. ඔබේ මුරපදය කිසිවෙකු සමඟ බෙදා නොගන්න.",
+      "currentRequired": "කරුණාකර ඔබේ වර්තමාන මුරපදය ඇතුළත් කරන්න",
+      "sameAsCurrent": "නව මුරපදය වර්තමාන මුරපදයට වඩා වෙනස් විය යුතුය"
+    },
     "field": {
       "currentLabel": "වර්තමාන මුරපදය",
       "currentPlaceholder": "••••••••",
@@ -1455,6 +1521,22 @@
     "subtitle": "මිනුම් සටහන් කර ප්‍රවණතා බලන්න",
     "subtitleWithCount_one": "{{count}} මිනුමක් · {{alerts}} අනතුරු ඇඟවීමක්",
     "subtitleWithCount_other": "{{count}} මිනුමක් · {{alerts}} අනතුරු ඇඟවීම්",
+    "hero": {
+      "kicker": "සෞඛ්‍ය තත්ත්වය",
+      "emptyTitle": "ඔබේ ජීව ලක්ෂණ සටහන් කිරීම අරඹන්න",
+      "attentionTitle_one": "කියවීම් {{count}}ක් අවධානය අවශ්‍යයි",
+      "attentionTitle_other": "කියවීම් {{count}}ක් අවධානය අවශ්‍යයි",
+      "okTitle": "සියලු කියවීම් පරාසය තුළ",
+      "lastLogged": "අවසන් සටහන {{when}}",
+      "tracked": "සටහන් කළ",
+      "outOfRange": "පරාසයෙන් පිට",
+      "alerts": "අනතුරු ඇඟවීම් · දින 30"
+    },
+    "latestGrid": {
+      "kicker": "සාරාංශය",
+      "title": "නවතම කියවීම්",
+      "addAnother": "තවත් ජීව ලක්ෂණයක් එක් කරන්න"
+    },
     "latest": "නවතම",
     "logLabel": "මිනුමක් සටහන් කරන්න",
     "alertsHeading": "පරාසයෙන් පිටත කියවීම්",
@@ -1502,6 +1584,14 @@
     },
     "chart": {
       "trendHeading": "ප්‍රවණතා",
+      "kicker": "ඉතිහාසය",
+      "points_one": "ලක්ෂ්‍ය {{count}}",
+      "points_other": "ලක්ෂ්‍ය {{count}}",
+      "emptyRangeTitle": "මෙම කාලය තුළ කිසිවක් නැත",
+      "emptyRangeBody": "ඔබේ අවසන් කියවීම {{when}}.",
+      "emptyTypeTitle": "තවම {{label}} කියවීම් නැත",
+      "emptyTypeBody": "ප්‍රවණතාවක් ගොඩනැගීමට කියවීමක් සටහන් කරන්න.",
+      "showYear": "පසුගිය වසර පෙන්වන්න",
       "hideDiastolic": "ඩයාස්ටොලික් සඟවන්න",
       "showDiastolic": "ඩයාස්ටොලික් පෙන්වන්න",
       "systolicOnly": "සිස්ටොලික් පමණි",
@@ -1673,7 +1763,20 @@
     "empty": {
       "title": "No allergies recorded",
       "message": "Add drug, food, latex, or environmental triggers so providers can avoid them.",
-      "action": "Add allergy"
+      "action": "Add allergy",
+      "kicker": "Safety profile",
+      "sharedDoctors": "Shared with doctors",
+      "sharedPharmacy": "Checked at pharmacy"
+    },
+    "addCustom": "Add custom allergy",
+    "presets": {
+      "kicker": "One-tap add",
+      "title": "Common allergens",
+      "medications": "Medications",
+      "food": "Food",
+      "environmental": "Latex & environment",
+      "customTitle": "Something else?",
+      "customBody": "Add any substance with its severity and reaction"
     },
     "sheet": {
       "editTitle": "Edit allergy",
@@ -1753,6 +1856,33 @@
     "error": {
       "nameRequired": "Vaccine name required"
     },
+    "hero": {
+      "kicker": "Immunization card",
+      "upToDate": "You're up to date",
+      "upToDateBody": "Nothing due in the next 30 days",
+      "onRecord": "On record",
+      "upcoming": "Coming up",
+      "overdue": "Overdue"
+    },
+    "scan": {
+      "title": "Scan your paper card",
+      "body": "Auto-fill dose dates and batch numbers from a photo"
+    },
+    "sectionsV2": {
+      "dueKicker": "Schedule",
+      "due": "Coming up",
+      "recordKicker": "Your record",
+      "administeredTitle": "Administered",
+      "routineKicker": "Adult & travel",
+      "routineTitle": "Recommended vaccines"
+    },
+    "daysOverdue_one": "{{count}}d overdue",
+    "daysOverdue_other": "{{count}}d overdue",
+    "daysUntil_one": "in {{count}}d",
+    "daysUntil_other": "in {{count}}d",
+    "doseN": "Dose {{n}}",
+    "logged": "Logged",
+    "logNamed": "Log {{name}}",
     "scanCard": "කාඩ් පත පරිලෝකනය"
   },
   "vaccinationCard": {
@@ -1863,6 +1993,13 @@
     }
   },
   "appointments": {
+    "subtitleUpcoming_one": "ඉදිරි හමුවීම් {{count}}",
+    "subtitleUpcoming_other": "ඉදිරි හමුවීම් {{count}}",
+    "subtitleNone": "ඉදිරි හමුවීම් නැත",
+    "missedNote": "ඔබට මෙම හමුවීම මඟ හැරුණි",
+    "nextVisitTitle": "තවම කිසිවක් වෙන් කර නැත",
+    "nextVisitBody": "වෛද්‍යවරයෙකු හෝ විශේෂඥයෙකු හමුවීමට වෙන් කරන්න.",
+    "queue": "පෝලිම #{{n}}",
     "title": "පැමිණීම්",
     "subtitle_empty": "ඔබට කිසිවක් සැලසුම් කර නැත",
     "subtitle_one": "පැමිණීමක් සැලසුම් කර ඇත",
@@ -1973,6 +2110,22 @@
     },
     "a11yShare": "Share summary",
     "shareFailed": "Share failed",
+    "yearsOld": "වයස {{age}}",
+    "height": "උස",
+    "weight": "බර",
+    "bloodShort": "රුධිරය",
+    "updated": "යාවත්කාලීන කළේ {{when}}",
+    "noAllergies": "දන්නා අසාත්මිකතා නැත",
+    "noAllergiesBody": "මෙය වෙනස් වුවහොත් ඔබේ වෛද්‍යවරයාට දන්වන්න.",
+    "showAll": "සියල්ල පෙන්වන්න ({{count}})",
+    "showLess": "අඩුවෙන් පෙන්වන්න",
+    "previewText": "බෙදාගන්නා පෙළ පෙරදසුන",
+    "hideText": "බෙදාගන්නා පෙළ සඟවන්න",
+    "shareCta": "සාරාංශය බෙදාගන්න",
+    "bmiUnder": "අඩු බර",
+    "bmiHealthy": "සෞඛ්‍ය සම්පන්න",
+    "bmiOver": "අධික බර",
+    "bmiObese": "තරබාරු",
     "sections": {
       "about": "About you",
       "allergies": "Allergies",
@@ -2184,7 +2337,19 @@
     "legacyBody": "ඔබට {{email}} වෙතින් ද යැවිය හැක — අපි යවන්නා අනුව මාර්ගගත කරන්නෙමු.",
     "legacyAction": "තැපැල් විවෘත කරන්න",
     "legacyHint": "අන්වර්ථය නොමැතිවත් අපි යවන්නා අනුව මාර්ගගත කරන්නෙමු",
-    "step": "පියවර {{n}}"
+    "step": "පියවර {{n}}",
+    "shareButton": "බෙදාගන්න",
+    "privateBadge": "පුද්ගලික",
+    "qrTitle": "වෙනත් උපාංගයකද?",
+    "qrHint": "මෙම ලිපිනයට නව ඊමේල් එකක් ආරම්භ කිරීමට ස්කෑන් කරන්න.",
+    "stepTitle1": "ඊමේල් එක යොමු කරන්න",
+    "stepTitle2": "අපි එය ඔබ වෙනුවෙන් ගොනු කරමු",
+    "stepTitle3": "සමාලෝචනය කර සංවිධානය කරන්න",
+    "manageHeading": "කළමනාකරණය",
+    "rotateHint": "මෙම ලිපිනයට අයාචිත තැපැල් ලැබේ නම් නව ලිපිනයක් ලබාගන්න. පැරණි ලිපිනය ක්‍රියා විරහිත වේ.",
+    "rotateConfirmTitle": "ඔබේ ලිපිනය වෙනස් කරන්නද?",
+    "rotateConfirmBody": "වත්මන් ලිපිනයට යවන ඊමේල් තවදුරටත් ඔබේ වාර්තා වෙත නොපැමිණේ.",
+    "legacyTitle": "ඔබේම ඊමේල් එකෙන්ද"
   },
   "recordsHub": {
     "title": "සෞඛ්‍ය වාර්තා",
@@ -2297,6 +2462,10 @@
     "subtitle": "කාල-සීමාව. සෑම ස්කෑන් එකක්ම ලොග් වේ."
   },
   "doctorPatientDetail": {
+    "kicker": "රෝගී සටහන",
+    "factBlood": "රුධිරය",
+    "factSex": "ස්ත්‍රී/පුරුෂ",
+    "factDob": "උපන්",
     "errorTitle": "වාර්තා පූරණය කළ නොහැකි විය",
     "errorBody": "ඔබේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
     "recordsSubtitle": "ඔබට වාර්තා ප්‍රවේශය දුන් රෝගීන්",
@@ -2609,6 +2778,16 @@
     },
     "detailsHeading": "Details",
     "emptyDetails": "This record has no attachments or notes yet.",
+    "v2": {
+      "clinical": "සායනික සාරාංශය",
+      "doctor": "වෛද්‍යවරයා",
+      "hospital": "රෝහල",
+      "date": "වාර්තා දිනය",
+      "owner": "අයිතිකරු",
+      "addTag": "ටැගයක් එක් කරන්න",
+      "openFile": "ගොනුව විවෘත කරන්න",
+      "noTagsInline": "තවම ටැග නැත"
+    },
     "structured": {
       "title": "ව්‍යුහගත දත්ත",
       "tests": "පරීක්ෂණ ප්‍රතිඵල",
@@ -2623,7 +2802,7 @@
       "reExtractSkip": "මේ වාර්තා වර්ගය උපුටා ගැනීමට සහාය නොදක්වයි",
       "reExtractFail": "නැවත උපුටා ගැනීම අසාර්ථක විය"
     },
-    "attachments": "ATTACHMENTS · {{count}}",
+    "attachments": "Attachments · {{count}}",
     "a11y": {
       "moreOptions": "More options",
       "openFile": "Open file",
@@ -2650,7 +2829,7 @@
       "body": "Hidden from your default list. Tap Restore in the menu to bring it back.",
       "restore": "Restore"
     },
-    "tagsHeading": "TAGS",
+    "tagsHeading": "Tags",
     "noTags": "No tags yet — tap to add some.",
     "shareLabel": {
       "doctor": "Doctor: {{name}}",
@@ -3129,7 +3308,28 @@
     "renew": "Request renewal",
     "renewSent": "Renewal request sent to your doctor",
     "emptyTitle": "Nothing to refill",
-    "emptyBody": "All your active medicines are well-stocked."
+    "emptyBody": "All your active medicines are well-stocked.",
+    "renewSentFor": "Renewal request sent for {{name}}",
+    "heroKicker": "Renewal status",
+    "heroCount_one": "medicine needs renewal",
+    "heroCount_other": "medicines need renewal",
+    "statOverdue": "Overdue",
+    "statSoon": "Due soon",
+    "statSent": "Requested",
+    "requestAll": "Request all ({{count}})",
+    "requestRemaining": "Request remaining ({{count}})",
+    "allSent": "All renewals requested",
+    "allSentBody": "Your doctor has been notified.",
+    "kickerUrgent": "Needs attention",
+    "kickerUpcoming": "Next 2 weeks",
+    "overdueTitle": "Overdue",
+    "soonTitle": "Due soon",
+    "unitOverdue": "days over",
+    "unitLeft": "days left",
+    "started": "Started",
+    "ended": "Ended",
+    "ends": "Ends",
+    "requested": "Requested · Doctor notified"
   },
   "aiDrugCheck": {
     "title": "Drug interaction check",
@@ -3405,6 +3605,7 @@
     }
   },
   "doctorTenantDetail": {
+    "teamKicker": "කණ්ඩායම",
     "back": "ආපසු",
     "hospital": "රෝහල",
     "clinic": "සායනය",
@@ -3473,6 +3674,11 @@
     }
   },
   "doctorQueue": {
+    "summary": {
+      "waiting": "රැඳී සිටින",
+      "inProgress": "සිදුවෙමින්",
+      "done": "අවසන්"
+    },
     "title": "අද පෝලිම",
     "emptyTitle": "අද හමුවීම් නැත",
     "emptyBody": "රෝගීන් වෙන් කළ විට ඒවා මෙහි දිස්වේ.",
@@ -3561,6 +3767,7 @@
     "errorMissingFields": "මාතෘකාව සහ සටහන් අවශ්‍යයි"
   },
   "doctorPrescriptions": {
+    "searchPlaceholder": "රෝගියා හෝ රෝග විනිශ්චය සොයන්න",
     "title": "මගේ බෙහෙත් වට්ටෝරු",
     "subtitle_one": "ගොනුවේ {{count}}",
     "subtitle_other": "ගොනුවේ {{count}}",
@@ -3618,6 +3825,9 @@
     "attachmentCount_other": "ඇමුණුම් {{count}}"
   },
   "doctorAvailability": {
+    "kicker": "වේලාවන්",
+    "closed": "වසා ඇත",
+    "timeOffKicker": "නිවාඩු",
     "title": "ලබාගත හැකි වේලාවන්",
     "subtitle_one": "දින {{count}}ක් සක්‍රිය · මිනිත්තු {{min}} ස්ලොට්",
     "subtitle_other": "දින {{count}}ක් සක්‍රිය · මිනිත්තු {{min}} ස්ලොට්",
@@ -3657,6 +3867,12 @@
     ]
   },
   "doctorLabOrders": {
+    "steps": {
+      "ordered": "ඇණවුම් කළා",
+      "sample_collected": "එකතු කළා",
+      "in_progress": "සකසමින්",
+      "completed": "අවසන්"
+    },
     "title": "රසායනාගාර ඇණවුම්",
     "subtitle": "ප්‍රගතිය සහ ප්‍රතිඵල නිරීක්ෂණය කරන්න",
     "tabs": {
@@ -3735,6 +3951,8 @@
     "saveAction": "සංචාර සාරාංශය සුරකින්න"
   },
   "doctorPrescription": {
+    "kicker": "නව බෙහෙත් වට්ටෝරුව",
+    "newSubtitle": "ඉලෙක්ට්‍රොනික වට්ටෝරුව · නිකුත් කිරීමේදී අත්සන් වේ",
     "title": "බෙහෙත් ලියන්න",
     "subtitle": "රෝගියෙකු සොයා බෙහෙත් වට්ටෝරුවක් ලියන්න",
     "newTitle": "නව බෙහෙත් වට්ටෝරුව",
@@ -4195,6 +4413,17 @@
     "shareCopied": "Link copied",
     "shareCreated": "Share link ready",
     "shareLabel": "Prescription share",
+    "issued": "නිකුත් කළේ",
+    "signedOn": "අත්සන් කළේ {{when}}",
+    "verifyShort": "තහවුරු කරන්න",
+    "noMedicines": "මෙම බෙහෙත් වට්ටෝරුවේ ඖෂධ සටහන් කර නැත.",
+    "itemCount_one": "අයිතම {{count}}",
+    "itemCount_other": "අයිතම {{count}}",
+    "instructionNote": "සටහන",
+    "actions": "ක්‍රියා",
+    "copied": "පිටපත් කළා",
+    "shareLinkReady": "සබැඳිය සූදානම් · පිටපත් කිරීමට තට්ටු කරන්න",
+    "shareExpires": "දින 7කින් කල් ඉකුත් වේ",
     "consultationFee": "Consultation fee",
     "feePaidNote": "paid via appointment"
   },
@@ -4279,6 +4508,13 @@
     "dismiss": "Dismiss"
   },
   "inbox": {
+    "pathwaysKicker": "කෙටිමං",
+    "filter": {
+      "all": "සියල්ල",
+      "unread": "නොකියවූ",
+      "active": "සක්‍රිය",
+      "closed": "වසා ඇත"
+    },
     "title": "එන පණිවිඩ",
     "subtitle": "ඔබේ රෝගීන් සමඟ පණිවිඩ",
     "subtitleEmpty": "තවම කතාබහ නැත",
@@ -4325,6 +4561,26 @@
     "closeBody": "රෝගියාට පණිවිඩ කියවිය හැකි නමුත් පිළිතුරු දිය නොහැක.",
     "close": "වසන්න",
     "closeChat": "කතාබහ වසන්න",
+    "chatToday": "අද",
+    "chatYesterday": "ඊයේ",
+    "secureNote": "පෞද්ගලික හා ආරක්ෂිත සංවාදය",
+    "emptyChatTitle": "සංවාදය අරඹන්න",
+    "emptyChatBody": "{{name}} වෙත පණිවිඩයක් යවන්න. පිළිතුරු මෙහි දිස්වේ.",
+    "quickStarters": "ඉක්මන් ආරම්භක",
+    "starterCheckIn": "ආයුබෝවන් {{name}}, අද ඔබට කොහොමද?",
+    "starterReports": "ඔබගේ නවතම පරීක්ෂණ වාර්තා බෙදාගත හැකිද?",
+    "starterFollowUp": "ඔබගේ ඉදිරි පසු-පරීක්ෂාව පිළිබඳ මතක් කිරීමක්.",
+    "yourDoctor": "ඔබගේ වෛද්‍යවරයා",
+    "secureChat": "ආරක්ෂිත කතාබහ",
+    "closedByDoctor": "වෛද්‍යවරයා කතාබහ වසා ඇත",
+    "closedBannerPatient": "ඔබගේ වෛද්‍යවරයා මෙම සංවාදය වසා ඇත. පෙර පණිවිඩ තවමත් කියවිය හැක.",
+    "repliesDisabled": "මෙම කතාබහට පිළිතුරු අක්‍රියයි",
+    "replyPlaceholder": "පිළිතුරක් ටයිප් කරන්න…",
+    "emptyPatientTitle": "ඔබගේ වෛද්‍යවරයාට පණිවිඩයක්",
+    "emptyPatientBody": "ඔබගේ ප්‍රතිකාර ගැන {{name}} ගෙන් විමසන්න. පිළිතුරු මෙහි දිස්වේ.",
+    "patientStarterMeds": "මගේ ඖෂධ ගැන ප්‍රශ්නයක් තිබේ.",
+    "patientStarterUpdate": "මට දැනෙන ආකාරය ගැන යාවත්කාලීනයක් බෙදාගන්න කැමතියි.",
+    "patientStarterFollowUp": "පසු-පරීක්ෂා හමුවක් වෙන්කරගත හැකිද?",
     "closedPlaceholder": "කතාබහ වසා ඇත — පණිවිඩ යැවීමට නැවත විවෘත කරන්න",
     "newChat": "නව කතාබහ",
     "searchConversations": "රෝගී නම අනුව කතාබහ සොයන්න...",
@@ -4393,6 +4649,7 @@
     }
   },
   "earnings": {
+    "payoutsKicker": "ගෙවීම්",
     "title": "ආදායම්",
     "subtitle": "ඔබේ ආදායම එක දිහාවකින්",
     "period": {
@@ -4503,6 +4760,7 @@
     "countPending_other": "පොරොත්තු {{count}}",
     "invitesTitle": "පොරොත්තු ආරාධනා",
     "addCta": "රැකබලාගන්නෙකු එකතු කරන්න",
+    "heroTitle": "උදව්වක් ලබාගන්න",
     "emptyTitle": "තවම රැකබලාගන්නන් නැත",
     "emptyBody": "ඔබගේ වාර්තා, ඖෂධ සහ හමුවීම් කළමනාකරණය කිරීමට පවුලේ සාමාජිකයෙකුට ආරාධනා කරන්න.",
     "inviteSheetTitle": "රැකබලාගන්නෙකුට ආරාධනා කරන්න",
@@ -4606,6 +4864,12 @@
     "empty": "ඔබේ පෙරහන් වලට ගැළපෙන සත්කාරකවරු නැත",
     "emptyBody": "පෙරහන් වෙනස් කරන්න හෝ ඔබට විශ්වාස කෙනෙකුට සෘජුවම ආරාධනා කරන්න.",
     "notFound": "සත්කාරකවරයා හමු නොවීය",
+    "resultCount": "සත්‍යාපිත සත්කාරකවරු {{count}}",
+    "resultCount_one": "සත්‍යාපිත සත්කාරකවරු {{count}}",
+    "clearFilters": "පෙරහන් ඉවත් කරන්න",
+    "filtersCta": "පෙරහන්",
+    "inviteCta": "ඔබ විශ්වාස කරන අයෙකුට ආරාධනා කරන්න",
+    "trustLine": "සෑම සත්කාරකවරයෙකුගේම හැඳුනුම්පත අපගේ කණ්ඩායම විසින් පරීක්ෂා කෙරේ",
     "filters": {
       "district": "දිස්ත්‍රික්කය",
       "role": "සත්කාර භූමිකාව",
@@ -4877,6 +5141,7 @@
     "homeTitle": "Protect your family for less than your monthly coffee",
     "homeSubtitle": "Browse plans, compare premiums, buy in 3 minutes.",
     "myPolicies": "My Policies",
+    "perk": { "compare": "Compare plans", "instant": "Instant cover", "claims": "Easy claims" },
     "noPolicies": "You don't have any policies yet.",
     "browseMarketplace": "Browse plans",
     "buyAnother": "තවත් පොලිසියක් මිලදී ගන්න",
@@ -4933,6 +5198,35 @@
       "planCount": "{{count}}"
     },
     "plan": {
+      "featured": "විශේෂිත",
+      "sumInsured": "රක්ෂිත මුදල",
+      "choosePayment": "ගෙවීමේ ක්‍රමය තෝරන්න",
+      "payMonthly": "මාසික",
+      "payAnnual": "වාර්ෂික",
+      "perMonth": "මසකට",
+      "perYear": "වසරකට",
+      "flexible": "නම්‍යශීලී, ඕනෑම විටෙක අවලංගු කළ හැක",
+      "equivMonthly": "≈ රු. {{amount}}/මාස",
+      "savePct": "{{pct}}% ඉතිරි",
+      "whatsCovered": "ආවරණය වන දේ",
+      "notCovered": "ආවරණය නොවන දේ",
+      "policyTerm": "ප්‍රතිපත්ති කාලය",
+      "monthsValue": "මාස {{months}} ක කාලය",
+      "copayCap": "සම-ගෙවීම් සීමාව",
+      "getQuoteShort": "මිල ගණන් ලබාගන්න",
+      "howItWorks": "ක්‍රියාත්මක වන ආකාරය",
+      "steps": {
+        "quote": "මිල ගණනක් ලබාගන්න",
+        "quoteSub": "මිනිත්තු 2",
+        "pay": "පුද්ගලාගත කරන්න",
+        "paySub": "ඔබේ සැබෑ මිල",
+        "covered": "ආවරණය ලබාගන්න",
+        "coveredSub": "යෙදුමේ ඊ-කාඩ්පත"
+      },
+      "disclaimer": "පෙන්වා ඇති වාරික දළ ඇස්තමේන්තු වේ. අවසාන වාරිකය වයස, සෞඛ්‍යය සහ ආවරණය වන සාමාජිකයින් මත රඳා පවතින අතර ඔබේ පුද්ගලාගත මිල ගණන් තුළ තහවුරු කෙරේ.",
+      "deductibleTitle": "Deductible",
+      "daysValue": "{{days}} days",
+      "yearlySavings": "You save LKR {{amount}} a year",
       "available_one": "{{count}} plan available",
       "available_other": "{{count}} plans available",
       "coverage": "Coverage",
@@ -5012,7 +5306,18 @@
       "perYear": "/වසර",
       "basePremium": "මූලික ප්‍රිමියම්",
       "adjustments": "සංශෝධන",
-      "enrollWithThisQuote": "මෙම මිල ගණන් අනුව සම්බන්ධ වන්න"
+      "enrollWithThisQuote": "මෙම මිල ගණන් අනුව සම්බන්ධ වන්න",
+      "stepOf": "පියවර {{n}}/3",
+      "stepYou": "ඔබ",
+      "stepFamily": "පවුල",
+      "stepHealth": "සෞඛ්‍යය",
+      "add": "එකතු කරන්න",
+      "relations": {
+        "spouse": "අර්ධදාරී",
+        "child": "දරුවා",
+        "parent": "මාපියා",
+        "sibling": "සහෝදරයා"
+      }
     },
     "enroll": {
       "title": "Enroll in this plan",

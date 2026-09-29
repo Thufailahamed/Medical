@@ -4,7 +4,7 @@
 // Mirrors apps/mobile/src/app/(app)/family.tsx structure: gradient hero
 // + marketplace CTA + link cards with action strip + pending invites.
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,11 @@ import {
   Play,
   Ban,
   Mail,
+  Lock,
+  FileText,
+  CalendarCheck,
+  Pill as PillIcon,
+  UserRound,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -32,6 +37,9 @@ import { useTone, type Tone } from "@/theme/tone";
 import {
   Button,
   Card,
+  IconButton,
+  IconTile,
+  SectionHeader,
   Pill,
   Avatar,
   Divider,
@@ -68,6 +76,7 @@ export default function CaretakersScreen() {
   const rows = links.data?.links ?? [];
   const inviteRows = invites.data?.invites ?? [];
   const refreshing = links.isFetching || invites.isFetching;
+  const isEmpty = rows.length === 0 && inviteRows.length === 0;
   const activeCount = rows.filter((l) => l.status === "active").length;
   const pendingInvites = inviteRows.filter(
     (i) => !i.consumedAt && !i.revoked
@@ -91,12 +100,14 @@ export default function CaretakersScreen() {
         back
         title={t("caretaker.title")}
         right={
-          <Button
-            label={t("caretaker.addCta")}
-            onPress={() => setInviteOpen(true)}
-            icon={Plus}
-            compact
-          />
+          isEmpty ? undefined : (
+            <IconButton
+              icon={Plus}
+              variant="solid"
+              onPress={() => setInviteOpen(true)}
+              accessibilityLabel={t("caretaker.addCta")}
+            />
+          )
         }
       />
 
@@ -120,133 +131,288 @@ export default function CaretakersScreen() {
         }
       >
         {/* ── Hero ──────────────────────────────────────────────── */}
-        <Card
-          padded={false}
-          elevated={false}
-          style={{
-            borderRadius: radius.xxxl,
-            borderCurve: "continuous",
-            borderWidth: 0,
-            overflow: "hidden",
-            ...shadow.hero,
-          }}
+        <View
+          style={[
+            {
+              borderRadius: radius.xxl,
+              borderCurve: "continuous",
+              overflow: "hidden",
+              backgroundColor: colors.primaryGradientEnd,
+            },
+            shadow.hero,
+          ]}
         >
           <LinearGradient
-            colors={["#0B2B64", "#0C5C8C", "#0C8B8C"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: spacing.lg, paddingBottom: spacing.lg }}
-          >
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: "#0C8B8C",
-                  opacity: 0.32,
-                  borderRadius: 200,
-                  transform: [{ translateX: 120 }, { translateY: -80 }],
-                },
-              ]}
-              pointerEvents="none"
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: colors.surface,
-                  opacity: 0.06,
-                  borderRadius: 160,
-                  transform: [{ scale: 1.1 }],
-                },
-              ]}
-              pointerEvents="none"
-            />
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 44,
-                backgroundColor: "rgba(255, 255, 255, 0.10)",
-              }}
-              pointerEvents="none"
-            />
-            <ShieldCheck
-              size={150}
-              color="#FFFFFF"
-              strokeWidth={1}
-              style={{
-                position: "absolute",
-                right: -30,
-                bottom: -30,
-                opacity: 0.1,
-              }}
-              pointerEvents="none"
-            />
-
-            <View style={{ gap: spacing.sm }}>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  borderCurve: "continuous",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(255, 255, 255, 0.16)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.30)",
-                }}
-              >
-                <ShieldCheck size={22} color="#FFFFFF" strokeWidth={2.2} />
+            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            start={{ x: 0.05, y: 0 }}
+            end={{ x: 0.95, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -120,
+              right: -90,
+              width: 280,
+              height: 280,
+              borderRadius: 140,
+              backgroundColor: "rgba(255,255,255,0.12)",
+            }}
+          />
+          <ShieldCheck
+            size={140}
+            color="#FFFFFF"
+            strokeWidth={1}
+            style={{ position: "absolute", right: -24, bottom: -28, opacity: 0.1 }}
+          />
+          {isEmpty ? (
+            <View style={{ padding: spacing.xl, gap: spacing.lg }}>
+              {/* You + caretaker, linked by a shield */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#FFFFFF",
+                  }}
+                >
+                  <UserRound size={22} color={colors.primary} strokeWidth={2.3} />
+                </View>
+                <View style={{ flexDirection: "row", gap: 4 }}>
+                  {[0, 1, 2].map((d) => (
+                    <View
+                      key={d}
+                      style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.6)" }}
+                    />
+                  ))}
+                </View>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <ShieldCheck size={17} color="#FFFFFF" strokeWidth={2.3} />
+                </View>
+                <View style={{ flexDirection: "row", gap: 4 }}>
+                  {[0, 1, 2].map((d) => (
+                    <View
+                      key={d}
+                      style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.6)" }}
+                    />
+                  ))}
+                </View>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255,255,255,0.14)",
+                    borderWidth: 2,
+                    borderStyle: "dashed",
+                    borderColor: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  <UserPlus size={20} color="#FFFFFF" strokeWidth={2.3} />
+                </View>
               </View>
-
-              <View style={{ gap: 4 }}>
+              <View style={{ gap: 6 }}>
+                <Text
+                  style={[
+                    typography.kicker,
+                    { color: colors.glassOnPrimarySoft, textTransform: "uppercase" },
+                  ]}
+                >
+                  {t("caretaker.emptyTitle")}
+                </Text>
                 <Text
                   style={[
                     typography.display.sm,
-                    { color: "#FFFFFF", fontSize: 22 },
+                    { color: colors.onPrimary, letterSpacing: -0.6 },
                   ]}
                 >
-                  {t("caretaker.title")}
+                  {t("caretaker.heroTitle")}
                 </Text>
                 <Text
-                  style={{
-                    ...typography.body.sm,
-                    color: "rgba(255, 255, 255, 0.85)",
-                    lineHeight: 18,
-                  }}
+                  style={[
+                    typography.body.md,
+                    { color: colors.glassOnPrimarySoft, lineHeight: 21 },
+                  ]}
                 >
-                  {t("caretaker.subtitle")}
+                  {t("caretaker.emptyBody")}
                 </Text>
               </View>
-
-              <View
+              <Pressable
+                onPress={() => setInviteOpen(true)}
+                haptic="light"
+                accessibilityRole="button"
+                accessibilityLabel={t("caretaker.addCta")}
                 style={{
+                  height: 50,
+                  borderRadius: 25,
                   flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.xs,
-                  marginTop: spacing.xs,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  backgroundColor: "#FFFFFF",
                 }}
               >
-                <HeroChip
-                  label={t("caretaker.countActive", { count: activeCount })}
-                />
-                {pendingInvites > 0 ? (
-                  <HeroChip
-                    label={t("caretaker.countPending", {
-                      count: pendingInvites,
-                    })}
-                  />
-                ) : null}
-              </View>
+                <Plus size={18} color={colors.primary} strokeWidth={2.6} />
+                <Text style={[typography.label.lg, { color: colors.primary }]}>
+                  {t("caretaker.addCta")}
+                </Text>
+              </Pressable>
             </View>
-          </LinearGradient>
-        </Card>
+          ) : (
+          <View style={{ padding: spacing.xl, gap: spacing.lg }}>
+            <View style={{ gap: 4 }}>
+              <Text
+                style={[
+                  typography.kicker,
+                  { color: colors.glassOnPrimarySoft, textTransform: "uppercase" },
+                ]}
+              >
+                {t("caretaker.title")}
+              </Text>
+              <Text
+                style={[
+                  typography.body.md,
+                  { color: colors.onPrimary, lineHeight: 21, maxWidth: 280 },
+                ]}
+              >
+                {t("caretaker.subtitle")}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                borderRadius: radius.xl,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.14)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
+                paddingVertical: spacing.md,
+              }}
+            >
+              {[
+                { n: activeCount, label: t("caretaker.stat.active", "Active") },
+                { n: pendingInvites, label: t("caretaker.stat.pending", "Pending") },
+              ].map((s, i) => (
+                <View
+                  key={s.label}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    gap: 2,
+                    borderLeftWidth: i ? StyleSheet.hairlineWidth : 0,
+                    borderLeftColor: "rgba(255,255,255,0.28)",
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.display.md,
+                      { color: colors.onPrimary, letterSpacing: -0.8 },
+                    ]}
+                  >
+                    {s.n}
+                  </Text>
+                  <Text
+                    style={[typography.label.sm, { color: colors.glassOnPrimarySoft }]}
+                  >
+                    {s.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          )}
+        </View>
+
+        {/* ── Empty state ───────────────────────────────────────── */}
+        {isEmpty ? (
+          <View style={{ gap: spacing.md }}>
+            <SectionHeader
+              title={t("caretaker.canHelpTitle", "What a caretaker can help with")}
+              style={{ paddingBottom: 0 }}
+            />
+            <Card padded={false}>
+              {[
+                {
+                  icon: FileText,
+                  tone: "primary" as const,
+                  title: t("caretaker.help.recordsTitle", "Health records"),
+                  body: t("caretaker.help.recordsBody", "View and organise reports and history."),
+                },
+                {
+                  icon: PillIcon,
+                  tone: "success" as const,
+                  title: t("caretaker.help.medsTitle", "Medicines"),
+                  body: t("caretaker.help.medsBody", "Keep doses and refills on track."),
+                },
+                {
+                  icon: CalendarCheck,
+                  tone: "warning" as const,
+                  title: t("caretaker.help.apptsTitle", "Appointments"),
+                  body: t("caretaker.help.apptsBody", "Book and remember upcoming visits."),
+                },
+              ].map((f, i) => (
+                <Fragment key={f.title}>
+                  {i > 0 ? <Divider inset={spacing.lg + 40 + spacing.md} /> : null}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                    }}
+                  >
+                    <IconTile icon={f.icon} tone={f.tone} size={40} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[typography.title.sm, { color: colors.text }]}>
+                        {f.title}
+                      </Text>
+                      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                        {f.body}
+                      </Text>
+                    </View>
+                  </View>
+                </Fragment>
+              ))}
+            </Card>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                padding: spacing.md,
+                borderRadius: radius.xl,
+                borderCurve: "continuous",
+                backgroundColor: colors.successSoft,
+              }}
+            >
+              <Lock size={15} color={colors.success} strokeWidth={2.3} />
+              <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+                {t("caretaker.controlNote", "You stay in control. Pause or revoke access anytime.")}
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         {/* ── Marketplace discovery CTA ─────────────────────────── */}
-        <Card padded={false} style={{ overflow: "hidden" }}>
+        <Card padded={false} variant="elevated" style={{ overflow: "hidden" }}>
           <ListItem
             icon={Search}
             iconTone="primary"
@@ -256,17 +422,6 @@ export default function CaretakersScreen() {
             onPress={() => router.push("/(app)/marketplace" as any)}
           />
         </Card>
-
-        {/* ── Empty state ───────────────────────────────────────── */}
-        {rows.length === 0 && inviteRows.length === 0 ? (
-          <EmptyState
-            icon={UserPlus}
-            title={t("caretaker.emptyTitle")}
-            body={t("caretaker.emptyBody")}
-            actionLabel={t("caretaker.addCta")}
-            onAction={() => setInviteOpen(true)}
-          />
-        ) : null}
 
         {/* ── Active / paused links ─────────────────────────────── */}
         {rows.map((l) => {

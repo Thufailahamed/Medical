@@ -46,6 +46,7 @@ import {
   useToast,
   Pill as PillCmp,
   Pressable,
+  Divider,
 } from "@/components/ui";
 
 type Pref = { type: string; inApp: boolean; push: boolean };
@@ -165,7 +166,7 @@ const TYPES: NotificationTypeConfig[] = [
 export default function NotificationPreferencesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, scheme, shadow } = useTheme();
+  const { spacing, colors, typography, scheme, shadow, radius } = useTheme();
   const isDark = scheme === "dark";
   const toast = useToast();
   const { data } = useNotificationPreferences();
@@ -273,7 +274,7 @@ export default function NotificationPreferencesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Screen scroll bottomInset>
+      <Screen padded={false} edges={["top"]} bottomInset={false}>
         <ScreenHeader
           back
           onBack={() => router.back()}
@@ -283,12 +284,14 @@ export default function NotificationPreferencesScreen() {
             total: TYPES.length,
             defaultValue: `${enabledCount} of ${TYPES.length} active`,
           })}
+          style={{ paddingHorizontal: spacing.sm }}
         />
 
         <ScrollView
           contentContainerStyle={{
-            padding: spacing.lg,
-            gap: spacing.lg,
+            paddingHorizontal: spacing.sm,
+            paddingTop: spacing.xs,
+            gap: spacing.md,
             paddingBottom: hasChanges ? spacing.xl * 4 : spacing.xl * 2,
           }}
           showsVerticalScrollIndicator={false}
@@ -299,15 +302,15 @@ export default function NotificationPreferencesScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 28,
+              borderRadius: radius.card,
               borderCurve: "continuous",
-              padding: spacing.xl,
-              gap: spacing.lg,
+              padding: spacing.md,
+              gap: spacing.md,
               ...(isDark ? null : shadow.hero),
             }}
           >
             {/* Top Stat Row */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View
                 style={{
                   width: 52,
@@ -341,7 +344,7 @@ export default function NotificationPreferencesScreen() {
                 alignItems: "center",
                 gap: spacing.sm,
                 flexWrap: "wrap",
-                paddingTop: spacing.md,
+                paddingTop: spacing.sm,
                 borderTopWidth: StyleSheet.hairlineWidth,
                 borderTopColor: "rgba(255,255,255,0.28)",
               }}
@@ -373,12 +376,12 @@ export default function NotificationPreferencesScreen() {
             if (!catItems.length) return null;
 
             return (
-              <View key={cat.key} style={{ gap: spacing.md }}>
+              <View key={cat.key} style={{ gap: spacing.sm }}>
                 {/* Category Header */}
-                <View style={{ paddingHorizontal: 2, gap: 2 }}>
+                <View style={{ paddingHorizontal: spacing.xs, gap: 1 }}>
                   <Text
                     style={[
-                      typography.title.lg,
+                      typography.title.md,
                       { color: colors.text },
                     ]}
                   >
@@ -389,24 +392,30 @@ export default function NotificationPreferencesScreen() {
                   </Text>
                 </View>
 
-                {/* Cards in Category */}
-                <View style={{ gap: spacing.md }}>
-                  {catItems.map((item) => {
+                {/* Grouped rows in one card */}
+                <Card padded={false} style={{ overflow: "hidden" }}>
+                  {catItems.map((item, i) => {
                     const pref = local.find((p) => p.type === item.key) || {
                       type: item.key,
                       inApp: true,
                       push: true,
                     };
                     return (
-                      <NotificationSettingCard
-                        key={item.key}
-                        item={item}
-                        pref={pref}
-                        onChangeChannel={(field, val) => setPref(item.key, field, val)}
-                      />
+                      <View key={item.key}>
+                        {i > 0 ? (
+                          <Divider inset={spacing.lg + 40 + spacing.md} />
+                        ) : null}
+                        <NotificationSettingCard
+                          item={item}
+                          pref={pref}
+                          onChangeChannel={(field, val) =>
+                            setPref(item.key, field, val)
+                          }
+                        />
+                      </View>
                     );
                   })}
-                </View>
+                </Card>
               </View>
             );
           })}
@@ -585,11 +594,12 @@ function NotificationSettingCard({
   }
 
   return (
-    <Card
+    <View
       style={{
-        padding: spacing.lg,
-        gap: spacing.md,
-        ...(isEmergency ? { borderWidth: 1, borderColor: colors.danger + "4D" } : null),
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.md,
+        gap: spacing.sm,
+        ...(isEmergency ? { backgroundColor: colors.dangerSoft } : null),
       }}
     >
       {/* Top Header Row */}
@@ -644,11 +654,11 @@ function NotificationSettingCard({
           flexDirection: "row",
           alignItems: "center",
           backgroundColor: colors.fill,
-          borderRadius: 14,
+          borderRadius: 12,
           borderCurve: "continuous",
           padding: 3,
           gap: 2,
-          marginTop: spacing.xs,
+          marginTop: 2,
         }}
       >
         {/* In-App Channel Segment */}
@@ -788,6 +798,6 @@ function NotificationSettingCard({
           </Text>
         </View>
       )}
-    </Card>
+    </View>
   );
 }

@@ -34,7 +34,7 @@ import {
   useDeleteRxTemplate,
   useCreateRxTemplate,
 } from "@/hooks/useApi";
-import { Screen, ErrorState, Skeleton } from "@/components/ui";
+import { Screen, ScreenHeader, ErrorState, IconButton, SearchField, Skeleton } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
 import { tonePalette, type Tone } from "@/theme/tone";
@@ -281,7 +281,7 @@ export default function RxTemplatesScreen() {
                   height: 32,
                   borderRadius: 16,
                   borderCurve: "continuous",
-                  backgroundColor: pressed ? colors.dangerSoft : colors.fill,
+                  backgroundColor: pressed ? colors.dangerSoft : colors.well,
                   alignItems: "center",
                   justifyContent: "center",
                 })}
@@ -363,131 +363,39 @@ export default function RxTemplatesScreen() {
   return (
     <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       {/* ── Top Header ── */}
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: spacing.sm,
-          backgroundColor: colors.bg,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-            {/* Back Button */}
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                borderCurve: "continuous",
-                backgroundColor: pressed ? colors.fillStrong : colors.fill,
-                alignItems: "center",
-                justifyContent: "center",
-              })}
-            >
-              <ChevronLeft size={20} color={colors.text} strokeWidth={2.4} />
-            </Pressable>
-
-            <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={[typography.display.sm, { color: colors.text }]}>
-                {t("rxTemplates.title", { defaultValue: "Rx Templates" })}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]}
-              >
-                {t("rxTemplates.subtitle", {
-                  defaultValue: "Saved prescriptions for quick prescribing",
-                })}
-              </Text>
-            </View>
-          </View>
-
-          {/* New Template CTA */}
-          <Pressable
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title={t("rxTemplates.title", { defaultValue: "Rx templates" })}
+        subtitle={t("rxTemplates.subtitle", {
+          defaultValue: "Saved prescriptions for quick prescribing",
+        })}
+        right={
+          <IconButton
+            icon={Plus}
+            variant="solid"
             onPress={() => router.push("/(doctor)/rx-templates/new" as any)}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              paddingHorizontal: 14,
-              height: 36,
-              borderRadius: 999,
-              borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Plus size={15} color={colors.primary} strokeWidth={2.6} />
-            <Text style={[typography.label.md, { color: colors.primary }]}>
-              {t("rxTemplates.newCta", { defaultValue: "New" })}
-            </Text>
-          </Pressable>
-        </View>
-
+            accessibilityLabel={t("rxTemplates.newCta", { defaultValue: "New" })}
+          />
+        }
+      />
+      <View style={{ paddingHorizontal: spacing.lg }}>
         {/* ── Search & Filter Controls (when templates exist) ── */}
         {rawTemplates.length > 0 && (
-          <View style={{ marginTop: 14, gap: 10 }}>
-            {/* Search Bar */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: colors.fill,
-                borderRadius: 12,
-                borderCurve: "continuous",
-                paddingHorizontal: 12,
-                height: 40,
-                gap: 8,
-              }}
-            >
-              <Search size={16} color={colors.textSubtle} strokeWidth={2.2} />
-              <RNTextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder={t("rxTemplates.searchPlaceholder")}
-                placeholderTextColor={colors.textSubtle}
-                style={{
-                  flex: 1,
-                  ...typography.body.md,
-                  color: colors.text,
-                  paddingVertical: 0,
-                }}
-              />
-              {search.length > 0 && (
-                <Pressable
-                  onPress={() => setSearch("")}
-                  hitSlop={8}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.fillStrong,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <X size={12} color={colors.textMuted} strokeWidth={2.6} />
-                </Pressable>
-              )}
-            </View>
+          <View style={{ gap: 4 }}>
+            <SearchField
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t("rxTemplates.searchPlaceholder")}
+            />
 
             {/* Category Filter Chips */}
             {categories.length > 2 && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
+                style={{ marginHorizontal: -spacing.lg }}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg, paddingVertical: 10 }}
               >
                 {categories.map((cat) => {
                   const active = selectedCategory === cat;
@@ -496,18 +404,21 @@ export default function RxTemplatesScreen() {
                       key={cat}
                       onPress={() => setSelectedCategory(cat)}
                       style={{
-                        height: 32,
+                        height: 34,
                         justifyContent: "center",
-                        paddingHorizontal: 12,
-                        borderRadius: 999,
+                        paddingHorizontal: 14,
+                        borderRadius: 17,
                         borderCurve: "continuous",
-                        backgroundColor: active ? colors.primarySoft : colors.fill,
+                        backgroundColor: active ? colors.primary : colors.surface,
+                        borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+                        borderColor: hairline,
+                        ...(isDark || active ? {} : shadow.xs),
                       }}
                     >
                       <Text
                         style={[
-                          active ? typography.label.md : typography.body.sm,
-                          { color: active ? colors.primary : colors.textMuted },
+                          typography.label.md,
+                          { color: active ? colors.onPrimary : colors.text },
                         ]}
                       >
                         {cat === "All" ? t("rxTemplates.categoryAll") : cat}

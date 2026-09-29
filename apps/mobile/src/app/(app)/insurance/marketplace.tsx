@@ -48,6 +48,7 @@ import {
   ArrowUpRight,
   X,
   Scale,
+  Check,
 } from "lucide-react-native";
 
 import { useInsuranceMarketplaceCatalog } from "@/hooks/useApi";
@@ -99,8 +100,6 @@ function planImageFor(planType: string): any | undefined {
   return insurancePlanImage(planType);
 }
 
-const HERO_IMAGE = require("../../../../assets/insurance/hero.jpg");
-
 const SORT_OPTIONS: Array<{ value: "rating" | "premium" | "premium-desc"; i18nKey: string }> = [
   { value: "rating", i18nKey: "insurance.sort.rating" },
   { value: "premium", i18nKey: "insurance.sort.premium" },
@@ -148,40 +147,6 @@ function formatLkr(value: number): string {
     return `${Math.round(value / 1_000)}K`;
   }
   return String(value);
-}
-
-function HeroTrustPill({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof ShieldCheck;
-  label: string;
-}) {
-  const { typography } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.18)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.28)",
-        maxWidth: 240,
-      }}
-    >
-      <Icon size={12} color="#FFFFFF" strokeWidth={2.5} />
-      <Text
-        style={{ ...typography.label.sm, color: "#FFFFFF", flexShrink: 1 }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-    </View>
-  );
 }
 
 // -----------------------------------------------------------------------------
@@ -237,52 +202,62 @@ function CategoryTile({
   selected: boolean;
   onPress: () => void;
 }) {
-  const { colors, radius, spacing, typography, shadow, scheme } = useTheme();
+  const { colors, typography, shadow, scheme } = useTheme();
   const Icon = icon;
   return (
     <Pressable onPress={onPress} haptic="light">
       <View
         style={{
+          flexDirection: "row",
           alignItems: "center",
-          gap: 6,
-          width: 68,
+          gap: 8,
+          height: 44,
+          paddingLeft: 5,
+          paddingRight: 12,
+          borderRadius: 22,
+          borderCurve: "continuous",
+          backgroundColor: selected ? fg : colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: selected ? fg : colors.hairline,
+          ...(scheme === "dark" ? {} : selected ? shadow.sm : shadow.xs),
         }}
       >
         <View
           style={{
-            width: 60,
-            height: 60,
-            borderRadius: 18,
-            borderCurve: "continuous",
-            backgroundColor: selected ? fg : bg,
-            borderWidth: !selected && bg === colors.surface ? StyleSheet.hairlineWidth : 0,
-            borderColor: colors.hairline,
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: selected ? "rgba(255,255,255,0.22)" : bg,
             alignItems: "center",
             justifyContent: "center",
-            ...(selected && scheme !== "dark" ? shadow.sm : {}),
           }}
         >
-          <Icon size={24} color={selected ? "#fff" : fg} strokeWidth={2.1} />
+          <Icon size={16} color={selected ? "#fff" : fg} strokeWidth={2.3} />
         </View>
         <Text
           style={{
-            ...(selected ? typography.label.sm : typography.caption),
-            color: selected ? colors.text : colors.textMuted,
-            textAlign: "center",
+            ...typography.label.md,
+            color: selected ? "#FFFFFF" : colors.text,
           }}
           numberOfLines={1}
         >
           {label}
         </Text>
-        <Text
+        <View
           style={{
-            ...typography.label.xs,
-            color: colors.textSubtle,
-            marginTop: -4,
+            minWidth: 20,
+            height: 20,
+            paddingHorizontal: 6,
+            borderRadius: 10,
+            backgroundColor: selected ? "rgba(255,255,255,0.22)" : colors.fill,
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {count}
-        </Text>
+          <Text style={{ ...typography.label.xs, color: selected ? "#FFFFFF" : colors.textMuted }}>
+            {count}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -305,11 +280,17 @@ function PlanRichCard({
   comparing?: boolean;
   compareSelected?: boolean;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const hasDiscount = plan.annualDiscountPct > 0;
   const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
   const PlanIcon = meta.icon;
   const planImage = planImageFor(plan.planType);
+
+  const stats = [
+    { icon: ShieldCheck, label: "Cover", value: `LKR ${formatLkr(plan.coverageSummaryLkr)}` },
+    { icon: Hospital, label: "Hospitals", value: `${plan.networkHospitalCount}+` },
+    { icon: Wallet, label: "Co-pay", value: `${plan.copayPct}%` },
+  ];
 
   return (
     <Pressable
@@ -321,188 +302,136 @@ function PlanRichCard({
       <Card
         style={{
           padding: spacing.lg,
-          gap: spacing.md,
-          ...(compareSelected
-            ? { borderWidth: 2, borderColor: colors.primary }
-            : {}),
-          overflow: "hidden",
+          gap: 14,
+          borderWidth: compareSelected ? 2 : StyleSheet.hairlineWidth,
+          borderColor: compareSelected ? colors.primary : colors.hairline,
         }}
       >
-        {/* Provider row */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-          }}
-        >
-          <ProviderAvatar name={providerName} size={36} />
-          <View style={{ flex: 1 }}>
-            {comparing ? null : (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -6,
-                  right: -6,
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  borderCurve: "continuous",
-                  backgroundColor: compareSelected
-                    ? colors.primary
-                    : "transparent",
-                  borderWidth: compareSelected ? 0 : 1.5,
-                  borderColor: colors.borderStrong,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 2,
-                }}
-              >
-                {compareSelected ? (
-                  <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>
-                    ✓
-                  </Text>
-                ) : null}
-              </View>
-            )}
-            <Text
-              style={{
-                ...typography.label.md,
-                color: colors.text,
-              }}
-              numberOfLines={1}
-            >
+        {/* Header: provider + compare state */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <ProviderAvatar name={providerName} size={34} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ ...typography.label.md, color: colors.text }} numberOfLines={1}>
               {providerName}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
-              <View
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 5,
-                  borderCurve: "continuous",
-                  backgroundColor: meta.bg,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
+              <PlanIcon size={11} color={meta.fg} strokeWidth={2.5} />
+              <Text
+                style={{ ...typography.caption, color: meta.fg, textTransform: "capitalize" }}
+                numberOfLines={1}
               >
-                <PlanIcon size={10} color={meta.fg} strokeWidth={2.5} />
-              </View>
-              <Text style={{ ...typography.caption, color: colors.textMuted, textTransform: "capitalize" }}>
                 {plan.planType.replace(/_/g, " ")}
               </Text>
             </View>
           </View>
-          <ChevronRight size={16} color={colors.textSubtle} />
+          {comparing ? (
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: compareSelected ? colors.primary : "transparent",
+                borderWidth: compareSelected ? 0 : 1.5,
+                borderColor: colors.borderStrong,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {compareSelected ? <Check size={14} color="#FFFFFF" strokeWidth={3} /> : null}
+            </View>
+          ) : hasDiscount ? (
+            <Pill tone="success" size="sm" icon={<TrendingDown size={10} />}>
+              Save {plan.annualDiscountPct.toFixed(0)}%
+            </Pill>
+          ) : null}
         </View>
 
-        {/* Plan details row with dedicated thumbnail */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-          <View style={{ flex: 1, gap: 8 }}>
-            <Text
-              style={{
-                ...typography.title.md,
-                color: colors.text,
-              }}
-              numberOfLines={2}
-            >
+        {/* Name + thumbnail */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={{ ...typography.title.md, fontSize: 17, lineHeight: 22, color: colors.text }} numberOfLines={2}>
               {plan.name}
             </Text>
-
-            <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-              {plan.isFeatured ? (
-                <Pill tone="accent" icon={<Sparkles size={11} />}>
-                  Featured
-                </Pill>
-              ) : null}
-              {hasDiscount ? (
-                <Pill tone="success" icon={<TrendingDown size={11} />}>
-                  Save {plan.annualDiscountPct.toFixed(0)}%
-                </Pill>
-              ) : null}
-            </View>
-
-            {/* Coverage */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={14} color={colors.accent ?? colors.primary} strokeWidth={2.3} />
-              <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
-                Up to{" "}
-                <Text style={{ fontFamily: typography.label.md.fontFamily, color: colors.text }}>
-                  LKR {plan.coverageSummaryLkr.toLocaleString()}
-                </Text>
-              </Text>
-            </View>
+            {plan.isFeatured ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Sparkles size={11} color={colors.primary} strokeWidth={2.4} />
+                <Text style={{ ...typography.label.xs, color: colors.primary }}>Expert pick</Text>
+              </View>
+            ) : null}
           </View>
-
           {planImage ? (
             <View
               style={{
-                width: 64,
-                height: 64,
+                width: 60,
+                height: 60,
                 borderRadius: 16,
                 borderCurve: "continuous",
                 overflow: "hidden",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.hairline,
                 backgroundColor: colors.surfaceMuted,
-                flexShrink: 0,
               }}
             >
-              <Image
-                source={planImage}
-                resizeMode="cover"
-                style={{ width: "100%", height: "100%" }}
-              />
+              <Image source={planImage} resizeMode="cover" style={{ width: "100%", height: "100%" }} />
             </View>
           ) : null}
         </View>
 
-        {/* Premium block */}
+        {/* Key stats */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            paddingTop: spacing.md,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.separator,
+            backgroundColor: colors.surfaceMuted,
+            borderRadius: 14,
+            borderCurve: "continuous",
+            paddingVertical: 10,
           }}
         >
-          <View>
-            <Text
+          {stats.map((s, i) => (
+            <View
+              key={s.label}
               style={{
-                ...typography.display.sm,
-                color: colors.text,
+                flex: 1,
+                alignItems: "center",
+                borderLeftWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                borderLeftColor: colors.separator,
               }}
             >
-              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
-                LKR{" "}
-              </Text>
-              {plan.monthlyPremiumLkr.toLocaleString()}
-              <Text
-                style={{
-                  ...typography.label.md,
-                  color: colors.textMuted,
-                }}
-              >
-                {" "}
-                /mo
-              </Text>
-            </Text>
-            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 2 }}>
-              LKR {plan.annualPremiumLkr.toLocaleString()}/yr
-            </Text>
-          </View>
-          <View style={{ alignItems: "flex-end", gap: 3 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Hospital size={12} color={colors.textSubtle} />
-              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>
-                {plan.networkHospitalCount}+ hospitals
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <s.icon size={11} color={colors.textSubtle} strokeWidth={2.3} />
+                <Text style={{ ...typography.caption, fontSize: 11, color: colors.textSubtle }}>{s.label}</Text>
+              </View>
+              <Text style={{ ...typography.label.md, color: colors.text, marginTop: 2 }} numberOfLines={1}>
+                {s.value}
               </Text>
             </View>
-            <Text style={{ ...typography.caption, color: colors.textSubtle }}>
-              {plan.copayPct}% co-pay
+          ))}
+        </View>
+
+        {/* Premium footer */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View>
+            <Text style={{ ...typography.title.lg, color: colors.text }}>
+              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR </Text>
+              {plan.monthlyPremiumLkr.toLocaleString()}
+              <Text style={{ ...typography.label.sm, color: colors.textMuted }}> /mo</Text>
             </Text>
+            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 1 }}>
+              or LKR {plan.annualPremiumLkr.toLocaleString()}/yr
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              paddingLeft: 14,
+              paddingRight: 10,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <Text style={{ ...typography.label.md, color: colors.primary }}>View</Text>
+            <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
           </View>
         </View>
       </Card>
@@ -520,132 +449,121 @@ function FeaturedPlanCard({
   providerName: string;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const planImage = planImageFor(plan.planType);
+  const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
   return (
     <Pressable onPress={onPress} haptic="light">
       <Card
+        variant="elevated"
         style={{
           width: FEATURED_CARD_W,
-          padding: spacing.lg,
-          gap: spacing.sm + 2,
-          backgroundColor: colors.surface,
+          padding: 0,
           overflow: "hidden",
         }}
       >
-        {planImage ? (
+        {/* Photo banner */}
+        <View style={{ height: 118, backgroundColor: meta.bg }}>
+          {planImage ? (
+            <Image source={planImage} resizeMode="cover" style={StyleSheet.absoluteFill} />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(4,18,32,0.30)", "rgba(4,18,32,0)", "rgba(4,18,32,0.40)"]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={{ position: "absolute", top: 10, left: 10, right: 10, flexDirection: "row", justifyContent: "space-between" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: "rgba(255,255,255,0.94)",
+                paddingHorizontal: 9,
+                height: 24,
+                borderRadius: 12,
+              }}
+            >
+              <Sparkles size={11} color={colors.primary} strokeWidth={2.5} />
+              <Text style={{ ...typography.label.xs, color: colors.primary }}>Top pick</Text>
+            </View>
+            {plan.annualDiscountPct > 0 ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  backgroundColor: "rgba(5,150,105,0.94)",
+                  paddingHorizontal: 9,
+                  height: 24,
+                  borderRadius: 12,
+                }}
+              >
+                <TrendingDown size={11} color="#FFFFFF" strokeWidth={2.6} />
+                <Text style={{ ...typography.label.xs, color: "#FFFFFF" }}>
+                  {plan.annualDiscountPct.toFixed(0)}% off
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {/* Provider avatar straddles the banner edge */}
           <View
             style={{
               position: "absolute",
-              top: 16,
-              right: 16,
-              width: 68,
-              height: 68,
-              borderRadius: 18,
-              borderCurve: "continuous",
-              overflow: "hidden",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: colors.hairline,
-              backgroundColor: colors.surfaceMuted,
+              left: spacing.lg,
+              bottom: -18,
+              borderRadius: 13,
+              borderWidth: 3,
+              borderColor: colors.surface,
+              backgroundColor: colors.surface,
             }}
           >
-            <Image
-              source={planImage}
-              resizeMode="cover"
-              style={{ width: "100%", height: "100%" }}
-            />
+            <ProviderAvatar name={providerName} size={36} />
           </View>
-        ) : null}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 72 }}>
-          <Pill tone="primary" icon={<Sparkles size={11} />}>
-            Top Pick
-          </Pill>
-          {plan.annualDiscountPct > 0 ? (
-            <Pill tone="success" icon={<TrendingDown size={11} />}>
-              {plan.annualDiscountPct.toFixed(0)}% off
-            </Pill>
-          ) : null}
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <ProviderAvatar name={providerName} size={32} />
-          <Text
-            style={{
-              flex: 1,
-              ...typography.label.md,
-              color: colors.textMuted,
-            }}
-            numberOfLines={1}
-          >
+        <View style={{ padding: spacing.lg, paddingTop: 26, gap: 6 }}>
+          <Text style={{ ...typography.caption, color: colors.textMuted }} numberOfLines={1}>
             {providerName}
           </Text>
-        </View>
-
-        <Text
-          style={{
-            ...typography.title.md,
-            color: colors.text,
-            paddingRight: 8,
-          }}
-          numberOfLines={2}
-        >
-          {plan.name}
-        </Text>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <ShieldCheck size={13} color={colors.accent ?? colors.primary} strokeWidth={2.3} />
-          <Text style={{ ...typography.label.sm, color: colors.text }}>
-            LKR {formatLkr(plan.coverageSummaryLkr)} coverage
+          <Text style={{ ...typography.title.md, color: colors.text }} numberOfLines={1}>
+            {plan.name}
           </Text>
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            marginTop: 4,
-            paddingTop: spacing.md,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.separator,
-          }}
-        >
-          <View>
-            <Text
-              style={{
-                ...typography.display.sm,
-                color: colors.text,
-              }}
-            >
-              <Text style={{ ...typography.label.md, color: colors.textMuted }}>
-                LKR{" "}
-              </Text>
-              {plan.monthlyPremiumLkr.toLocaleString()}
-              <Text
-                style={{
-                  ...typography.label.md,
-                  color: colors.textMuted,
-                }}
-              >
-                {" "}
-                /mo
-              </Text>
-            </Text>
-            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 2 }}>
-              or LKR {plan.annualPremiumLkr.toLocaleString()}/yr
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <ShieldCheck size={13} color={colors.accent} strokeWidth={2.3} />
+            <Text style={{ ...typography.label.sm, color: colors.textMuted }}>
+              LKR {formatLkr(plan.coverageSummaryLkr)} cover · {plan.networkHospitalCount}+ hospitals
             </Text>
           </View>
+
           <View
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: colors.primarySoft,
+              flexDirection: "row",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
+              marginTop: 8,
+              paddingTop: 12,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.separator,
             }}
           >
-            <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
+            <Text style={{ ...typography.title.lg, color: colors.text }}>
+              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR </Text>
+              {plan.monthlyPremiumLkr.toLocaleString()}
+              <Text style={{ ...typography.label.sm, color: colors.textMuted }}> /mo</Text>
+            </Text>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: colors.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ArrowUpRight size={16} color={colors.onPrimary} strokeWidth={2.5} />
+            </View>
           </View>
         </View>
       </Card>
@@ -758,6 +676,7 @@ export default function Marketplace() {
   const totalProviders = providers.length;
   const totalPlans = plans.length;
 
+
   // ─── Compare handlers ──────────────────────────────────
   // Long-press toggles a plan into the comparison tray (max 3).
   const toggleCompare = useCallback((planId: string) => {
@@ -844,110 +763,38 @@ export default function Marketplace() {
       <ScreenHeader
         back
         onBack={() => router.replace("/(app)")}
-        variant="compact"
-        style={{ paddingBottom: spacing.xs }}
+        title={t("insurance.browseMarketplace")}
+        subtitle={marketplaceStats}
       />
 
+      {/* Compact search + quote strip */}
       <LinearGradient
-        colors={["#0B4F6C", "#0D9488", "#14B8A6"]}
+        colors={["#0B4F6C", "#0D9488"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
-          borderRadius: radius.xxl,
-          borderCurve: "continuous",
           marginHorizontal: spacing.lg,
           marginTop: spacing.xs,
-          overflow: "hidden",
-          padding: spacing.xl,
-          ...(scheme === "dark" ? {} : shadow.hero),
+          borderRadius: radius.xl,
+          borderCurve: "continuous",
+          padding: 12,
+          gap: 8,
+          ...(scheme === "dark" ? {} : shadow.sm),
         }}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: -50,
-            right: -40,
-            width: 160,
-            height: 160,
-            borderRadius: 80,
-            backgroundColor: "rgba(255,255,255,0.12)",
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            bottom: -60,
-            left: -30,
-            width: 140,
-            height: 140,
-            borderRadius: 70,
-            backgroundColor: "rgba(255,255,255,0.08)",
-          }}
-        />
-
-        {/* Hero illustration overlay — decorative, on the right side */}
-        <Image
-          source={HERO_IMAGE}
-          resizeMode="cover"
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            right: -spacing.md,
-            top: "30%",
-            width: 180,
-            height: 110,
-            borderRadius: 18,
-            borderCurve: "continuous",
-            opacity: 0.4,
-            transform: [{ rotate: "6deg" }],
-          }}
-        />
-
-        <Text
-          style={{
-            ...typography.overline,
-            color: "rgba(255,255,255,0.8)",
-            textTransform: "uppercase",
-            marginBottom: 6,
-          }}
-        >
-          {t("insurance.tab")}
-        </Text>
-        <Text
-          style={{
-            ...typography.display.md,
-            color: "#FFFFFF",
-          }}
-        >
-          {t("insurance.browseMarketplace")}
-        </Text>
-        <Text
-          style={{
-            ...typography.body.sm,
-            color: "rgba(255,255,255,0.86)",
-            marginTop: 6,
-            maxWidth: "85%",
-          }}
-        >
-          {marketplaceStats}
-        </Text>
-
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
             backgroundColor: colors.surface,
-            borderRadius: radius.md,
+            borderRadius: 13,
             borderCurve: "continuous",
-            paddingHorizontal: 14,
-            minHeight: 46,
-            marginTop: spacing.lg,
+            paddingHorizontal: 12,
+            minHeight: 44,
           }}
         >
-          <Search size={18} color={colors.textSubtle} strokeWidth={2.25} />
+          <Search size={17} color={colors.textSubtle} strokeWidth={2.4} />
           <TextInput
             value={q}
             onChangeText={setQ}
@@ -962,10 +809,20 @@ export default function Marketplace() {
             }}
           />
           {q.length > 0 ? (
-            <Pressable onPress={() => setQ("")} hitSlop={8} haptic="light">
-              <Text style={{ fontSize: 18, color: colors.textMuted, fontWeight: "600", lineHeight: 20 }}>
-                ×
-              </Text>
+            <Pressable
+              onPress={() => setQ("")}
+              hitSlop={8}
+              haptic="light"
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                backgroundColor: colors.fill,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={12} color={colors.textMuted} strokeWidth={2.6} />
             </Pressable>
           ) : null}
         </View>
@@ -976,45 +833,50 @@ export default function Marketplace() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            marginTop: spacing.sm + 2,
-            backgroundColor: "rgba(255,255,255,0.18)",
-            minHeight: 46,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: radius.md,
+            gap: 10,
+            backgroundColor: "rgba(255,255,255,0.16)",
+            paddingVertical: 7,
+            paddingLeft: 7,
+            paddingRight: 12,
+            borderRadius: 13,
             borderCurve: "continuous",
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: "rgba(255,255,255,0.28)",
+            borderColor: "rgba(255,255,255,0.30)",
           }}
         >
-          <Sparkles size={15} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={{ ...typography.label.lg, color: "#FFFFFF", flex: 1, textAlign: "center" }}>
+          <View
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 10,
+              borderCurve: "continuous",
+              backgroundColor: "#FFFFFF",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Sparkles size={15} color="#0D9488" strokeWidth={2.4} />
+          </View>
+          <Text style={{ ...typography.label.md, color: "#FFFFFF", flex: 1 }} numberOfLines={1}>
             {t("insurance.getQuoteCta", "Get a personalised quote in 60s")}
           </Text>
-          <ArrowUpRight size={15} color="#FFFFFF" strokeWidth={2.5} />
+          <ArrowUpRight size={16} color="#FFFFFF" strokeWidth={2.5} />
         </Pressable>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginTop: spacing.md, marginHorizontal: -4 }}
-          contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}
-        >
-          <HeroTrustPill
-            icon={ShieldCheck}
-            label={t("insurance.trust.cashless", "Cashless at network hospitals")}
-          />
-          <HeroTrustPill
-            icon={Wallet}
-            label={t("insurance.trust.claims", "No-claim bonus")}
-          />
-        </ScrollView>
       </LinearGradient>
 
       {/* ─── Categories: horizontal scroller ─── */}
-      <View style={{ marginTop: spacing.xxl }}>
+      <View style={{ marginTop: spacing.xl }}>
+        <Text
+          style={{
+            ...typography.kicker,
+            color: colors.primary,
+            textTransform: "uppercase",
+            paddingHorizontal: spacing.lg,
+            marginBottom: 3,
+          }}
+        >
+          {t("insurance.categoriesKicker", "Categories")}
+        </Text>
         <Text
           style={{
             ...typography.title.lg,
@@ -1030,13 +892,14 @@ export default function Marketplace() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
+            paddingBottom: 6,
             gap: 8,
           }}
         >
           <CategoryTile
             planType="all"
             icon={Building2}
-            bg={colors.surface}
+            bg={colors.primarySoft}
             fg={colors.primary}
             label={t("insurance.filterAll")}
             count={totalPlans}
@@ -1062,55 +925,12 @@ export default function Marketplace() {
         </ScrollView>
       </View>
 
-      {/* ─── Sort row ─── */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: spacing.lg,
-          marginTop: spacing.lg,
-        }}
-      >
-        <Text style={{ ...typography.label.md, color: colors.textMuted }}>
-          {isLoading ? (
-            <ActivityIndicator size="small" color={colors.textMuted} />
-          ) : (
-            t("insurance.showingPlans", {
-              count: totalPlans,
-              defaultValue: `${totalPlans} plan${totalPlans === 1 ? "" : "s"}`,
-            })
-          )}
-        </Text>
-        <Pressable
-          onPress={handleSortPress}
-          haptic="light"
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            paddingHorizontal: 12,
-            minHeight: 34,
-            borderRadius: 999,
-            backgroundColor: colors.fill,
-          }}
-        >
-          <SlidersHorizontal size={13} color={colors.textMuted} strokeWidth={2.3} />
-          <Text style={{ ...typography.label.sm, color: colors.text }}>
-            {sortLabel}
-          </Text>
-        </Pressable>
-      </View>
-
       {/* ─── Featured carousel ─── */}
       {!isInitialLoad && featuredPlans.length > 0 ? (
-        <View style={{ marginTop: spacing.xxl }}>
+        <View style={{ marginTop: spacing.sm }}>
           <SectionHeader
+            kicker={t("insurance.featuredSubtitle", "Hand-picked by coverage experts")}
             title={t("insurance.featuredTitle", "Top picks this week")}
-            subtitle={t(
-              "insurance.featuredSubtitle",
-              "Hand-picked by coverage experts",
-            )}
             style={{ paddingHorizontal: spacing.lg }}
           />
           <FlatList
@@ -1118,8 +938,11 @@ export default function Marketplace() {
             keyExtractor={(p: any) => `feat-${p.id}`}
             horizontal
             showsHorizontalScrollIndicator={false}
+            snapToInterval={FEATURED_CARD_W + CARD_GAP}
+            decelerationRate="fast"
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
+              paddingBottom: 14,
               gap: CARD_GAP,
             }}
             renderItem={({ item }: any) => (
@@ -1136,18 +959,67 @@ export default function Marketplace() {
       ) : null}
 
       {/* ─── Plans list ─── */}
-      <SectionHeader
-        title={t("insurance.allPlans", "All available plans")}
-        subtitle={t(
-          "insurance.allPlansSubtitle",
-          "Tap a card to view full coverage details",
-        )}
+      <View
         style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 12,
           paddingHorizontal: spacing.lg,
-          marginTop: spacing.xxl + 4,
-          marginBottom: spacing.sm,
+          marginTop: spacing.xl,
+          marginBottom: spacing.md,
         }}
-      />
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ ...typography.kicker, color: colors.primary, textTransform: "uppercase", marginBottom: 3 }}>
+            {isLoading
+              ? " "
+              : t("insurance.showingPlans", {
+                  count: totalPlans,
+                  defaultValue: `${totalPlans} plan${totalPlans === 1 ? "" : "s"}`,
+                })}
+          </Text>
+          <Text style={{ ...typography.title.lg, color: colors.text }} numberOfLines={1}>
+            {t("insurance.allPlans", "All available plans")}
+          </Text>
+        </View>
+        <Pressable
+          onPress={handleSortPress}
+          haptic="light"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 12,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: colors.surface,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.hairline,
+            ...(scheme === "dark" ? {} : shadow.xs),
+          }}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors.textMuted} />
+          ) : (
+            <SlidersHorizontal size={13} color={colors.primary} strokeWidth={2.4} />
+          )}
+          <Text style={{ ...typography.label.sm, color: colors.text }}>{sortLabel}</Text>
+        </Pressable>
+      </View>
+      {!isInitialLoad && totalPlans > 0 ? (
+        <Text
+          style={{
+            ...typography.caption,
+            color: colors.textSubtle,
+            paddingHorizontal: spacing.lg,
+            marginTop: -6,
+            marginBottom: spacing.md,
+          }}
+        >
+          {t("insurance.compare.hint", "Tip: long-press plans to compare up to 3")}
+        </Text>
+      ) : null}
 
       {isInitialLoad ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>

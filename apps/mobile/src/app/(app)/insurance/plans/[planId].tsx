@@ -1,10 +1,12 @@
 // @ts-nocheck
-// Insurance plan detail. Coverage table + buy CTA + monthly/annual toggle.
+// Insurance plan detail. Photo hero + detail card + monthly/annual pick + CTA.
 
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, Image, Pressable, StyleSheet } from "react-native";
-import { insurancePlanImage } from "@/components/insurance/PlanCard";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import {
   Check,
@@ -12,77 +14,93 @@ import {
   ShieldCheck,
   HeartPulse,
   Clock,
+  ArrowRight,
+  BadgePercent,
+  Sparkles,
+  ChevronLeft,
+  Hospital,
+  CalendarClock,
   Wallet,
-  Users,
+  CreditCard,
+  FileCheck2,
+  FileSignature,
+  Info,
+  Hourglass,
 } from "lucide-react-native";
 import { useInsurancePlan } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { insurancePlanImage } from "@/components/insurance/PlanCard";
 import {
   Screen,
   ScreenHeader,
   Card,
-  Pill,
   Button,
   Skeleton,
   EmptyState,
-  SectionHeader,
-  Chip,
-  ChipGroup,
 } from "@/components/ui";
-import { AppText } from "@/components/ui/AppText";
 import { useInsuranceStore } from "@/stores/insurance-store";
+
+const humanize = (k: string) =>
+  k
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^\w/, (c) => c.toUpperCase());
 
 export default function PlanDetail() {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, typography, radius, shadow, scheme } = useTheme();
+  const { colors, typography, radius } = useTheme();
+  const insets = useSafeAreaInsets();
   const { data, isLoading } = useInsurancePlan(planId ?? "");
   const [cycle, setCycle] = useState<"monthly" | "annual">("annual");
   const setPlan = useInsuranceStore((s) => s.setPlan);
   const setBillingCycle = useInsuranceStore((s) => s.setBillingCycle);
+  const kicker = { ...typography.kicker, color: colors.primary, textTransform: "uppercase" } as const;
 
   const plan = data?.plan;
-  const coverage = (data?.coverageDetailsJson ?? {}) as Record<string, unknown>;
+  const coverage = (plan?.coverageDetails ?? {}) as Record<string, unknown>;
 
-  const rows = useMemo(() => {
+  const detailRows = useMemo(() => {
     if (!plan) return [];
-    return [
+    const rows = [
       {
-        icon: <Wallet size={16} color={colors.primary} strokeWidth={2.3} />,
-        label: t("insurance.plan.coverageLabel", {
-          amount: plan.coverageSummaryLkr.toLocaleString(),
-        }),
+        icon: Hourglass,
+        label: t("insurance.plan.preExistingWait"),
+        value: t("insurance.plan.daysValue", { days: plan.preExistingWaitingDays ?? 0 }),
       },
       {
-        icon: <HeartPulse size={16} color={colors.primary} strokeWidth={2.3} />,
-        label: t("insurance.plan.copayPct", { pct: plan.copayPct }),
+        icon: CalendarClock,
+        label: t("insurance.plan.policyTerm"),
+        value: t("insurance.plan.monthsValue", { months: plan.termMonths ?? 12 }),
       },
       {
-        icon: <ShieldCheck size={16} color={colors.primary} strokeWidth={2.3} />,
-        label: t("insurance.plan.deductibleLabel", {
-          amount: plan.deductibleLkr.toLocaleString(),
-        }),
-      },
-      {
-        icon: <Clock size={16} color={colors.primary} strokeWidth={2.3} />,
-        label: t("insurance.plan.waiting", { days: plan.waitingPeriodDays }),
-      },
-      {
-        icon: <Users size={16} color={colors.primary} strokeWidth={2.3} />,
-        label: t("insurance.plan.networks", { count: plan.networkHospitalCount }),
+        icon: Hospital,
+        label: t("insurance.plan.networks"),
+        value: String(plan.networkHospitalCount),
       },
     ];
-  }, [plan, colors.primary, t]);
+    if (plan.coPaymentCapLkr > 0) {
+      rows.push({
+        icon: Wallet,
+        label: t("insurance.plan.copayCap"),
+        value: `LKR ${plan.coPaymentCapLkr.toLocaleString()}`,
+      });
+    }
+    Object.entries(coverage).forEach(([k, v]) => {
+      if (v === null || v === undefined || typeof v === "object") return;
+      rows.push({ icon: FileCheck2, label: humanize(k), value: String(v) });
+    });
+    return rows;
+  }, [plan, coverage, t]);
 
   if (isLoading) {
     return (
       <Screen>
         <ScreenHeader title="" subtitle="" />
-        <View style={{ padding: 16, gap: 10 }}>
+        <View style={{ paddingTop: 8, gap: 12 }}>
+          <Skeleton height={260} radius={radius.card} />
           <Skeleton height={200} radius={radius.card} />
-          <Skeleton height={240} radius={radius.card} />
-          <Skeleton height={120} radius={radius.card} />
         </View>
       </Screen>
     );
@@ -104,287 +122,437 @@ export default function PlanDetail() {
     setBillingCycle(cycle);
     router.push("/insurance/quote");
   };
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/insurance/marketplace"));
 
-  const listRow = (i: number) => ({
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-    minHeight: 52,
-    paddingVertical: 10,
-    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-    borderTopColor: colors.separator,
-  });
-  const rowText = { ...typography.body.md, color: colors.text, flex: 1 };
+  const savings = Math.max(0, plan.monthlyPremiumLkr * 12 - plan.annualPremiumLkr);
+  const savingsPct = plan.annualDiscountPct > 0
+    ? Math.round(plan.annualDiscountPct)
+    : Math.round((savings / Math.max(1, plan.monthlyPremiumLkr * 12)) * 100);
+  const price = cycle === "monthly" ? plan.monthlyPremiumLkr : plan.annualPremiumLkr;
+  const heroImage = insurancePlanImage(plan.planType);
+  const providerName = plan.providerName ?? t("insurance.provider.label");
+
+  const billingOptions = [
+    {
+      key: "monthly" as const,
+      title: t("insurance.plan.payMonthly"),
+      amount: plan.monthlyPremiumLkr,
+      per: t("insurance.plan.perMonth"),
+      sub: t("insurance.plan.flexible"),
+    },
+    {
+      key: "annual" as const,
+      title: t("insurance.plan.payAnnual"),
+      amount: plan.annualPremiumLkr,
+      per: t("insurance.plan.perYear"),
+      sub: t("insurance.plan.equivMonthly", { amount: Math.round(plan.annualPremiumLkr / 12).toLocaleString() }),
+    },
+  ];
+
+  const steps = [
+    { icon: FileSignature, label: t("insurance.plan.steps.quote"), sub: t("insurance.plan.steps.quoteSub") },
+    { icon: CreditCard, label: t("insurance.plan.steps.pay"), sub: t("insurance.plan.steps.paySub") },
+    { icon: ShieldCheck, label: t("insurance.plan.steps.covered"), sub: t("insurance.plan.steps.coveredSub") },
+  ];
 
   return (
-    <Screen padded={false}>
-      <ScreenHeader
-        title={plan.name}
-        subtitle={plan.providerName ?? t("insurance.provider.label")}
-        kicker={t(`insurance.planTypes.${plan.planType}`)}
-      />
-
+    <Screen padded={false} edges={[]} bottomInset={false}>
+      <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 132 + insets.bottom }}
       >
-        <Card style={{ margin: 16, marginTop: 8, padding: 20, gap: 16 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                <Pill tone="primary">{t(`insurance.planTypes.${plan.planType}`)}</Pill>
-                {plan.isFeatured ? <Pill tone="accent">Featured</Pill> : null}
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, flexWrap: "wrap" }}>
-                <Text style={{ ...typography.display.md, color: colors.text }}>
-                  <Text style={{ ...typography.title.sm, color: colors.textMuted }}>
-                    LKR{" "}
-                  </Text>
-                  {(cycle === "monthly"
-                    ? plan.monthlyPremiumLkr
-                    : plan.annualPremiumLkr
-                  ).toLocaleString()}
-                </Text>
-                <Text style={{ ...typography.label.md, color: colors.textMuted, paddingBottom: 5 }}>
-                  / {cycle === "monthly" ? "month" : "year"}
-                </Text>
-              </View>
+        {/* Photo hero */}
+        <View style={{ height: 296, backgroundColor: colors.primarySoft }}>
+          {heroImage ? (
+            <Image source={heroImage} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : null}
+          <LinearGradient
+            colors={["rgba(4,18,32,0.55)", "rgba(4,18,32,0.08)", "rgba(4,18,32,0.72)"]}
+            locations={[0, 0.4, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            style={{
+              position: "absolute",
+              top: insets.top + 14,
+              left: 68,
+              backgroundColor: "rgba(255,255,255,0.92)",
+              paddingHorizontal: 11,
+              paddingVertical: 6,
+              borderRadius: 999,
+              borderCurve: "continuous",
+            }}
+          >
+            <Text style={{ ...typography.label.xs, fontSize: 10.5, color: colors.primary, letterSpacing: 0.8, textTransform: "uppercase" }}>
+              {t(`insurance.planTypes.${plan.planType}`)}
+            </Text>
+          </View>
+          {plan.isFeatured ? (
+            <View
+              style={{
+                position: "absolute",
+                top: insets.top + 14,
+                right: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                backgroundColor: "rgba(255,255,255,0.92)",
+                paddingHorizontal: 11,
+                paddingVertical: 6,
+                borderRadius: 999,
+                borderCurve: "continuous",
+              }}
+            >
+              <Sparkles size={12} color={colors.primary} strokeWidth={2.6} />
+              <Text style={{ ...typography.label.xs, fontSize: 11, color: colors.primary }}>
+                {t("insurance.plan.featured")}
+              </Text>
             </View>
+          ) : null}
+        </View>
 
-            {insurancePlanImage(plan.planType) ? (
-              <View
-                style={{
-                  width: 76,
-                  height: 76,
-                  borderRadius: 20,
-                  borderCurve: "continuous",
-                  overflow: "hidden",
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: colors.hairline,
-                  backgroundColor: colors.surfaceMuted,
-                  flexShrink: 0,
-                }}
-              >
-                <Image
-                  source={insurancePlanImage(plan.planType)}
-                  resizeMode="cover"
-                  style={{ width: "100%", height: "100%" }}
-                />
+        {/* Detail card, overlapping the hero */}
+        <Card variant="elevated" style={{ marginHorizontal: 16, marginTop: -52, padding: 20 }}>
+          <Text style={{ ...typography.display.sm, fontSize: 21, lineHeight: 26, color: colors.text }}>
+            {plan.name}
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 5 }}>
+            <ShieldCheck size={14} color={colors.primary} strokeWidth={2.4} />
+            <Text numberOfLines={1} style={{ ...typography.body.sm, color: colors.textMuted, flexShrink: 1 }}>
+              {providerName}
+            </Text>
+          </View>
+
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginVertical: 16 }} />
+
+          <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ ...typography.overline, color: colors.textSubtle, marginBottom: 2, textTransform: "uppercase" }}>
+                {t("insurance.plan.sumInsured")}
+              </Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...typography.display.lg, fontSize: 28, lineHeight: 32, color: colors.text }}>
+                LKR {plan.coverageSummaryLkr.toLocaleString()}
+              </Text>
+            </View>
+            {savingsPct > 0 ? (
+              <View style={{ backgroundColor: colors.successSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderCurve: "continuous" }}>
+                <Text style={{ ...typography.label.md, color: colors.success }}>
+                  {t("insurance.plan.savePct", { pct: savingsPct })}
+                </Text>
               </View>
             ) : null}
           </View>
 
-          {plan.annualDiscountPct > 0 ? (
-            <Text
-              style={{
-                ...typography.label.sm,
-                color: colors.success,
-                alignSelf: "flex-start",
-                backgroundColor: colors.successSoft,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 999,
-                overflow: "hidden",
-                marginTop: -4,
-              }}
-            >
-              {t("insurance.plan.save", { pct: plan.annualDiscountPct.toFixed(0) })}
-            </Text>
-          ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+            <MetaPill
+              icon={<Hospital size={13} color={colors.info} strokeWidth={2.4} />}
+              label={t("insurance.plan.networks_other", { count: plan.networkHospitalCount })}
+              bg={colors.infoSoft}
+              fg={colors.info}
+            />
+            <MetaPill
+              icon={<HeartPulse size={13} color={colors.success} strokeWidth={2.4} />}
+              label={t("insurance.plan.copayPct", { pct: plan.copayPct })}
+              bg={colors.successSoft}
+              fg={colors.success}
+            />
+            {plan.waitingPeriodDays > 0 ? (
+              <MetaPill
+                icon={<Clock size={13} color={colors.warning} strokeWidth={2.4} />}
+                label={t("insurance.plan.waiting", { days: plan.waitingPeriodDays })}
+                bg={colors.warningSoft}
+                fg={colors.warning}
+              />
+            ) : null}
+            <MetaPill
+              icon={<Wallet size={13} color={colors.textMuted} strokeWidth={2.4} />}
+              label={t("insurance.plan.deductible", { amount: plan.deductibleLkr.toLocaleString() })}
+              bg={colors.fill}
+              fg={colors.textMuted}
+            />
+          </View>
+        </Card>
 
-          {/* Billing cycle — segmented control */}
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: colors.fill,
-              borderRadius: 12,
-              borderCurve: "continuous",
-              padding: 3,
-            }}
-          >
-            {[
-              {
-                key: "monthly",
-                label: t("insurance.plan.monthly", {
-                  amount: plan.monthlyPremiumLkr.toLocaleString(),
-                }),
-                onPress: () => setCycle("monthly"),
-              },
-              {
-                key: "annual",
-                label: t("insurance.plan.annual", {
-                  amount: plan.annualPremiumLkr.toLocaleString(),
-                }),
-                onPress: () => setCycle("annual"),
-              },
-            ].map((seg) => {
-              const selected = cycle === seg.key;
+        {/* How it works */}
+        <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18, paddingVertical: 16 }}>
+          <Text style={{ ...kicker, marginBottom: 14 }}>{t("insurance.plan.howItWorks")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {steps.map((step, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && (
+                  <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginHorizontal: 4, marginBottom: 24 }} />
+                )}
+                <View style={{ alignItems: "center", width: 72 }}>
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.primarySoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 7,
+                    }}
+                  >
+                    <step.icon size={20} color={colors.primary} strokeWidth={2} />
+                  </View>
+                  <Text style={{ ...typography.label.sm, color: colors.text }}>{step.label}</Text>
+                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...typography.caption, fontSize: 10.5, color: colors.textSubtle, marginTop: 1 }}>
+                    {step.sub}
+                  </Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </Card>
+
+        {/* Billing pick */}
+        <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18 }}>
+          <Text style={{ ...kicker, marginBottom: 12 }}>{t("insurance.plan.choosePayment")}</Text>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            {billingOptions.map((opt) => {
+              const selected = cycle === opt.key;
               return (
                 <Pressable
-                  key={seg.key}
-                  onPress={seg.onPress}
-                  accessibilityRole="button"
+                  key={opt.key}
+                  onPress={() => setCycle(opt.key)}
+                  accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   style={{
                     flex: 1,
-                    minHeight: 38,
-                    paddingHorizontal: 8,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 10,
+                    borderRadius: 16,
                     borderCurve: "continuous",
-                    backgroundColor: selected ? colors.surface : "transparent",
-                    ...(selected && scheme !== "dark" ? shadow.xs : {}),
+                    borderWidth: selected ? 2 : StyleSheet.hairlineWidth,
+                    borderColor: selected ? colors.primary : colors.border,
+                    backgroundColor: selected ? colors.primarySoft : colors.surfaceMuted,
+                    padding: 14,
+                    paddingTop: 16,
                   }}
                 >
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{
-                      ...(selected ? typography.label.md : typography.body.sm),
-                      color: selected ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    {seg.label}
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <Text style={{ ...typography.label.md, color: selected ? colors.primary : colors.textMuted }}>
+                      {opt.title}
+                    </Text>
+                    <View
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: selected ? 0 : 1.5,
+                        borderColor: colors.borderStrong,
+                        backgroundColor: selected ? colors.primary : "transparent",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {selected ? <Check size={12} color={colors.onPrimary} strokeWidth={3.2} /> : null}
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3, marginTop: 10 }}>
+                    <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR</Text>
+                    <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...typography.title.lg, color: colors.text, flexShrink: 1 }}>
+                      {opt.amount.toLocaleString()}
+                    </Text>
+                  </View>
+                  <Text style={{ ...typography.caption, color: colors.textMuted, marginTop: 1 }}>{opt.per}</Text>
+                  <Text numberOfLines={1} style={{ ...typography.caption, fontSize: 11, color: colors.textSubtle, marginTop: 8 }}>
+                    {opt.sub}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
+          {savings > 0 ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14 }}>
+              <BadgePercent size={15} color={cycle === "annual" ? colors.success : colors.accent2} strokeWidth={2.4} />
+              <Text style={{ ...typography.label.sm, color: cycle === "annual" ? colors.success : colors.textMuted }}>
+                {cycle === "annual"
+                  ? t("insurance.plan.yearlySavings", { amount: savings.toLocaleString() })
+                  : t("insurance.plan.save", { pct: savingsPct })}
+              </Text>
+            </View>
+          ) : null}
         </Card>
 
-        <SectionHeader
-          title={t("insurance.plan.coverage")}
-          style={{ paddingHorizontal: 16, paddingTop: 8 }}
-        />
-        <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
-          {rows.map((r, i) => (
-            <View key={i} style={listRow(i)}>
+        {/* What's covered */}
+        {Array.isArray(plan.keyFeatures) && plan.keyFeatures.length > 0 ? (
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18, paddingBottom: 8 }}>
+            <Text style={{ ...kicker, marginBottom: 10 }}>{t("insurance.plan.whatsCovered")}</Text>
+            {plan.keyFeatures.map((f: string, i: number) => (
               <View
+                key={i}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  minHeight: 50,
+                  paddingVertical: 10,
+                  borderBottomWidth: i < plan.keyFeatures.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  borderBottomColor: colors.separator,
                 }}
               >
-                {r.icon}
+                <View style={{ width: 32, height: 32, borderRadius: 10, borderCurve: "continuous", backgroundColor: colors.successSoft, alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                  <Check size={16} color={colors.success} strokeWidth={2.6} />
+                </View>
+                <Text style={{ ...typography.title.xs, fontSize: 14, color: colors.text, flex: 1 }}>{f}</Text>
               </View>
-              <Text style={rowText}>{r.label}</Text>
-            </View>
-          ))}
-        </Card>
-
-        {Array.isArray(plan.keyFeatures) && plan.keyFeatures.length > 0 ? (
-          <>
-            <SectionHeader
-              title={t("insurance.plan.features")}
-              style={{ paddingHorizontal: 16, paddingTop: 24 }}
-            />
-            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
-              {plan.keyFeatures.map((f: string, i: number) => (
-                <View key={i} style={{ ...listRow(i), minHeight: 46 }}>
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: colors.successSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Check size={13} color={colors.success} strokeWidth={3} />
-                  </View>
-                  <Text style={rowText}>{f}</Text>
-                </View>
-              ))}
-            </Card>
-          </>
+            ))}
+          </Card>
         ) : null}
 
+        {/* Plan details */}
+        {detailRows.length > 0 ? (
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18, paddingBottom: 8 }}>
+            <Text style={{ ...kicker, marginBottom: 6 }}>{t("insurance.plan.details")}</Text>
+            {detailRows.map((r, i) => (
+              <View
+                key={r.label}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  minHeight: 52,
+                  paddingVertical: 10,
+                  gap: 12,
+                  borderBottomWidth: i < detailRows.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  borderBottomColor: colors.separator,
+                }}
+              >
+                <View style={{ width: 32, height: 32, borderRadius: 10, borderCurve: "continuous", backgroundColor: colors.well, alignItems: "center", justifyContent: "center" }}>
+                  <r.icon size={16} color={colors.textMuted} strokeWidth={2.2} />
+                </View>
+                <Text numberOfLines={2} style={{ ...typography.body.md, color: colors.textMuted, flex: 1 }}>
+                  {r.label}
+                </Text>
+                <Text numberOfLines={2} style={{ ...typography.label.md, color: colors.text, maxWidth: "48%", textAlign: "right" }}>
+                  {r.value}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        ) : null}
+
+        {/* Exclusions */}
         {Array.isArray(plan.exclusions) && plan.exclusions.length > 0 ? (
-          <>
-            <SectionHeader
-              title={t("insurance.plan.exclusions")}
-              style={{ paddingHorizontal: 16, paddingTop: 24 }}
-            />
-            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
-              {plan.exclusions.map((x: string, i: number) => (
-                <View key={i} style={{ ...listRow(i), minHeight: 46 }}>
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: colors.dangerSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <X size={13} color={colors.danger} strokeWidth={3} />
-                  </View>
-                  <Text style={{ ...rowText, color: colors.textMuted }}>{x}</Text>
+          <Card style={{ marginHorizontal: 16, marginTop: 12, padding: 18, paddingBottom: 8 }}>
+            <Text style={{ ...kicker, marginBottom: 10 }}>{t("insurance.plan.exclusions")}</Text>
+            {plan.exclusions.map((x: string, i: number) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  minHeight: 50,
+                  paddingVertical: 10,
+                  borderBottomWidth: i < plan.exclusions.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  borderBottomColor: colors.separator,
+                }}
+              >
+                <View style={{ width: 32, height: 32, borderRadius: 10, borderCurve: "continuous", backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                  <X size={16} color={colors.danger} strokeWidth={2.6} />
                 </View>
-              ))}
-            </Card>
-          </>
+                <Text style={{ ...typography.body.sm, color: colors.textMuted, flex: 1 }}>{x}</Text>
+              </View>
+            ))}
+          </Card>
         ) : null}
 
-        {coverage && Object.keys(coverage).length > 0 ? (
-          <>
-            <SectionHeader
-              title={t("insurance.plan.details")}
-              style={{ paddingHorizontal: 16, paddingTop: 24 }}
-            />
-            <Card style={{ marginHorizontal: 16, paddingVertical: 4, paddingHorizontal: 16 }}>
-              {Object.entries(coverage).map(([k, v], i) => (
-                <View
-                  key={k}
-                  style={{
-                    paddingVertical: 12,
-                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                    borderTopColor: colors.separator,
-                  }}
-                >
-                  <Text style={{ ...typography.caption, color: colors.textSubtle }}>
-                    {k}
-                  </Text>
-                  <Text style={{ ...typography.body.md, color: colors.text, marginTop: 2 }}>
-                    {String(v)}
-                  </Text>
-                </View>
-              ))}
-            </Card>
-          </>
-        ) : null}
+        {/* Disclaimer */}
+        <View style={{ flexDirection: "row", gap: 8, marginHorizontal: 20, marginTop: 20 }}>
+          <Info size={14} color={colors.textSubtle} strokeWidth={2.2} style={{ marginTop: 2 }} />
+          <Text style={{ ...typography.body.xs, color: colors.textSubtle, flex: 1 }}>
+            {t("insurance.plan.disclaimer")}
+          </Text>
+        </View>
       </ScrollView>
 
+      {/* Glass back button over the hero */}
+      <Pressable
+        onPress={goBack}
+        accessibilityRole="button"
+        accessibilityLabel={t("common.back", "Back")}
+        hitSlop={10}
+        style={{
+          position: "absolute",
+          top: insets.top + 14,
+          left: 16,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: "rgba(8,24,40,0.34)",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: "rgba(255,255,255,0.35)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ChevronLeft size={22} color="#FFFFFF" strokeWidth={2.5} style={{ marginLeft: -2 }} />
+      </Pressable>
+
+      {/* Bottom CTA */}
       <View
         style={{
           position: "absolute",
+          bottom: 0,
           left: 0,
           right: 0,
-          bottom: 0,
+          backgroundColor: colors.bgElevated,
           paddingHorizontal: 16,
           paddingTop: 12,
-          paddingBottom: 28,
-          backgroundColor: colors.bgElevated ?? colors.surface,
+          paddingBottom: Math.max(insets.bottom, 12) + 12,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: colors.separator,
         }}
       >
-        <Button
-          label={t("insurance.plan.getQuote")}
-          onPress={onBuy}
-          size="lg"
-          style={{ width: "100%" }}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ minWidth: 0, flexShrink: 1 }}>
+            <Text style={{ ...typography.caption, color: colors.textMuted }}>
+              {cycle === "monthly" ? t("insurance.plan.payMonthly") : t("insurance.plan.payAnnual")}
+            </Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...typography.title.lg, color: colors.text }}>
+              LKR {price.toLocaleString()}
+            </Text>
+          </View>
+          <Button
+            label={t("insurance.plan.getQuoteShort")}
+            accessibilityLabel={t("insurance.plan.getQuote")}
+            onPress={onBuy}
+            iconRight={ArrowRight}
+            size="lg"
+            style={{ flex: 1 }}
+          />
+        </View>
       </View>
     </Screen>
+  );
+}
+
+function MetaPill({
+  icon,
+  label,
+  bg,
+  fg,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  bg: string;
+  fg: string;
+}) {
+  const { typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: bg,
+        paddingHorizontal: 11,
+        paddingVertical: 6,
+        borderRadius: 999,
+        gap: 6,
+      }}
+    >
+      {icon}
+      <Text style={{ ...typography.label.sm, color: fg }}>{label}</Text>
+    </View>
   );
 }

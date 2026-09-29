@@ -19,8 +19,9 @@ import {
   Lock,
   LockOpen,
   Timer,
-  ChevronRight,
   ShieldAlert,
+  ShieldCheck,
+  KeyRound,
 } from "lucide-react-native";
 import { Screen, ScreenHeader, Card, Button, SectionHeader } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -31,7 +32,6 @@ import {
   biometricName,
   type BiometricStatus,
 } from "@/lib/biometric";
-import { withOpacity } from "@/constants/theme";
 
 type TimeoutOption = {
   value: LockTimeout;
@@ -49,7 +49,7 @@ const TIMEOUT_OPTIONS: TimeoutOption[] = [
 export default function AppLockScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
 
   const hasPin = useAppLockStore((s) => !!s.pinHash);
   const biometricEnabled = useAppLockStore((s) => s.biometricEnabled);
@@ -118,6 +118,18 @@ export default function AppLockScreen() {
         ? t("appLock.settings.biometricUnavailable")
         : null;
 
+  const timeoutLabel = t(
+    TIMEOUT_OPTIONS.find((o) => o.value === timeoutSeconds)?.labelKey ??
+      "appLock.settings.timeout60",
+  ).toLowerCase();
+  const summary =
+    timeoutSeconds === 0
+      ? t("appLock.settings.summaryImmediate")
+      : timeoutSeconds === -1
+        ? t("appLock.settings.summaryNever")
+        : t("appLock.settings.summaryAfter", { time: timeoutLabel });
+  const biometricOn = biometricAvailable && biometricEnabled;
+
   return (
     <Screen padded={false} edges={["top"]} bottomInset scroll>
       <ScreenHeader
@@ -130,123 +142,71 @@ export default function AppLockScreen() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
+          paddingTop: spacing.sm,
           paddingBottom: spacing.xxxl,
           gap: spacing.xl,
         }}
       >
-        {/* ─── State ────────────────────────────────────── */}
-        <View style={{ gap: spacing.sm }}>
-          <SectionHeader title={t("appLock.settings.stateHeading")} />
-          <Card padded={false}>
-            <Pressable
-              onPress={handleSetupOrChange}
-              accessibilityRole="button"
+        {/* ─── Status ──────────────────────────────────── */}
+        <Card style={{ gap: spacing.lg }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+            <View
               style={{
-                flexDirection: "row",
+                width: 52,
+                height: 52,
+                borderRadius: 18,
+                borderCurve: "continuous",
+                backgroundColor: hasPin ? colors.successSoft : colors.warningSoft,
                 alignItems: "center",
-                gap: spacing.md,
-                padding: spacing.md,
+                justifyContent: "center",
               }}
             >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  borderCurve: "continuous",
-                  backgroundColor: hasPin ? colors.successSoft : colors.surfaceMuted,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {hasPin ? (
-                  <Lock size={20} color={colors.success} strokeWidth={2.25} />
-                ) : (
-                  <LockOpen size={20} color={colors.textMuted} strokeWidth={2.25} />
-                )}
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[typography.title.sm, { color: colors.text }]}>
-                  {hasPin
-                    ? t("appLock.settings.changePin")
-                    : t("appLock.settings.setPin")}
-                </Text>
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2 },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {hasPin
-                    ? t("appLock.settings.enabled")
-                    : t("appLock.settings.disabled")}
-                </Text>
-              </View>
-              <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.25} />
-            </Pressable>
-            {hasPin ? (
-              <>
-                <View
-                  style={{
-                    height: 1,
-                    backgroundColor: colors.border,
-                    marginHorizontal: spacing.md,
-                  }}
-                />
-                <Pressable
-                  onPress={confirmRemovePin}
-                  accessibilityRole="button"
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                    padding: spacing.md,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      borderCurve: "continuous",
-                      backgroundColor: colors.dangerSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ShieldAlert size={20} color={colors.danger} strokeWidth={2.25} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text
-                      style={[
-                        typography.title.sm,
-                        { color: colors.danger },
-                      ]}
-                    >
-                      {t("appLock.settings.removePin")}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.body.sm,
-                        { color: colors.textMuted, marginTop: 2 },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {t("appLock.settings.removePinHint")}
-                    </Text>
-                  </View>
-                  <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.25} />
-                </Pressable>
-              </>
-            ) : null}
-          </Card>
-        </View>
+              {hasPin ? (
+                <ShieldCheck size={26} color={colors.success} strokeWidth={2.2} />
+              ) : (
+                <LockOpen size={24} color={colors.warning} strokeWidth={2.2} />
+              )}
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text style={[typography.title.md, { color: colors.text }]}>
+                {hasPin ? t("appLock.settings.enabled") : t("appLock.settings.disabled")}
+              </Text>
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                {hasPin ? summary : t("appLock.settings.offBody")}
+              </Text>
+            </View>
+          </View>
+
+          {hasPin ? (
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <StatusChip
+                icon={Timer}
+                label={t(`appLock.settings.timeoutShort${timeoutSeconds === -1 ? "Never" : timeoutSeconds}`)}
+                on
+              />
+              <StatusChip
+                icon={Fingerprint}
+                label={
+                  biometricOn
+                    ? t("appLock.settings.biometricOn", { name: biometricName_ })
+                    : t("appLock.settings.biometricOff", { name: biometricName_ })
+                }
+                on={biometricOn}
+              />
+            </View>
+          ) : null}
+
+          <Button
+            title={hasPin ? t("appLock.settings.changePin") : t("appLock.settings.setPin")}
+            icon={hasPin ? KeyRound : Lock}
+            variant={hasPin ? "secondary" : "primary"}
+            onPress={handleSetupOrChange}
+          />
+        </Card>
 
         {/* ─── Biometric ───────────────────────────────── */}
         {hasPin ? (
-          <View style={{ gap: spacing.sm }}>
+          <View>
             <SectionHeader title={t("appLock.settings.biometricHeading")} />
             <Card padded={false}>
               <View
@@ -255,145 +215,170 @@ export default function AppLockScreen() {
                   alignItems: "center",
                   gap: spacing.md,
                   padding: spacing.md,
+                  opacity: biometricAvailable ? 1 : 0.85,
                 }}
               >
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
                     borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
+                    backgroundColor: biometricAvailable ? colors.primarySoft : colors.well,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Fingerprint size={20} color={colors.primary} strokeWidth={2.25} />
+                  <Fingerprint
+                    size={20}
+                    color={biometricAvailable ? colors.primary : colors.textMuted}
+                    strokeWidth={2.25}
+                  />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={[typography.title.sm, { color: colors.text }]}>
-                    {t("appLock.settings.biometricToggle", {
-                      name: biometricName_,
-                    })}
+                    {t("appLock.settings.biometricToggle", { name: biometricName_ })}
                   </Text>
                   <Text
                     style={[
                       typography.body.sm,
-                      { color: colors.textMuted, marginTop: 2 },
+                      {
+                        color: biometricHint ? colors.warning : colors.textMuted,
+                        marginTop: 2,
+                      },
                     ]}
                     numberOfLines={2}
                   >
-                    {biometricHint ?? t("appLock.settings.biometricSubtitle")}
+                    {biometricHint ??
+                      t("appLock.settings.biometricSubtitle", { name: biometricName_ })}
                   </Text>
                 </View>
                 <Switch
-                  value={biometricEnabled}
+                  value={biometricOn}
                   onValueChange={setBiometricEnabled}
                   disabled={!biometricAvailable}
-                  trackColor={{
-                    true: withOpacity(colors.primary, 0.6),
-                    false: colors.border,
-                  }}
-                  thumbColor={colors.surface}
+                  trackColor={{ true: colors.primary, false: colors.fillStrong }}
+                  ios_backgroundColor={colors.fillStrong}
                 />
               </View>
             </Card>
           </View>
         ) : null}
 
-        {/* ─── Timeout ─────────────────────────────────── */}
+        {/* ─── Auto-lock ───────────────────────────────── */}
         {hasPin ? (
-          <View style={{ gap: spacing.sm }}>
+          <View>
             <SectionHeader title={t("appLock.settings.timeoutHeading")} />
-            <Card padded={false}>
-              {TIMEOUT_OPTIONS.map((opt, i) => {
-                const selected = timeoutSeconds === opt.value;
-                return (
-                  <View key={opt.value}>
+            <Card style={{ gap: spacing.md }}>
+              <View
+                accessibilityRole="radiogroup"
+                style={{
+                  flexDirection: "row",
+                  padding: 3,
+                  gap: 2,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
+                }}
+              >
+                {TIMEOUT_OPTIONS.map((opt) => {
+                  const selected = timeoutSeconds === opt.value;
+                  return (
                     <Pressable
+                      key={opt.value}
                       onPress={() => setTimeoutSeconds(opt.value)}
                       accessibilityRole="radio"
                       accessibilityState={{ selected }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: spacing.md,
-                        padding: spacing.md,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
-                          borderCurve: "continuous",
-                          backgroundColor: selected
-                            ? colors.primarySoft
-                            : colors.surfaceMuted,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Timer
-                          size={18}
-                          color={selected ? colors.primary : colors.text}
-                          strokeWidth={2.25}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            typography.title.sm,
-                            {
-                              color: selected ? colors.primary : colors.text,
-                            },
-                          ]}
-                        >
-                          {t(opt.labelKey)}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          width: 22,
-                          height: 22,
+                      accessibilityLabel={t(opt.labelKey)}
+                      style={[
+                        {
+                          flex: 1,
+                          height: 36,
                           borderRadius: 11,
                           borderCurve: "continuous",
-                          borderWidth: 2,
-                          borderColor: selected
-                            ? colors.primary
-                            : colors.textSubtle,
                           alignItems: "center",
                           justifyContent: "center",
-                        }}
+                        },
+                        selected
+                          ? {
+                              backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+                              ...(scheme === "dark" ? null : shadow.xs),
+                            }
+                          : null,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          typography.label.sm,
+                          { color: selected ? colors.text : colors.textMuted },
+                        ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
                       >
-                        {selected ? (
-                          <View
-                            style={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: 5,
-                              backgroundColor: colors.primary,
-                            }}
-                          />
-                        ) : null}
-                      </View>
+                        {t(`appLock.settings.timeoutShort${opt.value === -1 ? "Never" : opt.value}`)}
+                      </Text>
                     </Pressable>
-                    {i < TIMEOUT_OPTIONS.length - 1 ? (
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: colors.border,
-                          marginHorizontal: spacing.md,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>
+                {t("appLock.settings.timeoutHint")}
+              </Text>
             </Card>
           </View>
         ) : null}
+
+        {/* ─── Remove PIN (kept apart from everyday settings) ─── */}
+        {hasPin ? (
+          <Pressable
+            onPress={confirmRemovePin}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 48,
+              borderRadius: radius.full,
+              backgroundColor: colors.dangerSoft,
+              opacity: pressed ? 0.8 : 1,
+              marginTop: spacing.sm,
+            })}
+          >
+            <ShieldAlert size={17} color={colors.danger} strokeWidth={2.3} />
+            <Text style={[typography.label.lg, { color: colors.danger }]}>
+              {t("appLock.settings.removePin")}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </Screen>
+  );
+}
+
+function StatusChip({ icon: Icon, label, on }: { icon: any; label: string; on: boolean }) {
+  const { colors, typography, radius } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        height: 34,
+        paddingHorizontal: 10,
+        borderRadius: radius.full,
+        backgroundColor: on ? colors.primarySoft : colors.fill,
+      }}
+    >
+      <Icon size={14} color={on ? colors.primary : colors.textMuted} strokeWidth={2.3} />
+      <Text
+        style={[typography.label.sm, { color: on ? colors.primary : colors.textMuted }]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }

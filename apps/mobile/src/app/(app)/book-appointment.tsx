@@ -477,13 +477,6 @@ export default function BookAppointmentScreen() {
   }, [step, step1View, specialtyFilter, query, router]);
 
   const isDark = scheme === "dark";
-  const stepKicker = [
-    step1View === "doctors"
-      ? t("bookAppointment.availableDoctors", { defaultValue: "Available doctors" })
-      : t("bookAppointment.findCare", { defaultValue: "Find the right care" }),
-    t("bookAppointment.step2Kicker", { defaultValue: "Schedule" }),
-    t("bookAppointment.step3Kicker", { defaultValue: "Almost done" }),
-  ][step - 1];
 
   return (
     <Screen padded={false} edges={["top"]} bottomInset={false} keyboard>
@@ -511,8 +504,8 @@ export default function BookAppointmentScreen() {
           paddingBottom: step > 1 ? spacing.xxl : insets.bottom + spacing.xxl,
         }}
       >
-        <View style={{ paddingTop: spacing.xs, paddingBottom: spacing.xl }}>
-          <Stepper
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.lg }}>
+          <StepTrack
             steps={[
               t("bookAppointment.stepDoctor"),
               t("bookAppointment.stepSchedule"),
@@ -524,7 +517,6 @@ export default function BookAppointmentScreen() {
 
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
           <IntroBlock
-            kicker={stepKicker}
             title={
               step === 1
                 ? step1View === "doctors" && specialtyFilter
@@ -563,7 +555,6 @@ export default function BookAppointmentScreen() {
 
               {step1View === "specialties" ? (
                 <>
-                  <TrustStrip t={t} />
 
                   {filteredSpecialties.length === 0 ? (
                     <EmptyState
@@ -581,23 +572,24 @@ export default function BookAppointmentScreen() {
                           defaultValue: `${filteredSpecialties.length}`,
                         })}
                       />
-                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
+                      <Card padded={false}>
                         {filteredSpecialties.map((s, i) => (
-                          <View key={`${s.name}-${i}`} style={{ width: "48%", flexGrow: 1, maxWidth: "48.5%" }}>
-                            <SpecialtyCard
-                              name={s.name}
-                              count={s.count}
-                              onPress={() => {
-                                setSpecialtyFilter(s.name);
-                                setStep1View("doctors");
-                              }}
-                              t={t}
-                            />
-                          </View>
+                          <SpecialtyRow
+                            key={`${s.name}-${i}`}
+                            name={s.name}
+                            count={s.count}
+                            first={i === 0}
+                            onPress={() => {
+                              setSpecialtyFilter(s.name);
+                              setStep1View("doctors");
+                            }}
+                            t={t}
+                          />
                         ))}
-                      </View>
+                      </Card>
                     </View>
                   )}
+                  <TrustStrip t={t} />
                 </>
               ) : (
                 <View style={{ gap: spacing.md }}>
@@ -866,169 +858,91 @@ export default function BookAppointmentScreen() {
 
           {step === 3 ? (
             <View style={{ gap: spacing.lg }}>
-              {/* Ticket-style booking summary */}
-              <Card padded={false} variant="elevated">
-                <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-                  <LinearGradient
-                    pointerEvents="none"
-                    colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <LinearGradient
-                    pointerEvents="none"
-                    colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0)"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0.7, y: 0.8 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-                    <View
-                      style={{
-                        width: 52,
-                        height: 52,
-                        borderRadius: 26,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "rgba(255,255,255,0.18)",
-                        borderWidth: 1,
-                        borderColor: "rgba(255,255,255,0.35)",
-                      }}
-                    >
-                      <Text style={[typography.title.md, { color: "#FFFFFF" }]}>
-                        {initialsOf(doctorDisplayName)}
+              {/* Booking summary — each line can jump back to its step */}
+              <Card padded={false}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg }}>
+                  <DoctorAvatar name={doctorDisplayName} specialization={selectedDoctor?.specialization} />
+                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Text numberOfLines={1} style={[typography.title.md, { color: colors.text, flexShrink: 1 }]}>
+                        {doctorDisplayName}
                       </Text>
+                      {selectedDoctor?.slmcVerifiedAt ? (
+                        <BadgeCheck size={16} color={colors.primary} strokeWidth={2.4} />
+                      ) : null}
                     </View>
-                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Text numberOfLines={1} style={[typography.title.md, { color: "#FFFFFF", flexShrink: 1 }]}>
-                          {doctorDisplayName}
-                        </Text>
-                        {selectedDoctor?.slmcVerifiedAt ? (
-                          <BadgeCheck size={16} color="#FFFFFF" strokeWidth={2.4} />
-                        ) : null}
-                      </View>
-                      <Text numberOfLines={1} style={[typography.body.sm, { color: "rgba(255,255,255,0.82)" }]}>
-                        {selectedDoctor?.specialization || "Medical Specialist"}
-                      </Text>
-                    </View>
+                    <Text numberOfLines={1} style={[typography.body.sm, { color: colors.textMuted }]}>
+                      {selectedDoctor?.specialization || "Medical Specialist"}
+                    </Text>
                   </View>
-                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                    <GlassStat icon={CalendarIcon} label={t("bookAppointment.summaryDate")} value={shortDate || formattedDate} />
-                    <GlassStat icon={Clock} label={t("bookAppointment.summaryTime")} value={values.time || "—"} />
-                  </View>
+                  <EditLink label={t("bookAppointment.change", "Change")} onPress={() => setStep(1)} />
                 </View>
 
-                {/* Perforation */}
-                <View style={{ height: 22, justifyContent: "center" }}>
-                  <View
-                    style={{
-                      marginHorizontal: spacing.xl,
-                      borderTopWidth: 1.5,
-                      borderStyle: "dashed",
-                      borderColor: colors.separator,
-                    }}
-                  />
-                  <View style={[styles.notch, { left: -11, backgroundColor: colors.bg }]} />
-                  <View style={[styles.notch, { right: -11, backgroundColor: colors.bg }]} />
-                </View>
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginHorizontal: spacing.lg }} />
 
-                <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md }}>
-                  <SummaryRow icon={Building2} label={t("bookAppointment.summaryHospital")} value={doctorHospitalName} />
-                  <SummaryRow
-                    icon={values.mode === "video" ? Video : User}
-                    label={t("bookAppointment.step3ModeTitle")}
-                    value={
-                      values.mode === "video"
-                        ? t("bookAppointment.modeVideoLabel")
-                        : t("bookAppointment.modeInPersonLabel")
-                    }
+                <View style={{ padding: spacing.lg, gap: spacing.md }}>
+                  <ReviewRow
+                    icon={CalendarIcon}
+                    label={t("bookAppointment.summaryWhen", "When")}
+                    value={`${shortDate || formattedDate} · ${values.time || "—"}`}
+                    action={<EditLink label={t("bookAppointment.change", "Change")} onPress={() => setStep(2)} />}
+                  />
+                  <ReviewRow
+                    icon={Building2}
+                    label={t("bookAppointment.summaryHospital")}
+                    value={doctorHospitalName}
                   />
                   {feeLabel ? (
-                    <>
-                      <SummaryRow icon={Wallet} label={t("bookAppointment.summaryFee")} value={feeLabel} />
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginTop: spacing.xs,
-                          paddingVertical: spacing.md,
-                          paddingHorizontal: spacing.lg,
-                          borderRadius: 16,
-                          borderCurve: "continuous",
-                          backgroundColor: colors.primarySoft,
-                        }}
-                      >
-                        <Text style={[typography.title.sm, { color: colors.text }]}>
-                          {t("bookAppointment.summaryTotal")}
-                        </Text>
-                        <Text style={[typography.title.lg, { color: colors.primary }]}>{feeLabel}</Text>
-                      </View>
-                    </>
+                    <ReviewRow
+                      icon={Wallet}
+                      label={t("bookAppointment.summaryFee")}
+                      value={feeLabel}
+                      strong
+                    />
                   ) : null}
                 </View>
               </Card>
 
-              {/* Consultation mode */}
-              <Card>
-                <View style={{ gap: 2, marginBottom: spacing.md }}>
-                  <Text style={[typography.title.md, { color: colors.text }]}>
-                    {t("bookAppointment.step3ModeTitle")}
-                  </Text>
-                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                    {t("bookAppointment.step3ModeSubtitle")}
-                  </Text>
-                </View>
-                <View style={{ gap: spacing.sm }}>
-                  <Controller
-                    control={control}
-                    name="mode"
-                    render={({ field: { value, onChange } }) => (
-                      <>
-                        <ModeOptionCard
-                          active={value === "in_person"}
-                          onPress={() => onChange("in_person")}
-                          icon={User}
-                          label={t("bookAppointment.modeInPersonLabel")}
-                          body={t("bookAppointment.modeInPersonBody")}
+              {/* Consultation mode — side-by-side choice */}
+              <View style={{ gap: spacing.sm }}>
+                <SectionLabel label={t("bookAppointment.step3ModeTitle")} />
+                <Controller
+                  control={control}
+                  name="mode"
+                  render={({ field: { value, onChange } }) => (
+                    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                      <ModeTile
+                        active={value === "in_person"}
+                        onPress={() => onChange("in_person")}
+                        icon={User}
+                        label={t("bookAppointment.modeInPersonLabel")}
+                        caption={t("bookAppointment.modeInPersonShort", "At the hospital")}
+                      />
+                      {selectedDoctor?.telemedicineEnabled ? (
+                        <ModeTile
+                          active={value === "video"}
+                          onPress={() => onChange("video")}
+                          icon={Video}
+                          label={t("bookAppointment.modeVideoLabel")}
+                          caption={t("bookAppointment.modeVideoShort", "From anywhere")}
                         />
-                        {selectedDoctor?.telemedicineEnabled ? (
-                          <ModeOptionCard
-                            active={value === "video"}
-                            onPress={() => onChange("video")}
+                      ) : (
+                        <View testID="video-unavailable" style={{ flex: 1 }}>
+                          <ModeTile
+                            disabled
                             icon={Video}
                             label={t("bookAppointment.modeVideoLabel")}
-                            body={t("bookAppointment.modeVideoBody")}
+                            caption={t("bookAppointment.videoNotOffered", "Not offered")}
                           />
-                        ) : (
-                          <View
-                            testID="video-unavailable"
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: spacing.sm,
-                              padding: spacing.md,
-                              borderRadius: 14,
-                              borderCurve: "continuous",
-                              backgroundColor: colors.well,
-                            }}
-                          >
-                            <Info size={16} color={colors.textSubtle} />
-                            <Text style={[typography.body.sm, { color: colors.textMuted, flex: 1 }]}>
-                              {t("bookAppointment.videoUnavailableTitle")}: {t("bookAppointment.videoUnavailableBody")}
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  />
-                </View>
-              </Card>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                />
+              </View>
 
               {/* Reason */}
-              <Card>
+              <View>
                 <FormField
                   label={t("bookAppointment.step3ReasonLabel")}
                   helper={t("bookAppointment.step3ReasonHelper")}
@@ -1045,12 +959,11 @@ export default function BookAppointmentScreen() {
                         multiline
                         numberOfLines={3}
                         leadingIcon={FileText}
-                        tone="soft"
                       />
                     )}
                   />
                 </FormField>
-              </Card>
+              </View>
 
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.xs }}>
                 <ShieldCheck size={16} color={colors.success} strokeWidth={2.3} />
@@ -1185,13 +1098,49 @@ function initialsOf(name: string) {
     .toUpperCase();
 }
 
-function IntroBlock({ kicker, title, subtitle }: { kicker: string; title: string; subtitle: string }) {
+function IntroBlock({ title, subtitle }: { title: string; subtitle: string }) {
   const { colors, typography } = useTheme();
   return (
-    <View style={{ gap: 6 }}>
-      <Text style={[typography.kicker, { color: colors.primary, textTransform: "uppercase" }]}>{kicker}</Text>
-      <Text style={[typography.display.md, { color: colors.text }]}>{title}</Text>
-      <Text style={[typography.body.md, { color: colors.textMuted }]}>{subtitle}</Text>
+    <View style={{ gap: 4 }}>
+      <Text style={[typography.title.lg, { color: colors.text }]}>{title}</Text>
+      <Text style={[typography.body.sm, { color: colors.textMuted }]}>{subtitle}</Text>
+    </View>
+  );
+}
+
+/** Slim 3-segment progress: bars + labels, done steps get a check. */
+function StepTrack({ steps, current }: { steps: string[]; current: number }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", gap: 6 }} accessibilityLabel={`${current + 1} / ${steps.length}: ${steps[current]}`}>
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <View key={label} style={{ flex: 1, gap: 6 }}>
+            <View
+              style={{
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: done || active ? colors.primary : colors.fill,
+                opacity: done ? 0.45 : 1,
+              }}
+            />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              {done ? <Check size={12} color={colors.primary} strokeWidth={3} /> : null}
+              <Text
+                numberOfLines={1}
+                style={[
+                  typography.label.sm,
+                  { color: active ? colors.text : done ? colors.primary : colors.textSubtle },
+                ]}
+              >
+                {label}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -1200,7 +1149,7 @@ function SectionLabel({ label, trailing }: { label: string; trailing?: string })
   const { colors, typography } = useTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-      <Text style={[typography.title.sm, { color: colors.text }]}>{label}</Text>
+      <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>{label}</Text>
       {trailing ? <Text style={[typography.caption, { color: colors.textSubtle }]}>{trailing}</Text> : null}
     </View>
   );
@@ -1214,24 +1163,11 @@ function TrustStrip({ t }: { t: (k: string, o?: any) => string }) {
     { icon: Lock, label: t("bookAppointment.trustSecure", "Secure payments") },
   ];
   return (
-    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+    <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: spacing.lg, rowGap: 6 }}>
       {items.map(({ icon: Icon, label }) => (
-        <View
-          key={label}
-          style={{
-            flex: 1,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            paddingVertical: spacing.sm,
-            paddingHorizontal: spacing.sm + 2,
-            borderRadius: 14,
-            borderCurve: "continuous",
-            backgroundColor: colors.primarySoft,
-          }}
-        >
-          <Icon size={14} color={colors.primary} strokeWidth={2.4} />
-          <Text numberOfLines={2} style={[typography.label.xs, { color: colors.primaryMuted, flex: 1 }]}>
+        <View key={label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <Icon size={13} color={colors.success} strokeWidth={2.4} />
+          <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
             {label}
           </Text>
         </View>
@@ -1483,15 +1419,17 @@ function SummaryRow({ icon: Icon, label, value }: { icon: any; label: string; va
   );
 }
 
-// Specialty tile — premium card for the 2-column grid.
-function SpecialtyCard({
+// Specialty row — one line per specialty inside a shared list card.
+function SpecialtyRow({
   name,
   count,
+  first,
   onPress,
   t,
 }: {
   name: string;
   count: number;
+  first: boolean;
   onPress: () => void;
   t: (k: string, opts?: any) => string;
 }) {
@@ -1500,52 +1438,37 @@ function SpecialtyCard({
   const accent = getSpecialtyAccent(name);
 
   return (
-    <Card
+    <Pressable
       onPress={onPress}
+      testID={`specialty-${name}`}
+      accessibilityRole="button"
       accessibilityLabel={t("bookAppointment.specialtyA11y", { specialty: name, count })}
-      style={{ minHeight: 138, justifyContent: "space-between", gap: spacing.lg }}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+        borderTopColor: colors.separator,
+        backgroundColor: pressed ? colors.fill : "transparent",
+      })}
     >
       <View
-        pointerEvents="none"
         style={{
-          position: "absolute",
-          top: -28,
-          right: -28,
-          width: 96,
-          height: 96,
-          borderRadius: 48,
-          backgroundColor: withOpacity(accent, 0.07),
+          width: 42,
+          height: 42,
+          borderRadius: 13,
+          borderCurve: "continuous",
+          backgroundColor: withOpacity(accent, 0.13),
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
-      <View testID={`specialty-${name}`} style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            borderCurve: "continuous",
-            backgroundColor: withOpacity(accent, 0.13),
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <IconComponent size={22} color={accent} strokeWidth={2.2} />
-        </View>
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: colors.well,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ArrowUpRight size={15} color={colors.textMuted} strokeWidth={2.4} />
-        </View>
+      >
+        <IconComponent size={21} color={accent} strokeWidth={2.2} />
       </View>
-      <View style={{ gap: 2 }}>
-        <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={2}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
           {name}
         </Text>
         <Text style={[typography.caption, { color: colors.textSubtle }]}>
@@ -1554,7 +1477,8 @@ function SpecialtyCard({
             : t("bookAppointment.tapToChoose", { defaultValue: "Tap to view" })}
         </Text>
       </View>
-    </Card>
+      <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.2} />
+    </Pressable>
   );
 }
 
@@ -1771,3 +1695,108 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
 });
+
+function EditLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors, typography } = useTheme();
+  return (
+    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={label}>
+      <Text style={[typography.label.md, { color: colors.primary }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function ReviewRow({
+  icon: Icon,
+  label,
+  value,
+  action,
+  strong,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  action?: any;
+  strong?: boolean;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+      <Icon size={18} color={colors.textSubtle} strokeWidth={2.2} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.caption, { color: colors.textSubtle }]}>{label}</Text>
+        <Text
+          numberOfLines={1}
+          style={[strong ? typography.title.md : typography.title.sm, { color: strong ? colors.primary : colors.text }]}
+        >
+          {value}
+        </Text>
+      </View>
+      {action}
+    </View>
+  );
+}
+
+function ModeTile({
+  active,
+  onPress,
+  icon: Icon,
+  label,
+  caption,
+  disabled,
+}: {
+  active?: boolean;
+  onPress?: () => void;
+  icon: any;
+  label: string;
+  caption: string;
+  disabled?: boolean;
+}) {
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || !onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: !!active, disabled: !!disabled }}
+      accessibilityLabel={`${label}, ${caption}`}
+      style={({ pressed }) => ({
+        flex: 1,
+        gap: spacing.sm,
+        padding: spacing.md,
+        borderRadius: 18,
+        borderCurve: "continuous",
+        borderWidth: 1.5,
+        borderColor: active ? colors.primary : scheme === "dark" ? colors.borderStrong : colors.hairline,
+        backgroundColor: active ? colors.primarySoft : disabled ? colors.fill : colors.surface,
+        opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
+        ...(active || disabled || scheme === "dark" ? null : shadow.xs),
+      })}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Icon size={20} color={active ? colors.primary : colors.textMuted} strokeWidth={2.3} />
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: active ? 0 : 1.5,
+            borderColor: colors.borderStrong,
+            backgroundColor: active ? colors.primary : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {active ? <Check size={12} color={colors.onPrimary} strokeWidth={3} /> : null}
+        </View>
+      </View>
+      <View>
+        <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
+          {caption}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}

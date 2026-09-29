@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import {
   Lock,
@@ -11,8 +10,8 @@ import {
   ShieldCheck,
   Check,
   AlertCircle,
-  Shield,
   CheckCircle2,
+  Circle,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useChangePassword } from "@/hooks/useApi";
@@ -20,20 +19,17 @@ import { useTheme } from "@/theme/ThemeProvider";
 import {
   Screen,
   ScreenHeader,
-  FormField,
   TextInput,
   Button,
   useToast,
   Card,
-  Pill,
   Pressable,
 } from "@/components/ui";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, scheme } = useTheme();
-  const isDark = scheme === "dark";
+  const { spacing, colors, typography } = useTheme();
   const toast = useToast();
   const changePw = useChangePassword();
 
@@ -45,6 +41,7 @@ export default function ChangePasswordScreen() {
   const hasMinLength = next.length >= 8;
   const hasNumber = /\d/.test(next);
   const hasUpperOrSpecial = /[A-Z]/.test(next) || /[^A-Za-z0-9]/.test(next);
+  const isDifferent = next.length > 0 && next !== current;
 
   // Strength calculation (0 to 4)
   const strengthScore = useMemo(() => {
@@ -60,17 +57,17 @@ export default function ChangePasswordScreen() {
   const strengthMeta = useMemo(() => {
     switch (strengthScore) {
       case 1:
-        return { label: "Weak", color: colors.danger };
+        return { label: t("changePassword.ui.weak"), color: colors.danger };
       case 2:
-        return { label: "Fair", color: colors.warning };
+        return { label: t("changePassword.ui.fair"), color: colors.warning };
       case 3:
-        return { label: "Good", color: colors.primary };
+        return { label: t("changePassword.ui.good"), color: colors.primary };
       case 4:
-        return { label: "Strong", color: colors.success };
+        return { label: t("changePassword.ui.strong"), color: colors.success };
       default:
         return { label: "", color: colors.border };
     }
-  }, [strengthScore, colors]);
+  }, [strengthScore, colors, t]);
 
   // Match state
   const matchStatus = useMemo(() => {
@@ -88,7 +85,7 @@ export default function ChangePasswordScreen() {
   async function save() {
     if (!current.trim()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      toast.show("Please enter your current password", "warning");
+      toast.show(t("changePassword.ui.currentRequired"), "warning");
       return;
     }
     if (!hasMinLength) {
@@ -103,7 +100,7 @@ export default function ChangePasswordScreen() {
     }
     if (current === next) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      toast.show("New password must be different from current password", "warning");
+      toast.show(t("changePassword.ui.sameAsCurrent"), "warning");
       return;
     }
 
@@ -124,142 +121,61 @@ export default function ChangePasswordScreen() {
   }
 
   return (
-    <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
         back
         onBack={() => router.back()}
         title={t("changePassword.title", "Change password")}
+        subtitle={t("changePassword.ui.subtitle")}
       />
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: spacing.lg,
-          gap: spacing.lg,
+          paddingTop: spacing.sm,
           paddingBottom: spacing.xl * 2,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Security Overview Hero Banner */}
-        <LinearGradient
-          colors={
-            isDark
-              ? [colors.surfaceElevated, colors.surface]
-              : [colors.primarySoft, colors.surface]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 20,
-            borderCurve: "continuous",
-            padding: spacing.md,
-            borderWidth: 1,
-            borderColor: colors.separator,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-          }}
-        >
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 16,
-              borderCurve: "continuous",
-              backgroundColor: colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 8,
-              elevation: 4,
-            }}
+        {/* ─── Step 1: current password ─── */}
+        <SectionLabel step={1} label={t("changePassword.ui.currentSection")} />
+        <Card style={{ gap: spacing.sm }}>
+          <FieldLabel label={t("changePassword.field.currentLabel", "Current password")} />
+          <TextInput
+            value={current}
+            onChangeText={setCurrent}
+            placeholder={t("changePassword.ui.currentPlaceholder")}
+            secureTextEntry
+            showPasswordToggle
+            leadingIcon={Lock}
+            autoComplete="current-password"
+            textContentType="password"
+          />
+          <Pressable
+            onPress={() => router.push("/(auth)/forgot-password" as any)}
+            hitSlop={8}
+            accessibilityRole="link"
+            style={{ alignSelf: "flex-end", paddingVertical: 2 }}
           >
-            <ShieldCheck size={26} color={colors.onPrimary} />
-          </View>
-
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[typography.title.sm, { color: colors.text, fontWeight: "700" }]}>
-              Account Security
+            <Text style={[typography.label.md, { color: colors.primary }]}>
+              {t("changePassword.ui.forgot")}
             </Text>
-            <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 17 }]}>
-              Protect your health records, prescriptions, and clinical data with a strong password.
-            </Text>
-          </View>
-        </LinearGradient>
+          </Pressable>
+        </Card>
 
-        {/* Elevated Form Card */}
-        <Card
-          style={{
-            padding: spacing.lg,
-            borderRadius: 20,
-            borderCurve: "continuous",
-            gap: spacing.lg,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.separator,
-          }}
-        >
-          {/* Current Password */}
-          <View style={{ gap: spacing.xs }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text
-                style={[
-                  typography.label.md,
-                  {
-                    color: colors.textMuted,
-                    marginLeft: 2,
-                  },
-                ]}
-              >
-                {t("changePassword.field.currentLabel", "Current password")} *
-              </Text>
-
-              <Pressable
-                onPress={() => router.push("/(auth)/forgot-password" as any)}
-                hitSlop={8}
-              >
-                <Text
-                  style={[
-                    typography.caption,
-                    { color: colors.primary, fontWeight: "600" },
-                  ]}
-                >
-                  Forgot?
+        {/* ─── Step 2: new password ─── */}
+        <SectionLabel step={2} label={t("changePassword.ui.newSection")} />
+        <Card style={{ gap: spacing.md }}>
+          <View style={{ gap: spacing.sm }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <FieldLabel label={t("changePassword.field.newLabel", "New password")} />
+              {next.length > 0 ? (
+                <Text style={[typography.label.sm, { color: strengthMeta.color }]}>
+                  {strengthMeta.label}
                 </Text>
-              </Pressable>
+              ) : null}
             </View>
-
-            <TextInput
-              value={current}
-              onChangeText={setCurrent}
-              placeholder={t("changePassword.field.currentPlaceholder", "••••••••")}
-              secureTextEntry
-              showPasswordToggle
-              leadingIcon={Lock}
-            />
-          </View>
-
-          {/* New Password */}
-          <View style={{ gap: spacing.xs }}>
-            <Text
-              style={[
-                typography.label.md,
-                {
-                  color: colors.textMuted,
-                  marginLeft: 2,
-                },
-              ]}
-            >
-              {t("changePassword.field.newLabel", "New password")} *
-            </Text>
-
             <TextInput
               value={next}
               onChangeText={setNext}
@@ -267,104 +183,60 @@ export default function ChangePasswordScreen() {
               secureTextEntry
               showPasswordToggle
               leadingIcon={KeyRound}
+              autoComplete="new-password"
+              textContentType="newPassword"
             />
-
-            {/* Password Strength Meter */}
-            {next.length > 0 && (
-              <View style={{ gap: 6, marginTop: 4 }}>
+            {/* 4-segment strength bar */}
+            <View
+              style={{ flexDirection: "row", gap: 4, height: 4 }}
+              accessibilityLabel={`${t("changePassword.ui.strength")}: ${strengthMeta.label}`}
+            >
+              {[1, 2, 3, 4].map((step) => (
                 <View
+                  key={step}
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    flex: 1,
+                    borderRadius: 2,
+                    backgroundColor: strengthScore >= step ? strengthMeta.color : colors.fill,
                   }}
-                >
-                  <Text style={[typography.caption, { color: colors.textMuted, fontSize: 11 }]}>
-                    Password Strength
-                  </Text>
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: strengthMeta.color, fontWeight: "700", fontSize: 11 },
-                    ]}
-                  >
-                    {strengthMeta.label}
-                  </Text>
-                </View>
-
-                {/* 4 Segment Progress Bar */}
-                <View style={{ flexDirection: "row", gap: 4, height: 4 }}>
-                  {[1, 2, 3, 4].map((step) => (
-                    <View
-                      key={step}
-                      style={{
-                        flex: 1,
-                        height: "100%",
-                        borderRadius: 2,
-                        backgroundColor:
-                          strengthScore >= step ? strengthMeta.color : colors.border,
-                      }}
-                    />
-                  ))}
-                </View>
-
-                {/* Real-time Checklist Chips */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 4,
-                  }}
-                >
-                  <CriteriaChip label="8+ chars" met={hasMinLength} />
-                  <CriteriaChip label="Number" met={hasNumber} />
-                  <CriteriaChip label="Uppercase/Symbol" met={hasUpperOrSpecial} />
-                </View>
-              </View>
-            )}
+                />
+              ))}
+            </View>
           </View>
 
-          {/* Confirm New Password */}
-          <View style={{ gap: spacing.xs }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text
-                style={[
-                  typography.label.md,
-                  {
-                    color: colors.textMuted,
-                    marginLeft: 2,
-                  },
-                ]}
-              >
-                {t("changePassword.field.confirmLabel", "Confirm new password")} *
-              </Text>
+          {/* Requirements — always visible so the rules are known up front */}
+          <View style={{ gap: 8 }}>
+            <Rule label={t("changePassword.ui.ruleLength")} met={hasMinLength} />
+            <Rule label={t("changePassword.ui.ruleNumber")} met={hasNumber} />
+            <Rule label={t("changePassword.ui.ruleCase")} met={hasUpperOrSpecial} />
+            <Rule label={t("changePassword.ui.ruleDifferent")} met={isDifferent} />
+          </View>
 
-              {matchStatus === "match" && (
+          <View style={{ height: 1, backgroundColor: colors.separator }} />
+
+          <View style={{ gap: spacing.sm }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <FieldLabel label={t("changePassword.field.confirmLabel", "Confirm new password")} />
+              {matchStatus ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <CheckCircle2 size={12} color={colors.success} />
-                  <Text style={[typography.caption, { color: colors.success, fontWeight: "600", fontSize: 11 }]}>
-                    Passwords match
+                  {matchStatus === "match" ? (
+                    <CheckCircle2 size={13} color={colors.success} />
+                  ) : (
+                    <AlertCircle size={13} color={colors.danger} />
+                  )}
+                  <Text
+                    style={[
+                      typography.label.sm,
+                      { color: matchStatus === "match" ? colors.success : colors.danger },
+                    ]}
+                  >
+                    {matchStatus === "match"
+                      ? t("changePassword.ui.match")
+                      : t("changePassword.ui.mismatch")}
                   </Text>
                 </View>
-              )}
-
-              {matchStatus === "mismatch" && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <AlertCircle size={12} color={colors.danger} />
-                  <Text style={[typography.caption, { color: colors.danger, fontWeight: "600", fontSize: 11 }]}>
-                    Does not match
-                  </Text>
-                </View>
-              )}
+              ) : null}
             </View>
-
             <TextInput
               value={confirm}
               onChangeText={setConfirm}
@@ -372,10 +244,14 @@ export default function ChangePasswordScreen() {
               secureTextEntry
               showPasswordToggle
               leadingIcon={Lock}
+              autoComplete="new-password"
+              textContentType="newPassword"
             />
           </View>
+        </Card>
 
-          {/* Primary Submit Button */}
+        {/* ─── Submit ─── */}
+        <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
           <Button
             title={t("changePassword.action.submit", "Update password")}
             onPress={save}
@@ -383,74 +259,79 @@ export default function ChangePasswordScreen() {
             disabled={!canSubmit}
             icon={ShieldCheck}
             size="lg"
-            variant="primary"
-            fullWidth
           />
-        </Card>
-
-        {/* Best Practice Security Notice */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-            padding: spacing.md,
-            borderRadius: 14,
-            borderCurve: "continuous",
-            backgroundColor: colors.surfaceSubtle,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <Shield size={18} color={colors.textMuted} />
-          <Text
-            style={[
-              typography.caption,
-              { color: colors.textMuted, flex: 1, lineHeight: 18 },
-            ]}
-          >
-            Never share your password with anyone. We will keep you logged in on this device after your password is updated.
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "center", gap: 6, paddingHorizontal: spacing.md }}>
+            <Lock size={12} color={colors.textSubtle} style={{ marginTop: 2 }} />
+            <Text style={[typography.caption, { color: colors.textSubtle, textAlign: "center", flexShrink: 1 }]}>
+              {t("changePassword.ui.footnote")}
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </Screen>
   );
 }
 
-function CriteriaChip({ label, met }: { label: string; met: boolean }) {
-  const { colors, typography } = useTheme();
-
+function SectionLabel({ step, label }: { step: number; label: string }) {
+  const { colors, typography, spacing } = useTheme();
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-        backgroundColor: met ? colors.successSoft : colors.surfaceSubtle,
-        borderWidth: 1,
-        borderColor: met ? colors.success + "40" : colors.border,
+        gap: spacing.sm,
+        paddingHorizontal: 2,
+        marginTop: step === 1 ? 0 : spacing.xl,
+        marginBottom: spacing.sm,
       }}
     >
-      <Check
-        size={11}
-        color={met ? colors.success : colors.textMuted}
-        strokeWidth={met ? 2.5 : 1.5}
-      />
-      <Text
-        style={[
-          typography.caption,
-          {
-            color: met ? colors.success : colors.textMuted,
-            fontWeight: met ? "600" : "400",
-            fontSize: 11,
-          },
-        ]}
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.primarySoft,
+        }}
       >
+        <Text style={[typography.caption, { color: colors.primary, fontWeight: "800", fontSize: 11 }]}>
+          {step}
+        </Text>
+      </View>
+      <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>
         {label}
       </Text>
+    </View>
+  );
+}
+
+function FieldLabel({ label }: { label: string }) {
+  const { colors, typography } = useTheme();
+  return <Text style={[typography.label.md, { color: colors.text }]}>{label}</Text>;
+}
+
+function Rule({ label, met }: { label: string; met: boolean }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      {met ? (
+        <View
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: colors.success,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Check size={10} color="#FFFFFF" strokeWidth={3.5} />
+        </View>
+      ) : (
+        <Circle size={16} color={colors.borderStrong} strokeWidth={1.8} />
+      )}
+      <Text style={[typography.body.sm, { color: met ? colors.text : colors.textMuted }]}>{label}</Text>
     </View>
   );
 }

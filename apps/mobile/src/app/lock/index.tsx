@@ -22,8 +22,17 @@ import { View, Text, Pressable, Alert, StyleSheet, useWindowDimensions } from "r
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Fingerprint, Heart, ScanFace } from "lucide-react-native";
+import {
+  Fingerprint,
+  Heart,
+  KeyRound,
+  Lock,
+  ScanFace,
+  UserRoundCog,
+  type LucideIcon,
+} from "lucide-react-native";
 import { Screen } from "@/components/ui";
+import { Avatar } from "@/components/ui/Avatar";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useAppLockStore } from "@/stores/appLock";
 import { useAuthStore } from "@/stores/auth";
@@ -41,8 +50,9 @@ type Mode = "biometric" | "pin";
 export default function LockScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, fontFamily, spacing, shadow } = useTheme();
+  const { colors, fontFamily, spacing, shadow, typography, scheme } = useTheme();
   const { height } = useWindowDimensions();
+  const user = useAuthStore((s) => s.user);
   const compact = height < 900;
   const tiny = height < 700;
 
@@ -158,75 +168,133 @@ export default function LockScreen() {
   const showBiometricCta =
     biometricEnabled && biometricStatus === "available" && mode === "pin";
   const BiometricIcon = /face/i.test(biometricName_) ? ScanFace : Fingerprint;
-  const iconSize = tiny ? 52 : 60;
+  const avatarSize = tiny ? 64 : compact ? 76 : 84;
+  const ring = 3;
+  const firstName = user?.name?.trim().split(/\s+/)[0];
+  const dark = scheme === "dark";
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={
+          dark
+            ? ["rgba(14,165,233,0.22)", "rgba(14,165,233,0.04)", "rgba(0,0,0,0)"]
+            : ["#D6ECFB", "#EEF6FD", colors.background]
+        }
+        locations={[0, 0.45, 1]}
+        style={[StyleSheet.absoluteFill, { bottom: "35%" }]}
+      />
     <Screen
       padded={false}
       scroll={false}
       edges={["top", "bottom"]}
-      style={{ backgroundColor: colors.surface }}
+      style={{ backgroundColor: "transparent" }}
     >
       <View
         style={{
           flex: 1,
           paddingHorizontal: spacing.xl,
-          paddingTop: tiny ? spacing.lg : compact ? spacing.xxl : spacing.xxxxl,
+          paddingTop: tiny ? spacing.md : compact ? spacing.xl : spacing.xxxl,
           paddingBottom: spacing.sm,
         }}
       >
         <View style={{ alignItems: "center" }}>
-          <View
-            style={{
-              width: iconSize,
-              height: iconSize,
-              borderRadius: iconSize * 0.2237,
-              borderCurve: "continuous",
-              overflow: "hidden",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: tiny ? spacing.md : spacing.lg,
-              ...shadow.md,
-            }}
-          >
+          <View style={{ marginBottom: tiny ? spacing.md : spacing.lg, ...shadow.hero, shadowOpacity: dark ? 0.4 : 0.18 }}>
             <LinearGradient
               colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <Heart size={iconSize * 0.48} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
+              style={{
+                width: avatarSize + ring * 2,
+                height: avatarSize + ring * 2,
+                borderRadius: avatarSize,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {user ? (
+                <View style={{ borderRadius: avatarSize, borderWidth: 2.5, borderColor: colors.surface, backgroundColor: colors.surface, overflow: "hidden" }}>
+                  <Avatar name={user.name} uri={user.photo} size={avatarSize - 5} />
+                </View>
+              ) : (
+                <Heart size={avatarSize * 0.42} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
+              )}
+            </LinearGradient>
+            <View
+              style={{
+                position: "absolute",
+                right: -2,
+                bottom: -2,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                backgroundColor: colors.surface,
+                alignItems: "center",
+                justifyContent: "center",
+                ...shadow.sm,
+              }}
+            >
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: colors.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Lock size={12} color={colors.onPrimary} strokeWidth={2.6} />
+              </View>
+            </View>
           </View>
           <Text
             style={{
-              fontSize: tiny ? 20 : 22,
-              lineHeight: tiny ? 26 : 28,
-              letterSpacing: -0.4,
+              ...typography.kicker,
+              color: colors.primary,
+              textTransform: "uppercase",
+              marginBottom: 6,
+            }}
+          >
+            {t("appLock.unlock.kicker")}
+          </Text>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={{
+              ...(tiny ? typography.title.lg : typography.display.sm),
               color: colors.text,
-              fontFamily: fontFamily.bodySemibold,
               textAlign: "center",
             }}
           >
             {mode === "biometric"
               ? t("appLock.unlock.useBiometric", { name: biometricName_ })
-              : t("appLock.unlock.title")}
+              : firstName
+                ? t("appLock.unlock.welcomeName", { name: firstName })
+                : t("appLock.unlock.title")}
           </Text>
           <Text
             style={{
-              fontSize: 15,
-              lineHeight: 20,
+              ...typography.body.md,
               color: colors.textMuted,
-              fontFamily: fontFamily.body,
               textAlign: "center",
-              marginTop: 4,
+              marginTop: 6,
               maxWidth: 300,
             }}
           >
-            {t("appLock.unlock.subtitle")}
+            {mode === "biometric" ? t("appLock.unlock.subtitle") : t("appLock.unlock.pinPrompt")}
           </Text>
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center", paddingVertical: tiny ? spacing.sm : spacing.lg }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            paddingTop: tiny ? spacing.lg : spacing.xxl,
+            paddingBottom: tiny ? spacing.xs : spacing.sm,
+          }}
+        >
           {mode === "biometric" ? (
             <View style={{ alignItems: "center", gap: spacing.xl }}>
               <Pressable
@@ -234,12 +302,16 @@ export default function LockScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t("appLock.unlock.useBiometric", { name: biometricName_ })}
                 style={({ pressed }) => ({
-                  width: 104,
-                  height: 104,
-                  borderRadius: 52,
-                  backgroundColor: pressed ? colors.fillStrong : colors.fill,
+                  width: 112,
+                  height: 112,
+                  borderRadius: 56,
+                  backgroundColor: pressed ? colors.primarySoft : colors.surface,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: colors.hairline,
                   alignItems: "center",
                   justifyContent: "center",
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                  ...shadow.card,
                 })}
               >
                 <BiometricIcon size={50} color={colors.primary} strokeWidth={1.5} />
@@ -284,44 +356,64 @@ export default function LockScreen() {
           )}
         </View>
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: spacing.sm,
-          }}
-        >
-          <TextLink label={t("appLock.unlock.forgotPinShort")} onPress={onForgotPin} />
-          <TextLink
-            label={t("appLock.unlock.switchAccountShort")}
-            onPress={async () => {
-              await signOut();
-              router.replace("/(auth)/login");
-            }}
-          />
+        <View style={{ gap: tiny ? spacing.sm : spacing.md }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <FooterPill icon={KeyRound} label={t("appLock.unlock.forgotPinShort")} onPress={onForgotPin} />
+            <FooterPill
+              icon={UserRoundCog}
+              label={t("appLock.unlock.switchAccountShort")}
+              onPress={async () => {
+                await signOut();
+                router.replace("/(auth)/login");
+              }}
+            />
+          </View>
         </View>
       </View>
     </Screen>
+    </View>
   );
 }
 
-function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
-  const { colors, fontFamily } = useTheme();
+function FooterPill({
+  icon: Icon,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors, fontFamily, shadow } = useTheme();
   return (
-    <Pressable onPress={onPress} hitSlop={12} accessibilityRole="button" accessibilityLabel={label}>
-      {({ pressed }) => (
-        <Text
-          style={{
-            color: colors.primary,
-            fontSize: 15,
-            fontFamily: fontFamily.bodyMedium,
-            opacity: pressed ? 0.45 : 1,
-          }}
-        >
-          {label}
-        </Text>
-      )}
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flex: 1,
+        height: 46,
+        borderRadius: 23,
+        borderCurve: "continuous",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingHorizontal: 12,
+        backgroundColor: pressed ? colors.primarySoft : colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.hairline,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+        ...shadow.xs,
+      })}
+    >
+      <Icon size={16} color={colors.primary} strokeWidth={2.2} />
+      <Text
+        numberOfLines={1}
+        style={{ color: colors.text, fontSize: 14, fontFamily: fontFamily.bodySemibold, letterSpacing: -0.1, flexShrink: 1 }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

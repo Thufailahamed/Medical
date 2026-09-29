@@ -15,14 +15,15 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Send, Check, CheckCheck, Lock, Unlock } from "lucide-react-native";
+import { ChevronLeft, Send, Check, CheckCheck, Lock, Unlock, ShieldCheck, MessageCircle } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   useDoctorConversation,
   useSendDoctorMessage,
   useMarkConversationRead,
   useSetConversationStatus,
 } from "@/hooks/useApi";
-import { Screen, ErrorState, Skeleton } from "@/components/ui";
+import { Screen, ErrorState, Skeleton, IconTile } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function ConversationScreen() {
@@ -30,9 +31,10 @@ export default function ConversationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
-  const { colors, spacing, typography, fontFamily, scheme } = useTheme();
+  const { colors, spacing, typography, fontFamily, scheme, shadow } = useTheme();
+  const insets = useSafeAreaInsets();
   const isDark = scheme === "dark";
-  const hairline = isDark ? colors.borderStrong : colors.separator;
+  const edge = isDark ? colors.borderStrong : colors.hairline;
 
   const { data, isLoading, isError, refetch } = useDoctorConversation(id);
   const sendMutation = useSendDoctorMessage(id);
@@ -89,79 +91,117 @@ export default function ConversationScreen() {
     }
   }, [draft, sendMutation]);
 
+  const dayKey = (iso: string) => new Date(iso).toDateString();
+  const dayLabel = (iso: string) => {
+    const d = new Date(iso);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return t("inbox.chatToday");
+    if (d.toDateString() === yesterday.toDateString()) return t("inbox.chatYesterday");
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  };
+
   const renderBubble = ({ item, index }: { item: any; index: number }) => {
     const isMine = item.senderRole === "doctor";
     const list = data?.messages || [];
     const prev = list[index - 1];
     const next = list[index + 1];
-    const groupedWithPrev = prev && prev.senderRole === item.senderRole;
-    const groupedWithNext = next && next.senderRole === item.senderRole;
+    const newDay = !prev || dayKey(prev.createdAt) !== dayKey(item.createdAt);
+    const groupedWithPrev = !newDay && prev.senderRole === item.senderRole;
+    const groupedWithNext =
+      !!next && next.senderRole === item.senderRole && dayKey(next.createdAt) === dayKey(item.createdAt);
     const R = 20;
     const TAIL = 6;
     return (
-      <View
-        style={{
-          alignItems: isMine ? "flex-end" : "flex-start",
-          marginTop: groupedWithPrev ? 1 : 10,
-          paddingHorizontal: spacing.md,
-        }}
-      >
+      <View>
+        {newDay && (
+          <View style={{ alignItems: "center", marginTop: spacing.lg, marginBottom: spacing.xs }}>
+            <View
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 999,
+                backgroundColor: colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: edge,
+              }}
+            >
+              <Text style={[typography.label.xs, { color: colors.textMuted }]}>
+                {dayLabel(item.createdAt)}
+              </Text>
+            </View>
+          </View>
+        )}
         <View
           style={{
-            maxWidth: "78%",
-            paddingHorizontal: 14,
-            paddingVertical: 9,
-            borderRadius: R,
-            borderCurve: "continuous",
-            backgroundColor: isMine ? colors.primary : colors.surface,
-            borderWidth: isMine ? 0 : StyleSheet.hairlineWidth,
-            borderColor: hairline,
-            borderTopRightRadius: isMine && groupedWithPrev ? TAIL : R,
-            // Sender-side corners tighten within a run; the last bubble keeps a tail corner.
-            borderBottomRightRadius: isMine ? (groupedWithNext ? TAIL : 4) : R,
-            borderTopLeftRadius: !isMine && groupedWithPrev ? TAIL : R,
-            borderBottomLeftRadius: !isMine ? (groupedWithNext ? TAIL : 4) : R,
+            alignItems: isMine ? "flex-end" : "flex-start",
+            marginTop: groupedWithPrev ? 2 : 10,
+            paddingHorizontal: spacing.md,
           }}
         >
-          <Text
+          <View
             style={[
-              typography.body.md,
               {
-                fontSize: 16,
-                lineHeight: 21,
-                color: isMine ? colors.onPrimary : colors.text,
+                maxWidth: "80%",
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: R,
+                borderCurve: "continuous",
+                backgroundColor: isMine ? colors.primary : colors.surface,
+                borderWidth: isMine ? 0 : StyleSheet.hairlineWidth,
+                borderColor: edge,
+                borderTopRightRadius: isMine && groupedWithPrev ? TAIL : R,
+                // Sender-side corners tighten within a run; the last bubble keeps a tail corner.
+                borderBottomRightRadius: isMine ? (groupedWithNext ? TAIL : 4) : R,
+                borderTopLeftRadius: !isMine && groupedWithPrev ? TAIL : R,
+                borderBottomLeftRadius: !isMine ? (groupedWithNext ? TAIL : 4) : R,
               },
+              isDark ? null : shadow.xs,
             ]}
           >
-            {item.body}
-          </Text>
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 3,
-            marginTop: 2,
-            marginHorizontal: 6,
-          }}
-        >
-          <Text
-            style={[
-              typography.caption,
-              { fontSize: 10.5, color: colors.textSubtle, fontVariant: ["tabular-nums"] },
-            ]}
-          >
-            {new Date(item.createdAt).toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-          {isMine && (
-            item.readAt ? (
-              <CheckCheck size={12} color={colors.primary} />
-            ) : (
-              <Check size={12} color={colors.textSubtle} />
-            )
+            <Text
+              style={[
+                typography.body.md,
+                {
+                  fontSize: 16,
+                  lineHeight: 21,
+                  color: isMine ? colors.onPrimary : colors.text,
+                },
+              ]}
+            >
+              {item.body}
+            </Text>
+          </View>
+          {!groupedWithNext && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 3,
+                marginTop: 4,
+                marginHorizontal: 6,
+              }}
+            >
+              <Text
+                style={[
+                  typography.caption,
+                  { fontSize: 11, color: colors.textSubtle, fontVariant: ["tabular-nums"] },
+                ]}
+              >
+                {new Date(item.createdAt).toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+              {isMine && (
+                item.readAt ? (
+                  <CheckCheck size={13} color={colors.primary} />
+                ) : (
+                  <Check size={13} color={colors.textSubtle} />
+                )
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -186,6 +226,13 @@ export default function ConversationScreen() {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+  const firstName = (patient?.name || t("inbox.patientFallback")).split(" ")[0];
+  const canSend = !!draft.trim() && !isClosed && !sendMutation.isPending;
+  const starters = [
+    t("inbox.starterCheckIn", { name: firstName }),
+    t("inbox.starterReports"),
+    t("inbox.starterFollowUp"),
+  ];
 
   return (
     <KeyboardAvoidingView
@@ -196,15 +243,20 @@ export default function ConversationScreen() {
       <Screen padded={false} edges={["top"]} scroll={false} style={{ backgroundColor: colors.bg }}>
         {/* Header */}
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: hairline,
-            backgroundColor: colors.surface,
-          }}
+          style={[
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              paddingLeft: spacing.sm,
+              paddingRight: spacing.md,
+              paddingVertical: 10,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: edge,
+              backgroundColor: colors.surface,
+              zIndex: 2,
+            },
+            isDark ? null : shadow.xs,
+          ]}
         >
           <Pressable
             onPress={() => router.back()}
@@ -212,38 +264,51 @@ export default function ConversationScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
             style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 2,
-              backgroundColor: pressed ? colors.fill : "transparent",
-            })}
-          >
-            <ChevronLeft size={26} color={colors.primary} strokeWidth={2.4} />
-          </Pressable>
-          <View
-            style={{
               width: 38,
               height: 38,
               borderRadius: 19,
               borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
               alignItems: "center",
               justifyContent: "center",
-              marginRight: spacing.md,
-              overflow: "hidden",
-            }}
+              marginRight: 10,
+              backgroundColor: pressed ? colors.fillStrong : colors.well,
+            })}
           >
-            {patient?.photo ? (
-              <Image source={{ uri: patient.photo }} style={{ width: 38, height: 38, borderRadius: 19 }} />
-            ) : (
-              <Text style={[typography.label.md, { color: colors.primary }]}>
-                {initials}
-              </Text>
-            )}
+            <ChevronLeft size={22} color={colors.text} strokeWidth={2.4} />
+          </Pressable>
+          <View style={{ marginRight: 12 }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: colors.primarySoft,
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {patient?.photo ? (
+                <Image source={{ uri: patient.photo }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+              ) : (
+                <Text style={[typography.label.lg, { color: colors.primary }]}>
+                  {initials}
+                </Text>
+              )}
+            </View>
+            <View
+              style={{
+                position: "absolute",
+                right: -1,
+                bottom: -1,
+                width: 14,
+                height: 14,
+                borderRadius: 7,
+                borderWidth: 2,
+                borderColor: colors.surface,
+                backgroundColor: isClosed ? colors.warning : colors.success,
+              }}
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Text
@@ -252,45 +317,61 @@ export default function ConversationScreen() {
             >
               {patient?.name || "…"}
             </Text>
-            <Text style={[typography.caption, { color: isClosed ? colors.warning : colors.textSubtle }]}>
-              {isClosed
-                ? t("inbox.chatClosed")
-                : patient?.phone || t("inbox.patientFallback")}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
+              {isClosed ? (
+                <Lock size={11} color={colors.warning} strokeWidth={2.4} />
+              ) : (
+                <ShieldCheck size={12} color={colors.success} strokeWidth={2.4} />
+              )}
+              <Text
+                numberOfLines={1}
+                style={[
+                  typography.caption,
+                  { color: isClosed ? colors.warning : colors.textMuted, fontVariant: ["tabular-nums"] },
+                ]}
+              >
+                {isClosed
+                  ? t("inbox.chatClosed")
+                  : patient?.phone || t("inbox.patientFallback")}
+              </Text>
+            </View>
           </View>
 
           {/* Close / Reopen button */}
           <Pressable
             onPress={handleToggleStatus}
             disabled={setStatus.isPending}
+            accessibilityRole="button"
+            accessibilityLabel={isClosed ? t("inbox.reopen") : t("inbox.closeChat")}
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
-              gap: 4,
-              height: 32,
+              gap: 5,
+              height: 34,
               paddingHorizontal: 12,
               borderRadius: 999,
               borderCurve: "continuous",
-              backgroundColor: isClosed ? colors.primarySoft : colors.fill,
+              backgroundColor: isClosed ? colors.primarySoft : colors.surface,
+              borderWidth: isClosed ? 0 : StyleSheet.hairlineWidth,
+              borderColor: isDark ? colors.borderStrong : colors.separator,
               opacity: pressed || setStatus.isPending ? 0.7 : 1,
               marginLeft: spacing.sm,
-              marginRight: spacing.xs,
             })}
           >
             {setStatus.isPending ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : isClosed ? (
               <>
-                <Unlock size={13} color={colors.primary} />
+                <Unlock size={13} color={colors.primary} strokeWidth={2.4} />
                 <Text style={[typography.label.sm, { color: colors.primary }]}>
                   {t("inbox.reopen")}
                 </Text>
               </>
             ) : (
               <>
-                <Lock size={13} color={colors.textMuted} />
+                <Lock size={13} color={colors.textMuted} strokeWidth={2.4} />
                 <Text style={[typography.label.sm, { color: colors.textMuted }]}>
-                  {t("inbox.closeChat")}
+                  {t("inbox.close")}
                 </Text>
               </>
             )}
@@ -300,9 +381,9 @@ export default function ConversationScreen() {
         {/* Closed banner */}
         {isClosed && (
           <View style={{
-            flexDirection: "row", alignItems: "center", gap: 8,
+            flexDirection: "row", alignItems: "center", gap: 10,
             backgroundColor: colors.warningSoft, paddingHorizontal: spacing.lg, paddingVertical: 10,
-            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: hairline,
+            borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: edge,
           }}>
             <Lock size={14} color={colors.warning} />
             <Text style={[typography.body.sm, { color: colors.warning, flex: 1 }]}>
@@ -336,13 +417,138 @@ export default function ConversationScreen() {
             data={messages}
             keyExtractor={(m) => m.id}
             renderItem={renderBubble}
-            contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: spacing.lg }}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1, paddingTop: spacing.xs, paddingBottom: spacing.lg }}
             onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+            ListHeaderComponent={
+              messages.length > 0 ? (
+                <View style={{ alignItems: "center", paddingTop: spacing.md }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: colors.successSoft,
+                    }}
+                  >
+                    <ShieldCheck size={12} color={colors.success} strokeWidth={2.4} />
+                    <Text style={[typography.label.xs, { color: colors.success }]}>
+                      {t("inbox.secureNote")}
+                    </Text>
+                  </View>
+                </View>
+              ) : null
+            }
             ListEmptyComponent={
-              <View style={{ padding: spacing.xl, alignItems: "center" }}>
-                <Text style={[typography.body.sm, { color: colors.textSubtle, textAlign: "center" }]}>
-                  {t("inbox.noMessagesYet")}
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: spacing.xl,
+                  paddingVertical: spacing.xl,
+                }}
+              >
+                <IconTile icon={MessageCircle} tone="primary" appearance="solid" size={64} style={isDark ? null : shadow.primary} />
+                <Text
+                  style={[
+                    typography.title.lg,
+                    { color: colors.text, textAlign: "center", marginTop: spacing.lg },
+                  ]}
+                >
+                  {t("inbox.emptyChatTitle")}
                 </Text>
+                <Text
+                  style={[
+                    typography.body.md,
+                    { color: colors.textMuted, textAlign: "center", marginTop: 6, maxWidth: 300 },
+                  ]}
+                >
+                  {t("inbox.emptyChatBody", { name: firstName })}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: spacing.md,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: colors.successSoft,
+                  }}
+                >
+                  <ShieldCheck size={12} color={colors.success} strokeWidth={2.4} />
+                  <Text style={[typography.label.xs, { color: colors.success }]}>
+                    {t("inbox.secureNote")}
+                  </Text>
+                </View>
+
+                {!isClosed && (
+                  <View style={{ alignSelf: "stretch", marginTop: spacing.xl }}>
+                    <Text
+                      style={[
+                        typography.label.xs,
+                        {
+                          color: colors.textSubtle,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.8,
+                          marginBottom: spacing.sm,
+                          textAlign: "center",
+                        },
+                      ]}
+                    >
+                      {t("inbox.quickStarters")}
+                    </Text>
+                    <View style={{ gap: 8 }}>
+                      {starters.map((line) => (
+                        <Pressable
+                          key={line}
+                          onPress={() => setDraft(line)}
+                          accessibilityRole="button"
+                          style={({ pressed }) => [
+                            {
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 10,
+                              paddingHorizontal: 14,
+                              paddingVertical: 12,
+                              borderRadius: 16,
+                              borderCurve: "continuous",
+                              backgroundColor: colors.surface,
+                              borderWidth: StyleSheet.hairlineWidth,
+                              borderColor: edge,
+                              opacity: pressed ? 0.75 : 1,
+                              transform: [{ scale: pressed ? 0.98 : 1 }],
+                            },
+                            isDark ? null : shadow.xs,
+                          ]}
+                        >
+                          <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+                            {line}
+                          </Text>
+                          <View
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 13,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: colors.well,
+                            }}
+                          >
+                            <Send size={12} color={colors.primary} strokeWidth={2.4} />
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
             }
           />
@@ -351,68 +557,78 @@ export default function ConversationScreen() {
         {/* Composer */}
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "flex-end",
             paddingHorizontal: spacing.md,
-            paddingTop: spacing.sm,
-            paddingBottom: spacing.lg,
+            paddingTop: 10,
+            paddingBottom: Math.max(insets.bottom, 12),
             borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: hairline,
+            borderTopColor: edge,
             backgroundColor: colors.surface,
           }}
         >
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            multiline
-            placeholder={isClosed ? t("inbox.closedPlaceholder") : t("inbox.composerPlaceholder")}
-            placeholderTextColor={colors.textSubtle}
-            editable={!isClosed}
+          <View
             style={{
-              flex: 1,
-              minHeight: 38,
-              maxHeight: 120,
-              borderRadius: 19,
+              flexDirection: "row",
+              alignItems: "flex-end",
+              minHeight: 46,
+              paddingLeft: 16,
+              paddingRight: 4,
+              paddingVertical: 4,
+              borderRadius: 23,
               borderCurve: "continuous",
-              paddingHorizontal: 14,
-              paddingVertical: 9,
-              paddingTop: 9,
-              ...typography.body.md,
-              fontSize: 16,
-              lineHeight: 20,
-              color: colors.text,
-              backgroundColor: colors.fill,
+              backgroundColor: colors.well,
               borderWidth: StyleSheet.hairlineWidth,
-              borderColor: hairline,
-              opacity: isClosed ? 0.5 : 1,
+              borderColor: edge,
+              opacity: isClosed ? 0.6 : 1,
             }}
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={!draft.trim() || sendMutation.isPending || isClosed}
-            style={({ pressed }) => ({
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              borderCurve: "continuous",
-              marginLeft: 8,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: draft.trim() && !isClosed ? colors.primary : colors.fill,
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.94 : 1 }],
-            })}
           >
-            {sendMutation.isPending ? (
-              <ActivityIndicator color={colors.onPrimary} size="small" />
-            ) : (
-              <Send
-                size={17}
-                color={draft.trim() && !isClosed ? colors.onPrimary : colors.textSubtle}
-                strokeWidth={2.25}
-              />
-            )}
-          </Pressable>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              multiline
+              placeholder={isClosed ? t("inbox.closedPlaceholder") : t("inbox.composerPlaceholder")}
+              placeholderTextColor={colors.textSubtle}
+              editable={!isClosed}
+              style={{
+                flex: 1,
+                maxHeight: 120,
+                paddingTop: 9,
+                paddingBottom: 9,
+                ...typography.body.md,
+                fontSize: 16,
+                lineHeight: 20,
+                color: colors.text,
+              }}
+            />
+            <Pressable
+              onPress={handleSend}
+              disabled={!canSend}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                {
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  marginLeft: 8,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: canSend || sendMutation.isPending ? colors.primary : colors.fillStrong,
+                  transform: [{ scale: pressed ? 0.92 : 1 }],
+                },
+                canSend && !isDark ? shadow.primary : null,
+              ]}
+            >
+              {sendMutation.isPending ? (
+                <ActivityIndicator color={colors.onPrimary} size="small" />
+              ) : (
+                <Send
+                  size={17}
+                  color={canSend ? colors.onPrimary : colors.textSubtle}
+                  strokeWidth={2.25}
+                  style={{ marginLeft: -2, marginTop: 1 }}
+                />
+              )}
+            </Pressable>
+          </View>
         </View>
       </Screen>
     </KeyboardAvoidingView>

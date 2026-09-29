@@ -7,19 +7,16 @@ import {
   Linking,
   ScrollView,
   Pressable,
-  Platform,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import {
-  LifeBuoy,
   Mail,
   Phone,
   MessageCircle,
   ChevronDown,
-  ChevronUp,
-  ExternalLink,
+  ChevronRight,
   Search,
   X,
   AlertTriangle,
@@ -30,18 +27,16 @@ import {
   Download,
   ThumbsUp,
   ThumbsDown,
-  ArrowRight,
-  Headphones,
-  Sparkles,
+  SearchX,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/theme/ThemeProvider";
-import { withOpacity } from "@/constants/theme";
+import { useTone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
   Card,
-  Pill,
+  IconTile,
   Chip,
   TextInput,
   Button,
@@ -112,15 +107,25 @@ const CONTACT = {
 const WA_SUPPORT_PHONE: string =
   (Constants.expoConfig?.extra as any)?.waSupportPhone || "";
 
+
+/** Support desk hours: Mon–Fri 09:00–18:00 Sri Lanka time (UTC+5:30). */
+function isSupportOpen(now = new Date()): boolean {
+  const lk = new Date(now.getTime() + (now.getTimezoneOffset() + 330) * 60_000);
+  const day = lk.getDay();
+  const hour = lk.getHours();
+  return day >= 1 && day <= 5 && hour >= 9 && hour < 18;
+}
+
 export default function SupportScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography } = useTheme();
 
-  const [open, setOpen] = useState<number | null>(0);
+  const [openKey, setOpenKey] = useState<string | null>(FAQ_LIST[0].key);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<FaqCategory>("all");
   const [feedback, setFeedback] = useState<Record<string, "yes" | "no">>({});
+  const supportOpen = useMemo(() => isSupportOpen(), []);
 
   function openEmail() {
     Linking.openURL(`mailto:${CONTACT.email}?subject=HealthHub%20Support`);
@@ -157,319 +162,211 @@ export default function SupportScreen() {
     setFeedback((prev) => ({ ...prev, [key]: type }));
   };
 
+  const channels = [
+    ...(WA_SUPPORT_PHONE
+      ? [
+          {
+            key: "wa",
+            icon: MessageCircle,
+            tone: "success" as const,
+            label: t("support.contactChatLabel", { defaultValue: "Chat on WhatsApp" }),
+            detail: t("support.replyFastest", { defaultValue: "Usually replies within 4h" }),
+            badge: t("support.badgeFastest", { defaultValue: "Fastest" }),
+            onPress: openWhatsApp,
+          },
+        ]
+      : []),
+    {
+      key: "call",
+      icon: Phone,
+      tone: "accent" as const,
+      label: t("support.contactCallLabel", { defaultValue: "Call support" }),
+      detail: CONTACT.phone,
+      onPress: callPhone,
+    },
+    {
+      key: "email",
+      icon: Mail,
+      tone: "primary" as const,
+      label: t("support.contactEmailLabel", { defaultValue: "Email support" }),
+      detail: CONTACT.email,
+      badge: t("support.badge24h", { defaultValue: "Reply in 24h" }),
+      onPress: openEmail,
+    },
+  ];
+
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
         title={t("support.title", { defaultValue: "Help & Support" })}
+        subtitle={t("support.heroTitle", { defaultValue: "How can we help?" })}
         back={true}
         onBack={() => router.back()}
       />
 
       <ScrollView
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.xs,
-          paddingBottom: spacing.xxxl,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xxxxl,
           gap: spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. Hero Card with Search & Availability Indicator ── */}
-        <Card
-          style={{
-            padding: spacing.lg,
-          }}
+        {/* ── Search ── */}
+        <TextInput
+          leadingIcon={Search}
+          placeholder={t("support.searchPlaceholder", {
+            defaultValue: "Search questions",
+          })}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          trailingIcon={searchQuery ? X : undefined}
+          onTrailingIconPress={() => setSearchQuery("")}
+          returnKeyType="search"
+        />
+
+        {/* ── Emergency (tap to call) ── */}
+        <Pressable
+          onPress={() => Linking.openURL("tel:1990")}
+          accessibilityRole="button"
+          accessibilityLabel={t("support.emergencyA11y", {
+            defaultValue: "Call Suwa Seriya ambulance, 1990",
+          })}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+            paddingVertical: spacing.md,
+            paddingLeft: spacing.md,
+            paddingRight: spacing.sm + 2,
+            borderRadius: 20,
+            borderCurve: "continuous",
+            backgroundColor: colors.dangerSoft,
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          {/* Header Row */}
+          <AlertTriangle size={20} color={colors.danger} strokeWidth={2.4} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[typography.label.md, { color: colors.danger }]}>
+              {t("support.emergencyTitle", { defaultValue: "Medical emergency?" })}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+              {t("support.emergencyBody", {
+                defaultValue: "Call 1990 or go to the nearest ER",
+              })}
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              height: 36,
+              paddingHorizontal: 14,
+              borderRadius: 18,
+              backgroundColor: colors.danger,
+            }}
+          >
+            <Phone size={14} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={[typography.label.md, { color: "#FFFFFF" }]}>1990</Text>
+          </View>
+        </Pressable>
+
+        {/* ── Contact ── */}
+        <View style={{ gap: spacing.sm }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: spacing.md,
+              paddingHorizontal: 2,
             }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 13,
-                borderCurve: "continuous",
-                backgroundColor: colors.primary,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Headphones size={22} color={colors.onPrimary} />
-            </View>
-
-            {/* Live Support Indicator */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: colors.successSoft,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 20,
-                borderCurve: "continuous",
-              }}
-            >
+            <SectionTitle label={t("support.talkToUs", { defaultValue: "Talk to us" })} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <View
                 style={{
                   width: 7,
                   height: 7,
                   borderRadius: 4,
-                  backgroundColor: colors.success,
+                  backgroundColor: supportOpen ? colors.success : colors.textSubtle,
                 }}
               />
               <Text
-                style={[typography.label.sm, { color: colors.success }]}
+                style={[
+                  typography.label.sm,
+                  { color: supportOpen ? colors.success : colors.textMuted },
+                ]}
               >
-                Support Online
+                {supportOpen
+                  ? t("support.openNow", { defaultValue: "Open now" })
+                  : t("support.closedNow", { defaultValue: "Closed now" })}
               </Text>
             </View>
           </View>
 
-          <Text
-            style={[
-              typography.display.sm,
-              { color: colors.text, marginBottom: 4 },
-            ]}
-          >
-            {t("support.heroTitle", { defaultValue: "How can we help?" })}
-          </Text>
-          <Text
-            style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.lg }]}
-          >
-            {t("support.heroSubtitle", {
-              defaultValue: "Reach our care team or search common questions below.",
-            })}
-          </Text>
-
-          {/* Integrated Search Input */}
-          <TextInput
-            leadingIcon={Search}
-            placeholder="Search help articles or questions..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            tone="soft"
-            trailingIcon={searchQuery ? X : undefined}
-            onTrailingIconPress={() => setSearchQuery("")}
-          />
-        </Card>
-
-        {/* ── 2. Emergency Notice (Safety First) ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-            backgroundColor: colors.dangerSoft,
-            padding: spacing.md,
-            borderRadius: 18,
-            borderCurve: "continuous",
-          }}
-        >
-          <AlertTriangle size={18} color={colors.danger} />
-          <Text
-            style={[typography.body.sm, { color: colors.text, flex: 1 }]}
-          >
-            <Text style={[typography.label.md, { color: colors.danger }]}>
-              Medical Emergency?
-            </Text>{" "}
-            Call emergency services (1990 / 911) or visit the nearest emergency room immediately.
-          </Text>
-        </View>
-
-        {/* ── 3. Contact Channels ── */}
-        <View style={{ gap: spacing.md }}>
-          <Text
-            style={[typography.title.lg, { color: colors.text, marginLeft: 2 }]}
-          >
-            {t("support.contactHeading", { defaultValue: "Contact Us" })}
-          </Text>
-
           <Card padded={false}>
-            {/* Email Support */}
-            <Pressable
-              onPress={openEmail}
-              accessibilityRole="button"
-              accessibilityLabel={t("support.contactEmailLabel")}
-              style={({ pressed }) => ({
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.md,
-                minHeight: 64,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.separator,
-                backgroundColor: pressed ? colors.fill : "transparent",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              })}
-            >
-              <View
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Mail size={18} color={colors.onPrimary} />
-              </View>
-
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={[typography.title.sm, { color: colors.text, marginBottom: 2 }]}
-                >
-                  {t("support.contactEmailLabel", { defaultValue: "Email support" })}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {CONTACT.email}
-                </Text>
-              </View>
-
-              <ExternalLink size={16} color={colors.textSubtle} />
-            </Pressable>
-
-            {/* WhatsApp Support (if configured) */}
-            {WA_SUPPORT_PHONE ? (
+            {channels.map((c, i) => (
               <Pressable
-                onPress={openWhatsApp}
+                key={c.key}
+                onPress={c.onPress}
                 accessibilityRole="button"
-                accessibilityLabel={t("support.contactChatLabel")}
+                accessibilityLabel={`${c.label}, ${c.detail}`}
                 style={({ pressed }) => ({
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.md,
-                  minHeight: 64,
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.separator,
-                  backgroundColor: pressed ? colors.fill : "transparent",
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.md,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                  borderTopColor: colors.separator,
+                  backgroundColor: pressed ? colors.fill : "transparent",
                 })}
               >
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.success,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <MessageCircle size={18} color="#FFFFFF" />
-                </View>
-
+                <IconTile icon={c.icon} tone={c.tone} size={40} />
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <Text
-                      style={[typography.title.sm, { color: colors.text }]}
-                    >
-                      {t("support.contactChatLabel", { defaultValue: "Chat on WhatsApp" })}
-                    </Text>
-                    <Pill label="Fastest" tone="success" size="sm" />
-                  </View>
-                  <Text
-                    style={[typography.caption, { color: colors.textMuted }]}
-                    numberOfLines={1}
-                  >
-                    {t("support.contactChatSubtitle", {
-                      defaultValue: "Mon–Fri, 9:00–18:00 IST · Instant reply",
-                    })}
+                  <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+                    {c.label}
+                  </Text>
+                  <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={1}>
+                    {c.detail}
                   </Text>
                 </View>
-
-                <ExternalLink size={16} color={colors.textSubtle} />
+                {c.badge ? <Badge label={c.badge} tone={c.tone} /> : null}
+                <ChevronRight size={18} color={colors.textSubtle} />
               </Pressable>
-            ) : null}
-
-            {/* Phone Support */}
-            <Pressable
-              onPress={callPhone}
-              accessibilityRole="button"
-              accessibilityLabel={t("support.contactCallLabel")}
-              style={({ pressed }) => ({
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.md,
-                minHeight: 64,
-                backgroundColor: pressed ? colors.fill : "transparent",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              })}
-            >
-              <View
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.accent,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Phone size={18} color="#FFFFFF" />
-              </View>
-
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={[typography.title.sm, { color: colors.text, marginBottom: 2 }]}
-                >
-                  {t("support.contactCallLabel", { defaultValue: "Call support" })}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {CONTACT.phone} · {t("support.hoursLabel", { defaultValue: "Mon–Fri, 9:00–18:00 IST" })}
-                </Text>
-              </View>
-
-              <ExternalLink size={16} color={colors.textSubtle} />
-            </Pressable>
+            ))}
           </Card>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4 }}>
+            <Clock size={12} color={colors.textSubtle} />
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
+              {t("support.hoursLabel", { defaultValue: "Mon–Fri, 9:00–18:00 IST" })}
+            </Text>
+          </View>
         </View>
 
-        {/* ── 4. Frequently Asked Questions (FAQ) ── */}
-        <View style={{ gap: spacing.md }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginLeft: 2,
-            }}
-          >
-            <Text
-              style={[typography.title.lg, { color: colors.text }]}
-            >
-              {t("support.faqHeading", { defaultValue: "Frequently Asked" })}
-            </Text>
-            {searchQuery ? (
-              <Text style={[typography.caption, { color: colors.textSubtle }]}>
-                {filteredFaqs.length} results
-              </Text>
-            ) : null}
+        {/* ── FAQ ── */}
+        <View style={{ gap: spacing.sm }}>
+          <View style={{ paddingHorizontal: 2 }}>
+            <SectionTitle
+              label={t("support.faqTitle", { defaultValue: "Common questions" })}
+              count={searchQuery ? filteredFaqs.length : undefined}
+            />
           </View>
 
-          {/* Topic Filter Chips */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.sm, paddingVertical: 2 }}
+            style={{ marginHorizontal: -spacing.lg }}
+            contentContainerStyle={{
+              gap: spacing.sm,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: 6,
+            }}
           >
             {CATEGORIES.map((cat) => {
               const isSelected = activeCategory === cat.id;
@@ -478,6 +375,7 @@ export default function SupportScreen() {
                   key={cat.id}
                   label={cat.label}
                   selected={isSelected}
+                  tone={isSelected ? "primary" : "neutral"}
                   onPress={() => setActiveCategory(cat.id)}
                   size="sm"
                 />
@@ -485,197 +383,153 @@ export default function SupportScreen() {
             })}
           </ScrollView>
 
-          {/* FAQ Accordion List */}
           {filteredFaqs.length === 0 ? (
-            <Card
-              style={{
-                padding: spacing.xl,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
-                style={[typography.title.md, { color: colors.text, marginBottom: 6 }]}
-              >
-                No matching questions found
+            <Card style={{ alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xl }}>
+              <SearchX size={28} color={colors.textSubtle} />
+              <Text style={[typography.title.sm, { color: colors.text }]}>
+                {t("support.noResults", { defaultValue: "No matching questions" })}
               </Text>
-              <Text
-                style={[
-                  typography.body.sm,
-                  { color: colors.textMuted, textAlign: "center", marginBottom: spacing.lg },
-                ]}
-              >
-                Try searching with different keywords or contact our support team.
+              <Text style={[typography.body.sm, { color: colors.textMuted, textAlign: "center" }]}>
+                {t("support.noResultsBody", {
+                  defaultValue: "Try other words, or contact us above.",
+                })}
               </Text>
               <Button
-                title="Clear Search"
-                variant="outline"
+                title={t("support.clearSearch", { defaultValue: "Clear search" })}
+                variant="secondary"
                 size="sm"
                 onPress={() => {
                   setSearchQuery("");
                   setActiveCategory("all");
                 }}
                 fullWidth={false}
+                style={{ marginTop: spacing.xs }}
               />
             </Card>
           ) : (
-            <View style={{ gap: spacing.sm + 2 }}>
+            <Card padded={false}>
               {filteredFaqs.map((item, idx) => {
-                const isOpen = open === idx;
-                const questionKey = `support.faq.${item.key}.question`;
-                const answerKey = `support.faq.${item.key}.answer`;
+                const isOpen = openKey === item.key;
                 const Icon = item.icon;
                 const userRating = feedback[item.key];
 
                 return (
-                  <Card
+                  <View
                     key={item.key}
-                    padded={false}
                     style={{
-                      borderRadius: 18,
-                      borderCurve: "continuous",
-                      ...(isOpen ? { borderWidth: 1, borderColor: withOpacity(colors.primary, 0.35) } : null),
-                      overflow: "hidden",
+                      borderTopWidth: idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                      borderTopColor: colors.separator,
                     }}
                   >
                     <Pressable
-                      onPress={() => setOpen(isOpen ? null : idx)}
+                      onPress={() => setOpenKey(isOpen ? null : item.key)}
                       accessibilityRole="button"
-                      accessibilityLabel={t(questionKey)}
+                      accessibilityState={{ expanded: isOpen }}
                       style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.md,
                         paddingHorizontal: spacing.lg,
-                        paddingVertical: spacing.md + 2,
+                        paddingVertical: spacing.md,
                       }}
                     >
+                      <Icon size={18} color={isOpen ? colors.primary : colors.textMuted} strokeWidth={2.2} />
+                      <Text
+                        style={[
+                          typography.label.lg,
+                          { color: isOpen ? colors.primary : colors.text, flex: 1 },
+                        ]}
+                      >
+                        {t(`support.faq.${item.key}.question`)}
+                      </Text>
+                      <ChevronDown
+                        size={18}
+                        color={isOpen ? colors.primary : colors.textSubtle}
+                        style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }] }}
+                      />
+                    </Pressable>
+
+                    {isOpen ? (
                       <View
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 10,
+                          paddingLeft: spacing.lg + 18 + spacing.md,
+                          paddingRight: spacing.lg,
+                          paddingBottom: spacing.md,
+                          gap: spacing.md,
                         }}
                       >
-                        <View
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 10,
-                            borderCurve: "continuous",
-                            backgroundColor: isOpen ? colors.primarySoft : colors.fill,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Icon
-                            size={16}
-                            color={isOpen ? colors.primary : colors.textMuted}
-                          />
-                        </View>
-
-                        <Text
-                          style={[
-                            typography.title.sm,
-                            {
-                              color: colors.text,
-                              flex: 1,
-                            },
-                          ]}
-                        >
-                          {t(questionKey)}
+                        <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 21 }]}>
+                          {t(`support.faq.${item.key}.answer`)}
                         </Text>
 
-                        {isOpen ? (
-                          <ChevronUp size={18} color={colors.primary} />
-                        ) : (
-                          <ChevronDown size={18} color={colors.textSubtle} />
-                        )}
-                      </View>
-
-                      {isOpen ? (
-                        <View
-                          style={{
-                            marginTop: spacing.md,
-                            paddingTop: spacing.md,
-                            borderTopWidth: StyleSheet.hairlineWidth,
-                            borderTopColor: colors.separator,
-                          }}
-                        >
-                          <Text
-                            style={[
-                              typography.body.sm,
-                              { color: colors.textMuted, lineHeight: 20, marginBottom: spacing.md },
-                            ]}
-                          >
-                            {t(answerKey)}
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                          <Text style={[typography.caption, { color: colors.textSubtle, flex: 1 }]}>
+                            {userRating
+                              ? t("support.feedbackThanks", { defaultValue: "Thanks for the feedback" })
+                              : t("support.feedbackAsk", { defaultValue: "Was this helpful?" })}
                           </Text>
-
-                          {/* Was this helpful feedback strip */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              backgroundColor: colors.fill,
-                              paddingHorizontal: 12,
-                              paddingVertical: 8,
-                              borderRadius: 12,
-                              borderCurve: "continuous",
-                            }}
-                          >
-                            <Text style={[typography.caption, { color: colors.textMuted }]}>
-                              {userRating
-                                ? "Thanks for your feedback!"
-                                : "Was this answer helpful?"}
-                            </Text>
-
-                            {!userRating ? (
-                              <View style={{ flexDirection: "row", gap: 10 }}>
-                                <Pressable
-                                  onPress={() => handleFeedback(item.key, "yes")}
-                                  hitSlop={6}
-                                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-                                >
-                                  <ThumbsUp size={13} color={colors.primary} />
-                                  <Text style={[typography.label.sm, { color: colors.primary }]}>Yes</Text>
-                                </Pressable>
-                                <Pressable
-                                  onPress={() => handleFeedback(item.key, "no")}
-                                  hitSlop={6}
-                                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-                                >
-                                  <ThumbsDown size={13} color={colors.textMuted} />
-                                  <Text style={[typography.label.sm, { color: colors.textMuted }]}>No</Text>
-                                </Pressable>
-                              </View>
-                            ) : null}
-                          </View>
+                          {!userRating ? (
+                            <>
+                              <FeedbackButton icon={ThumbsUp} onPress={() => handleFeedback(item.key, "yes")} />
+                              <FeedbackButton icon={ThumbsDown} onPress={() => handleFeedback(item.key, "no")} />
+                            </>
+                          ) : null}
                         </View>
-                      ) : null}
-                    </Pressable>
-                  </Card>
+                      </View>
+                    ) : null}
+                  </View>
                 );
               })}
-            </View>
+            </Card>
           )}
         </View>
 
-        {/* ── 5. Reassuring Footer ── */}
-        <View style={{ alignItems: "center", gap: 4, marginTop: 4 }}>
-          <Text
-            style={[typography.label.sm, { color: colors.textSubtle }]}
-          >
-            HealthHub Patient Care • Version 1.0
-          </Text>
-          <Text
-            style={{
-              fontSize: 11,
-              color: colors.textSubtle,
-            }}
-          >
-            End-to-End Encrypted & HIPAA/GDPR Compliant
-          </Text>
-        </View>
+        {/* ── Footer ── */}
+        <Text style={[typography.caption, { color: colors.textSubtle, textAlign: "center" }]}>
+          {t("support.footer", { defaultValue: "HealthHub v0.1 · Healthcare Platform" })}
+        </Text>
       </ScrollView>
     </Screen>
+  );
+}
+
+function SectionTitle({ label, count }: { label: string; count?: number }) {
+  const { colors, typography } = useTheme();
+  return (
+    <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>
+      {label}
+      {typeof count === "number" ? ` · ${count}` : ""}
+    </Text>
+  );
+}
+
+function Badge({ label, tone }: { label: string; tone: any }) {
+  const { typography } = useTheme();
+  const pal = useTone(tone);
+  return (
+    <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: pal.bg }}>
+      <Text style={[typography.caption, { color: pal.fg, fontWeight: "700", fontSize: 11 }]}>{label}</Text>
+    </View>
+  );
+}
+
+function FeedbackButton({ icon: Icon, onPress }: { icon: any; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      style={({ pressed }) => ({
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: pressed ? colors.fillStrong : colors.fill,
+      })}
+    >
+      <Icon size={14} color={colors.textMuted} />
+    </Pressable>
   );
 }

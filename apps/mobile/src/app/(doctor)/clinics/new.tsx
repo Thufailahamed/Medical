@@ -3,18 +3,20 @@
 // caller as owner with 100% ownership.
 
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react-native";
-import { Screen, Card, Pill } from "@/components/ui";
+import { Building2, MapPin, Phone, Plus, Sparkles, Stethoscope } from "lucide-react-native";
+import {
+  Screen,
+  ScreenHeader,
+  Card,
+  Pill,
+  FormField,
+  TextInput,
+  Button,
+  IconTile,
+} from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
 
@@ -60,131 +62,68 @@ export default function NewClinic() {
   }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          style={{
-            marginBottom: spacing.md,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <ArrowLeft size={18} color={colors.text} />
-          <Text style={{ color: colors.text, fontWeight: "600" }}>
-            {t("doctorClinicNew.back")}
-          </Text>
-        </Pressable>
-        <Text
-          style={[
-            typography.title.lg,
-            { color: colors.text, fontWeight: "800", marginBottom: spacing.md },
-          ]}
-        >
-          {t("doctorClinicNew.title")}
-        </Text>
-
+    <Screen keyboard padded={false} edges={["top"]} bottomInset>
+      <ScreenHeader
+        back
+        onBack={() => router.back()}
+        title={t("doctorClinicNew.title")}
+      />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.xs, gap: spacing.lg }}
+      >
         <Card style={{ gap: spacing.md }}>
-          <Field
-            label={t("doctorClinicNew.name")}
-            value={name}
-            onChange={setName}
-            placeholder={t("doctorClinicNew.namePlaceholder")}
-          />
-          <Field
-            label={t("doctorClinicNew.address")}
-            value={address}
-            onChange={setAddress}
-            placeholder={t("doctorClinicNew.addressPlaceholder")}
-            multiline
-          />
-          <Field
-            label={t("doctorClinicNew.phone")}
-            value={phone}
-            onChange={setPhone}
-            placeholder={t("doctorClinicNew.phonePlaceholder")}
-            keyboardType="phone-pad"
-          />
-          <Field
-            label={t("doctorClinicNew.specializations")}
-            value={specializations}
-            onChange={setSpecializations}
-            placeholder={t("doctorClinicNew.specializationsPlaceholder")}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 }}>
+            <IconTile icon={Stethoscope} tone="accent" appearance="solid" size={30} />
+            <Text style={[typography.title.md, { color: colors.text }]}>
+              {t("doctorClinicNew.title")}
+            </Text>
+          </View>
+          <FormField label={t("doctorClinicNew.name")} required>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder={t("doctorClinicNew.namePlaceholder")}
+              leadingIcon={Building2}
+            />
+          </FormField>
+          <FormField label={t("doctorClinicNew.address")}>
+            <TextInput
+              value={address}
+              onChangeText={setAddress}
+              placeholder={t("doctorClinicNew.addressPlaceholder")}
+              leadingIcon={MapPin}
+              multiline
+            />
+          </FormField>
+          <FormField label={t("doctorClinicNew.phone")}>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder={t("doctorClinicNew.phonePlaceholder")}
+              leadingIcon={Phone}
+              keyboardType="phone-pad"
+            />
+          </FormField>
+          <FormField label={t("doctorClinicNew.specializations")}>
+            <TextInput
+              value={specializations}
+              onChangeText={setSpecializations}
+              placeholder={t("doctorClinicNew.specializationsPlaceholder")}
+              leadingIcon={Sparkles}
+            />
+          </FormField>
           {error ? <Pill label={error} tone="danger" /> : null}
-          <Pressable
-            onPress={submit}
-            disabled={busy}
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? colors.primarySoft : colors.primary,
-              paddingVertical: spacing.md,
-              borderRadius: 12,
-              borderCurve: "continuous",
-              alignItems: "center",
-              opacity: busy ? 0.6 : 1,
-            })}
-          >
-            {busy ? (
-              <ActivityIndicator color={colors.onPrimary} />
-            ) : (
-              <Text style={{ color: colors.onPrimary, fontWeight: "800" }}>
-                {t("doctorClinicNew.create")}
-              </Text>
-            )}
-          </Pressable>
         </Card>
+        <Button
+          title={t("doctorClinicNew.create")}
+          onPress={submit}
+          loading={busy}
+          icon={Plus}
+          size="lg"
+        />
       </ScrollView>
     </Screen>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  keyboardType?: any;
-}) {
-  const { colors, spacing, typography } = useTheme();
-  return (
-    <View>
-      <Text
-        style={[
-          typography.label.md,
-          { color: colors.textMuted, marginBottom: 4 },
-        ]}
-      >
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        style={{
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 10,
-          borderCurve: "continuous",
-          paddingHorizontal: spacing.md,
-          paddingVertical: multiline ? spacing.sm : spacing.md,
-          color: colors.text,
-          minHeight: multiline ? 80 : undefined,
-        }}
-      />
-    </View>
   );
 }

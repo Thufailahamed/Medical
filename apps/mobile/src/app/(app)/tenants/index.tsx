@@ -9,6 +9,7 @@ import {
   ScrollView,
   RefreshControl,
   StyleSheet,
+  TextInput as RNTextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -20,19 +21,20 @@ import {
   Search,
   X,
   ShieldCheck,
-  Info,
   CheckCircle2,
-  FileText,
   Plus,
+  Layers,
+  ScanLine,
+  RefreshCcw,
 } from "lucide-react-native";
 import {
   Screen,
   ScreenHeader,
-  Card,
-  Pill,
   Button,
   Pressable,
-  TextInput,
+  IconButton,
+  IconTile,
+  SectionHeader,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { api } from "@/lib/api";
@@ -110,462 +112,311 @@ export default function PatientTenants() {
   }, [myClinics, query]);
 
   const totalCount = myHospitals.length + myClinics.length;
+  const isDark = scheme === "dark";
+  const openHealthId = () => router.push("/(app)/health-id" as any);
+
+  const surfaceCard = {
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderCurve: "continuous" as const,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: isDark ? colors.borderStrong : colors.hairline,
+    ...(isDark ? null : shadow.xs),
+  };
+
+  const tabs: { key: FilterTab; label: string; count: number; icon: any }[] = [
+    { key: "all", label: "All", count: totalCount, icon: Layers },
+    { key: "hospitals", label: "Hospitals", count: myHospitals.length, icon: Building2 },
+    { key: "clinics", label: "Clinics", count: myClinics.length, icon: Stethoscope },
+  ];
 
   return (
     <Screen padded={false}>
       <ScreenHeader
         title="Hospitals & Clinics"
-        subtitle="Healthcare facilities linked to your digital record"
-        kicker="Care Network"
+        subtitle="Your connected care network"
         back={true}
         right={
-          <Pressable
-            onPress={() => router.push("/(app)/health-id" as any)}
-            accessibilityRole="button"
+          <IconButton
+            icon={QrCode}
+            variant="soft"
+            onPress={openHealthId}
             accessibilityLabel="Show Health ID QR"
-            hitSlop={8}
-            haptic="light"
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              backgroundColor: pressed ? colors.fillStrong : colors.fill,
-              alignItems: "center",
-              justifyContent: "center",
-            })}
-          >
-            <QrCode size={19} color={colors.primary} />
-          </Pressable>
+          />
         }
       />
 
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.sm,
+          paddingTop: spacing.xs,
           paddingBottom: spacing.xxxxl,
         }}
         refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={load}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />
         }
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Healthcare Network Hub Card ── */}
-        <Card
-          padded={false}
-          elevated={false}
+        {/* ── Network hero ── */}
+        <LinearGradient
+          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            borderRadius: radius.xxl,
+            borderRadius: 28,
             borderCurve: "continuous",
-            borderWidth: 0,
+            padding: spacing.xl,
             overflow: "hidden",
-            marginBottom: spacing.xl,
-            ...(scheme === "dark" ? null : shadow.hero),
+            ...(isDark ? null : shadow.hero),
           }}
         >
-          <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: spacing.xl }}
-          >
-            <ShieldCheck
-              size={150}
-              color="#FFFFFF"
-              strokeWidth={1}
-              style={{
-                position: "absolute",
-                right: -30,
-                top: -24,
-                opacity: 0.08,
-              }}
-              pointerEvents="none"
-            />
-            {/* Header Row */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 240,
+              height: 240,
+              borderRadius: 120,
+              top: -120,
+              right: -80,
+              backgroundColor: "rgba(255,255,255,0.10)",
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              bottom: -70,
+              left: -50,
+              backgroundColor: "rgba(255,255,255,0.07)",
+            }}
+          />
+
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              <IconTile icon={ShieldCheck} appearance="glass" size={34} />
+              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.85)" }]}>
+                CONNECTED CARE
+              </Text>
+            </View>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: spacing.md,
-                gap: spacing.sm,
+                gap: 6,
+                height: 26,
+                paddingHorizontal: 10,
+                borderRadius: 13,
+                backgroundColor: "rgba(255,255,255,0.16)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.28)",
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    borderCurve: "continuous",
-                    backgroundColor: "rgba(255,255,255,0.18)",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: "rgba(255,255,255,0.28)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ShieldCheck size={20} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={[
-                      typography.title.md,
-                      { color: "#FFFFFF" },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Connected Care Network
-                  </Text>
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: "rgba(255,255,255,0.78)" },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Synchronized EHR & Digital Records
-                  </Text>
-                </View>
-              </View>
-
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  backgroundColor: totalCount > 0 ? "#4ADE80" : "rgba(255,255,255,0.55)",
                 }}
-              >
-                <View
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor:
-                      totalCount > 0
-                        ? "#8FF0C4"
-                        : "rgba(255,255,255,0.55)",
-                  }}
-                />
-                <Text
-                  style={[
-                    typography.label.sm,
-                    { color: "#FFFFFF" },
-                  ]}
-                >
-                  {totalCount} {totalCount === 1 ? "Facility" : "Facilities"}
-                </Text>
-              </View>
+              />
+              <Text style={[typography.label.xs, { color: "#FFFFFF" }]}>
+                {totalCount > 0 ? "Syncing" : "Not linked"}
+              </Text>
             </View>
+          </View>
 
-            <Text
-              style={[
-                typography.body.sm,
-                {
-                  color: "rgba(255,255,255,0.82)",
-                  marginBottom: spacing.lg,
-                },
-              ]}
-            >
-              Medical records, lab tests, prescriptions, and consult notes
-              automatically synchronize between your linked providers and your
-              timeline.
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, marginTop: spacing.lg }}>
+            <Text style={[typography.display.lg, { color: "#FFFFFF" }]}>{totalCount}</Text>
+            <Text style={[typography.title.sm, { color: "rgba(255,255,255,0.9)", marginBottom: 6 }]}>
+              linked {totalCount === 1 ? "facility" : "facilities"}
             </Text>
+          </View>
+          <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.82)", marginTop: 2 }]}>
+            Records, lab results and prescriptions sync to your timeline automatically.
+          </Text>
 
-            {/* Dual Stat Metrics Strip */}
-            <View
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
+            {[
+              { n: myHospitals.length, l: myHospitals.length === 1 ? "Hospital" : "Hospitals", icon: Building2 },
+              { n: myClinics.length, l: myClinics.length === 1 ? "Clinic" : "Clinics", icon: Stethoscope },
+            ].map((s) => (
+              <View
+                key={s.l}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm + 2,
+                  padding: spacing.md,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                  backgroundColor: "rgba(255,255,255,0.14)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.22)",
+                }}
+              >
+                <IconTile icon={s.icon} appearance="glass" size={34} />
+                <View>
+                  <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>{s.n}</Text>
+                  <Text style={[typography.caption, { color: "rgba(255,255,255,0.78)" }]}>{s.l}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Pressable
+            onPress={openHealthId}
+            accessibilityRole="button"
+            haptic="light"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              height: 48,
+              marginTop: spacing.lg,
+              borderRadius: radius.full,
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            <Plus size={17} color={colors.primary} strokeWidth={2.6} />
+            <Text style={[typography.label.lg, { color: colors.primary }]}>Link a new facility</Text>
+          </Pressable>
+        </LinearGradient>
+
+        {/* ── Search ── */}
+        <View
+          style={{
+            ...surfaceCard,
+            borderRadius: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            height: 48,
+            paddingHorizontal: 14,
+            marginTop: spacing.xl,
+          }}
+        >
+          <Search size={18} color={colors.textSubtle} strokeWidth={2.2} />
+          <RNTextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search hospitals and clinics"
+            placeholderTextColor={colors.textSubtle}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            style={{
+              flex: 1,
+              height: "100%",
+              paddingHorizontal: spacing.sm,
+              fontSize: 15,
+              fontFamily: typography.body.md.fontFamily,
+              color: colors.text,
+            }}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              accessibilityLabel="Clear search"
               style={{
-                flexDirection: "row",
-                gap: spacing.sm,
-                marginBottom: spacing.lg,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: colors.textSubtle,
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  padding: spacing.md,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.md,
-                }}
-              >
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: "rgba(255,255,255,0.2)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Building2 size={17} color="#FFFFFF" />
-                </View>
-                <View>
-                  <Text
-                    style={[
-                      typography.display.sm,
-                      { color: "#FFFFFF" },
-                    ]}
-                  >
-                    {myHospitals.length}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: "rgba(255,255,255,0.78)" },
-                    ]}
-                  >
-                    {myHospitals.length === 1 ? "Hospital" : "Hospitals"}
-                  </Text>
-                </View>
-              </View>
-
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  padding: spacing.md,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.md,
-                }}
-              >
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: "rgba(255,255,255,0.2)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Stethoscope size={17} color="#FFFFFF" />
-                </View>
-                <View>
-                  <Text
-                    style={[
-                      typography.display.sm,
-                      { color: "#FFFFFF" },
-                    ]}
-                  >
-                    {myClinics.length}
-                  </Text>
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: "rgba(255,255,255,0.78)" },
-                    ]}
-                  >
-                    {myClinics.length === 1 ? "Clinic" : "Clinics"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Quick Action Button: Show Health ID at reception */}
-            <Pressable
-              onPress={() => router.push("/(app)/health-id" as any)}
-              accessibilityRole="button"
-              haptic="light"
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: "#FFFFFF",
-                minHeight: 46,
-                paddingHorizontal: spacing.lg,
-                borderRadius: 14,
-                borderCurve: "continuous",
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}
-              >
-                <QrCode size={17} color={colors.primaryGradientEnd} />
-                <Text
-                  style={[
-                    typography.label.md,
-                    { color: colors.primaryGradientEnd, flex: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  Show Health ID QR at reception to link
-                </Text>
-              </View>
-              <ChevronRight size={16} color={colors.primaryGradientEnd} />
+              <X size={12} color={colors.surface} strokeWidth={3} />
             </Pressable>
-          </LinearGradient>
-        </Card>
+          )}
+        </View>
 
-        {/* ── Search Bar ── */}
-        <TextInput
-          placeholder="Search linked facilities..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          leadingIcon={Search}
-          trailingIcon={searchQuery ? X : undefined}
-          onTrailingIconPress={() => setSearchQuery("")}
-          tone="soft"
-          containerStyle={{
-            marginBottom: spacing.md,
-            minHeight: 44,
-            borderRadius: 12,
-            paddingHorizontal: spacing.md,
-          }}
-          style={{ fontSize: 16, paddingVertical: 10 }}
-        />
-
-        {/* ── Segmented Filter Control ── */}
+        {/* ── Segmented filter ── */}
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: colors.fill,
-            padding: 3,
-            borderRadius: 12,
+            marginTop: spacing.md,
+            padding: 4,
+            borderRadius: 16,
             borderCurve: "continuous",
-            marginBottom: spacing.xxl,
+            backgroundColor: colors.fill,
           }}
         >
-          <Pressable
-            onPress={() => setActiveTab("all")}
-            style={[
-              {
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 9,
-                borderCurve: "continuous",
-                backgroundColor:
-                  activeTab === "all" ? colors.surface : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              },
-              activeTab === "all" && scheme !== "dark" ? shadow.xs : null,
-            ]}
-          >
-            <Text
-              style={[
-                activeTab === "all" ? typography.label.md : typography.label.sm,
-                { color: activeTab === "all" ? colors.text : colors.textMuted },
-              ]}
-              numberOfLines={1}
-            >
-              All ({totalCount})
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab("hospitals")}
-            style={[
-              {
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 9,
-                borderCurve: "continuous",
-                backgroundColor:
-                  activeTab === "hospitals" ? colors.surface : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              },
-              activeTab === "hospitals" && scheme !== "dark" ? shadow.xs : null,
-            ]}
-          >
-            <Text
-              style={[
-                activeTab === "hospitals" ? typography.label.md : typography.label.sm,
-                { color: activeTab === "hospitals" ? colors.text : colors.textMuted },
-              ]}
-              numberOfLines={1}
-            >
-              Hospitals ({myHospitals.length})
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab("clinics")}
-            style={[
-              {
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 9,
-                borderCurve: "continuous",
-                backgroundColor:
-                  activeTab === "clinics" ? colors.surface : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              },
-              activeTab === "clinics" && scheme !== "dark" ? shadow.xs : null,
-            ]}
-          >
-            <Text
-              style={[
-                activeTab === "clinics" ? typography.label.md : typography.label.sm,
-                { color: activeTab === "clinics" ? colors.text : colors.textMuted },
-              ]}
-              numberOfLines={1}
-            >
-              Clinics ({myClinics.length})
-            </Text>
-          </Pressable>
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            const Icon = tab.icon;
+            return (
+              <Pressable
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                hapticOnPress
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[
+                  {
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    height: 38,
+                    borderRadius: 12,
+                    borderCurve: "continuous",
+                    backgroundColor: active ? colors.surface : "transparent",
+                  },
+                  active && !isDark ? shadow.sm : null,
+                ]}
+              >
+                <Icon size={14} color={active ? colors.primary : colors.textSubtle} strokeWidth={2.3} />
+                <Text
+                  style={[typography.label.md, { color: active ? colors.text : colors.textMuted }]}
+                  numberOfLines={1}
+                >
+                  {tab.label}
+                </Text>
+                <Text style={[typography.label.xs, { color: active ? colors.primary : colors.textSubtle }]}>
+                  {tab.count}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        {/* ── Hospitals Section ── */}
+        {/* ── Hospitals ── */}
         {(activeTab === "all" || activeTab === "hospitals") && (
-          <View style={{ marginBottom: spacing.xxl, gap: spacing.md }}>
+          <View style={{ gap: spacing.md }}>
             <SectionHeader
-              icon={Building2}
-              title="Hospitals I'm registered at"
+              kicker="Registered at"
+              title="Hospitals"
               count={filteredHospitals.length}
+              style={{ paddingBottom: 0 }}
             />
-
             {filteredHospitals.length === 0 ? (
               activeTab === "all" ? (
-                /* Compact Helper in 'All' view */
                 <CompactEmptyStrip
                   icon={Building2}
-                  title="No hospitals linked yet"
-                  subtitle="Present Health ID at admission to link records"
-                  onPress={() => router.push("/(app)/health-id" as any)}
+                  title={searchQuery ? "No matching hospitals" : "No hospitals linked yet"}
+                  subtitle="Show your Health ID at admission to link"
+                  onPress={openHealthId}
                 />
               ) : (
-                /* Dedicated Tab Empty State */
                 <FullEmptyCard
                   icon={Building2}
-                  title={
-                    searchQuery ? "No matching hospitals" : "No hospitals yet"
-                  }
+                  title={searchQuery ? "No matching hospitals" : "No hospitals yet"}
                   body={
                     searchQuery
-                      ? `No hospitals match "${searchQuery}". Try searching with a different name.`
+                      ? `No hospitals match "${searchQuery}". Try a different name.`
                       : "Register at any partner hospital or present your Health ID at admission to sync your records."
                   }
                   showCta={!searchQuery}
-                  onCtaPress={() => router.push("/(app)/health-id" as any)}
+                  onCtaPress={openHealthId}
                 />
               )
             ) : (
@@ -576,7 +427,7 @@ export default function PatientTenants() {
                   icon={Building2}
                   tone="primary"
                   typeLabel="Hospital"
-                  typeSubtitle="Hospital & Inpatient Center"
+                  typeSubtitle="Hospital · Inpatient care"
                   isActive={h.id === activeHospitalId}
                   onPress={() => go("hospital", h.id)}
                 />
@@ -585,36 +436,34 @@ export default function PatientTenants() {
           </View>
         )}
 
-        {/* ── Clinics Section ── */}
+        {/* ── Clinics ── */}
         {(activeTab === "all" || activeTab === "clinics") && (
-          <View style={{ marginBottom: spacing.xxl, gap: spacing.md }}>
+          <View style={{ gap: spacing.md }}>
             <SectionHeader
-              icon={Stethoscope}
-              title="Clinics I visit"
+              kicker="Outpatient"
+              title="Clinics"
               count={filteredClinics.length}
+              style={{ paddingBottom: 0 }}
             />
-
             {filteredClinics.length === 0 ? (
               activeTab === "all" ? (
-                /* Compact Helper in 'All' view (prevents giant awkward card!) */
                 <CompactEmptyStrip
                   icon={Stethoscope}
-                  title="No clinics linked yet"
-                  subtitle="Share your Health ID at your next visit to link records"
-                  onPress={() => router.push("/(app)/health-id" as any)}
+                  title={searchQuery ? "No matching clinics" : "No clinics linked yet"}
+                  subtitle="Share your Health ID at your next visit"
+                  onPress={openHealthId}
                 />
               ) : (
-                /* Dedicated Tab Empty State */
                 <FullEmptyCard
                   icon={Stethoscope}
                   title={searchQuery ? "No matching clinics" : "No clinics yet"}
                   body={
                     searchQuery
-                      ? `No clinics match "${searchQuery}". Try searching with a different name.`
+                      ? `No clinics match "${searchQuery}". Try a different name.`
                       : "Visit a clinic or private practice and share your Health ID to link consultation notes and prescriptions."
                   }
                   showCta={!searchQuery}
-                  onCtaPress={() => router.push("/(app)/health-id" as any)}
+                  onCtaPress={openHealthId}
                 />
               )
             ) : (
@@ -625,7 +474,7 @@ export default function PatientTenants() {
                   icon={Stethoscope}
                   tone="info"
                   typeLabel="Clinic"
-                  typeSubtitle="Specialist & Outpatient Clinic"
+                  typeSubtitle="Clinic · Outpatient care"
                   isActive={c.id === activeClinicId}
                   onPress={() => go("clinic", c.id)}
                 />
@@ -634,135 +483,47 @@ export default function PatientTenants() {
           </View>
         )}
 
-        {/* ── How to Link New Facilities Guide ── */}
-        <Card
-          style={{
-            padding: spacing.xl,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-              marginBottom: spacing.sm,
-            }}
-          >
-            <View
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Info size={18} color={colors.primary} />
-            </View>
-            <Text
-              style={[
-                typography.title.md,
-                { color: colors.text, flex: 1 },
-              ]}
-            >
-              How to link a new facility
-            </Text>
-          </View>
-
-          <Text
-            style={[
-              typography.body.sm,
-              {
-                color: colors.textMuted,
-                marginBottom: spacing.lg,
-              },
-            ]}
-          >
-            Connect any hospital, diagnostic center, or private clinic in 3
-            simple steps:
-          </Text>
-
-          <View style={{ gap: spacing.lg, marginBottom: spacing.xl }}>
-            <GuideStep
-              n={1}
-              icon={QrCode}
-              title="Show your Health ID"
-              body="Open your personal QR pass at the registration or admission desk."
-            />
-            <GuideStep
-              n={2}
-              icon={CheckCircle2}
-              title="Desk scans and validates"
-              body="Staff scan your QR code to securely link your digital medical chart."
-            />
-            <GuideStep
-              n={3}
-              icon={FileText}
-              title="Automatic synchronization"
-              body="All prescriptions, lab investigations, and doctor notes appear in your records."
-            />
-          </View>
-
+        {/* ── How to link ── */}
+        <SectionHeader kicker="Guide" title="Link a new facility" />
+        <View style={{ ...surfaceCard, padding: spacing.lg }}>
+          {[
+            {
+              icon: QrCode,
+              title: "Show your Health ID",
+              body: "Open your QR pass at the registration or admission desk.",
+            },
+            {
+              icon: ScanLine,
+              title: "Desk scans and validates",
+              body: "Staff scan the code to securely link your medical chart.",
+            },
+            {
+              icon: RefreshCcw,
+              title: "Records sync automatically",
+              body: "Prescriptions, lab results and doctor notes appear in your records.",
+            },
+          ].map((s, i, arr) => (
+            <GuideStep key={i} n={i + 1} icon={s.icon} title={s.title} body={s.body} last={i === arr.length - 1} />
+          ))}
           <Button
             variant="primary"
             size="md"
-            title="Open My Health ID"
+            title="Open my Health ID"
             icon={QrCode}
-            onPress={() => router.push("/(app)/health-id" as any)}
-            style={{ width: "100%" }}
-          >
-            Open My Health ID
-          </Button>
-        </Card>
+            onPress={openHealthId}
+            fullWidth
+            style={{ marginTop: spacing.md }}
+          />
+        </View>
       </ScrollView>
     </Screen>
   );
 }
 
-/** Uppercase overline section header with count badge. */
-function SectionHeader({
-  icon: Icon,
-  title,
-  count,
-}: {
-  icon: any;
-  title: string;
-  count: number;
-}) {
-  const { colors, spacing, typography } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.sm,
-        paddingHorizontal: 4,
-      }}
-    >
-      <Icon size={18} color={colors.primary} />
-      <Text
-        style={[
-          typography.title.lg,
-          {
-            color: colors.text,
-            flex: 1,
-          },
-        ]}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
-      <Pill label={String(count)} tone="neutral" size="sm" />
-    </View>
-  );
-}
-
-/** Single linked facility row card. */
+/** Linked facility row card. */
 function FacilityCard({
   facility,
-  icon: Icon,
+  icon,
   tone,
   typeLabel,
   typeSubtitle,
@@ -777,119 +538,91 @@ function FacilityCard({
   isActive: boolean;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
-  const iconBg = tone === "primary" ? colors.primarySoft : colors.infoSoft;
-  const iconFg = tone === "primary" ? colors.primary : colors.info;
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
 
   return (
     <Pressable
       onPress={onPress}
+      pressedScale={0.985}
+      haptic="light"
       accessibilityRole="button"
       accessibilityLabel={`View ${typeLabel} ${facility.name}`}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.88 : 1,
-      })}
+      wrapperStyle={isDark ? null : shadow.sm}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: spacing.lg,
+        backgroundColor: colors.surface,
+        borderRadius: 22,
+        borderCurve: "continuous",
+        borderWidth: isActive ? 1.5 : StyleSheet.hairlineWidth,
+        borderColor: isActive ? colors.primary : isDark ? colors.borderStrong : colors.hairline,
+      }}
     >
-      <Card
-        style={[
-          { padding: spacing.lg },
-          isActive
-            ? { borderWidth: 1.5, borderColor: colors.primary }
-            : null,
-        ]}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-          }}
-        >
-          {/* Facility Icon */}
+      <IconTile icon={icon} tone={tone} appearance={isActive ? "solid" : "soft"} size={48} />
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+          {facility.name}
+        </Text>
+        <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]} numberOfLines={1}>
+          {typeSubtitle}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.sm }}>
           <View
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 15,
-              borderCurve: "continuous",
-              backgroundColor: iconBg,
+              flexDirection: "row",
               alignItems: "center",
-              justifyContent: "center",
+              gap: 5,
+              height: 22,
+              paddingHorizontal: 8,
+              borderRadius: 11,
+              backgroundColor: colors.successSoft,
             }}
           >
-            <Icon size={24} color={iconFg} />
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
+            <Text style={[typography.label.xs, { color: colors.success, letterSpacing: 0 }]}>Connected</Text>
           </View>
-
-          {/* Details */}
-          <View style={{ flex: 1, minWidth: 0 }}>
+          {isActive ? (
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
-                marginBottom: 2,
+                gap: 4,
+                height: 22,
+                paddingHorizontal: 8,
+                borderRadius: 11,
+                backgroundColor: colors.primarySoft,
               }}
             >
-              <Text
-                style={[
-                  typography.title.md,
-                  { color: colors.text, flexShrink: 1 },
-                ]}
-                numberOfLines={1}
-              >
-                {facility.name}
-              </Text>
-              {isActive && (
-                <Pill
-                  label="Active"
-                  tone="primary"
-                  icon={CheckCircle2}
-                  size="sm"
-                />
-              )}
+              <CheckCircle2 size={11} color={colors.primary} strokeWidth={2.6} />
+              <Text style={[typography.label.xs, { color: colors.primary, letterSpacing: 0 }]}>Active</Text>
             </View>
-
-            <Text
-              style={[
-                typography.body.sm,
-                { color: colors.textMuted, marginBottom: spacing.sm },
-              ]}
-              numberOfLines={1}
-            >
-              {typeSubtitle}
-            </Text>
-
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Pill label={typeLabel} tone={tone} size="sm" />
-              <Pill label="Connected" tone="success" size="sm" />
-            </View>
-          </View>
-
-          {/* Chevron Action */}
-          <View
-            style={{
-              width: 24,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ChevronRight size={18} color={colors.textSubtle} />
-          </View>
+          ) : null}
         </View>
-      </Card>
+      </View>
+
+      <View
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          backgroundColor: colors.well,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.4} />
+      </View>
     </Pressable>
   );
 }
 
 /** Compact helper strip shown in 'All' view when a section has 0 items. */
 function CompactEmptyStrip({
-  icon: Icon,
+  icon,
   title,
   subtitle,
   onPress,
@@ -904,82 +637,51 @@ function CompactEmptyStrip({
   return (
     <View
       style={{
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderStyle: "dashed",
-        borderRadius: 18,
-        borderCurve: "continuous",
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        minHeight: 64,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
         gap: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: 22,
+        borderCurve: "continuous",
+        borderWidth: 1.5,
+        borderStyle: "dashed",
+        borderColor: colors.separator,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.md,
-          flex: 1,
-        }}
-      >
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 11,
-            borderCurve: "continuous",
-            backgroundColor: colors.fill,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon size={18} color={colors.textMuted} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[typography.title.sm, { color: colors.text }]}>
-            {title}
-          </Text>
-          <Text
-            style={[typography.caption, { color: colors.textMuted }]}
-            numberOfLines={1}
-          >
-            {subtitle}
-          </Text>
-        </View>
+      <IconTile icon={icon} tone="neutral" size={40} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]} numberOfLines={1}>
+          {subtitle}
+        </Text>
       </View>
-
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
+        haptic="light"
         style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 5,
           height: 32,
-          justifyContent: "center",
           paddingHorizontal: spacing.md,
           borderRadius: radius.full,
           backgroundColor: colors.primarySoft,
         }}
       >
-        <Text
-          style={[
-            typography.label.sm,
-            { color: colors.primary },
-          ]}
-        >
-          Show QR
-        </Text>
+        <QrCode size={13} color={colors.primary} strokeWidth={2.4} />
+        <Text style={[typography.label.sm, { color: colors.primary }]}>Show QR</Text>
       </Pressable>
     </View>
   );
 }
 
-/** Full graphic empty card used in dedicated tabs or search empty states. */
+/** Full empty card used in dedicated tabs or search empty states. */
 function FullEmptyCard({
-  icon: Icon,
+  icon,
   title,
   body,
   showCta,
@@ -991,116 +693,81 @@ function FullEmptyCard({
   showCta: boolean;
   onCtaPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
 
   return (
-    <Card
+    <View
       style={{
+        alignItems: "center",
         paddingVertical: spacing.xxl,
         paddingHorizontal: spacing.xl,
-        alignItems: "center",
+        backgroundColor: colors.surface,
+        borderRadius: 22,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        ...(isDark ? null : shadow.xs),
       }}
     >
-      <View
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: colors.primarySoft,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: spacing.md,
-        }}
-      >
-        <Icon size={24} color={colors.primary} />
-      </View>
-      <Text
-        style={[
-          typography.title.md,
-          { color: colors.text, marginBottom: 6, textAlign: "center" },
-        ]}
-      >
+      <IconTile icon={icon} tone="primary" size={56} />
+      <Text style={[typography.title.md, { color: colors.text, marginTop: spacing.md, textAlign: "center" }]}>
         {title}
       </Text>
       <Text
         style={[
           typography.body.sm,
-          {
-            color: colors.textMuted,
-            textAlign: "center",
-            marginBottom: showCta ? spacing.lg : 0,
-          },
+          { color: colors.textMuted, textAlign: "center", marginTop: 6, marginBottom: showCta ? spacing.lg : 0 },
         ]}
       >
         {body}
       </Text>
       {showCta && (
-        <Button
-          variant="secondary"
-          size="sm"
-          title="View My Health ID"
-          fullWidth={false}
-          onPress={onCtaPress}
-        >
-          View My Health ID
-        </Button>
+        <Button variant="secondary" size="sm" title="View my Health ID" icon={QrCode} onPress={onCtaPress} />
       )}
-    </Card>
+    </View>
   );
 }
 
-/** Step item for the educational guide. */
+/** Numbered step on a vertical rail. */
 function GuideStep({
   n,
   icon: Icon,
   title,
   body,
+  last,
 }: {
   n: number;
   icon: any;
   title: string;
   body: string;
+  last?: boolean;
 }) {
-  const { colors, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
 
   return (
-    <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: colors.primary,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text
-          style={[
-            typography.label.sm,
-            { color: colors.onPrimary },
-          ]}
+    <View style={{ flexDirection: "row", gap: spacing.md }}>
+      <View style={{ alignItems: "center", width: 36 }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          {n}
-        </Text>
+          <Icon size={17} color={colors.primary} strokeWidth={2.3} />
+        </View>
+        {!last ? (
+          <View style={{ flex: 1, width: 2, minHeight: 14, marginVertical: 4, borderRadius: 1, backgroundColor: colors.separator }} />
+        ) : null}
       </View>
-      <View style={{ flex: 1, paddingTop: 3 }}>
-        <Text
-          style={[
-            typography.title.sm,
-            { color: colors.text, marginBottom: 2 },
-          ]}
-        >
-          {title}
-        </Text>
-        <Text
-          style={[
-            typography.body.sm,
-            { color: colors.textMuted },
-          ]}
-        >
-          {body}
-        </Text>
+      <View style={{ flex: 1, paddingTop: 2, paddingBottom: last ? 0 : spacing.lg }}>
+        <Text style={[typography.overline, { color: colors.primary }]}>STEP {n}</Text>
+        <Text style={[typography.title.sm, { color: colors.text, marginTop: 2 }]}>{title}</Text>
+        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>{body}</Text>
       </View>
     </View>
   );

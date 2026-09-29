@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -22,11 +22,16 @@ import {
   MessageCircle,
   Mail,
   Lock,
+  Stethoscope,
+  User,
+  Eye,
+  EyeOff,
 } from "lucide-react-native";
 import { api } from "@/lib/api";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Screen, useToast } from "@/components/ui";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
@@ -55,12 +60,13 @@ type PhoneData = z.infer<typeof phoneSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors, spacing, typography, radius, fontFamily, scheme } = useTheme();
+  const { colors, spacing, typography, radius, fontFamily, scheme, shadow } = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [staffMode, setStaffMode] = useState(false);
   const [staffEmail, setStaffEmail] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
   const [staffError, setStaffError] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
@@ -284,614 +290,695 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen
-      keyboard
-      scroll
-      padded={false}
-      bottomInset={true}
-      edges={["top", "bottom"]}
-      style={{ backgroundColor: colors.surface }}
-      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
-    >
-      {/* Branding Header */}
-      <View
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Soft brand glow behind the header (fixed; content scrolls over it) */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.primarySoft, colors.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginTop: 40,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 380,
         }}
+      />
+      <Screen
+        keyboard
+        scroll
+        padded={false}
+        bottomInset={true}
+        edges={["top", "bottom"]}
+        style={{ backgroundColor: "transparent" }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl }}
       >
+        {/* Branding Header */}
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 13,
-            borderCurve: "continuous",
-            overflow: "hidden",
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.3,
-            shadowRadius: 12,
-            elevation: 6,
+            marginTop: 20,
           }}
         >
-          <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Heart size={22} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
-        </View>
-        <Text
-          style={{
-            fontSize: 20,
-            color: colors.text,
-            letterSpacing: -0.5,
-            fontFamily: fontFamily.heavy,
-            marginLeft: 12,
-          }}
-        >
-          HealthHub
-        </Text>
-      </View>
-
-      {/* Heading Section */}
-      <View style={{ marginTop: 48, marginBottom: 32 }}>
-        <Text
-          style={[typography.display.lg, { color: colors.text }]}
-        >
-          Welcome back.
-        </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            color: colors.textMuted,
-            marginTop: 10,
-            fontFamily: fontFamily.body,
-            lineHeight: 22,
-          }}
-        >
-          {staffMode
-            ? "Sign in with your staff email and password."
-            : "Enter your mobile number to receive a verification code."}
-        </Text>
-      </View>
-
-      {/* Sign-in mode toggle */}
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: colors.fill,
-          borderRadius: 14,
-          borderCurve: "continuous",
-          padding: 3,
-          marginBottom: 28,
-        }}
-      >
-        {(
-          [
-            { key: "phone", label: "Mobile OTP", icon: Phone },
-            { key: "staff", label: "Staff email", icon: Mail },
-          ] as const
-        ).map((opt) => {
-          const active = staffMode === (opt.key === "staff");
-          const Icon = opt.icon;
-          return (
-            <Pressable
-              key={opt.key}
-              onPress={() => setStaffMode(opt.key === "staff")}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                paddingVertical: 10,
-                borderRadius: 11,
-                borderCurve: "continuous",
-                backgroundColor: active
-                  ? scheme === "dark"
-                    ? colors.surfaceElevated
-                    : colors.surface
-                  : "transparent",
-                shadowColor: colors.shadow,
-                shadowOpacity: active && scheme !== "dark" ? 0.1 : 0,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: active ? 2 : 0,
-              }}
-            >
-              <Icon size={14} color={active ? colors.primary : colors.textMuted} />
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: active ? colors.text : colors.textMuted,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {opt.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {staffMode ? (
-        /* ─── Staff email + password sign-in ─── */
-        <View style={{ gap: 20 }}>
-          <View>
-            <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                fontFamily: fontFamily.bodySemibold,
-                marginBottom: 8,
-                marginLeft: 2,
-              }}
-            >
-              Work email
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                borderRadius: radius.field,
-                borderCurve: "continuous",
-                paddingHorizontal: 14,
-                minHeight: 54,
-                backgroundColor: colors.fill,
-              }}
-            >
-              <Mail size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
-              <TextInput
-                value={staffEmail}
-                onChangeText={setStaffEmail}
-                placeholder="you@clinic.lk"
-                placeholderTextColor={colors.textSubtle}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: colors.text,
-                  fontFamily: fontFamily.body,
-                  paddingVertical: 14,
-                }}
-              />
-            </View>
-          </View>
-
-          <View>
-            <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                fontFamily: fontFamily.bodySemibold,
-                marginBottom: 8,
-                marginLeft: 2,
-              }}
-            >
-              Password
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                borderRadius: radius.field,
-                borderCurve: "continuous",
-                paddingHorizontal: 14,
-                minHeight: 54,
-                backgroundColor: colors.fill,
-              }}
-            >
-              <Lock size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
-              <TextInput
-                value={staffPassword}
-                onChangeText={setStaffPassword}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textSubtle}
-                secureTextEntry
-                autoComplete="password"
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: colors.text,
-                  fontFamily: fontFamily.body,
-                  paddingVertical: 14,
-                }}
-              />
-            </View>
-          </View>
-
-          {staffError ? (
-            <View
-              style={{
-                backgroundColor: colors.dangerSoft,
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: radius.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.sm,
-              }}
-            >
-              <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.danger, fontWeight: "600", flex: 1 },
-                ]}
-              >
-                {staffError}
-              </Text>
-            </View>
-          ) : null}
-
-          <Pressable
-            onPress={submitStaff}
-            disabled={submitting}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.primary,
-              height: 54,
-              borderRadius: radius.button,
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               borderCurve: "continuous",
               overflow: "hidden",
-              marginTop: 8,
-              opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-              gap: 8,
-            })}
+              alignItems: "center",
+              justifyContent: "center",
+              ...shadow.primary,
+            }}
           >
             <LinearGradient
-              pointerEvents="none"
               colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "700",
-                    color: "#FFFFFF",
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  Sign in
-                </Text>
-                <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
-              </>
-            )}
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push("/(auth)/forgot-password" as any)}
-            hitSlop={8}
-            style={{ alignItems: "center", paddingVertical: spacing.xs }}
-          >
-            <Text
-              style={{
-                fontSize: 13,
-                color: colors.textMuted,
-                fontFamily: fontFamily.body,
-              }}
-            >
-              Forgot password?
-            </Text>
-          </Pressable>
-
-          {__DEV__ ? (
-            <Pressable
-              onPress={() => {
-                setStaffEmail("admin@healthhub.local");
-                setStaffPassword("Admin#12345");
-              }}
-              hitSlop={8}
-              style={{ alignItems: "center", paddingVertical: spacing.xs }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.primary,
-                  fontWeight: "700",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                🛠️ Fill dev admin credentials
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : (
-      /* Phone number form */
-      <View style={{ gap: 20 }}>
-        <Controller
-          control={control}
-          name="phone"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <PhoneInput
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={errors.phone?.message}
-            />
-          )}
-        />
-
-        {/* Error Banner */}
-        {errors.root ? (
-          <View
+            <Heart size={20} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} />
+          </View>
+          <Text
             style={{
-              backgroundColor: colors.dangerSoft,
-              paddingVertical: spacing.sm,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.md,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-              marginTop: 4,
+              flex: 1,
+              fontSize: 19,
+              color: colors.text,
+              letterSpacing: -0.5,
+              fontFamily: fontFamily.heavy,
+              marginLeft: 10,
             }}
           >
-            <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
+            HealthHub
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 999,
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.hairline,
+              ...shadow.xs,
+            }}
+          >
+            <Lock size={12} color={colors.success} strokeWidth={2.5} />
             <Text
-              style={[
-                typography.caption,
-                { color: colors.danger, fontWeight: "600", flex: 1 },
-              ]}
+              style={{
+                fontSize: 12,
+                color: colors.textMuted,
+                fontFamily: fontFamily.bodySemibold,
+              }}
             >
-              {errors.root.message}
+              Secure
             </Text>
           </View>
+        </View>
+
+        {/* Heading Section */}
+        <View style={{ marginTop: 36, marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.primary,
+              fontFamily: fontFamily.bodyBold,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              marginBottom: 8,
+            }}
+          >
+            {staffMode ? "Staff sign in" : "Sign in"}
+          </Text>
+          <Text style={[typography.display.lg, { color: colors.text }]}>
+            Welcome back
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              color: colors.textMuted,
+              marginTop: 8,
+              fontFamily: fontFamily.body,
+              lineHeight: 22,
+            }}
+          >
+            {staffMode
+              ? "Use your work email and password to continue."
+              : "Enter your mobile number and we'll text you a secure code."}
+          </Text>
+        </View>
+
+        {/* Sign-in card */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 24,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.hairline,
+            padding: spacing.lg,
+            ...shadow.card,
+          }}
+        >
+          {/* Sign-in mode toggle */}
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: colors.fill,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              padding: 3,
+              marginBottom: 22,
+            }}
+          >
+            {(
+              [
+                { key: "phone", label: "Mobile OTP", icon: Phone },
+                { key: "staff", label: "Staff email", icon: Mail },
+              ] as const
+            ).map((opt) => {
+              const active = staffMode === (opt.key === "staff");
+              const Icon = opt.icon;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => setStaffMode(opt.key === "staff")}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: 10,
+                    borderRadius: 11,
+                    borderCurve: "continuous",
+                    backgroundColor: active
+                      ? scheme === "dark"
+                        ? colors.surfaceElevated
+                        : colors.surface
+                      : "transparent",
+                    ...(active && scheme !== "dark" ? shadow.xs : shadow.none),
+                  }}
+                >
+                  <Icon size={14} color={active ? colors.primary : colors.textMuted} />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: active ? colors.text : colors.textMuted,
+                      fontFamily: fontFamily.bodyBold,
+                    }}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {staffMode ? (
+            /* ─── Staff email + password sign-in ─── */
+            <View style={{ gap: 16 }}>
+              <Field
+                label="Work email"
+                icon={Mail}
+                value={staffEmail}
+                onChangeText={setStaffEmail}
+                placeholder="you@clinic.lk"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+              <Field
+                label="Password"
+                icon={Lock}
+                value={staffPassword}
+                onChangeText={setStaffPassword}
+                placeholder="Enter your password"
+                secure
+                autoComplete="password"
+                labelAction={
+                  <Pressable
+                    onPress={() => router.push("/(auth)/forgot-password" as any)}
+                    hitSlop={8}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: colors.primary,
+                        fontFamily: fontFamily.bodySemibold,
+                      }}
+                    >
+                      Forgot?
+                    </Text>
+                  </Pressable>
+                }
+              />
+
+              {staffError ? <ErrorBanner message={staffError} /> : null}
+
+              <PrimaryButton
+                label="Sign in"
+                onPress={submitStaff}
+                loading={submitting}
+              />
+
+              {__DEV__ ? (
+                <Pressable
+                  onPress={() => {
+                    setStaffEmail("admin@healthhub.local");
+                    setStaffPassword("Admin#12345");
+                  }}
+                  hitSlop={8}
+                  style={{ alignItems: "center", paddingVertical: 2 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textMuted,
+                      fontFamily: fontFamily.bodySemibold,
+                    }}
+                  >
+                    🛠️ Fill dev admin credentials
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : (
+            /* Phone number form */
+            <View style={{ gap: 16 }}>
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <PhoneInput
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.phone?.message}
+                  />
+                )}
+              />
+
+              {errors.root?.message ? (
+                <ErrorBanner message={errors.root.message} />
+              ) : null}
+
+              <PrimaryButton
+                label="Send verification code"
+                onPress={handleSubmit(onSubmit)}
+                loading={submitting}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <ShieldCheck size={13} color={colors.success} strokeWidth={2.5} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textMuted,
+                    fontFamily: fontFamily.body,
+                  }}
+                >
+                  We'll text a 6-digit code to verify it's you.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Divider */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+            marginTop: 28,
+          }}
+        >
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
+          <Text
+            style={{
+              fontSize: 11,
+              color: colors.textSubtle,
+              textTransform: "uppercase",
+              letterSpacing: 1.2,
+              fontFamily: fontFamily.bodySemibold,
+            }}
+          >
+            or
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
+        </View>
+
+        {/* WhatsApp onboarding */}
+        {waPhone ? (
+          <Pressable
+            onPress={openWhatsApp}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with WhatsApp"
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.sm,
+              height: 52,
+              marginTop: spacing.lg,
+              borderRadius: radius.button,
+              borderCurve: "continuous",
+              borderWidth: 1,
+              borderColor: "#25D366",
+              backgroundColor: colors.surface,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <MessageCircle size={18} color="#25D366" />
+            <Text
+              style={{
+                fontSize: 15,
+                color: "#128C7E",
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              Continue with WhatsApp
+            </Text>
+          </Pressable>
         ) : null}
 
-        {/* Send OTP Button */}
+        {/* Create account — secondary action */}
         <Pressable
-          onPress={handleSubmit(onSubmit)}
-          disabled={submitting}
+          onPress={goRegister}
+          accessibilityRole="link"
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: colors.primary,
-            height: 54,
+            gap: 6,
+            height: 52,
+            marginTop: waPhone ? spacing.sm : spacing.lg,
             borderRadius: radius.button,
             borderCurve: "continuous",
-            overflow: "hidden",
-            marginTop: 8,
-            opacity: submitting ? 0.6 : pressed ? 0.88 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }],
-            gap: 8,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.hairline,
+            backgroundColor: colors.surface,
+            opacity: pressed ? 0.85 : 1,
+            ...shadow.xs,
           })}
         >
-          <LinearGradient
-            pointerEvents="none"
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "700",
-                  color: "#FFFFFF",
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                Send verification code
-              </Text>
-              <ArrowRight size={18} color="#FFFFFF" strokeWidth={2} />
-            </>
-          )}
-        </Pressable>
-
-        <Text
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            marginTop: 2,
-            fontFamily: fontFamily.body,
-            lineHeight: 18,
-            textAlign: "center",
-          }}
-        >
-          We'll text a 6-digit code to verify your identity.
-        </Text>
-      </View>
-      )}
-
-      {/* Divider */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.sm,
-          marginTop: 28,
-        }}
-      >
-        <View style={{ flex: 1, height: 1, backgroundColor: colors.surfaceMuted }} />
-        <Text
-          style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            fontFamily: fontFamily.body,
-          }}
-        >
-          or
-        </Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: colors.surfaceMuted }} />
-      </View>
-
-      {/* WhatsApp onboarding */}
-      {waPhone ? (
-        <Pressable
-          onPress={openWhatsApp}
-          accessibilityRole="button"
-          accessibilityLabel="Continue with WhatsApp"
-          hitSlop={8}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.sm,
-            paddingVertical: spacing.md,
-            marginTop: spacing.md,
-            borderRadius: radius.lg,
-            borderCurve: "continuous",
-            borderWidth: 1,
-            borderColor: "#25D366",
-            backgroundColor: colors.surface,
-          }}
-        >
-          <MessageCircle size={18} color="#25D366" />
           <Text
             style={{
               fontSize: 15,
-              fontWeight: "700",
-              color: "#128C7E",
-              fontFamily: fontFamily.bodyBold,
+              color: colors.textMuted,
+              fontFamily: fontFamily.body,
             }}
           >
-            Continue with WhatsApp
+            New to HealthHub?
           </Text>
-        </Pressable>
-      ) : null}
-
-      {/* Register footer link */}
-      <Pressable
-        onPress={goRegister}
-        accessibilityRole="link"
-        hitSlop={8}
-        style={{
-          alignItems: "center",
-          paddingVertical: spacing.xs,
-          marginTop: 20,
-          marginBottom: 40,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 15,
-            color: colors.textMuted,
-            fontFamily: fontFamily.body,
-          }}
-        >
-          New to HealthHub?{" "}
           <Text
             style={{
+              fontSize: 15,
               color: colors.primary,
-              fontWeight: "700",
               fontFamily: fontFamily.bodyBold,
             }}
           >
             Create account
           </Text>
-        </Text>
-      </Pressable>
+        </Pressable>
 
-      {/* Quick Dev Login Buttons */}
-      {__DEV__ ? (
-        <View style={{ gap: spacing.sm, marginVertical: spacing.md }}>
+        {/* Demo request link */}
+        <Pressable
+          onPress={goDemo}
+          accessibilityRole="link"
+          accessibilityLabel="Request a demo — opens a form for clinics and doctors"
+          hitSlop={8}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            paddingVertical: spacing.sm,
+            marginTop: spacing.md,
+          }}
+        >
+          <Stethoscope size={14} color={colors.textMuted} />
           <Text
             style={{
-              fontSize: 12,
-              fontWeight: "700",
+              fontSize: 13,
               color: colors.textMuted,
-              textAlign: "center",
-              textTransform: "uppercase",
-              letterSpacing: 1,
+              fontFamily: fontFamily.body,
             }}
           >
-            🛠️ Dev Quick Login
+            Doctor or clinic?{" "}
+            <Text style={{ color: colors.primary, fontFamily: fontFamily.bodySemibold }}>
+              Request a demo
+            </Text>
           </Text>
-          <View style={{ flexDirection: "row", gap: spacing.md, justifyContent: "center" }}>
-            <Pressable
-              onPress={() => quickLogin("0777313847")}
-              disabled={submitting}
-              style={{
-                flex: 1,
-                backgroundColor: colors.fill,
-                borderWidth: 1,
-                borderColor: colors.primary,
-                paddingVertical: spacing.md,
-                borderRadius: 12,
-                borderCurve: "continuous",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>
-                As Doctor
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => quickLogin("0771234567")}
-              disabled={submitting}
-              style={{
-                flex: 1,
-                backgroundColor: colors.fill,
-                borderWidth: 1,
-                borderColor: colors.accent || "#008080",
-                paddingVertical: spacing.md,
-                borderRadius: 12,
-                borderCurve: "continuous",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: colors.accent || "#008080", fontWeight: "800", fontSize: 13 }}>
-                As Patient
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
+        </Pressable>
 
-      {/* Demo request link */}
-      <Pressable
-        onPress={goDemo}
-        accessibilityRole="link"
-        accessibilityLabel="Request a demo — opens a form for clinics and doctors"
-        hitSlop={8}
+        <View style={{ flex: 1, minHeight: spacing.xl }} />
+
+        {/* Quick Dev Login */}
+        {__DEV__ ? (
+          <View
+            style={{
+              borderWidth: 1,
+              borderStyle: "dashed",
+              borderColor: colors.hairline,
+              borderRadius: 16,
+              borderCurve: "continuous",
+              padding: spacing.md,
+              gap: spacing.sm,
+              marginBottom: spacing.lg,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                color: colors.textSubtle,
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: 1.2,
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              🛠️ Dev quick login
+            </Text>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {(
+                [
+                  { label: "Doctor", phone: "0777313847", icon: Stethoscope, tint: colors.primary, soft: colors.primarySoft },
+                  { label: "Patient", phone: "0771234567", icon: User, tint: colors.accent, soft: colors.accentSoft },
+                ] as const
+              ).map((d) => {
+                const Icon = d.icon;
+                return (
+                  <Pressable
+                    key={d.label}
+                    onPress={() => quickLogin(d.phone)}
+                    disabled={submitting}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      height: 40,
+                      borderRadius: 12,
+                      borderCurve: "continuous",
+                      backgroundColor: d.soft,
+                      opacity: submitting ? 0.5 : pressed ? 0.8 : 1,
+                    })}
+                  >
+                    <Icon size={14} color={d.tint} strokeWidth={2.5} />
+                    <Text style={{ color: d.tint, fontSize: 13, fontFamily: fontFamily.bodyBold }}>
+                      {d.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+      </Screen>
+    </View>
+  );
+}
+
+// ─── Gradient primary button ───────────────────────────────
+function PrimaryButton({
+  label,
+  onPress,
+  loading,
+}: {
+  label: string;
+  onPress: () => void;
+  loading?: boolean;
+}) {
+  const { colors, fontFamily, radius, shadow } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!loading, busy: !!loading }}
+      style={({ pressed }) => ({
+        borderRadius: radius.button,
+        borderCurve: "continuous",
+        marginTop: 4,
+        opacity: loading ? 0.7 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+        ...shadow.primary,
+      })}
+    >
+      <LinearGradient
+        colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={{
+          height: 54,
+          borderRadius: radius.button,
+          borderCurve: "continuous",
+          flexDirection: "row",
           alignItems: "center",
-          paddingVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-          marginBottom: spacing.lg,
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <>
+            <Text
+              style={{
+                fontSize: 16,
+                color: "#FFFFFF",
+                fontFamily: fontFamily.bodyBold,
+              }}
+            >
+              {label}
+            </Text>
+            <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.25} />
+          </>
+        )}
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+// ─── Inline error banner ───────────────────────────────────
+function ErrorBanner({ message }: { message: string }) {
+  const { colors, spacing, radius, typography } = useTheme();
+  return (
+    <View
+      style={{
+        backgroundColor: colors.dangerSoft,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        borderCurve: "continuous",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+      }}
+    >
+      <ShieldCheck size={14} color={colors.danger} strokeWidth={2.5} />
+      <Text
+        style={[
+          typography.caption,
+          { color: colors.danger, fontWeight: "600", flex: 1 },
+        ]}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Labelled text field with focus ring ───────────────────
+function Field({
+  label,
+  icon: Icon,
+  secure,
+  labelAction,
+  ...inputProps
+}: {
+  label: string;
+  icon: typeof Mail;
+  secure?: boolean;
+  labelAction?: ReactNode;
+} & ComponentProps<typeof TextInput>) {
+  const { colors, fontFamily, radius } = useTheme();
+  const [focused, setFocused] = useState(false);
+  const [hidden, setHidden] = useState(true);
+
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
+          marginHorizontal: 2,
         }}
       >
         <Text
           style={{
-            fontSize: 14,
-            color: colors.primary,
-            fontWeight: "700",
-            fontFamily: fontFamily.bodyBold,
-            textAlign: "center",
+            fontSize: 13,
+            color: colors.textMuted,
+            fontFamily: fontFamily.bodySemibold,
           }}
         >
-          Are you a doctor or clinic? Request a demo →
+          {label}
         </Text>
-      </Pressable>
-    </Screen>
+        {labelAction}
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderRadius: radius.field,
+          borderCurve: "continuous",
+          paddingHorizontal: 14,
+          minHeight: 54,
+          borderWidth: 1.5,
+          borderColor: focused ? colors.primary : "transparent",
+          backgroundColor: focused ? colors.surface : colors.fill,
+        }}
+      >
+        <Icon
+          size={18}
+          color={focused ? colors.primary : colors.textSubtle}
+          style={{ marginRight: 10 }}
+        />
+        <TextInput
+          {...inputProps}
+          placeholderTextColor={colors.textSubtle}
+          secureTextEntry={secure && hidden}
+          onFocus={(e) => {
+            setFocused(true);
+            inputProps.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            inputProps.onBlur?.(e);
+          }}
+          style={{
+            flex: 1,
+            fontSize: 16,
+            color: colors.text,
+            fontFamily: fontFamily.body,
+            paddingVertical: 14,
+          }}
+        />
+        {secure ? (
+          <Pressable
+            onPress={() => setHidden((h) => !h)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? "Show password" : "Hide password"}
+          >
+            {hidden ? (
+              <Eye size={18} color={colors.textSubtle} />
+            ) : (
+              <EyeOff size={18} color={colors.textSubtle} />
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -911,31 +998,19 @@ function PhoneInput({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={{ marginBottom: 4 }}>
-      {/* Label */}
-      <View style={{ flexDirection: "row", marginBottom: 6 }}>
-        <Text
-          style={{
-            fontSize: 13,
-            color: colors.textMuted,
-            fontFamily: fontFamily.bodySemibold,
-            marginLeft: 2,
-          }}
-        >
-          Mobile number
-        </Text>
-        <Text
-          style={{
-            fontSize: 11,
-            color: colors.danger || "#FF3B30",
-            marginLeft: 2,
-          }}
-        >
-          *
-        </Text>
-      </View>
+    <View>
+      <Text
+        style={{
+          fontSize: 13,
+          color: colors.textMuted,
+          fontFamily: fontFamily.bodySemibold,
+          marginBottom: 8,
+          marginLeft: 2,
+        }}
+      >
+        Mobile number
+      </Text>
 
-      {/* Input Row */}
       <View
         style={{
           flexDirection: "row",
@@ -944,32 +1019,21 @@ function PhoneInput({
           paddingHorizontal: 14,
           borderRadius: radius.field,
           borderCurve: "continuous",
-          backgroundColor: colors.fill,
+          backgroundColor: focused ? colors.surface : colors.fill,
           borderWidth: 1.5,
           borderColor: error
-            ? colors.danger || "#FF3B30"
+            ? colors.danger
             : focused
             ? colors.primary
             : "transparent",
         }}
       >
-        <Phone size={18} color={colors.textSubtle} style={{ marginRight: 10 }} />
-
-        {/* Country code badge */}
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 9,
-            borderCurve: "continuous",
-            marginRight: 8,
-          }}
-        >
+        {/* Country code */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={{ fontSize: 18 }}>🇱🇰</Text>
           <Text
             style={{
-              fontSize: 15,
-              fontWeight: "700",
+              fontSize: 16,
               color: colors.text,
               fontFamily: fontFamily.bodyBold,
             }}
@@ -977,6 +1041,14 @@ function PhoneInput({
             +94
           </Text>
         </View>
+        <View
+          style={{
+            width: 1,
+            height: 24,
+            backgroundColor: colors.separator,
+            marginHorizontal: 12,
+          }}
+        />
 
         <TextInput
           value={value}
@@ -998,28 +1070,28 @@ function PhoneInput({
           }}
           style={{
             flex: 1,
-            fontSize: 18,
+            fontSize: 17,
             color: colors.text,
-            fontFamily: fontFamily.body,
-            padding: 0,
-            letterSpacing: 1,
+            fontFamily: fontFamily.bodySemibold,
+            paddingVertical: 14,
+            letterSpacing: 0.5,
           }}
         />
       </View>
 
-      {/* Error text */}
-      {error && (
+      {error ? (
         <Text
           style={{
             fontSize: 12,
-            color: colors.danger || "#FF3B30",
+            color: colors.danger,
             marginTop: 6,
+            marginLeft: 2,
             fontFamily: fontFamily.body,
           }}
         >
           {error}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }

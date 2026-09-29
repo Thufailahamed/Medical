@@ -10,6 +10,7 @@ import {
   Linking,
   Alert,
   Image,
+  Switch,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -57,7 +58,15 @@ import {
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useTone, type Tone } from "@/theme/tone";
-import { Screen, Skeleton, ErrorState, Button, Pill, IconTile } from "@/components/ui";
+import {
+  Screen,
+  Skeleton,
+  ErrorState,
+  IconButton,
+  IconTile,
+  LargeHeader,
+  MetricStrip,
+} from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore, type Locale } from "@/stores/locale";
 import { useThemeStore } from "@/stores/theme";
@@ -67,7 +76,7 @@ import { withOpacity } from "@/constants/theme";
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   const { colors, typography } = useTheme();
   return (
-    <View style={{ marginBottom: 2, paddingHorizontal: 2 }}>
+    <View style={{ marginBottom: 4, paddingHorizontal: 2 }}>
       <Text
         numberOfLines={1}
         accessibilityRole="header"
@@ -81,76 +90,6 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
         </Text>
       ) : null}
     </View>
-  );
-}
-
-/** Interactive quick-metric card */
-function ActivityTile({
-  icon: Icon,
-  label,
-  value,
-  tone = "primary",
-  onPress,
-}: {
-  icon: any;
-  label: string;
-  value: number | string;
-  tone?: Tone;
-  onPress: () => void;
-}) {
-  const { colors, typography, shadow, scheme } = useTheme();
-  const palette = useTone(tone);
-  const isDark = scheme === "dark";
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      style={({ pressed }) => ({
-        flex: 1,
-        minWidth: "30%",
-        paddingVertical: 14,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        borderCurve: "continuous",
-        backgroundColor: colors.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.hairline,
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: 10,
-        opacity: pressed ? 0.9 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-        ...(isDark ? {} : shadow.card),
-      })}
-    >
-      <IconTile icon={Icon} tone={tone} size={32} />
-      <View>
-        <Text
-          style={[
-            typography.display.sm,
-            {
-              fontSize: 26,
-              lineHeight: 30,
-              letterSpacing: -0.9,
-              color: colors.text,
-              fontVariant: ["tabular-nums"],
-            },
-          ]}
-        >
-          {value}
-        </Text>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
-        >
-          {label}
-        </Text>
-      </View>
-    </Pressable>
   );
 }
 
@@ -531,71 +470,20 @@ export default function DoctorProfileScreen() {
         }}
       >
         {/* ─── Top Screen Bar ─── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
-            paddingBottom: 2,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 11,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <UserCheck size={18} color={colors.primary} strokeWidth={2.4} />
-            </View>
-            <View>
-              <Text style={[typography.display.md, { color: colors.text }]}>
-                {t("doctorProfile.title", { defaultValue: "Doctor Profile" })}
-              </Text>
-              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                {t("doctorProfile.subtitle")}
-              </Text>
-            </View>
-          </View>
-
-          {/* Quick Notification Bell */}
-          <Pressable
-            onPress={() => router.push("/(doctor)/notifications" as any)}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              backgroundColor: pressed ? colors.fillStrong : colors.fill,
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-            })}
-          >
-            <Bell size={18} color={colors.text} strokeWidth={2.2} />
-            {unreadN > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: colors.danger,
-                }}
-              />
-            )}
-          </Pressable>
-        </View>
+        <LargeHeader
+          title={t("doctorProfile.title", { defaultValue: "Doctor profile" })}
+          subtitle={t("doctorProfile.subtitle")}
+          right={
+            <IconButton
+              icon={Bell}
+              variant="surface"
+              badge={unreadN}
+              onPress={() => router.push("/(doctor)/notifications" as any)}
+              accessibilityLabel={t("doctor.notificationsA11y", "Notifications")}
+            />
+          }
+          style={{ paddingBottom: 0 }}
+        />
 
         {/* ─── Hero Credential Identity Card ─── */}
         <View
@@ -822,53 +710,60 @@ export default function DoctorProfileScreen() {
             subtitle={t("doctorProfile.sections.activitySubtitle")}
           />
 
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            <ActivityTile
-              icon={CalendarDays}
-              label={t("doctorProfile.stats.todayQueue", { defaultValue: "Today's queue" })}
-              value={queueCount}
-              tone="primary"
-              onPress={() => router.push("/(doctor)/schedule" as any)}
-            />
-            <ActivityTile
-              icon={FlaskConical}
-              label={t("doctorProfile.stats.labOrders", { defaultValue: "Lab orders" })}
-              value={labCount}
-              tone="info"
-              onPress={() => router.push("/(doctor)/lab-orders" as any)}
-            />
-            <ActivityTile
-              icon={CalendarClock}
-              label={t("doctorProfile.stats.followUps", { defaultValue: "Follow-ups" })}
-              value={followCount}
-              tone="warning"
-              onPress={() => router.push("/(doctor)/follow-ups" as any)}
-            />
-          </View>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            <ActivityTile
-              icon={FileText}
-              label={t("doctorProfile.stats.prescriptions", { defaultValue: "Prescriptions" })}
-              value={rxCount}
-              tone="success"
-              onPress={() => router.push("/(doctor)/prescriptions" as any)}
-            />
-            <ActivityTile
-              icon={Edit3}
-              label={t("doctorProfile.stats.clinicalNotes", { defaultValue: "Clinical notes" })}
-              value={notesCount}
-              tone="accent"
-              onPress={() => router.push("/(doctor)/clinical-notes" as any)}
-            />
-            <ActivityTile
-              icon={Bell}
-              label={t("doctorProfile.stats.unread", { defaultValue: "Unread alerts" })}
-              value={unreadN}
-              tone="danger"
-              onPress={() => router.push("/(doctor)/notifications" as any)}
-            />
-          </View>
+          <MetricStrip
+            size="md"
+            items={[
+              {
+                icon: CalendarDays,
+                label: t("doctorProfile.stats.todayQueue", { defaultValue: "Today's queue" }),
+                value: queueCount,
+                tone: "primary",
+                live: queueCount > 0,
+                onPress: () => router.push("/(doctor)/queue" as any),
+              },
+              {
+                icon: FlaskConical,
+                label: t("doctorProfile.stats.labOrders", { defaultValue: "Lab orders" }),
+                value: labCount,
+                tone: "info",
+                onPress: () => router.push("/(doctor)/lab-orders" as any),
+              },
+              {
+                icon: CalendarClock,
+                label: t("doctorProfile.stats.followUps", { defaultValue: "Follow-ups" }),
+                value: followCount,
+                tone: "warning",
+                onPress: () => router.push("/(doctor)/follow-ups" as any),
+              },
+            ]}
+          />
+          <MetricStrip
+            size="md"
+            items={[
+              {
+                icon: FileText,
+                label: t("doctorProfile.stats.prescriptions", { defaultValue: "Prescriptions" }),
+                value: rxCount,
+                tone: "success",
+                onPress: () => router.push("/(doctor)/prescriptions" as any),
+              },
+              {
+                icon: Edit3,
+                label: t("doctorProfile.stats.clinicalNotes", { defaultValue: "Clinical notes" }),
+                value: notesCount,
+                tone: "accent2",
+                onPress: () => router.push("/(doctor)/clinical-notes" as any),
+              },
+              {
+                icon: Bell,
+                label: t("doctorProfile.stats.unread", { defaultValue: "Unread alerts" }),
+                value: unreadN,
+                tone: "danger",
+                live: unreadN > 0,
+                onPress: () => router.push("/(doctor)/notifications" as any),
+              },
+            ]}
+          />
         </View>
 
         {/* ─── Practice & Qualifications Card ─── */}
@@ -908,11 +803,14 @@ export default function DoctorProfileScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 10,
-                paddingHorizontal: spacing.lg,
+                marginHorizontal: 8,
+                marginTop: 4,
+                marginBottom: 4,
+                paddingHorizontal: spacing.md,
                 paddingVertical: 12,
+                borderRadius: 16,
+                borderCurve: "continuous",
                 backgroundColor: colors.primarySoft,
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: colors.separator,
               }}
             >
               <ShieldCheck size={16} color={colors.primary} strokeWidth={2.2} />
@@ -1117,22 +1015,13 @@ export default function DoctorProfileScreen() {
                 </View>
               </View>
 
-              <Pressable
-                onPress={toggleTheme}
-                style={({ pressed }) => ({
-                  height: 34,
-                  paddingHorizontal: 14,
-                  justifyContent: "center",
-                  borderRadius: 999,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text style={[typography.label.md, { color: colors.primary }]}>
-                  {t("doctorProfile.toggle")}
-                </Text>
-              </Pressable>
+              <Switch
+                value={scheme === "dark"}
+                onValueChange={toggleTheme}
+                trackColor={{ false: colors.fillStrong, true: colors.primary }}
+                ios_backgroundColor={colors.fillStrong}
+                accessibilityLabel={t("doctorProfile.darkMode")}
+              />
             </View>
           </View>
         </View>
@@ -1159,11 +1048,10 @@ export default function DoctorProfileScreen() {
               height: 54,
               borderRadius: radius.button,
               borderCurve: "continuous",
-              backgroundColor: colors.surface,
+              backgroundColor: pressed ? colors.dangerSoft : colors.surface,
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: isDarkUI ? colors.borderStrong : colors.hairline,
               ...(isDarkUI ? {} : shadow.sm),
-              opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.99 : 1 }],
             })}
           >

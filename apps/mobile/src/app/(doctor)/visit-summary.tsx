@@ -5,8 +5,6 @@ import {
   View,
   Text,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,6 +16,9 @@ import {
   Pill,
   FlaskConical,
   CheckCircle2,
+  Stethoscope,
+  ClipboardList,
+  CalendarClock,
 } from "lucide-react-native";
 import { usePatientSummary, useCreateVisitSummary } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -30,6 +31,7 @@ import {
   Button,
   Pill as PillCmp,
   SectionHeader,
+  IconTile,
   Divider,
   useToast,
 } from "@/components/ui";
@@ -172,10 +174,7 @@ export default function VisitSummaryScreen() {
 
   return (
     <Screen keyboard padded={false} scroll={false} bottomInset>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
+      <>
         <ScreenHeader
           back
           onBack={() => router.back()}
@@ -192,21 +191,13 @@ export default function VisitSummaryScreen() {
         >
           {/* Visit title */}
           <Card>
-            <Text
-              style={[
-                typography.title.md,
-                { color: colors.text, marginBottom: spacing.md },
-              ]}
-            >
-              {t("visitSummary.cardVisit")}
-            </Text>
+            <CardHead icon={Stethoscope} title={t("visitSummary.cardVisit")} />
             <FormField label={t("visitSummary.titleLabel")}>
               <TextInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder={t("visitSummary.titlePlaceholder")}
                 leadingIcon={Sparkles}
-                tone="soft"
               />
             </FormField>
             <FormField label={t("visitSummary.diagnosis")}>
@@ -214,7 +205,6 @@ export default function VisitSummaryScreen() {
                 value={diagnosis}
                 onChangeText={setDiagnosis}
                 placeholder={t("visitSummary.diagnosisPlaceholder")}
-                tone="soft"
                 multiline
               />
             </FormField>
@@ -222,7 +212,7 @@ export default function VisitSummaryScreen() {
 
           {/* SOAP */}
           <Card>
-            <SectionHeader title={t("visitSummary.soapHeading")} />
+            <CardHead icon={ClipboardList} tone="accent2" title={t("visitSummary.soapHeading")} />
             <View style={{ gap: spacing.md }}>
               <FormField
                 label={t("visitSummary.subjective")}
@@ -232,8 +222,7 @@ export default function VisitSummaryScreen() {
                   value={subjective}
                   onChangeText={setSubjective}
                   placeholder={t("visitSummary.subjectivePlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <FormField
@@ -244,8 +233,7 @@ export default function VisitSummaryScreen() {
                   value={objective}
                   onChangeText={setObjective}
                   placeholder={t("visitSummary.objectivePlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <FormField
@@ -256,8 +244,7 @@ export default function VisitSummaryScreen() {
                   value={assessment}
                   onChangeText={setAssessment}
                   placeholder={t("visitSummary.assessmentPlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <FormField
@@ -268,8 +255,7 @@ export default function VisitSummaryScreen() {
                   value={plan}
                   onChangeText={setPlan}
                   placeholder={t("visitSummary.planPlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <FormField label={t("visitSummary.notes")}>
@@ -277,8 +263,7 @@ export default function VisitSummaryScreen() {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder={t("visitSummary.notesPlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
             </View>
@@ -286,7 +271,7 @@ export default function VisitSummaryScreen() {
 
           {/* Prescriptions */}
           <Card>
-            <SectionHeader title={t("visitSummary.rxHeading")} />
+            <CardHead icon={Pill} tone="primary" title={t("visitSummary.rxHeading")} />
             <View style={{ gap: spacing.sm }}>
               {rxList.map((r, i) => (
                 <View
@@ -332,8 +317,7 @@ export default function VisitSummaryScreen() {
                   value={rx.name}
                   onChangeText={(v) => setRx((p) => ({ ...p, name: v }))}
                   placeholder={t("visitSummary.medicinePlaceholder")}
-                  tone="soft"
-                />
+                  />
               </FormField>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <View style={{ flex: 1 }}>
@@ -342,8 +326,7 @@ export default function VisitSummaryScreen() {
                       value={rx.dosage}
                       onChangeText={(v) => setRx((p) => ({ ...p, dosage: v }))}
                       placeholder={t("visitSummary.dosagePlaceholder")}
-                      tone="soft"
-                    />
+                          />
                   </FormField>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -354,8 +337,7 @@ export default function VisitSummaryScreen() {
                         setRx((p) => ({ ...p, frequency: v }))
                       }
                       placeholder={t("visitSummary.frequencyPlaceholder")}
-                      tone="soft"
-                    />
+                          />
                   </FormField>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -364,8 +346,7 @@ export default function VisitSummaryScreen() {
                       value={rx.duration}
                       onChangeText={(v) => setRx((p) => ({ ...p, duration: v }))}
                       placeholder={t("visitSummary.durationPlaceholder")}
-                      tone="soft"
-                    />
+                          />
                   </FormField>
                 </View>
               </View>
@@ -376,8 +357,7 @@ export default function VisitSummaryScreen() {
                     setRx((p) => ({ ...p, instructions: v }))
                   }
                   placeholder={t("visitSummary.instructionsPlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <Button
@@ -393,7 +373,7 @@ export default function VisitSummaryScreen() {
 
           {/* Lab orders */}
           <Card>
-            <SectionHeader title={t("visitSummary.labHeading")} />
+            <CardHead icon={FlaskConical} tone="info" title={t("visitSummary.labHeading")} />
             <View style={{ gap: spacing.sm }}>
               {labList.map((l, i) => (
                 <View
@@ -444,8 +424,7 @@ export default function VisitSummaryScreen() {
                     setLab((p) => ({ ...p, testName: v }))
                   }
                   placeholder={t("visitSummary.testNamePlaceholder")}
-                  tone="soft"
-                />
+                  />
               </FormField>
               <FormField label={t("visitSummary.testNotes")}>
                 <TextInput
@@ -454,8 +433,7 @@ export default function VisitSummaryScreen() {
                     setLab((p) => ({ ...p, instructions: v }))
                   }
                   placeholder={t("visitSummary.testNotesPlaceholder")}
-                  tone="soft"
-                  multiline
+                    multiline
                 />
               </FormField>
               <Button
@@ -471,7 +449,7 @@ export default function VisitSummaryScreen() {
 
           {/* Follow-up */}
           <Card>
-            <SectionHeader title={t("visitSummary.followUpHeading")} />
+            <CardHead icon={CalendarClock} tone="warning" title={t("visitSummary.followUpHeading")} />
             <Pressable
               onPress={() => setFollowUpEnabled(!followUpEnabled)}
               hitSlop={8}
@@ -499,24 +477,21 @@ export default function VisitSummaryScreen() {
                     value={followUpDate}
                     onChangeText={setFollowUpDate}
                     placeholder={t("doctorAvailability.datePlaceholder")}
-                    tone="soft"
-                  />
+                      />
                 </FormField>
                 <FormField label={t("visitSummary.titleLabel")}>
                   <TextInput
                     value={followUpTitle}
                     onChangeText={setFollowUpTitle}
                     placeholder={t("visitSummary.followUpTitlePlaceholder")}
-                    tone="soft"
-                  />
+                      />
                 </FormField>
                 <FormField label={t("visitSummary.notes")}>
                   <TextInput
                     value={followUpNotes}
                     onChangeText={setFollowUpNotes}
                     placeholder={t("visitSummary.followUpNotesPlaceholder")}
-                    tone="soft"
-                    multiline
+                        multiline
                   />
                 </FormField>
               </View>
@@ -558,7 +533,18 @@ export default function VisitSummaryScreen() {
             onPress={submit}
           />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </>
     </Screen>
+  );
+}
+
+/** In-card section head: solid tone tile + title. */
+function CardHead({ icon, title, tone = "primary" }: { icon: any; title: string; tone?: any }) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: spacing.md }}>
+      <IconTile icon={icon} tone={tone} appearance="solid" size={30} />
+      <Text style={[typography.title.md, { color: colors.text }]}>{title}</Text>
+    </View>
   );
 }

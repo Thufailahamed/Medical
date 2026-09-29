@@ -121,15 +121,9 @@ export default function ShareScreen() {
       setLabel("");
       setPrefillFmId(null);
       setPrefillFmName(null);
-      toast.show({
-        message: t("share.toast.created", { defaultValue: "Share link created" }),
-        tone: "success",
-      });
+      toast.show(t("share.toast.created", { defaultValue: "Share link created" }), "success");
     } catch (e: any) {
-      toast.show({
-        message: e?.message || t("share.toast.createError"),
-        tone: "danger",
-      });
+      toast.show(e?.message || t("share.toast.createError"), "danger");
     }
   }
 
@@ -145,10 +139,7 @@ export default function ShareScreen() {
         }),
       });
     } catch (e: any) {
-      toast.show({
-        message: e?.message || t("share.toast.shareError"),
-        tone: "danger",
-      });
+      toast.show(e?.message || t("share.toast.shareError"), "danger");
     }
   }
 
@@ -157,15 +148,9 @@ export default function ShareScreen() {
       const base = getPublicBaseUrl();
       const url = `${base}/share/${link.token}`;
       await Clipboard.setStringAsync(url);
-      toast.show({
-        message: "Link copied to clipboard",
-        tone: "success",
-      });
+      toast.show("Link copied to clipboard", "success");
     } catch {
-      toast.show({
-        message: "Failed to copy link",
-        tone: "danger",
-      });
+      toast.show("Failed to copy link", "danger");
     }
   }
 
@@ -184,17 +169,11 @@ export default function ShareScreen() {
           onPress: async () => {
             try {
               await revoke.mutateAsync(link.id);
-              toast.show({
-                message: t("share.toast.revoked", {
+              toast.show(t("share.toast.revoked", {
                   defaultValue: "Link revoked successfully",
-                }),
-                tone: "success",
-              });
+                }), "success");
             } catch (e: any) {
-              toast.show({
-                message: e?.message || t("share.toast.revokeError"),
-                tone: "danger",
-              });
+              toast.show(e?.message || t("share.toast.revokeError"), "danger");
             }
           },
         },
@@ -249,211 +228,71 @@ export default function ShareScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Clinical Sharing Overview Hero Card ── */}
-        <Card
-          style={{
-            padding: spacing.lg,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: spacing.md,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flexShrink: 1 }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Globe size={20} color={colors.onPrimary} />
-              </View>
-              <View style={{ flexShrink: 1 }}>
-                <Text
-                  style={[
-                    typography.title.md,
-                    { color: colors.text },
-                  ]}
-                >
-                  Zero-Login Web Access
-                </Text>
-                <Text
-                  style={[
-                    typography.caption,
-                    { color: colors.textSubtle },
-                  ]}
-                >
-                  Direct Clinical Sharing
-                </Text>
-              </View>
-            </View>
-
+        {/* ── Intro: what a share link is, in plain words ── */}
+        <Card style={{ padding: spacing.lg, gap: spacing.lg }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
             <View
               style={{
-                flexDirection: "row",
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: colors.primarySoft,
                 alignItems: "center",
-                gap: 5,
-                backgroundColor:
-                  activeLinks.length > 0
-                    ? colors.successSoft
-                    : colors.fill,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 999,
+                justifyContent: "center",
               }}
             >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor:
-                    activeLinks.length > 0
-                      ? colors.success || "#10B981"
-                      : colors.textMuted,
-                }}
-              />
-              <Text
-                style={[
-                  typography.label.xs,
-                  {
-                    color:
-                      activeLinks.length > 0
-                        ? colors.success
-                        : colors.textMuted,
-                  },
-                ]}
-              >
-                {activeLinks.length}{" "}
-                {activeLinks.length === 1 ? "Active Link" : "Active Links"}
+              <LinkIcon size={22} color={colors.primary} strokeWidth={2.3} />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[typography.title.md, { color: colors.text }]}>
+                {t("share.intro.title", "Private link for your doctor")}
+              </Text>
+              <Text style={[typography.body.sm, { color: colors.textMuted, lineHeight: 20 }]}>
+                {t(
+                  "share.intro.body",
+                  "Your doctor opens it in any browser — no app or account needed."
+                )}
               </Text>
             </View>
           </View>
 
-          <Text
-            style={[
-              typography.body.sm,
-              {
-                color: colors.textMuted,
-                marginBottom: spacing.lg,
-              },
-            ]}
-          >
-            Create secure, time-limited links that doctors or clinics can open on
-            any device. No app installation or patient portal account is
-            required for the doctor.
-          </Text>
-
-          {/* Dual Stat Metrics Strip */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: spacing.md,
-              marginBottom: spacing.lg,
-            }}
-          >
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.fill,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                padding: spacing.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            {[
+              { icon: Globe, label: t("share.intro.anyDevice", "Any device") },
+              { icon: Clock, label: t("share.intro.expires", "Auto-expires") },
+              { icon: Lock, label: t("share.intro.revoke", "Revoke anytime") },
+            ].map(({ icon: Icon, label: text }) => (
               <View
+                key={text}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.successSoft,
+                  flex: 1,
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: 6,
+                  paddingVertical: spacing.sm + 2,
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.fill,
                 }}
               >
-                <Share2 size={16} color={colors.success} />
-              </View>
-              <View>
-                <Text
-                  style={[typography.display.sm, { color: colors.text }]}
-                >
-                  {activeLinks.length}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: colors.textSubtle }]}
-                >
-                  Active Now
+                <Icon size={16} color={colors.primary} strokeWidth={2.3} />
+                <Text style={[typography.caption, { color: colors.text, fontWeight: "600" }]} numberOfLines={1}>
+                  {text}
                 </Text>
               </View>
-            </View>
-
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.fill,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                padding: spacing.md,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShieldCheck size={16} color={colors.primary} />
-              </View>
-              <View>
-                <Text
-                  style={[typography.display.sm, { color: colors.text }]}
-                >
-                  {links.length}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: colors.textSubtle }]}
-                >
-                  Total Created
-                </Text>
-              </View>
-            </View>
+            ))}
           </View>
 
-          {/* Primary Action Button */}
           <Button
-            title={t("share.createButton", {
-              defaultValue: "Create New Share Link",
-            })}
+            title={t("share.createButton", { defaultValue: "Create share link" })}
             icon={Plus}
             onPress={() => setSheetOpen(true)}
-            size="md"
-            variant="primary"
-            style={{ width: "100%" }}
+            size="lg"
           />
         </Card>
 
         {/* ── Segmented Filter Tabs ── */}
+        {links.length > 0 ? (
         <View
           style={{
             flexDirection: "row",
@@ -533,6 +372,7 @@ export default function ShareScreen() {
             </Text>
           </Pressable>
         </View>
+        ) : null}
 
         {/* ── Links List ── */}
         {isLoading ? (
@@ -549,7 +389,7 @@ export default function ShareScreen() {
             actionLabel={t("common.retry", { defaultValue: "Retry" })}
             onAction={() => refetch()}
           />
-        ) : displayedLinks.length === 0 ? (
+        ) : links.length === 0 ? null : displayedLinks.length === 0 ? (
           <Card
             style={{
               padding: spacing.xl,
@@ -599,16 +439,6 @@ export default function ShareScreen() {
                 ? "Past expired links will be archived here."
                 : "Generate a secure link to share your medical summary with a healthcare professional."}
             </Text>
-            {filterTab === "all" && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={Plus}
-                onPress={() => setSheetOpen(true)}
-              >
-                Create Share Link
-              </Button>
-            )}
           </Card>
         ) : (
           displayedLinks.map((l) => {
@@ -619,6 +449,7 @@ export default function ShareScreen() {
             return (
               <Card
                 key={l.id}
+                variant={isLinkActive ? "flat" : "muted"}
                 style={{
                   padding: spacing.lg,
                 }}
@@ -668,9 +499,9 @@ export default function ShareScreen() {
                     >
                       <Text
                         style={[
-                          typography.title.md,
+                          typography.title.sm,
                           {
-                            color: colors.text,
+                            color: isLinkActive ? colors.text : colors.textMuted,
                             flex: 1,
                           },
                         ]}
@@ -697,37 +528,22 @@ export default function ShareScreen() {
                       />
                     </View>
 
-                    {/* Scope & Family Member Badges */}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: 6,
-                        marginBottom: 6,
-                      }}
+                    {/* Scope & family member */}
+                    <Text
+                      style={[typography.body.sm, { color: colors.textMuted, marginBottom: 2 }]}
+                      numberOfLines={1}
                     >
-                      <Pill
-                        label={
-                          l.scope === "recent6m"
-                            ? "Last 6 Months"
-                            : "Full Record"
-                        }
-                        tone="neutral"
-                        size="sm"
-                      />
-                      {l.familyMemberId && (
-                        <Pill
-                          label={
-                            l.familyMember?.name ||
-                            prefillFmName ||
-                            "Family Member"
-                          }
-                          tone="info"
-                          size="sm"
-                          icon={User}
-                        />
-                      )}
-                    </View>
+                      {[
+                        l.scope === "recent6m"
+                          ? t("share.scope.recent", "Last 6 months")
+                          : t("share.scope.full", "Full record"),
+                        l.familyMemberId
+                          ? l.familyMember?.name || prefillFmName || t("share.familyMember", "Family member")
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </Text>
 
                     {/* Timestamp */}
                     <View
@@ -838,105 +654,45 @@ export default function ShareScreen() {
           })
         )}
 
-        {/* ── What Doctors See Transparency Card ── */}
-        <Card
-          style={{
-            padding: spacing.lg,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-              marginBottom: spacing.sm,
-            }}
-          >
+        {/* ── What the doctor sees ── */}
+        <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+          <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase", paddingHorizontal: 2 }]}>
+            {t("share.sees.title", "What your doctor sees")}
+          </Text>
+          <Card style={{ padding: spacing.lg, gap: spacing.md }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: spacing.md }}>
+              {[
+                t("share.sees.meds", "Prescriptions & doses"),
+                t("share.sees.allergies", "Allergies"),
+                t("share.sees.labs", "Vitals & lab reports"),
+                t("share.sees.timeline", "Visits & timeline"),
+              ].map((text) => (
+                <View key={text} style={{ width: "50%", flexDirection: "row", alignItems: "center", gap: 8, paddingRight: spacing.sm }}>
+                  <CheckCircle2 size={16} color={colors.success} strokeWidth={2.4} />
+                  <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>{text}</Text>
+                </View>
+              ))}
+            </View>
             <View
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                borderCurve: "continuous",
-                backgroundColor: colors.primarySoft,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
+                gap: 8,
+                paddingTop: spacing.md,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
               }}
             >
-              <ShieldCheck size={18} color={colors.primary} />
-            </View>
-            <Text
-              style={[
-                typography.title.md,
-                { color: colors.text, flex: 1 },
-              ]}
-            >
-              What data does the doctor see?
-            </Text>
-          </View>
-
-          <Text
-            style={[typography.body.sm, { color: colors.textMuted, marginBottom: spacing.md }]}
-          >
-            Links provide a clean, read-only summary optimized for clinical
-            review:
-          </Text>
-
-          <View style={{ gap: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <CheckCircle2 size={15} color={colors.success || "#10B981"} />
-              <Text
-                style={[typography.label.md, { color: colors.text, flex: 1 }]}
-              >
-                Active prescriptions, dosages & schedules
+              <Lock size={14} color={colors.textSubtle} />
+              <Text style={[typography.caption, { color: colors.textMuted, flex: 1 }]}>
+                {t(
+                  "share.sees.excluded",
+                  "Read-only. Your login, payments and private notes are never included."
+                )}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <CheckCircle2 size={15} color={colors.success || "#10B981"} />
-              <Text
-                style={[typography.label.md, { color: colors.text, flex: 1 }]}
-              >
-                Documented drug & food allergies
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <CheckCircle2 size={15} color={colors.success || "#10B981"} />
-              <Text
-                style={[typography.label.md, { color: colors.text, flex: 1 }]}
-              >
-                Vital trends & diagnostic lab reports
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <CheckCircle2 size={15} color={colors.success || "#10B981"} />
-              <Text
-                style={[typography.label.md, { color: colors.text, flex: 1 }]}
-              >
-                Medical timeline entries & consultation summaries
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              marginTop: spacing.lg,
-              paddingTop: spacing.md,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.separator,
-            }}
-          >
-            <Lock size={14} color={colors.textSubtle} />
-            <Text
-              style={[typography.caption, { color: colors.textSubtle, flex: 1 }]}
-            >
-              Account credentials, payment data, and private personal notes are
-              strictly excluded.
-            </Text>
-          </View>
-        </Card>
+          </Card>
+        </View>
       </ScrollView>
 
       {/* ── Modern Create Share Link Bottom Sheet ── */}

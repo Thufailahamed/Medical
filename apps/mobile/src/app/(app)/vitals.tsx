@@ -45,6 +45,7 @@ import {
   type VitalsPoint,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -60,7 +61,10 @@ import {
   useToast,
   Pill as PillCmp,
   Pressable,
+  IconTile,
+  SectionHeader,
 } from "@/components/ui";
+import { fmtRelative } from "@/components/records/visual";
 import {
   VitalsChart,
   AlertsCard,
@@ -75,6 +79,7 @@ import {
   VITAL_CONTEXTS,
   type VitalType,
   type VitalContext,
+  type LatestByType,
   defaultUnit,
   classifyReading,
 } from "@healthcare/shared/vitals";
@@ -261,7 +266,7 @@ export default function VitalsScreen() {
   const isBP = chartType === "blood_pressure";
 
   const screenWidth = Dimensions.get("window").width;
-  const chartWidth = screenWidth - spacing.lg * 2 - spacing.md * 2;
+  const chartWidth = screenWidth - spacing.lg * 4;
 
   const grouped = useMemo(() => {
     const map: Record<string, any[]> = {};
@@ -854,6 +859,16 @@ export default function VitalsScreen() {
   const latestForChart = latestByType.find((l) => l.type === chartType);
   const chartTypeMeta = VITAL_REGISTRY[chartType];
   const isSecondaryCapable = chartTypeMeta?.hasSecondary;
+  const chartLabel = t(`vitals.type.${chartType}.label`, chartTypeMeta?.label ?? chartType.replace(/_/g, " "));
+  const trackedLatest = latestByType.filter(
+    (l): l is LatestByType & { latest: NonNullable<LatestByType["latest"]> } => l.latest != null
+  );
+  const attentionCount = trackedLatest.filter((l) => l.latest.classification !== "normal").length;
+  const needsAttention = attentionCount > 0 || alertsCount > 0;
+  const lastLoggedAt = trackedLatest.reduce<string | null>(
+    (acc, l) => (!acc || l.latest.recordedAt > acc ? l.latest.recordedAt : acc),
+    null
+  );
 
   return (
     <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
@@ -896,157 +911,168 @@ export default function VitalsScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Health Overview Hero */}
+          {/* ── Status hero ─────────────────────────────────── */}
           <LinearGradient
             colors={
-              alertsCount > 0
+              needsAttention
                 ? [colors.warning, colors.accent2]
                 : [colors.primaryGradientStart, colors.primaryGradientEnd]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: 28,
+              borderRadius: radius.card,
               borderCurve: "continuous",
               padding: spacing.xl,
-              flexDirection: "row",
-              alignItems: "center",
               gap: spacing.lg,
+              overflow: "hidden",
               ...(isDark ? {} : shadow.hero),
             }}
           >
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                borderCurve: "continuous",
-                backgroundColor: "rgba(255,255,255,0.18)",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {alertsCount > 0 ? (
-                <AlertTriangle size={26} color="#FFFFFF" />
-              ) : (
-                <Heart size={26} color="#FFFFFF" />
-              )}
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.7, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <IconTile
+                icon={needsAttention ? AlertTriangle : ShieldCheck}
+                appearance="glass"
+                size={48}
+              />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[typography.kicker, { color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }]}>
+                  {t("vitals.hero.kicker", "Health status")}
+                </Text>
+                <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 2 }]} numberOfLines={2}>
+                  {latestByType.length === 0
+                    ? t("vitals.hero.emptyTitle", "Start tracking your vitals")
+                    : needsAttention
+                    ? t("vitals.hero.attentionTitle", {
+                        count: attentionCount || alertsCount,
+                        defaultValue:
+                          (attentionCount || alertsCount) === 1
+                            ? "1 reading needs attention"
+                            : `${attentionCount || alertsCount} readings need attention`,
+                      })
+                    : t("vitals.hero.okTitle", "All readings in range")}
+                </Text>
+                {lastLoggedAt ? (
+                  <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)", marginTop: 2 }]}>
+                    {t("vitals.hero.lastLogged", {
+                      when: fmtRelative(lastLoggedAt, locale),
+                      defaultValue: `Last logged ${fmtRelative(lastLoggedAt, locale)}`,
+                    })}
+                  </Text>
+                ) : null}
+              </View>
             </View>
 
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>
-                {alertsCount > 0 ? "Vital Alerts Detected" : "Vitals Healthy"}
-              </Text>
-              <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)" }]}>
-                {alertsCount > 0
-                  ? `${alertsCount} reading requires attention. Review recent trends below.`
-                  : `${latestByType.length} biometric indicator${latestByType.length > 1 ? "s" : ""} monitored and up to date.`}
-              </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.14)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.24)",
+                paddingVertical: spacing.md,
+              }}
+            >
+              <HeroStat value={latestByType.length} label={t("vitals.hero.tracked", "Tracked")} />
+              <View style={{ width: StyleSheet.hairlineWidth, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.3)" }} />
+              <HeroStat value={attentionCount} label={t("vitals.hero.outOfRange", "Out of range")} />
+              <View style={{ width: StyleSheet.hairlineWidth, alignSelf: "stretch", backgroundColor: "rgba(255,255,255,0.3)" }} />
+              <HeroStat value={alertsCount} label={t("vitals.hero.alerts", "Alerts · 30d")} />
             </View>
           </LinearGradient>
 
-          {/* ── Latest + classification ───────────────────────── */}
-          {latestForChart?.latest ? (
-            <Card style={{ padding: spacing.lg }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: spacing.sm,
-                  marginBottom: spacing.xs,
-                }}
-              >
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>
-                    Latest {t(`vitals.type.${chartType}.label`, chartType)}
-                  </Text>
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 2 }}>
-                    <Text
-                      style={[typography.display.lg, { color: colors.text, letterSpacing: -1.2 }]}
-                    >
-                      {latestForChart.latest.secondary != null
-                        ? `${latestForChart.latest.value}/${latestForChart.latest.secondary}`
-                        : latestForChart.latest.value}
-                    </Text>
-                    <Text style={[typography.label.lg, { color: colors.textMuted }]}>
-                      {latestForChart.latest.unit}
-                    </Text>
-                  </View>
-                  {latestForChart.latest.note ? (
-                    <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                      {latestForChart.latest.note}
-                    </Text>
-                  ) : null}
-                </View>
-                <ClassificationBadge
-                  classification={latestForChart.latest.classification}
-                />
+          {/* ── Latest readings grid ─────────────────────────── */}
+          {trackedLatest.length > 0 ? (
+            <View>
+              <SectionHeader
+                kicker={t("vitals.latestGrid.kicker", "Snapshot")}
+                title={t("vitals.latestGrid.title", "Latest readings")}
+                style={{ paddingTop: 0 }}
+              />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
+                {trackedLatest.map((l) => (
+                  <LatestTile
+                    key={l.type}
+                    entry={l}
+                    locale={locale}
+                    selected={chartType === l.type}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setUserSelectedType(l.type);
+                    }}
+                  />
+                ))}
+                {trackedLatest.length % 2 === 1 ? (
+                  <Card
+                    variant="outline"
+                    padded={false}
+                    onPress={() => setComposing(true)}
+                    accessibilityLabel={t("vitals.logLabel", "Log reading")}
+                    style={{ flexBasis: "47%", flexGrow: 1, minHeight: 132 }}
+                  >
+                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.md }}>
+                      <IconTile icon={Plus} tone="primary" size={40} />
+                      <Text style={[typography.label.md, { color: colors.textMuted, textAlign: "center" }]}>
+                        {t("vitals.latestGrid.addAnother", "Track another vital")}
+                      </Text>
+                    </View>
+                  </Card>
+                ) : null}
               </View>
 
-              {isBP ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: spacing.md,
-                    marginTop: spacing.sm,
-                    paddingTop: spacing.md,
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.separator,
-                  }}
-                >
+              {isBP && (derived?.map != null || derived?.pulsePressure != null) ? (
+                <Card variant="muted" style={{ flexDirection: "row", gap: spacing.md, marginTop: spacing.md, padding: spacing.lg }}>
                   {derived?.map != null ? (
-                    <DerivedLine
-                      label={t("vitals.derived.map", "Mean Arterial Pressure")}
-                      value={`${derived.map}`}
-                      unit="mmHg"
-                    />
+                    <DerivedLine label={t("vitals.derived.map", "Mean Arterial Pressure")} value={`${derived.map}`} unit="mmHg" />
                   ) : null}
                   {derived?.pulsePressure != null ? (
-                    <DerivedLine
-                      label={t("vitals.derived.pulsePressure", "Pulse Pressure")}
-                      value={`${derived.pulsePressure}`}
-                      unit="mmHg"
-                    />
+                    <DerivedLine label={t("vitals.derived.pulsePressure", "Pulse Pressure")} value={`${derived.pulsePressure}`} unit="mmHg" />
                   ) : null}
-                </View>
+                </Card>
               ) : null}
-            </Card>
+            </View>
           ) : null}
 
           {/* ── Trend chart card ─────────────────────────────── */}
-          <Card style={{ padding: spacing.md, gap: spacing.md }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text
-                style={[
-                  typography.title.lg,
-                  { color: colors.text },
-                ]}
-              >
-                {t("vitals.chart.trendHeading", "Biometric Trends")}
-              </Text>
+          <Card style={{ padding: spacing.lg, gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing.sm }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                <Text style={[typography.kicker, { color: colors.primary, textTransform: "uppercase" }]}>
+                  {t("vitals.chart.kicker", "History")}
+                </Text>
+                <Text style={[typography.title.lg, { color: colors.text }]}>
+                  {t("vitals.chart.trendHeading", "Trend")}
+                </Text>
+              </View>
               {points.length > 0 && (
                 <PillCmp
-                  label={`${points.length} points`}
+                  label={t("vitals.chart.points", { count: points.length, defaultValue: `${points.length} points` })}
                   tone="neutral"
                   size="sm"
                 />
               )}
             </View>
 
-            {/* Horizontally scrollable vital metric selector */}
+            {/* Vital selector */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.xs, paddingVertical: 2 }}
+              style={{ marginHorizontal: -spacing.lg }}
+              contentContainerStyle={{ gap: spacing.xs, paddingHorizontal: spacing.lg, paddingVertical: 2 }}
             >
               {sortedVitalTypes.map((vt) => {
-                const latest = latestByType.find((l) => l.type === vt);
-                const hasData = !!latest?.latest;
+                const hasData = !!latestByType.find((l) => l.type === vt)?.latest;
                 const isSelected = chartType === vt;
-
+                const VIcon = ICON_BY_TYPE[vt] ?? Activity;
                 return (
                   <Pressable
                     key={vt}
@@ -1058,31 +1084,15 @@ export default function VitalsScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 6,
-                      minHeight: 34,
-                      paddingHorizontal: 14,
-                      paddingVertical: 6,
+                      height: 34,
+                      paddingHorizontal: 12,
                       borderRadius: 999,
                       backgroundColor: isSelected ? colors.primary : colors.fill,
+                      opacity: hasData || isSelected ? 1 : 0.7,
                     }}
                   >
-                    {hasData && (
-                      <View
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: 3,
-                          backgroundColor: isSelected ? colors.onPrimary : colors.primary,
-                        }}
-                      />
-                    )}
-                    <Text
-                      style={[
-                        typography.label.md,
-                        {
-                          color: isSelected ? colors.onPrimary : colors.text,
-                        },
-                      ]}
-                    >
+                    <VIcon size={13} color={isSelected ? colors.onPrimary : hasData ? colors.primary : colors.textSubtle} strokeWidth={2.4} />
+                    <Text style={[typography.label.md, { color: isSelected ? colors.onPrimary : hasData ? colors.text : colors.textMuted }]}>
                       {t(`vitals.type.${vt}.label`, vt.replace(/_/g, " "))}
                     </Text>
                   </Pressable>
@@ -1090,50 +1100,133 @@ export default function VitalsScreen() {
               })}
             </ScrollView>
 
-            {/* Time range selector chips */}
-            <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "center", flexWrap: "wrap", paddingTop: 4 }}>
-              {RANGES.map((r) => (
-                <Chip
-                  key={r}
-                  label={t(`vitals.range.${r}`, `${r}d`)}
-                  selected={chartRange === r}
-                  tone={chartRange === r ? "info" : "neutral"}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setChartRange(r);
-                  }}
-                  size="sm"
-                />
-              ))}
-
-              {isSecondaryCapable ? (
-                <Chip
-                  label={showSecondary ? "Systolic + Diastolic" : "Systolic only"}
-                  tone={showSecondary ? "primary" : "neutral"}
-                  size="sm"
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setShowSecondary((s) => !s);
-                  }}
-                />
-              ) : null}
-
-              {chartType === "blood_sugar" ? (
-                <Chip
-                  label={t("vitals.chart.glucoseFocus", "Glucose focus")}
-                  tone={glucoseFocus ? "primary" : "neutral"}
-                  size="sm"
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    setGlucoseFocus((s) => !s);
-                  }}
-                />
-              ) : null}
+            {/* Range segmented control */}
+            <View
+              style={{
+                flexDirection: "row",
+                backgroundColor: colors.fill,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                padding: 3,
+                gap: 2,
+              }}
+            >
+              {RANGES.map((r) => {
+                const on = chartRange === r;
+                return (
+                  <Pressable
+                    key={r}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setChartRange(r);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    style={{
+                      flex: 1,
+                      height: 32,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 10,
+                      borderCurve: "continuous",
+                      ...(on ? segOn : null),
+                    }}
+                  >
+                    <Text style={[typography.label.md, { color: on ? colors.text : colors.textMuted }]}>
+                      {t(`vitals.range.${r}`, r === 365 ? "1y" : `${r}d`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
+
+            {isSecondaryCapable || chartType === "blood_sugar" ? (
+              <View style={{ flexDirection: "row", gap: spacing.xs, flexWrap: "wrap" }}>
+                {isSecondaryCapable ? (
+                  <Chip
+                    label={showSecondary ? "Systolic + Diastolic" : "Systolic only"}
+                    tone={showSecondary ? "primary" : "neutral"}
+                    size="sm"
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setShowSecondary((s) => !s);
+                    }}
+                  />
+                ) : null}
+                {chartType === "blood_sugar" ? (
+                  <Chip
+                    label={t("vitals.chart.glucoseFocus", "Glucose focus")}
+                    tone={glucoseFocus ? "primary" : "neutral"}
+                    size="sm"
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setGlucoseFocus((s) => !s);
+                    }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Chart Canvas */}
             {seriesLoading ? (
               <Skeleton height={240} radius={16} />
+            ) : points.length === 0 ? (
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: spacing.sm,
+                  paddingVertical: spacing.xl,
+                  paddingHorizontal: spacing.lg,
+                  backgroundColor: colors.surfaceSubtle,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                }}
+              >
+                <IconTile icon={ICON_BY_TYPE[chartType] ?? Activity} tone="neutral" size={44} />
+                <Text style={[typography.title.sm, { color: colors.text, textAlign: "center" }]}>
+                  {latestForChart?.latest
+                    ? t("vitals.chart.emptyRangeTitle", "Nothing in this period")
+                    : t("vitals.chart.emptyTypeTitle", {
+                        label: chartLabel,
+                        defaultValue: `No ${chartLabel.toLowerCase()} readings yet`,
+                      })}
+                </Text>
+                <Text style={[typography.body.sm, { color: colors.textMuted, textAlign: "center" }]}>
+                  {latestForChart?.latest
+                    ? t("vitals.chart.emptyRangeBody", {
+                        when: fmtRelative(latestForChart.latest.recordedAt, locale),
+                        defaultValue: `Your last reading was ${fmtRelative(latestForChart.latest.recordedAt, locale)}.`,
+                      })
+                    : t("vitals.chart.emptyTypeBody", "Log a reading to start building your trend.")}
+                </Text>
+                {latestForChart?.latest && chartRange !== 365 ? (
+                  <Button
+                    title={t("vitals.chart.showYear", "Show last year")}
+                    variant="secondary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setChartRange(365);
+                    }}
+                    style={{ marginTop: spacing.xs }}
+                  />
+                ) : !latestForChart?.latest ? (
+                  <Button
+                    title={t("vitals.logLabel", "Log reading")}
+                    icon={Plus}
+                    variant="secondary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => {
+                      setType(chartType);
+                      setComposing(true);
+                    }}
+                    style={{ marginTop: spacing.xs }}
+                  />
+                ) : null}
+              </View>
             ) : glucoseFocus && chartType === "blood_sugar" ? (
               <GlucoseChart
                 points={points}
@@ -1369,6 +1462,90 @@ export default function VitalsScreen() {
         </ScrollView>
       )}
     </Screen>
+  );
+}
+
+const CLASSIFICATION_TONE = {
+  normal: "success",
+  elevated: "warning",
+  high: "danger",
+  critical: "danger",
+  low: "info",
+} as const;
+
+function HeroStat({ value, label }: { value: number; label: string }) {
+  const { typography } = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: "center", gap: 1 }}>
+      <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>{value}</Text>
+      <Text style={[typography.caption, { color: "rgba(255,255,255,0.82)" }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function LatestTile({
+  entry,
+  locale,
+  selected,
+  onPress,
+}: {
+  entry: LatestByType & { latest: NonNullable<LatestByType["latest"]> };
+  locale: any;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const { spacing, colors, typography } = useTheme();
+  const l = entry.latest;
+  const tone = CLASSIFICATION_TONE[l.classification] ?? "neutral";
+  const p = useTone(tone);
+  const VIcon = ICON_BY_TYPE[entry.type] ?? Activity;
+  const unit = l.unit || VITAL_REGISTRY[entry.type]?.unit || "";
+  // Older API builds append "undefined" where the unit belongs.
+  const note = l.classification !== "normal" && l.note ? l.note.replace(/\s*undefined$/, ` ${unit}`).trim() : null;
+
+  return (
+    <Card
+      padded={false}
+      onPress={onPress}
+      accessibilityLabel={String(t(`vitals.type.${entry.type}.label`, entry.type))}
+      style={{
+        flexBasis: "47%",
+        flexGrow: 1,
+        minHeight: 132,
+        borderWidth: selected ? 1.5 : StyleSheet.hairlineWidth,
+        borderColor: selected ? colors.primary : colors.hairline,
+      }}
+    >
+      <View style={{ padding: spacing.md, gap: spacing.sm, flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.xs }}>
+          <IconTile icon={VIcon} tone={tone} size={34} />
+          <ClassificationBadge classification={l.classification} size="sm" />
+        </View>
+        <Text style={[typography.label.md, { color: colors.textMuted }]} numberOfLines={1}>
+          {t(`vitals.type.${entry.type}.label`, entry.type.replace(/_/g, " "))}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: -4 }}>
+          <Text style={[typography.metric, { color: colors.text }]} numberOfLines={1}>
+            {l.secondary != null ? `${l.value}/${l.secondary}` : l.value}
+          </Text>
+          <Text style={[typography.label.sm, { color: colors.textMuted }]}>{unit}</Text>
+        </View>
+        {note ? (
+          <Text style={[typography.label.sm, { color: p.fg, marginTop: -4 }]} numberOfLines={1}>
+            {note}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: "auto" }}>
+          <Clock size={11} color={colors.textSubtle} strokeWidth={2.2} />
+          <Text style={[typography.caption, { color: colors.textSubtle, flexShrink: 1 }]} numberOfLines={1}>
+            {fmtRelative(l.recordedAt, locale)}
+          </Text>
+        </View>
+      </View>
+    </Card>
   );
 }
 

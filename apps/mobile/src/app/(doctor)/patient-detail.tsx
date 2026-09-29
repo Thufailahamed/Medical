@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -33,6 +34,7 @@ import {
   ListChecks,
   Plus,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react-native";
 import {
   usePatientSummary,
@@ -49,6 +51,7 @@ import {
   ScreenHeader,
   Card,
   Avatar,
+  IconTile,
   Pill as PillCmp,
   EmptyState,
   ErrorState,
@@ -65,7 +68,7 @@ type Tab = "summary" | "records" | "meds" | "labs" | "vitals";
 
 export default function DoctorPatientDetail() {
   const router = useRouter();
-  const { spacing, colors, typography, shadow } = useTheme();
+  const { spacing, colors, typography, shadow, scheme } = useTheme();
   const { t } = useTranslation();
   const locale = useLocaleStore((s) => s.locale);
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -233,12 +236,14 @@ export default function DoctorPatientDetail() {
       padded={false}
       edges={["top"]}
       bottomInset
-      style={{ backgroundColor: colors.surfaceSubtle }}
+      style={{ backgroundColor: colors.bg }}
     >
       <ScreenHeader
         back
         onBack={() => router.back()}
+        kicker={t("doctorPatientDetail.kicker", "Patient chart")}
         title={user?.name || t("doctorPatientDetail.fallbackTitle")}
+        variant="compact"
         style={{ backgroundColor: "transparent" }}
       />
 
@@ -251,44 +256,58 @@ export default function DoctorPatientDetail() {
           gap: spacing.lg,
         }}
       >
-        {/* Patient identity card */}
-        <Card padded={false}>
+        {/* Patient identity hero */}
+        <View
+          style={{
+            borderRadius: 28,
+            borderCurve: "continuous",
+            overflow: "hidden",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: "rgba(255,255,255,0.22)",
+            ...(scheme === "dark" ? {} : shadow.hero),
+          }}
+        >
           <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            colors={["#082247", "#0A4874", "#0C7888"]}
+            locations={[0, 0.55, 1]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{ height: 4 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -50,
+              right: -40,
+              width: 170,
+              height: 170,
+              borderRadius: 85,
+              backgroundColor: "rgba(255,255,255,0.07)",
+            }}
           />
           <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View
                 style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 36,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: colors.primarySoft,
+                  padding: 3,
+                  borderRadius: 40,
+                  backgroundColor: "rgba(255,255,255,0.16)",
                 }}
               >
                 <Avatar
                   name={user?.name}
                   size="lg"
                   tone="primary"
-                  ring
                   source={user?.photo ? { uri: user.photo } : undefined}
                 />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
                   numberOfLines={1}
-                  style={[typography.display.sm, { color: colors.text }]}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                  style={[typography.display.sm, { color: "#FFFFFF" }]}
                 >
                   {user?.name || t("doctorPatientDetail.fallbackTitle")}
                 </Text>
@@ -296,27 +315,31 @@ export default function DoctorPatientDetail() {
                   numberOfLines={1}
                   style={[
                     typography.body.sm,
-                    { color: colors.textMuted, marginTop: 4 },
+                    { color: "rgba(255,255,255,0.75)", marginTop: 2, fontVariant: ["tabular-nums"] },
                   ]}
                 >
-                  {user?.nic || user?.phone || "—"}
+                  {user?.nic ? `NIC ${user.nic}` : user?.phone || "—"}
                 </Text>
                 {nextAppt ? (
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
+                      alignSelf: "flex-start",
                       gap: 5,
                       marginTop: spacing.sm,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(255,255,255,0.16)",
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: "rgba(255,255,255,0.26)",
                     }}
                   >
-                    <CalendarClock size={13} color={colors.primary} />
+                    <CalendarClock size={12} color="#5EEAD4" strokeWidth={2.4} />
                     <Text
                       numberOfLines={1}
-                      style={[
-                        typography.label.sm,
-                        { color: colors.primary, fontWeight: "700" },
-                      ]}
+                      style={[typography.label.sm, { color: "#FFFFFF" }]}
                     >
                       {t("overview.nextVisit")} {nextAppt.date} {nextAppt.time}
                     </Text>
@@ -325,53 +348,117 @@ export default function DoctorPatientDetail() {
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <PatientMetaTile icon={Droplet} value={patient.bloodGroup} tone="danger" />
-              <PatientMetaTile icon={User} value={patient.gender} tone="primary" />
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <PatientMetaTile icon={Cake} value={patient.dateOfBirth} tone="primary" />
-              <PatientMetaTile icon={Phone} value={user?.phone} tone="primary" />
+            {/* Facts strip */}
+            <View
+              style={{
+                flexDirection: "row",
+                paddingVertical: spacing.md,
+                borderRadius: 18,
+                borderCurve: "continuous",
+                backgroundColor: "rgba(255,255,255,0.10)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(255,255,255,0.20)",
+              }}
+            >
+              {[
+                { icon: Droplet, label: t("doctorPatientDetail.factBlood", "Blood"), value: patient.bloodGroup },
+                { icon: User, label: t("doctorPatientDetail.factSex", "Sex"), value: patient.gender },
+                { icon: Cake, label: t("doctorPatientDetail.factDob", "Born"), value: patient.dateOfBirth },
+              ].map((f, i) => (
+                <View key={f.label} style={{ flex: 1, flexDirection: "row" }}>
+                  {i > 0 ? (
+                    <View
+                      style={{
+                        width: StyleSheet.hairlineWidth,
+                        marginVertical: 2,
+                        backgroundColor: "rgba(255,255,255,0.22)",
+                      }}
+                    />
+                  ) : null}
+                  <View style={{ flex: 1, alignItems: "center", gap: 3, paddingHorizontal: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <f.icon size={11} color="rgba(255,255,255,0.7)" strokeWidth={2.4} />
+                      <Text style={{ fontSize: 10.5, color: "rgba(255,255,255,0.7)", fontWeight: "600" }}>
+                        {f.label}
+                      </Text>
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                      style={[
+                        typography.label.lg,
+                        { color: "#FFFFFF", textTransform: "capitalize", fontVariant: ["tabular-nums"] },
+                      ]}
+                    >
+                      {f.value || "—"}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
 
-            {(allergies.length > 0 || conditions.length > 0) && (
-              <View
-                style={{
-                  gap: spacing.xs,
-                  padding: spacing.md,
-                  borderRadius: 14,
-                  borderCurve: "continuous",
-                  borderWidth: 1,
-                  borderColor: allergies.length > 0 ? colors.danger : colors.border,
-                  backgroundColor: allergies.length > 0 ? colors.dangerSoft : colors.surfaceMuted,
-                }}
+            {user?.phone ? (
+              <Pressable
+                onPress={() => Linking.openURL(`tel:${user.phone}`).catch(() => {})}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  height: 42,
+                  borderRadius: 21,
+                  backgroundColor: pressed ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.16)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: "rgba(255,255,255,0.28)",
+                })}
               >
-                {allergies.length > 0 ? (
-                  <Text style={[typography.label.md, { color: colors.danger }]}>
-                    {t("doctorPatientDetail.allergies", { list: allergies.join(", ") })}
-                  </Text>
-                ) : null}
-                {conditions.length > 0 ? (
-                  <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-                    {t("doctorPatientDetail.conditions", { list: conditions.join(", ") })}
-                  </Text>
-                ) : null}
-              </View>
-            )}
+                <Phone size={15} color="#FFFFFF" strokeWidth={2.3} />
+                <Text style={[typography.label.md, { color: "#FFFFFF", fontVariant: ["tabular-nums"] }]}>
+                  {user.phone}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-        </Card>
+        </View>
+
+        {(allergies.length > 0 || conditions.length > 0) && (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: spacing.md,
+              padding: spacing.md,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              backgroundColor: allergies.length > 0 ? colors.dangerSoft : colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: allergies.length > 0 ? colors.danger : colors.hairline,
+            }}
+          >
+            <IconTile
+              icon={AlertTriangle}
+              tone={allergies.length > 0 ? "danger" : "warning"}
+              appearance="solid"
+              size={34}
+            />
+            <View style={{ flex: 1, gap: 3, justifyContent: "center" }}>
+              {allergies.length > 0 ? (
+                <Text style={[typography.label.md, { color: colors.danger }]}>
+                  {t("doctorPatientDetail.allergies", { list: allergies.join(", ") })}
+                </Text>
+              ) : null}
+              {conditions.length > 0 ? (
+                <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                  {t("doctorPatientDetail.conditions", { list: conditions.join(", ") })}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         {/* Quick actions */}
-        <Card padded={false}>
-          <View style={{ padding: spacing.md, gap: spacing.md }}>
-            <Text
-              style={[
-                typography.overline,
-                { color: colors.textMuted, paddingHorizontal: spacing.xs },
-              ]}
-            >
-              {t("home.sectionQuickActions")}
-            </Text>
+        <View style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               {patientActions.slice(0, 3).map((action) => (
                 <PatientActionTile key={action.key} {...action} />
@@ -382,8 +469,7 @@ export default function DoctorPatientDetail() {
                 <PatientActionTile key={action.key} {...action} />
               ))}
             </View>
-          </View>
-        </Card>
+        </View>
 
         {/* Record sections */}
         <View
@@ -1170,8 +1256,8 @@ function PatientActionTile({
           justifyContent: "center",
           gap: spacing.sm,
           backgroundColor: primary ? colors.primary : colors.surface,
-          borderWidth: primary ? 0 : 1,
-          borderColor: colors.border,
+          borderWidth: primary ? 0 : StyleSheet.hairlineWidth,
+          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
           opacity: loading ? 0.7 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
         },

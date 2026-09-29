@@ -16,7 +16,7 @@
 // parent owns the value and decides what to do with a complete PIN.
 
 import React, { useEffect, useRef } from "react";
-import { View, Text, Pressable, Animated, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, Animated, StyleSheet, useWindowDimensions } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Delete } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -85,8 +85,8 @@ export function PinPad({
     onChange(value.slice(0, -1));
   }
 
-  const dotSize = 13;
-  const dotColor = error ? colors.danger : colors.text;
+  const dotSize = 14;
+  const dotColor = error ? colors.danger : colors.primary;
   const showBack = value.length > 0;
 
   return (
@@ -102,22 +102,15 @@ export function PinPad({
           transform: [{ translateX: shake }],
         }}
       >
-        {Array.from({ length }).map((_, i) => {
-          const filled = i < value.length;
-          return (
-            <View
-              key={i}
-              style={{
-                width: dotSize,
-                height: dotSize,
-                borderRadius: dotSize / 2,
-                borderWidth: 1.5,
-                borderColor: filled ? dotColor : error ? colors.danger : colors.textSubtle,
-                backgroundColor: filled ? dotColor : "transparent",
-              }}
-            />
-          );
-        })}
+        {Array.from({ length }).map((_, i) => (
+          <Dot
+            key={i}
+            filled={i < value.length}
+            size={dotSize}
+            color={dotColor}
+            emptyColor={error ? colors.danger : colors.borderStrong}
+          />
+        ))}
       </Animated.View>
 
       <Text
@@ -188,8 +181,9 @@ function KeyButton({
   disabled: boolean;
   size: number;
 }) {
-  const { colors, fontFamily } = useTheme();
+  const { colors, fontFamily, shadow, scheme } = useTheme();
   const letters = LETTERS[label];
+  const dark = scheme === "dark";
   return (
     <Pressable
       onPress={onPress}
@@ -202,37 +196,91 @@ function KeyButton({
         borderRadius: size / 2,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: pressed ? colors.fillStrong : colors.fill,
+        backgroundColor: pressed ? colors.primary : dark ? colors.surfaceElevated : colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: pressed ? colors.primary : colors.hairline,
         opacity: disabled ? 0.45 : 1,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
+        ...(dark ? shadow.none : shadow.sm),
       })}
     >
-      <Text
-        style={{
-          fontSize: size < 70 ? 28 : 34,
-          lineHeight: size < 70 ? 32 : 38,
-          color: colors.text,
-          fontFamily: fontFamily.body,
-          letterSpacing: -0.5,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
-        {label}
-      </Text>
-      {letters ? (
-        <Text
-          style={{
-            fontSize: 9.5,
-            lineHeight: 12,
-            letterSpacing: 2,
-            color: colors.textMuted,
-            fontFamily: fontFamily.bodyBold,
-            marginTop: -1,
-          }}
-        >
-          {letters}
-        </Text>
-      ) : null}
+      {({ pressed }) => (
+        <>
+          <Text
+            style={{
+              fontSize: size < 70 ? 27 : 32,
+              lineHeight: size < 70 ? 31 : 36,
+              color: pressed ? colors.onPrimary : colors.text,
+              fontFamily: fontFamily.bodyMedium,
+              letterSpacing: -0.5,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {label}
+          </Text>
+          {letters ? (
+            <Text
+              style={{
+                fontSize: 9,
+                lineHeight: 11,
+                letterSpacing: 1.8,
+                color: pressed ? colors.onPrimary : colors.textSubtle,
+                fontFamily: fontFamily.bodyBold,
+                marginTop: 0,
+              }}
+            >
+              {letters}
+            </Text>
+          ) : null}
+        </>
+      )}
     </Pressable>
+  );
+}
+
+function Dot({
+  filled,
+  size,
+  color,
+  emptyColor,
+}: {
+  filled: boolean;
+  size: number;
+  color: string;
+  emptyColor: string;
+}) {
+  const scale = useRef(new Animated.Value(filled ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: filled ? 1 : 0,
+      damping: 12,
+      stiffness: 320,
+      mass: 0.6,
+      useNativeDriver: true,
+    }).start();
+  }, [filled, scale]);
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 1.5,
+        borderColor: filled ? color : emptyColor,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Animated.View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          transform: [{ scale }],
+        }}
+      />
+    </View>
   );
 }
 

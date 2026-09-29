@@ -10,6 +10,7 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Plus,
   StickyNote,
@@ -27,7 +28,7 @@ import {
   Clock,
   ChevronRight,
   ListPlus,
-  Heart,
+  MessageCircleQuestion,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -39,6 +40,7 @@ import {
   useDeleteNote,
 } from "@/hooks/useApi";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useTone } from "@/theme/tone";
 import {
   Screen,
   ScreenHeader,
@@ -52,34 +54,58 @@ import {
   IconButton,
   useToast,
   Pressable,
+  IconTile,
+  SectionHeader,
 } from "@/components/ui";
 
 const HEALTH_TEMPLATES = [
   {
     id: "questions",
+    tone: "primary" as const,
+    hint: "4 prompts",
     title: "Questions for Doctor",
     icon: Stethoscope,
     body: "• Symptoms onset & changes:\n• Current medications & side effects:\n• Questions about treatment plan:\n• Next follow-up or test recommendations:",
   },
   {
     id: "symptoms",
+    tone: "danger" as const,
+    hint: "5 prompts",
     title: "Symptom Tracker",
     icon: Activity,
     body: "• Primary symptom:\n• Severity (1-10):\n• When it started:\n• Possible triggers (food, stress, activity):\n• What helps relieve it:",
   },
   {
     id: "medications",
+    tone: "success" as const,
+    hint: "4 prompts",
     title: "Medication Observation",
     icon: Pill,
     body: "• Medicine name & dose:\n• Time taken:\n• Observed reaction or side effect:\n• Questions for doctor/pharmacist:",
   },
   {
     id: "daily",
+    tone: "accent2" as const,
+    hint: "4 prompts",
     title: "Daily Check-in",
     icon: Sparkles,
     body: "• Today's overall wellness (1-10):\n• Energy level & sleep quality:\n• Meals and hydration:\n• Physical activity or mood:",
   },
 ];
+
+function noteText(n: any): string {
+  return `${n.title || ""} ${n.body || ""}`.toLowerCase();
+}
+
+function isQuestionNote(n: any): boolean {
+  const text = noteText(n);
+  return text.includes("?") || text.includes("doctor") || text.includes("question");
+}
+
+function isSymptomNote(n: any): boolean {
+  const text = noteText(n);
+  return ["symptom", "pain", "fever", "headache", "severity"].some((k) => text.includes(k));
+}
 
 function formatNoteDate(iso: string | null | undefined, locale: any): string {
   if (!iso) return "—";
@@ -116,28 +142,8 @@ export default function NotesScreen() {
 
   // Categorized counts
   const pinnedCount = useMemo(() => notes.filter((n) => !!n.pinned).length, [notes]);
-  const questionsCount = useMemo(
-    () =>
-      notes.filter((n) => {
-        const text = `${n.title || ""} ${n.body || ""}`.toLowerCase();
-        return text.includes("?") || text.includes("doctor") || text.includes("question");
-      }).length,
-    [notes]
-  );
-  const symptomsCount = useMemo(
-    () =>
-      notes.filter((n) => {
-        const text = `${n.title || ""} ${n.body || ""}`.toLowerCase();
-        return (
-          text.includes("symptom") ||
-          text.includes("pain") ||
-          text.includes("fever") ||
-          text.includes("headache") ||
-          text.includes("severity")
-        );
-      }).length,
-    [notes]
-  );
+  const questionsCount = useMemo(() => notes.filter(isQuestionNote).length, [notes]);
+  const symptomsCount = useMemo(() => notes.filter(isSymptomNote).length, [notes]);
 
   const filteredNotes = useMemo(() => {
     let list = notes;
@@ -146,21 +152,9 @@ export default function NotesScreen() {
     if (selectedFilter === "pinned") {
       list = list.filter((n) => !!n.pinned);
     } else if (selectedFilter === "questions") {
-      list = list.filter((n) => {
-        const text = `${n.title || ""} ${n.body || ""}`.toLowerCase();
-        return text.includes("?") || text.includes("doctor") || text.includes("question");
-      });
+      list = list.filter(isQuestionNote);
     } else if (selectedFilter === "symptoms") {
-      list = list.filter((n) => {
-        const text = `${n.title || ""} ${n.body || ""}`.toLowerCase();
-        return (
-          text.includes("symptom") ||
-          text.includes("pain") ||
-          text.includes("fever") ||
-          text.includes("headache") ||
-          text.includes("severity")
-        );
-      });
+      list = list.filter(isSymptomNote);
     }
 
     // Filter by search query
@@ -428,8 +422,28 @@ export default function NotesScreen() {
     );
   }
 
+  const pinnedNotes = filteredNotes.filter((n) => !!n.pinned);
+  const otherNotes = filteredNotes.filter((n) => !n.pinned);
+  const isFiltering = !!searchQuery.trim() || selectedFilter !== "all";
+  const lastEntry = notes.reduce<string | null>((acc, n) => {
+    const ts = n.updatedAt || n.createdAt;
+    return ts && (!acc || ts > acc) ? ts : acc;
+  }, null);
+
+  const renderNote = (n: any) => (
+    <NoteCard
+      key={n.id}
+      note={n}
+      locale={locale}
+      untitled={t("notes.list.untitled")}
+      onOpen={() => startEdit(n)}
+      onTogglePin={() => togglePin(n)}
+      onDelete={() => confirmDelete(n.id)}
+    />
+  );
+
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    <Screen scroll padded={false} edges={["top"]} bottomInset>
       <ScreenHeader
         title={t("notes.title")}
         subtitle={
@@ -446,448 +460,500 @@ export default function NotesScreen() {
         }
       />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 120,
-        }}
-      >
-        {/* Clinical Health Journal Hero */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
+      {/* Health Journal Hero */}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xs }}>
+        <LinearGradient
+          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 28,
+            borderCurve: "continuous",
+            padding: spacing.xl,
+            overflow: "hidden",
+            ...(isDark ? null : shadow.hero),
+          }}
+        >
+          {/* Decorative orbs */}
           <View
+            pointerEvents="none"
             style={{
-              backgroundColor: colors.primarySoft,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              padding: spacing.lg,
+              position: "absolute",
+              width: 220,
+              height: 220,
+              borderRadius: 110,
+              top: -110,
+              right: -70,
+              backgroundColor: "rgba(255,255,255,0.10)",
             }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}>
-              <View
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <StickyNote size={22} color={colors.onPrimary} strokeWidth={2.4} />
-              </View>
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              bottom: -60,
+              left: -40,
+              backgroundColor: "rgba(255,255,255,0.07)",
+            }}
+          />
 
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                  <Text
-                    style={[
-                      typography.title.md,
-                      { color: colors.text },
-                    ]}
-                  >
-                    Personal Health Journal
-                  </Text>
-                  <Sparkles size={13} color={colors.primary} />
-                </View>
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: colors.textMuted, marginTop: 2 },
-                  ]}
-                >
-                  Record symptoms, prepare questions for your doctor, or track daily wellness.
-                </Text>
-              </View>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.78)" }]}>
+                HEALTH JOURNAL
+              </Text>
+              <Text style={[typography.display.sm, { color: "#FFFFFF", marginTop: 6 }]}>
+                Your health,{"\n"}in your words
+              </Text>
             </View>
+            <IconTile icon={StickyNote} appearance="glass" size={46} />
           </View>
-        </View>
 
-        {/* Quick Starter Templates Carousel */}
-        <View style={{ marginTop: spacing.xl }}>
-          <Text
-            style={[
-              typography.overline,
-              {
-                color: colors.textSubtle,
-                paddingHorizontal: spacing.lg + 2,
-                marginBottom: spacing.sm,
-              },
-            ]}
-          >
-            {t("notes.templates.title", "QUICK TEMPLATES").toUpperCase()}
+          <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.84)", marginTop: spacing.sm }]}>
+            {lastEntry
+              ? `Last entry ${formatRelative(lastEntry, locale)}`
+              : "Record symptoms, prepare doctor questions, track wellness."}
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.lg,
-              gap: spacing.sm,
-              paddingVertical: 2,
-            }}
-          >
-            {HEALTH_TEMPLATES.map((tmpl) => {
-              const Icon = tmpl.icon;
+
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
+            {[
+              { n: notes.length, l: "Entries", icon: StickyNote },
+              { n: pinnedCount, l: "Pinned", icon: Pin },
+              { n: questionsCount, l: "Questions", icon: MessageCircleQuestion },
+            ].map((s) => {
+              const Icon = s.icon;
               return (
-                <Pressable
-                  key={tmpl.id}
-                  onPress={() => startNew(tmpl.title, tmpl.body)}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
+                <View
+                  key={s.l}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
                     paddingHorizontal: spacing.md,
-                    height: 40,
-                    borderRadius: 14,
+                    borderRadius: 18,
                     borderCurve: "continuous",
-                    backgroundColor: colors.surface,
+                    backgroundColor: "rgba(255,255,255,0.14)",
                     borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: isDark ? colors.borderStrong : colors.separator,
-                    opacity: pressed ? 0.75 : 1,
-                  })}
+                    borderColor: "rgba(255,255,255,0.22)",
+                  }}
                 >
-                  <Icon size={15} color={colors.primary} strokeWidth={2.2} />
-                  <Text
-                    style={[typography.label.md, { color: colors.text }]}
-                  >
-                    {tmpl.title}
+                  <Icon size={14} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
+                  <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 6 }]}>{s.n}</Text>
+                  <Text style={[typography.label.xs, { color: "rgba(255,255,255,0.78)" }]} numberOfLines={1}>
+                    {s.l}
                   </Text>
-                </Pressable>
+                </View>
               );
             })}
-          </ScrollView>
-        </View>
+          </View>
 
-        {/* Search Bar */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
-          <View
+          <Pressable
+            onPress={() => startNew()}
+            haptic="light"
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.fill,
-              borderRadius: 12,
-              borderCurve: "continuous",
-              paddingHorizontal: 12,
-              height: 42,
+              justifyContent: "center",
+              gap: 8,
+              marginTop: spacing.lg,
+              height: 48,
+              borderRadius: radius.full,
+              backgroundColor: "#FFFFFF",
             }}
           >
-            <Search size={17} color={colors.textSubtle} strokeWidth={2.2} />
-            <RNTextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder={t("notes.searchPlaceholder", "Search notes, questions, symptoms…")}
-              placeholderTextColor={colors.textSubtle}
-              style={{
-                flex: 1,
-                paddingHorizontal: spacing.sm,
-                fontSize: 16,
-                fontFamily: typography.body.md.fontFamily,
-                color: colors.text,
-                height: "100%",
-              }}
-              returnKeyType="search"
-              clearButtonMode="never"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {searchQuery.length > 0 && (
-              <Pressable
-                onPress={() => setSearchQuery("")}
-                hitSlop={8}
+            <Plus size={17} color={colors.primary} strokeWidth={2.6} />
+            <Text style={[typography.label.lg, { color: colors.primary }]}>Write a new note</Text>
+          </Pressable>
+        </LinearGradient>
+      </View>
+
+      {/* Quick Starter Templates */}
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <SectionHeader kicker="Start faster" title={t("notes.templates.title", "Quick templates")} />
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: 6 }}
+      >
+        {HEALTH_TEMPLATES.map((tmpl) => (
+          <Pressable
+            key={tmpl.id}
+            onPress={() => startNew(tmpl.title, tmpl.body)}
+            haptic="light"
+            wrapperStyle={isDark ? null : shadow.xs}
+            style={{
+              width: 148,
+              padding: spacing.md,
+              borderRadius: 20,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? colors.borderStrong : colors.hairline,
+            }}
+          >
+            <IconTile icon={tmpl.icon} tone={tmpl.tone} size={38} />
+            <Text
+              style={[typography.title.xs, { color: colors.text, marginTop: spacing.md, minHeight: 36 }]}
+              numberOfLines={2}
+            >
+              {tmpl.title}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.xs }}>
+              <Text style={[typography.caption, { color: colors.textSubtle }]}>{tmpl.hint}</Text>
+              <View
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: colors.textSubtle,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: colors.well,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <X size={12} color={colors.surface} strokeWidth={3} />
-              </Pressable>
-            )}
-          </View>
-        </View>
-
-        {/* Category Filters Carousel */}
-        <View style={{ marginTop: spacing.md }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.lg,
-              gap: spacing.sm,
-              paddingVertical: 4,
-            }}
-          >
-            <FilterChip
-              label={t("notes.filters.all", "All")}
-              count={notes.length}
-              active={selectedFilter === "all"}
-              onPress={() => setSelectedFilter("all")}
-            />
-            {pinnedCount > 0 && (
-              <FilterChip
-                label={`📌 ${t("notes.filters.pinned", "Pinned")}`}
-                count={pinnedCount}
-                active={selectedFilter === "pinned"}
-                onPress={() => setSelectedFilter("pinned")}
-              />
-            )}
-            {questionsCount > 0 && (
-              <FilterChip
-                label={t("notes.filters.questions", "Questions")}
-                count={questionsCount}
-                active={selectedFilter === "questions"}
-                onPress={() => setSelectedFilter("questions")}
-              />
-            )}
-            {symptomsCount > 0 && (
-              <FilterChip
-                label={t("notes.filters.symptoms", "Symptoms")}
-                count={symptomsCount}
-                active={selectedFilter === "symptoms"}
-                onPress={() => setSelectedFilter("symptoms")}
-              />
-            )}
-          </ScrollView>
-        </View>
-
-        {/* Notes List Content */}
-        {isLoading ? (
-          <View style={{ padding: spacing.lg, gap: spacing.md }}>
-            <Skeleton height={130} radius={radius.card} />
-            <Skeleton height={130} radius={radius.card} />
-            <Skeleton height={130} radius={radius.card} />
-          </View>
-        ) : isError ? (
-          <View style={{ paddingHorizontal: spacing.lg }}>
-            <ErrorState
-              title={t("recordDetail.errorTitle", "Couldn't load notes")}
-              message={t("recordDetail.errorBody", "Check your connection and try again.")}
-              actionLabel={t("common.retry")}
-              onAction={() => refetch()}
-            />
-          </View>
-        ) : filteredNotes.length === 0 ? (
-          <View style={{ paddingHorizontal: spacing.lg }}>
-            <EmptyState
-              style={{ marginTop: spacing.xl }}
-              icon={searchQuery || selectedFilter !== "all" ? Search : StickyNote}
-              title={
-                searchQuery || selectedFilter !== "all"
-                  ? t("notes.emptySearch.title", "No matching notes")
-                  : t("notes.empty.title")
-              }
-              message={
-                searchQuery || selectedFilter !== "all"
-                  ? t("notes.emptySearch.message", "Try searching with a different keyword.")
-                  : t("notes.empty.message")
-              }
-              actionLabel={
-                searchQuery || selectedFilter !== "all"
-                  ? t("notes.emptySearch.clear", "Clear search")
-                  : t("notes.empty.action")
-              }
-              onAction={
-                searchQuery || selectedFilter !== "all"
-                  ? () => {
-                      setSearchQuery("");
-                      setSelectedFilter("all");
-                    }
-                  : () => startNew()
-              }
-            />
-          </View>
-        ) : (
-          <View
-            style={{
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.md,
-              gap: spacing.md,
-            }}
-          >
-            {filteredNotes.map((n) => {
-              const formattedDate = formatNoteDate(n.updatedAt || n.createdAt, locale);
-
-              return (
-                <Pressable
-                  key={n.id}
-                  onPress={() => startEdit(n)}
-                  style={({ pressed }) => ({
-                    backgroundColor: colors.surface,
-                    borderRadius: radius.card,
-                    borderCurve: "continuous",
-                    padding: spacing.lg,
-                    borderWidth: n.pinned ? 1 : StyleSheet.hairlineWidth,
-                    borderColor: n.pinned
-                      ? colors.warning + "59"
-                      : isDark
-                      ? colors.borderStrong
-                      : colors.separator,
-                    ...(isDark ? null : shadow.sm),
-                    opacity: pressed ? 0.9 : 1,
-                    transform: [{ scale: pressed ? 0.985 : 1 }],
-                  })}
-                >
-                  {/* Top Note Row: Title + Pinned Badge */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: spacing.sm,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.title.md,
-                        {
-                          color: colors.text,
-                          flex: 1,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {n.title || t("notes.list.untitled")}
-                    </Text>
-
-                    {n.pinned && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 3,
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          borderRadius: radius.full,
-                          backgroundColor: colors.warningSoft,
-                        }}
-                      >
-                        <Pin size={10} color={colors.warning} fill={colors.warning} />
-                        <Text
-                          style={[
-                            typography.label.xs,
-                            {
-                              fontSize: 10,
-                              color: colors.warning,
-                              textTransform: "uppercase",
-                            },
-                          ]}
-                        >
-                          Pinned
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Note Body Text */}
-                  <Text
-                    style={[
-                      typography.body.md,
-                      {
-                        color: colors.textMuted,
-                        marginTop: spacing.xs,
-                      },
-                    ]}
-                    numberOfLines={5}
-                  >
-                    {n.body}
-                  </Text>
-
-                  {/* Bottom Action & Timestamp Row */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginTop: spacing.md,
-                      paddingTop: spacing.md,
-                      borderTopWidth: StyleSheet.hairlineWidth,
-                      borderColor: colors.separator,
-                    }}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                      <CalendarDays size={12} color={colors.textSubtle} strokeWidth={2.2} />
-                      <Text
-                        style={[typography.caption, { color: colors.textSubtle }]}
-                      >
-                        {formattedDate}
-                      </Text>
-                    </View>
-
-                    {/* Action buttons with isolated touch handlers */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      {/* Pin button */}
-                      <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          togglePin(n);
-                        }}
-                        hitSlop={6}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: radius.full,
-                          backgroundColor: n.pinned
-                            ? colors.warningSoft
-                            : colors.fill,
-                        }}
-                      >
-                        <Pin
-                          size={14}
-                          color={n.pinned ? colors.warning : colors.textSubtle}
-                          fill={n.pinned ? colors.warning : "none"}
-                        />
-                      </Pressable>
-
-                      {/* Edit button */}
-                      <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          startEdit(n);
-                        }}
-                        hitSlop={6}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: radius.full,
-                          backgroundColor: colors.primarySoft,
-                        }}
-                      >
-                        <Pencil size={14} color={colors.primary} />
-                      </Pressable>
-
-                      {/* Delete button */}
-                      <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          confirmDelete(n.id);
-                        }}
-                        hitSlop={6}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: radius.full,
-                          backgroundColor: colors.dangerSoft,
-                        }}
-                      >
-                        <Trash2 size={14} color={colors.danger} />
-                      </Pressable>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+                <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.6} />
+              </View>
+            </View>
+          </Pressable>
+        ))}
       </ScrollView>
+
+      {/* Search + filters */}
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <SectionHeader kicker="Your entries" title={t("notes.list.heading", "Journal")} count={notes.length} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? colors.borderStrong : colors.hairline,
+            paddingHorizontal: 14,
+            height: 48,
+            ...(isDark ? null : shadow.xs),
+          }}
+        >
+          <Search size={18} color={colors.textSubtle} strokeWidth={2.2} />
+          <RNTextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("notes.searchPlaceholder", "Search notes, questions, symptoms…")}
+            placeholderTextColor={colors.textSubtle}
+            style={{
+              flex: 1,
+              paddingHorizontal: spacing.sm,
+              fontSize: 15,
+              fontFamily: typography.body.md.fontFamily,
+              color: colors.text,
+              height: "100%",
+            }}
+            returnKeyType="search"
+            clearButtonMode="never"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: colors.textSubtle,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={12} color={colors.surface} strokeWidth={3} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {notes.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: spacing.md }}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
+        >
+          <FilterChip
+            label={t("notes.filters.all", "All")}
+            count={notes.length}
+            active={selectedFilter === "all"}
+            onPress={() => setSelectedFilter("all")}
+          />
+          <FilterChip
+            icon={Pin}
+            label={t("notes.filters.pinned", "Pinned")}
+            count={pinnedCount}
+            active={selectedFilter === "pinned"}
+            onPress={() => setSelectedFilter("pinned")}
+          />
+          <FilterChip
+            icon={MessageCircleQuestion}
+            label={t("notes.filters.questions", "Questions")}
+            count={questionsCount}
+            active={selectedFilter === "questions"}
+            onPress={() => setSelectedFilter("questions")}
+          />
+          <FilterChip
+            icon={Activity}
+            label={t("notes.filters.symptoms", "Symptoms")}
+            count={symptomsCount}
+            active={selectedFilter === "symptoms"}
+            onPress={() => setSelectedFilter("symptoms")}
+          />
+        </ScrollView>
+      )}
+
+      {/* Notes List Content */}
+      {isLoading ? (
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <Skeleton height={130} radius={radius.card} />
+          <Skeleton height={130} radius={radius.card} />
+          <Skeleton height={130} radius={radius.card} />
+        </View>
+      ) : isError ? (
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+          <ErrorState
+            title={t("recordDetail.errorTitle", "Couldn't load notes")}
+            message={t("recordDetail.errorBody", "Check your connection and try again.")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
+        </View>
+      ) : filteredNotes.length === 0 ? (
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <EmptyState
+            style={{ marginTop: spacing.xl }}
+            icon={isFiltering ? Search : StickyNote}
+            title={isFiltering ? t("notes.emptySearch.title", "No matching notes") : t("notes.empty.title")}
+            message={
+              isFiltering
+                ? t("notes.emptySearch.message", "Try searching with a different keyword.")
+                : t("notes.empty.message")
+            }
+            actionLabel={isFiltering ? t("notes.emptySearch.clear", "Clear search") : t("notes.empty.action")}
+            onAction={
+              isFiltering
+                ? () => {
+                    setSearchQuery("");
+                    setSelectedFilter("all");
+                  }
+                : () => startNew()
+            }
+          />
+        </View>
+      ) : (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.md }}>
+          {pinnedNotes.length > 0 && otherNotes.length > 0 && (
+            <GroupLabel icon={Pin} label="Pinned" />
+          )}
+          {pinnedNotes.map(renderNote)}
+          {pinnedNotes.length > 0 && otherNotes.length > 0 && (
+            <GroupLabel icon={Clock} label="Recent" style={{ marginTop: spacing.sm }} />
+          )}
+          {otherNotes.map(renderNote)}
+        </View>
+      )}
     </Screen>
+  );
+}
+
+function formatRelative(iso: string, locale: any): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(d)) / 86400000);
+  if (days === 0) return `today · ${time}`;
+  if (days === 1) return `yesterday · ${time}`;
+  return formatNoteDate(iso, locale);
+}
+
+function NoteCard({
+  note: n,
+  locale,
+  untitled,
+  onOpen,
+  onTogglePin,
+  onDelete,
+}: {
+  note: any;
+  locale: any;
+  untitled: string;
+  onOpen: () => void;
+  onTogglePin: () => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors, spacing, radius, typography, scheme, shadow } = useTheme();
+  const isDark = scheme === "dark";
+  const tags = [
+    isQuestionNote(n) && { label: "Question", tone: "primary" as const, icon: MessageCircleQuestion },
+    isSymptomNote(n) && { label: "Symptom", tone: "danger" as const, icon: Activity },
+  ].filter(Boolean) as { label: string; tone: any; icon: any }[];
+
+  return (
+    <Pressable
+      onPress={onOpen}
+      pressedScale={0.985}
+      wrapperStyle={isDark ? null : shadow.sm}
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        overflow: "hidden",
+      }}
+    >
+      {n.pinned ? (
+        <View
+          style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: colors.warning }}
+        />
+      ) : null}
+      <View style={{ padding: spacing.lg }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <IconTile icon={n.pinned ? Pin : StickyNote} tone={n.pinned ? "warning" : "primary"} size={40} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+              {n.title || untitled}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
+              <Clock size={12} color={colors.textSubtle} strokeWidth={2.2} />
+              <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+                {formatRelative(n.updatedAt || n.createdAt, locale).replace(/^./, (c) => c.toUpperCase())}
+              </Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <CardAction
+              icon={Pin}
+              active={!!n.pinned}
+              color={n.pinned ? colors.warning : colors.textMuted}
+              bg={n.pinned ? colors.warningSoft : colors.well}
+              onPress={onTogglePin}
+              label={n.pinned ? t("notes.list.unpinLabel") : t("notes.list.pinLabel")}
+            />
+            <CardAction
+              icon={Trash2}
+              color={colors.danger}
+              bg={colors.dangerSoft}
+              onPress={onDelete}
+              label={t("notes.list.deleteLabel")}
+            />
+          </View>
+        </View>
+
+        <Text
+          style={[typography.body.md, { color: colors.textMuted, marginTop: spacing.md, lineHeight: 22 }]}
+          numberOfLines={4}
+        >
+          {n.body}
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: spacing.md,
+            paddingTop: spacing.md,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 6, flex: 1, flexWrap: "wrap" }}>
+            {tags.length > 0 ? (
+              tags.map((tag) => <TagPill key={tag.label} {...tag} />)
+            ) : (
+              <TagPill label="Journal" tone="neutral" icon={StickyNote} />
+            )}
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Pencil size={13} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.label.md, { color: colors.primary }]}>{t("notes.list.editLabel")}</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function CardAction({
+  icon: Icon,
+  color,
+  bg,
+  active,
+  onPress,
+  label,
+}: {
+  icon: any;
+  color: string;
+  bg: string;
+  active?: boolean;
+  onPress: () => void;
+  label: string;
+}) {
+  return (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation();
+        onPress();
+      }}
+      haptic="light"
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: bg,
+      }}
+    >
+      <Icon size={15} color={color} fill={active ? color : "none"} strokeWidth={2.2} />
+    </Pressable>
+  );
+}
+
+function TagPill({ label, tone, icon: Icon }: { label: string; tone: any; icon: any }) {
+  const { typography } = useTheme();
+  const p = useTone(tone);
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 9,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: p.bg,
+      }}
+    >
+      <Icon size={11} color={p.fg} strokeWidth={2.4} />
+      <Text style={[typography.label.xs, { color: p.fg, letterSpacing: 0 }]}>{label}</Text>
+    </View>
+  );
+}
+
+function GroupLabel({ icon: Icon, label, style }: { icon: any; label: string; style?: any }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 2 }, style]}>
+      <Icon size={12} color={colors.textSubtle} strokeWidth={2.4} />
+      <Text style={[typography.overline, { color: colors.textSubtle, textTransform: "uppercase" }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -896,44 +962,43 @@ function FilterChip({
   count,
   active,
   onPress,
+  icon: Icon,
 }: {
   label: string;
   count: number;
   active: boolean;
   onPress: () => void;
+  icon?: any;
 }) {
-  const { colors, spacing, radius, typography } = useTheme();
+  const { colors, spacing, radius, typography, scheme } = useTheme();
+  const fg = active ? colors.onPrimary : colors.text;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
+      hapticOnPress
+      style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
         paddingHorizontal: spacing.md,
         height: 36,
         borderRadius: radius.full,
-        backgroundColor: active ? colors.primary : colors.fill,
-        opacity: pressed ? 0.75 : 1,
-      })}
+        backgroundColor: active ? colors.primary : colors.surface,
+        borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+        borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+      }}
     >
-      <Text
-        style={[
-          typography.label.md,
-          { color: active ? colors.onPrimary : colors.text },
-        ]}
-      >
-        {label}
-      </Text>
+      {Icon ? <Icon size={13} color={active ? colors.onPrimary : colors.textMuted} strokeWidth={2.4} /> : null}
+      <Text style={[typography.label.md, { color: fg }]}>{label}</Text>
       <View
         style={{
+          minWidth: 20,
+          alignItems: "center",
           paddingHorizontal: 6,
           paddingVertical: 1,
           borderRadius: 999,
-          backgroundColor: active
-            ? "rgba(255, 255, 255, 0.25)"
-            : colors.fillStrong,
+          backgroundColor: active ? "rgba(255, 255, 255, 0.25)" : colors.fill,
         }}
       >
         <Text

@@ -39,6 +39,10 @@
     "unlock": {
       "title": "Enter your PIN",
       "subtitle": "Welcome back to HealthHub.",
+      "kicker": "HealthHub is locked",
+      "welcomeName": "Welcome back, {{name}}",
+      "pinPrompt": "Enter your 6-digit PIN to continue.",
+      "secureNote": "Your health data stays encrypted on this device",
       "wrongPin": "Wrong PIN. Try again.",
       "useBiometric": "Use {{name}}",
       "switchAccount": "Sign in as a different user",
@@ -74,7 +78,20 @@
       "stateHeading": "PIN",
       "biometricHeading": "Biometric",
       "biometricSubtitle": "Unlock with {{name}} instead of typing your PIN",
-      "timeoutHeading": "Auto-lock"
+      "timeoutHeading": "Auto-lock",
+      "summaryImmediate": "Locks as soon as you leave the app",
+      "summaryAfter": "Locks {{time}} after you leave the app",
+      "summaryNever": "Only locks when you lock it manually",
+      "offBody": "Add a PIN so only you can open your health records.",
+      "timeoutShort0": "Instant",
+      "timeoutShort30": "30 sec",
+      "timeoutShort60": "1 min",
+      "timeoutShort300": "5 min",
+      "timeoutShortNever": "Never",
+      "timeoutHint": "How long HealthHub can stay in the background before asking for your PIN.",
+      "biometricOn": "{{name}} on",
+      "biometricOff": "{{name}} off",
+      "dangerHeading": "Danger zone"
     },
     "errors": {
       "biometricLocked": "Too many failed attempts. Use your PIN.",
@@ -245,6 +262,23 @@
     "noneRecorded": "None recorded",
     "onFile": "{{count}} on file",
     "manageInFamily": "Manage in Family",
+    "v2": {
+      "records": "Records & history",
+      "care": "Care & coverage",
+      "privacy": "Sharing & privacy",
+      "preferences": "Preferences & security",
+      "medicines": "Medicines",
+      "bloodType": "Blood type",
+      "quickRecords": "Records",
+      "allergies": "Allergies",
+      "conditions": "Conditions",
+      "emergencyContacts": "Emergency contacts",
+      "add": "Add",
+      "role_patient": "Patient",
+      "role_doctor": "Doctor",
+      "role_hospital_admin": "Hospital admin",
+      "role_hospital_staff": "Hospital staff"
+    },
     "quick": {
       "edit": "Edit",
       "healthId": "Health ID",
@@ -632,6 +666,27 @@
   },
   "changePassword": {
     "title": "Change password",
+    "ui": {
+      "subtitle": "Keep your health record secure",
+      "currentSection": "Verify it's you",
+      "newSection": "Choose a new password",
+      "forgot": "Forgot password?",
+      "currentPlaceholder": "Enter current password",
+      "strength": "Strength",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong",
+      "ruleLength": "At least 8 characters",
+      "ruleNumber": "Contains a number",
+      "ruleCase": "Uppercase letter or symbol",
+      "ruleDifferent": "Different from current password",
+      "match": "Passwords match",
+      "mismatch": "Doesn't match",
+      "footnote": "You'll stay signed in on this device. Never share your password.",
+      "currentRequired": "Please enter your current password",
+      "sameAsCurrent": "New password must be different from current password"
+    },
     "field": {
       "currentLabel": "Current password",
       "currentPlaceholder": "••••••••",
@@ -718,7 +773,20 @@
     "empty": {
       "title": "No allergies recorded",
       "message": "Add drug, food, latex, or environmental triggers so providers can avoid them.",
-      "action": "Add allergy"
+      "action": "Add allergy",
+      "kicker": "Safety profile",
+      "sharedDoctors": "Shared with doctors",
+      "sharedPharmacy": "Checked at pharmacy"
+    },
+    "addCustom": "Add custom allergy",
+    "presets": {
+      "kicker": "One-tap add",
+      "title": "Common allergens",
+      "medications": "Medications",
+      "food": "Food",
+      "environmental": "Latex & environment",
+      "customTitle": "Something else?",
+      "customBody": "Add any substance with its severity and reaction"
     },
     "addButton": "Add allergy",
     "deleteConfirm": {
@@ -976,6 +1044,33 @@
       "logged": "Vaccination logged",
       "saveError": "Save failed"
     },
+    "hero": {
+      "kicker": "Immunization card",
+      "upToDate": "You're up to date",
+      "upToDateBody": "Nothing due in the next 30 days",
+      "onRecord": "On record",
+      "upcoming": "Coming up",
+      "overdue": "Overdue"
+    },
+    "scan": {
+      "title": "Scan your paper card",
+      "body": "Auto-fill dose dates and batch numbers from a photo"
+    },
+    "sectionsV2": {
+      "dueKicker": "Schedule",
+      "due": "Coming up",
+      "recordKicker": "Your record",
+      "administeredTitle": "Administered",
+      "routineKicker": "Adult & travel",
+      "routineTitle": "Recommended vaccines"
+    },
+    "daysOverdue_one": "{{count}}d overdue",
+    "daysOverdue_other": "{{count}}d overdue",
+    "daysUntil_one": "in {{count}}d",
+    "daysUntil_other": "in {{count}}d",
+    "doseN": "Dose {{n}}",
+    "logged": "Logged",
+    "logNamed": "Log {{name}}",
     "scanCard": "Scan card"
   },
   "vaccinationCard": {
@@ -1020,6 +1115,22 @@
     "subtitle": "Track trends over time",
     "subtitleWithCount": "{{count}} tracked · {{alerts}} alert",
     "subtitleWithCount_other": "{{count}} tracked · {{alerts}} alerts",
+    "hero": {
+      "kicker": "Health status",
+      "emptyTitle": "Start tracking your vitals",
+      "attentionTitle_one": "{{count}} reading needs attention",
+      "attentionTitle_other": "{{count}} readings need attention",
+      "okTitle": "All readings in range",
+      "lastLogged": "Last logged {{when}}",
+      "tracked": "Tracked",
+      "outOfRange": "Out of range",
+      "alerts": "Alerts · 30d"
+    },
+    "latestGrid": {
+      "kicker": "Snapshot",
+      "title": "Latest readings",
+      "addAnother": "Track another vital"
+    },
     "latest": "Latest",
     "logLabel": "Log vital",
     "alertsHeading": "Out-of-range readings",
@@ -1072,6 +1183,14 @@
     },
     "chart": {
       "trendHeading": "Trend",
+      "kicker": "History",
+      "points_one": "{{count}} point",
+      "points_other": "{{count}} points",
+      "emptyRangeTitle": "Nothing in this period",
+      "emptyRangeBody": "Your last reading was {{when}}.",
+      "emptyTypeTitle": "No {{label}} readings yet",
+      "emptyTypeBody": "Log a reading to start building your trend.",
+      "showYear": "Show last year",
       "showDiastolic": "Show diastolic",
       "hideDiastolic": "Hide diastolic",
       "systolicDiastolic": "S + D",
@@ -1387,7 +1506,7 @@
     "viewPatientChart": "View Patient Chart",
     "noPatientsFound": "No patients found",
     "noPatientsFoundBody": "No patient matching \"{{search}}\" in your care team. Check name, phone, or NIC.",
-    "clearSearch": "Clear Search",
+    "clearSearch": "Clear search",
     "fallback": "Care Team"
   },
   "medicine": {
@@ -1829,6 +1948,16 @@
     },
     "detailsHeading": "Details",
     "emptyDetails": "This record has no attachments or notes yet.",
+    "v2": {
+      "clinical": "Clinical summary",
+      "doctor": "Doctor",
+      "hospital": "Hospital",
+      "date": "Record date",
+      "owner": "Belongs to",
+      "addTag": "Add tag",
+      "openFile": "Open file",
+      "noTagsInline": "No tags yet"
+    },
     "structured": {
       "title": "Structured data",
       "tests": "Test results",
@@ -1843,7 +1972,7 @@
       "reExtractSkip": "This record type doesn't support extraction",
       "reExtractFail": "Re-extraction failed"
     },
-    "attachments": "ATTACHMENTS · {{count}}",
+    "attachments": "Attachments · {{count}}",
     "a11y": {
       "moreOptions": "More options",
       "openFile": "Open file",
@@ -1870,7 +1999,7 @@
       "body": "Hidden from your default list. Tap Restore in the menu to bring it back.",
       "restore": "Restore"
     },
-    "tagsHeading": "TAGS",
+    "tagsHeading": "Tags",
     "noTags": "No tags yet — tap to add some.",
     "shareLabel": {
       "doctor": "Doctor: {{name}}",
@@ -1995,6 +2124,13 @@
     }
   },
   "appointments": {
+    "subtitleUpcoming_one": "{{count}} upcoming visit",
+    "subtitleUpcoming_other": "{{count}} upcoming visits",
+    "subtitleNone": "No upcoming visits",
+    "missedNote": "You missed this visit",
+    "nextVisitTitle": "Nothing booked yet",
+    "nextVisitBody": "Book a visit with a doctor or specialist.",
+    "queue": "Queue #{{n}}",
     "title": "Appointments",
     "subtitle": "{{total}} total · {{pct}}% upcoming",
     "a11y": {
@@ -2257,6 +2393,22 @@
     "emptyTitle": "No summary available",
     "emptyBody": "Add profile information to generate a summary.",
     "shareFailed": "Share failed",
+    "yearsOld": "{{age}} yrs",
+    "height": "Height",
+    "weight": "Weight",
+    "bloodShort": "Blood",
+    "updated": "Updated {{when}}",
+    "noAllergies": "No known allergies",
+    "noAllergiesBody": "Tell your doctor if this changes.",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less",
+    "previewText": "Preview shared text",
+    "hideText": "Hide shared text",
+    "shareCta": "Share summary",
+    "bmiUnder": "Underweight",
+    "bmiHealthy": "Healthy",
+    "bmiOver": "Overweight",
+    "bmiObese": "Obese",
     "sections": {
       "about": "About you",
       "allergies": "Allergies",
@@ -2455,7 +2607,7 @@
     "title": "Health Q&A",
     "subtitle": "AI chat with patient context",
     "listTitle": "Health chat",
-    "listSubtitle": "AI Q&A with your patient context",
+    "listSubtitle": "Private answers from your records",
     "aiPill": "AI",
     "thinking": "Thinking…",
     "sendA11y": "Send message",
@@ -2616,7 +2768,28 @@
     "renew": "Request renewal",
     "renewSent": "Renewal request sent to your doctor",
     "emptyTitle": "Nothing to refill",
-    "emptyBody": "All your active medicines are well-stocked."
+    "emptyBody": "All your active medicines are well-stocked.",
+    "renewSentFor": "Renewal request sent for {{name}}",
+    "heroKicker": "Renewal status",
+    "heroCount_one": "medicine needs renewal",
+    "heroCount_other": "medicines need renewal",
+    "statOverdue": "Overdue",
+    "statSoon": "Due soon",
+    "statSent": "Requested",
+    "requestAll": "Request all ({{count}})",
+    "requestRemaining": "Request remaining ({{count}})",
+    "allSent": "All renewals requested",
+    "allSentBody": "Your doctor has been notified.",
+    "kickerUrgent": "Needs attention",
+    "kickerUpcoming": "Next 2 weeks",
+    "overdueTitle": "Overdue",
+    "soonTitle": "Due soon",
+    "unitOverdue": "days over",
+    "unitLeft": "days left",
+    "started": "Started",
+    "ended": "Ended",
+    "ends": "Ends",
+    "requested": "Requested · Doctor notified"
   },
   "aiDrugCheck": {
     "title": "Drug interaction check",
@@ -2725,9 +2898,9 @@
     "patientInProgress": "In progress",
     "patientCompleted": "Completed",
     "stats": {
-      "inQueue": "IN QUEUE",
-      "rxWritten": "RX WRITTEN",
-      "notes": "NOTES"
+      "inQueue": "In queue",
+      "rxWritten": "Rx written",
+      "notes": "Notes"
     },
     "statsSub": {
       "waiting": "Waiting now",
@@ -2735,7 +2908,7 @@
       "recorded": "Recorded"
     },
     "statsStrip": {
-      "label": "TODAY'S PULSE"
+      "label": "Today's pulse"
     },
     "tiles": {
       "recordsTitle": "Patient records",
@@ -2785,11 +2958,11 @@
     "fallbackName": "Physician",
     "fallbackHeroName": "Dr. Practitioner",
     "doctorName": "Dr. {{name}}",
-    "activePractice": "Active Practice",
+    "activePractice": "Active practice",
     "slmcNumber": "SLMC: #{{number}}",
     "verifiedNote": "SLMC verified practitioner. Qualifications and credentials are authenticated with medical council records.",
     "languageTitle": "Language",
-    "darkMode": "Dark Mode",
+    "darkMode": "Dark mode",
     "darkModeActive": "Dark appearance active",
     "lightModeActive": "Light appearance active",
     "toggle": "Toggle",
@@ -2806,15 +2979,15 @@
       "unread": "Unread alerts"
     },
     "sections": {
-      "activity": "ACTIVITY",
+      "activity": "Activity",
       "activitySubtitle": "Real-time queue and practice metrics",
-      "contact": "CONTACT",
+      "contact": "Contact",
       "contactSubtitle": "Direct communication channels",
-      "practice": "PRACTICE",
+      "practice": "Practice",
       "practiceSubtitle": "Hospital affiliations and consultation rates",
-      "manage": "PRACTICE MANAGEMENT",
+      "manage": "Practice management",
       "manageSubtitle": "Schedules, clinics, and patient tools",
-      "preferences": "App Preferences",
+      "preferences": "App preferences",
       "preferencesSubtitle": "Language and visual appearance"
     },
     "rows": {
@@ -2845,11 +3018,11 @@
     "relationshipsSubtitle": "Patients grouped by hospital & clinic",
     "relationshipsA11y": "Open my relationships",
     "links": {
-      "workspaces": "Workspaces & Clinics",
+      "workspaces": "Workspaces & clinics",
       "workspacesSubtitle": "Manage hospital affiliations and multi-clinic care",
-      "rxTemplates": "Prescription Templates",
+      "rxTemplates": "Prescription templates",
       "rxTemplatesSubtitle": "Reusable medication sets and dosages",
-      "earnings": "Earnings & Payouts",
+      "earnings": "Earnings & payouts",
       "earningsSubtitle": "View consultation revenue and payouts"
     }
   },
@@ -2878,6 +3051,7 @@
     }
   },
   "doctorTenantDetail": {
+    "teamKicker": "Team",
     "back": "Back",
     "hospital": "Hospital",
     "clinic": "Clinic",
@@ -2946,6 +3120,11 @@
     }
   },
   "doctorQueue": {
+    "summary": {
+      "waiting": "Waiting",
+      "inProgress": "In progress",
+      "done": "Done"
+    },
     "title": "Today's queue",
     "emptyTitle": "No appointments today",
     "emptyBody": "When patients book, they'll show up here.",
@@ -3032,20 +3211,21 @@
     "saveError": "Could not save note"
   },
   "status": {
-    "scheduled": "scheduled",
-    "confirmed": "confirmed",
-    "in_progress": "in progress",
-    "completed": "completed",
-    "cancelled": "cancelled",
-    "no_show": "no-show",
-    "waiting": "waiting",
-    "in_consultation": "in consultation",
-    "pending": "pending",
-    "ordered": "ordered",
-    "sample_collected": "sample collected",
-    "no_show_appointment": "no show"
+    "scheduled": "Scheduled",
+    "confirmed": "Confirmed",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "no_show": "No-show",
+    "waiting": "Waiting",
+    "in_consultation": "In consultation",
+    "pending": "Pending",
+    "ordered": "Ordered",
+    "sample_collected": "Sample collected",
+    "no_show_appointment": "No show"
   },
   "doctorPrescriptions": {
+    "searchPlaceholder": "Search patient or diagnosis",
     "title": "My prescriptions",
     "subtitle_one": "{{count}} on file",
     "subtitle_other": "{{count}} on file",
@@ -3103,6 +3283,9 @@
     "attachmentCount_other": "{{count}} attachments"
   },
   "doctorAvailability": {
+    "kicker": "Hours",
+    "closed": "Closed",
+    "timeOffKicker": "Away",
     "title": "Availability",
     "subtitle_one": "{{count}} day active · {{min}}-min slots",
     "subtitle_other": "{{count}} days active · {{min}}-min slots",
@@ -3142,6 +3325,12 @@
     ]
   },
   "doctorLabOrders": {
+    "steps": {
+      "ordered": "Ordered",
+      "sample_collected": "Collected",
+      "in_progress": "Processing",
+      "completed": "Done"
+    },
     "title": "Lab orders",
     "subtitle": "Track progress and results",
     "tabs": {
@@ -3220,6 +3409,8 @@
     "saveAction": "Save visit summary"
   },
   "doctorPrescription": {
+    "kicker": "New prescription",
+    "newSubtitle": "Electronic prescription · signed on issue",
     "title": "Prescribe",
     "subtitle": "Find a patient and write a prescription",
     "newTitle": "New prescription",
@@ -3235,7 +3426,7 @@
     "emptyInitialBody": "Search by name, NIC, or phone number",
     "changePill": "Change",
     "patientFallback": "Patient",
-    "assessment": "ASSESSMENT",
+    "assessment": "Assessment",
     "diagnosis": "Diagnosis",
     "diagnosisPlaceholder": "e.g., Acute pharyngitis",
     "medicine": "Medicine",
@@ -3262,9 +3453,9 @@
     "createPrescription": "Create prescription",
     "savedToast": "Prescription created",
     "saveError": "Could not create prescription",
-    "templatesHeading": "TEMPLATES",
+    "templatesHeading": "Templates",
     "manage": "Manage",
-    "medicinesHeading": "MEDICINES",
+    "medicinesHeading": "Medicines",
     "addMedicine": "Add medicine",
     "medicineCard_one": "Medicine {{count}}",
     "medicineCard_other": "Medicine {{count}}",
@@ -3312,14 +3503,14 @@
     "safetyOverridePlaceholder": "Why is this prescription still appropriate?",
     "safetyOverrideConfirm": "Override and create",
     "safetyOverrideCancel": "Cancel",
-    "filterAll": "All Patients",
-    "filterCareTeam": "Care Team",
+    "filterAll": "All patients",
+    "filterCareTeam": "Care team",
     "filterRecent": "Recent",
     "discard": "Discard",
     "templatesAction": "Templates",
     "emptyFilterTitle": "No patients in this view",
     "emptyFilterBody": "Use the search bar above to look up any registered patient.",
-    "clearSearch": "Clear Search",
+    "clearSearch": "Clear search",
     "emptySearchNoMatch": "No patient matching \"{{search}}\". Check the phone number or NIC."
   },
   "prescription": {
@@ -3371,6 +3562,10 @@
     "saveAction": "Save reading"
   },
   "doctorPatientDetail": {
+    "kicker": "Patient chart",
+    "factBlood": "Blood",
+    "factSex": "Sex",
+    "factDob": "Born",
     "errorTitle": "Couldn't load records",
     "errorBody": "Check your connection and try again.",
     "recordsSubtitle": "Patients who granted you record access",
@@ -3657,7 +3852,18 @@
     "checkedInToast": "Checked in via QR",
     "checkedInToastShortcut": "QR check-in successful",
     "issuedAt": "Issued at {{hospital}}",
-    "unnamed": "Patient"
+    "unnamed": "Patient",
+    "secure": "Encrypted · rotating",
+    "passTitle": "Health pass",
+    "live": "Live",
+    "inactive": "Inactive",
+    "rotateHint": "Fresh code now",
+    "revokeHint": "Invalidate code",
+    "howTitle": "How it works",
+    "step1": "Show your QR",
+    "step2": "Staff scan it",
+    "step3": "You're checked in",
+    "caretakersHint": "Let family show a QR on your behalf"
   },
   "emailImport": {
     "title": "Email-to-Records",
@@ -3678,7 +3884,19 @@
     "legacyBody": "You can also send from {{email}} — we'll route by sender even without the alias.",
     "legacyAction": "Open mail",
     "legacyHint": "We'll route by sender even without the alias",
-    "step": "Step {{n}}"
+    "step": "Step {{n}}",
+    "shareButton": "Share",
+    "privateBadge": "Private",
+    "qrTitle": "On another device?",
+    "qrHint": "Scan to start a new email to this inbox.",
+    "stepTitle1": "Forward the email",
+    "stepTitle2": "We file it for you",
+    "stepTitle3": "Review & organise",
+    "manageHeading": "Manage",
+    "rotateHint": "Get a new address if this one receives spam. The old one stops working.",
+    "rotateConfirmTitle": "Rotate your inbox address?",
+    "rotateConfirmBody": "Emails sent to the current address will no longer reach your records.",
+    "legacyTitle": "Also from your own email"
   },
   "auth": {
     "login": {
@@ -3811,7 +4029,18 @@
     "shareLinkCreated": "Link created — tap to copy",
     "shareCopied": "Link copied",
     "shareCreated": "Share link ready",
-    "shareLabel": "Prescription share"
+    "shareLabel": "Prescription share",
+    "issued": "Issued",
+    "signedOn": "Signed {{when}}",
+    "verifyShort": "Verify",
+    "noMedicines": "No medicines recorded in this prescription.",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "instructionNote": "Note",
+    "actions": "Actions",
+    "copied": "Copied",
+    "shareLinkReady": "Link ready · tap to copy",
+    "shareExpires": "Expires in 7 days"
   },
   "rateVisit": {
     "title": "Rate your visit",
@@ -3894,6 +4123,13 @@
     "dismiss": "Dismiss"
   },
   "inbox": {
+    "pathwaysKicker": "Shortcuts",
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "active": "Active",
+      "closed": "Closed"
+    },
     "title": "Inbox",
     "subtitle": "Messages with your patients",
     "subtitleEmpty": "No conversations yet",
@@ -3927,19 +4163,39 @@
     "closeBody": "The patient will see their messages as read-only and won't be able to reply.",
     "close": "Close",
     "closeChat": "Close Chat",
+    "chatToday": "Today",
+    "chatYesterday": "Yesterday",
+    "secureNote": "Private & secure conversation",
+    "emptyChatTitle": "Start the conversation",
+    "emptyChatBody": "Send {{name}} a message. Their replies will appear here.",
+    "quickStarters": "Quick starters",
+    "starterCheckIn": "Hi {{name}}, how are you feeling today?",
+    "starterReports": "Could you share your latest test reports?",
+    "starterFollowUp": "A quick reminder about your upcoming follow-up.",
+    "yourDoctor": "Your doctor",
+    "secureChat": "Secure chat",
+    "closedByDoctor": "Chat closed by doctor",
+    "closedBannerPatient": "Your doctor has closed this conversation. You can still read past messages.",
+    "repliesDisabled": "Replies are turned off for this chat",
+    "replyPlaceholder": "Type a reply…",
+    "emptyPatientTitle": "Message your doctor",
+    "emptyPatientBody": "Ask {{name}} about your care. Their replies will appear here.",
+    "patientStarterMeds": "I have a question about my medication.",
+    "patientStarterUpdate": "I would like to share an update on how I am feeling.",
+    "patientStarterFollowUp": "Can I book a follow-up visit?",
     "closedBanner": "Chat is closed. Patient cannot send new messages. Tap \"Reopen\" to re-enable replies.",
     "closed": "Closed",
     "closedStatus": "Closed",
     "closedPlaceholder": "Chat is closed — reopen to send messages",
-    "newChat": "New Chat",
+    "newChat": "New chat",
     "searchConversations": "Search conversations by patient name...",
-    "quickPathways": "Quick Pathways",
-    "pathRecentTitle": "Message Recent Patient",
+    "quickPathways": "Quick pathways",
+    "pathRecentTitle": "Message recent patient",
     "pathRecentSubtitle": "Quickly start a thread with recently visited patients",
     "pathRecentBadge": "Fast",
-    "pathDirectoryTitle": "Browse Patient Directory",
+    "pathDirectoryTitle": "Browse patient directory",
     "pathDirectorySubtitle": "Find clinical charts, lab results, and patient profiles",
-    "pathScheduleTitle": "Check Today's Schedule",
+    "pathScheduleTitle": "Check today's schedule",
     "pathScheduleSubtitle": "View confirmed appointments and waiting room queue",
     "noConversationsFound": "No conversations found",
     "noResultsMatching": "No results matching \"{{search}}\"",
@@ -3980,6 +4236,7 @@
     }
   },
   "earnings": {
+    "payoutsKicker": "Payouts",
     "title": "Earnings",
     "subtitle": "Your revenue at a glance",
     "period": {
@@ -4035,7 +4292,7 @@
     "categoryAll": "All",
     "noMatchingTitle": "No matching templates",
     "noMatchingBody": "No template matched \"{{search}}\". Try searching for another medicine or condition.",
-    "clearSearch": "Clear Search",
+    "clearSearch": "Clear search",
     "errorTitle": "Couldn't load templates",
     "errorBody": "Check your connection and try again.",
     "deleteTitle": "Delete template?",
@@ -4252,6 +4509,7 @@
     "countPending_other": "{{count}} pending",
     "invitesTitle": "Pending invites",
     "addCta": "Add a caretaker",
+    "heroTitle": "Get a helping hand",
     "emptyTitle": "No caretakers yet",
     "emptyBody": "Invite a family member to help manage your records, medicines, and appointments.",
     "inviteSheetTitle": "Invite a caretaker",
@@ -4355,6 +4613,12 @@
     "empty": "No caretakers match your filters",
     "emptyBody": "Try changing your filters or invite someone you trust directly.",
     "notFound": "Caretaker not found",
+    "resultCount": "{{count}} verified caretakers",
+    "resultCount_one": "{{count}} verified caretaker",
+    "clearFilters": "Clear filters",
+    "filtersCta": "Filters",
+    "inviteCta": "Invite someone you trust",
+    "trustLine": "Every caretaker is ID-checked by our team",
     "filters": {
       "district": "District",
       "role": "Care role",
@@ -4660,6 +4924,7 @@
     "homeTitle": "Protect your family for less than your monthly coffee",
     "homeSubtitle": "Browse plans, compare premiums, buy in 3 minutes.",
     "myPolicies": "My Policies",
+    "perk": { "compare": "Compare plans", "instant": "Instant cover", "claims": "Easy claims" },
     "noPolicies": "You don't have any policies yet.",
     "browseMarketplace": "Browse plans",
     "buyAnother": "Add another policy",
@@ -4736,6 +5001,32 @@
       "planCount": "{{count}}"
     },
     "plan": {
+      "featured": "Featured",
+      "sumInsured": "Sum insured",
+      "choosePayment": "Choose how you pay",
+      "payMonthly": "Monthly",
+      "payAnnual": "Yearly",
+      "perMonth": "per month",
+      "perYear": "per year",
+      "flexible": "Flexible, cancel anytime",
+      "equivMonthly": "≈ LKR {{amount}}/mo",
+      "savePct": "SAVE {{pct}}%",
+      "whatsCovered": "What's covered",
+      "notCovered": "What's not covered",
+      "policyTerm": "Policy term",
+      "monthsValue": "{{months}}-month term",
+      "copayCap": "Co-pay cap",
+      "getQuoteShort": "Get quote",
+      "howItWorks": "How it works",
+      "steps": {
+        "quote": "Get a quote",
+        "quoteSub": "2 min",
+        "pay": "Personalize",
+        "paySub": "Your real price",
+        "covered": "Get covered",
+        "coveredSub": "E-card in app"
+      },
+      "disclaimer": "Premiums shown are indicative. Your final premium depends on age, health and members covered, and is confirmed in your personalised quote.",
       "available_one": "{{count}} plan available",
       "available_other": "{{count}} plans available",
       "coverage": "Coverage",
@@ -4755,6 +5046,9 @@
       "annual": "LKR {{amount}}/yr",
       "save": "Save {{pct}}% on annual",
       "coverageLabel": "Coverage up to LKR {{amount}}",
+      "deductibleTitle": "Deductible",
+      "daysValue": "{{days}} days",
+      "yearlySavings": "You save LKR {{amount}} a year",
       "type": "Plan type",
       "deductibleLabel": "Deductible: LKR {{amount}}",
       "waitingPeriod": "Waiting period",
@@ -4815,7 +5109,18 @@
       "perYear": "/year",
       "basePremium": "Base premium",
       "adjustments": "Adjustments",
-      "enrollWithThisQuote": "Enroll with this quote"
+      "enrollWithThisQuote": "Enroll with this quote",
+      "stepOf": "Step {{n}} of 3",
+      "stepYou": "You",
+      "stepFamily": "Family",
+      "stepHealth": "Health",
+      "add": "Add",
+      "relations": {
+        "spouse": "Spouse",
+        "child": "Child",
+        "parent": "Parent",
+        "sibling": "Sibling"
+      }
     },
     "enroll": {
       "title": "Enroll in this plan",

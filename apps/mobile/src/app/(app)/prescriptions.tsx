@@ -151,12 +151,12 @@ export default function MyPrescriptionsScreen() {
               ...(isDark ? null : shadow.hero),
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.lg }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 15,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
                   borderCurve: "continuous",
                   backgroundColor: "rgba(255,255,255,0.18)",
                   borderWidth: StyleSheet.hairlineWidth,
@@ -165,64 +165,74 @@ export default function MyPrescriptionsScreen() {
                   justifyContent: "center",
                 }}
               >
-                <ShieldCheck size={22} color="#FFFFFF" strokeWidth={2.4} />
+                <ShieldCheck size={21} color="#FFFFFF" strokeWidth={2.4} />
               </View>
-
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text
-                    style={[
-                      typography.title.lg,
-                      { color: "#FFFFFF", flexShrink: 1 },
-                    ]}
-                  >
+                  <Text style={[typography.title.md, { color: "#FFFFFF", flexShrink: 1 }]}>
                     {t("myPrescriptions.heroTitle")}
                   </Text>
                   <Sparkles size={14} color="#FFFFFF" />
                 </View>
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: "rgba(255,255,255,0.86)", marginTop: 4 },
-                  ]}
-                >
+                <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.86)", marginTop: 2 }]}>
                   {t("myPrescriptions.heroSubtitle")}
                 </Text>
-
-                {/* Quick actions inside hero */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.sm,
-                    marginTop: spacing.md,
-                  }}
-                >
-                  <Pressable
-                    onPress={() => router.push("/(app)/refill")}
-                    style={({ pressed }) => ({
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                      backgroundColor: "rgba(255,255,255,0.18)",
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: "rgba(255,255,255,0.28)",
-                      paddingHorizontal: spacing.md,
-                      height: 36,
-                      borderRadius: radius.full,
-                      opacity: pressed ? 0.8 : 1,
-                    })}
-                  >
-                    <Repeat size={14} color="#FFFFFF" strokeWidth={2.4} />
-                    <Text
-                      style={[typography.label.md, { color: "#FFFFFF" }]}
-                    >
-                      {t("myPrescriptions.requestRefill")}
-                    </Text>
-                  </Pressable>
-                </View>
               </View>
             </View>
+
+            {/* Stats strip */}
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: spacing.lg,
+                backgroundColor: "rgba(255,255,255,0.14)",
+                borderRadius: 16,
+                borderCurve: "continuous",
+                paddingVertical: spacing.md,
+              }}
+            >
+              {[
+                { n: all.length, l: t("myPrescriptions.filters.all") },
+                { n: signedCount, l: t("myPrescriptions.filters.signed") },
+                { n: dispensedCount, l: t("myPrescriptions.filters.dispensed") },
+              ].map((s, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    borderLeftWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderColor: "rgba(255,255,255,0.3)",
+                  }}
+                >
+                  <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>{s.n}</Text>
+                  <Text style={[typography.label.xs, { color: "rgba(255,255,255,0.8)", marginTop: 2 }]} numberOfLines={1}>
+                    {s.l}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => router.push("/(app)/refill")}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                marginTop: spacing.md,
+                height: 44,
+                borderRadius: radius.full,
+                backgroundColor: "#FFFFFF",
+                opacity: pressed ? 0.9 : 1,
+              })}
+            >
+              <Repeat size={16} color={colors.primary} strokeWidth={2.4} />
+              <Text style={[typography.label.lg ?? typography.label.md, { color: colors.primary }]}>
+                {t("myPrescriptions.requestRefill")}
+              </Text>
+              <ArrowRight size={16} color={colors.primary} strokeWidth={2.4} />
+            </Pressable>
           </LinearGradient>
         </View>
 
@@ -489,236 +499,147 @@ function PrescriptionCard({
         transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
-      {/* Card Header: Rx Icon Avatar + Title + Status Pill */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: spacing.sm,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 13,
-              borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ClipboardList
-              size={22}
-              color={colors.primary}
-              strokeWidth={2.2}
-            />
-          </View>
+      {/* Header: Rx tile + title/doctor + chevron well */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 15,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ClipboardList size={22} color={colors.primary} strokeWidth={2.2} />
+        </View>
 
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              style={[
-                typography.title.md,
-                { color: colors.text },
-              ]}
-              numberOfLines={1}
-            >
-              {r.diagnosis || t("myPrescriptions.fallbackTitle")}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+            {r.diagnosis || t("myPrescriptions.fallbackTitle")}
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 }}>
+            <Stethoscope size={12} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.body.sm, { color: colors.textMuted, flex: 1 }]} numberOfLines={1}>
+              {r.doctorName || "Licensed Practitioner"}
+              {r.doctorSpecialization ? ` · ${r.doctorSpecialization}` : ""}
             </Text>
-
-            {/* Doctor with Stethoscope */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 5,
-                marginTop: 2,
-              }}
-            >
-              <Stethoscope
-                size={12}
-                color={colors.primary}
-                strokeWidth={2.4}
-              />
-              <Text
-                style={[
-                  typography.body.sm,
-                  { color: colors.textMuted, flex: 1 },
-                ]}
-                numberOfLines={1}
-              >
-                {r.doctorName || "Licensed Practitioner"}
-                {r.doctorSpecialization
-                  ? ` · ${r.doctorSpecialization}`
-                  : ""}
-              </Text>
-            </View>
           </View>
         </View>
 
-        {/* Status Pill with Icon */}
-        <StatusBadge status={r.status} />
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: colors.well,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
+        </View>
       </View>
 
-      {/* Meta Row: Formatted Date & Medicine Count */}
+      {/* Status + date */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: spacing.md,
+          justifyContent: "space-between",
           marginTop: spacing.md,
-          paddingTop: spacing.xs,
         }}
       >
+        <StatusBadge status={r.status} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <CalendarDays
-            size={13}
-            color={colors.textSubtle}
-            strokeWidth={2.2}
-          />
-          <Text
-            style={[typography.caption, { color: colors.textSubtle }]}
-          >
-            {dateFormatted}
-          </Text>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <Pill
-            size={13}
-            color={colors.textSubtle}
-            strokeWidth={2.2}
-          />
-          <Text
-            style={[typography.caption, { color: colors.textSubtle }]}
-          >
-            {medCount === 1
-              ? t("myPrescriptions.medCount_one")
-              : t("myPrescriptions.medCount_other", { count: medCount })}
-          </Text>
+          <CalendarDays size={13} color={colors.textSubtle} strokeWidth={2.2} />
+          <Text style={[typography.caption, { color: colors.textSubtle }]}>{dateFormatted}</Text>
         </View>
       </View>
 
-      {/* Prescribed Medicines Inline Preview Chips */}
+      {/* Medicines list */}
       {medicines.length > 0 && (
         <View
           style={{
             marginTop: spacing.md,
             backgroundColor: colors.fill,
-            borderRadius: 14,
+            borderRadius: 16,
             borderCurve: "continuous",
-            padding: spacing.sm,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm + 2,
+            gap: 2,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 6,
-              alignItems: "center",
-            }}
-          >
-            {medicines.slice(0, 3).map((med, idx) => (
-              <View
-                key={med.id || idx}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  backgroundColor: isDark ? colors.surfaceElevated : colors.surface,
-                  paddingHorizontal: spacing.sm + 2,
-                  paddingVertical: 4,
-                  borderRadius: 10,
-                  borderCurve: "continuous",
-                }}
-              >
-                <View
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: colors.primary,
-                  }}
-                />
-                <Text
-                  style={[typography.label.sm, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {med.name}
-                  {med.dosage ? ` (${med.dosage})` : ""}
-                </Text>
-              </View>
-            ))}
-
-            {medicines.length > 3 && (
-              <View
-                style={{
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 4,
-                  borderRadius: 10,
-                  backgroundColor: colors.fillStrong,
-                }}
-              >
-                <Text
-                  style={[typography.label.xs, { color: colors.textMuted }]}
-                >
-                  +{medicines.length - 3} more
-                </Text>
-              </View>
-            )}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 4 }}>
+            <Pill size={12} color={colors.textSubtle} strokeWidth={2.4} />
+            <Text style={[typography.label.xs, { color: colors.textSubtle, textTransform: "uppercase" }]}>
+              {medCount === 1
+                ? t("myPrescriptions.medCount_one")
+                : t("myPrescriptions.medCount_other", { count: medCount })}
+            </Text>
           </View>
+          {medicines.slice(0, 3).map((med, idx) => (
+            <View
+              key={med.id || idx}
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 4 }}
+            >
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary }} />
+              <Text style={[typography.label.md, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+                {med.name}
+              </Text>
+              {!!med.dosage && (
+                <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+                  {med.dosage}
+                </Text>
+              )}
+            </View>
+          ))}
+          {medicines.length > 3 && (
+            <Text style={[typography.label.xs, { color: colors.textMuted, marginTop: 2 }]}>
+              +{medicines.length - 3} more
+            </Text>
+          )}
         </View>
       )}
 
-      {/* Footer Navigation Bar */}
+      {/* Footer */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
           marginTop: spacing.md,
-          paddingTop: spacing.md,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderColor: colors.separator,
         }}
       >
-        <Text
-          style={[typography.label.md, { color: colors.primary }]}
-        >
+        <Text style={[typography.label.md, { color: colors.primary }]}>
           {t("myPrescriptions.viewDetails")}
         </Text>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          {isSigned && (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                router.push("/(app)/refill");
-              }}
-              hitSlop={6}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                paddingHorizontal: spacing.md,
-                height: 30,
-                borderRadius: radius.full,
-                backgroundColor: colors.primarySoft,
-                marginRight: spacing.xs,
-              }}
-            >
-              <Repeat size={12} color={colors.primary} strokeWidth={2.4} />
-              <Text
-                style={[typography.label.sm, { color: colors.primary }]}
-              >
-                {t("myPrescriptions.requestRefill")}
-              </Text>
-            </Pressable>
-          )}
-          <ChevronRight size={16} color={colors.textSubtle} strokeWidth={2.4} />
-        </View>
+        {isSigned && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              router.push("/(app)/refill");
+            }}
+            hitSlop={6}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: spacing.lg,
+              height: 36,
+              borderRadius: radius.full,
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.85 : 1,
+              ...(isDark ? null : shadow.primary),
+            })}
+          >
+            <Repeat size={13} color={colors.onPrimary} strokeWidth={2.4} />
+            <Text style={[typography.label.md, { color: colors.onPrimary }]}>
+              {t("myPrescriptions.requestRefill")}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );

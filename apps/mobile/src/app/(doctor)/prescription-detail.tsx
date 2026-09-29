@@ -40,6 +40,7 @@ import {
   EmptyState,
   TextInput,
   BottomSheet,
+  IconTile,
   useToast,
 } from "@/components/ui";
 
@@ -126,7 +127,7 @@ export default function PrescriptionDetailScreen() {
   }
 
   return (
-    <Screen scroll padded={false} edges={["top"]}>
+    <Screen padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       <ScreenHeader
         title={t("doctorPrescriptionDetail.title")}
         onBack={() => router.back()}
@@ -148,8 +149,10 @@ export default function PrescriptionDetailScreen() {
         </View>
       ) : (
         <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             padding: spacing.lg,
+            paddingTop: spacing.xs,
             gap: spacing.md,
             paddingBottom: spacing.xxl,
           }}
@@ -158,11 +161,11 @@ export default function PrescriptionDetailScreen() {
           <Card>
             <Text
               style={[
-                typography.overline,
-                { color: colors.textMuted, marginBottom: spacing.xs },
+                typography.kicker,
+                { color: colors.textSubtle, marginBottom: spacing.sm, textTransform: "uppercase" },
               ]}
             >
-              {t("doctorPrescriptionDetail.patient").toUpperCase()}
+              {t("doctorPrescriptionDetail.patient")}
             </Text>
             <Text style={[typography.display.sm, { color: colors.text }]}>
               {patient?.name || t("doctorPrescriptions.unknownPatient")}
@@ -190,11 +193,11 @@ export default function PrescriptionDetailScreen() {
             <Card>
               <Text
                 style={[
-                  typography.overline,
-                  { color: colors.textMuted, marginBottom: spacing.xs },
+                  typography.kicker,
+                  { color: colors.textSubtle, marginBottom: spacing.sm, textTransform: "uppercase" },
                 ]}
               >
-                {t("doctorPrescriptionDetail.diagnosis").toUpperCase()}
+                {t("doctorPrescriptionDetail.diagnosis")}
               </Text>
               <Text
                 style={[
@@ -211,11 +214,11 @@ export default function PrescriptionDetailScreen() {
             <Card>
               <Text
                 style={[
-                  typography.overline,
-                  { color: colors.textMuted, marginBottom: spacing.xs },
+                  typography.kicker,
+                  { color: colors.textSubtle, marginBottom: spacing.sm, textTransform: "uppercase" },
                 ]}
               >
-                {t("doctorPrescriptionDetail.notes").toUpperCase()}
+                {t("doctorPrescriptionDetail.notes")}
               </Text>
               <Text
                 style={[
@@ -232,11 +235,11 @@ export default function PrescriptionDetailScreen() {
           <Card>
             <Text
               style={[
-                typography.overline,
-                { color: colors.textMuted, marginBottom: spacing.sm },
+                typography.kicker,
+                { color: colors.textSubtle, marginBottom: spacing.sm, textTransform: "uppercase" },
               ]}
             >
-              {t("doctorPrescriptionDetail.medicines").toUpperCase()}
+              {t("doctorPrescriptionDetail.medicines")}
             </Text>
             {rx.medicines?.length ? (
               <View>
@@ -252,19 +255,7 @@ export default function PrescriptionDetailScreen() {
                       borderColor: colors.separator,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        borderCurve: "continuous",
-                        backgroundColor: colors.primarySoft,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Pill size={16} color={colors.primary} strokeWidth={2.2} />
-                    </View>
+                    <IconTile icon={Pill} tone="primary" appearance="soft" size={36} />
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[typography.title.sm, { color: colors.text }]}>
                         {med.name}
@@ -306,28 +297,16 @@ export default function PrescriptionDetailScreen() {
           <Card>
             <Text
               style={[
-                typography.overline,
-                { color: colors.textMuted, marginBottom: spacing.xs },
+                typography.kicker,
+                { color: colors.textSubtle, marginBottom: spacing.sm, textTransform: "uppercase" },
               ]}
             >
-              {t("doctorPrescriptionDetail.doctor").toUpperCase()}
+              {t("doctorPrescriptionDetail.doctor")}
             </Text>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
             >
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.successSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Stethoscope size={18} color={colors.success} strokeWidth={2.2} />
-              </View>
+              <IconTile icon={Stethoscope} tone="success" appearance="solid" size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={[typography.title.sm, { color: colors.text }]}>
                   {rx.doctorName}
@@ -605,12 +584,12 @@ function MetaChip({
         paddingHorizontal: spacing.sm,
         paddingVertical: 6,
         borderRadius: radius.full,
-        backgroundColor: colors.fill,
+        backgroundColor: colors.primarySoft,
       }}
     >
-      <Icon size={12} color={colors.textMuted} strokeWidth={2.2} />
+      <Icon size={12} color={colors.primary} strokeWidth={2.2} />
       <Text
-        style={[typography.label.sm, { color: colors.textMuted }]}
+        style={[typography.label.sm, { color: colors.primary, fontVariant: ["tabular-nums"] }]}
       >
         {label}
       </Text>
