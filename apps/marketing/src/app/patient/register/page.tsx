@@ -13,19 +13,21 @@ import {
   Calendar,
   Eye,
   EyeOff,
+  ArrowLeft,
   ArrowRight,
   AlertCircle,
   Stethoscope,
   Building2,
-  Heart,
   Check,
+  MessageSquareText,
 } from "lucide-react";
 
 import { api, ApiError } from "@/portal/lib/api";
 import { patientPaths } from "@healthcare/shared/contracts";
 import { useAuthStore, type AuthUser } from "@/portal/stores/auth";
 import { cn } from "@/portal/lib/utils";
-import "./register.css";
+import { AuthHero } from "@/app/_shared/AuthHero";
+import "@/app/_shared/auth-studio.css";
 
 function RegisterForm() {
   const router = useRouter();
@@ -132,275 +134,147 @@ function RegisterForm() {
     }
   }
 
+  const initials = name.trim()
+    ? name
+        .trim()
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "YOU";
+
+  const btnInner = (busyLabel: string, idleLabel: string) =>
+    busy ? (
+      <>
+        <span>{busyLabel}</span>
+        <span className="au-spinner" aria-hidden />
+      </>
+    ) : (
+      <>
+        <span>{idleLabel}</span>
+        <span className="au-btn__glyph" aria-hidden>
+          <ArrowRight size={16} />
+        </span>
+      </>
+    );
+
   return (
-    <div className="hl-root">
-      <a className="hl-skip" href="#register-form">
+    <div className="au-root" data-role="patient">
+      <a className="au-skip" href="#register-form">
         Skip to register form
       </a>
 
-      {/* ── Left Hero Side (Desktop) ──────────────────────────────────────── */}
-      <aside className="hl-hero" aria-label="HealthHub Platform">
-        <div className="hl-hero__field" aria-hidden="true">
-          <div className="hl-hero__spot" />
-          <div className="hl-hero__grain" />
-          <svg
-            className="hl-hero__ecg"
-            viewBox="0 0 900 1100"
-            preserveAspectRatio="xMidYMid slice"
-          >
-            <defs>
-              <linearGradient id="hl-ecg-reg" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#7eb0ff" stopOpacity="0" />
-                <stop offset=".4" stopColor="#5ec8ff" stopOpacity=".7" />
-                <stop offset="1" stopColor="#7eb0ff" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              className="hl-hero__ecg-path"
-              d="M-20 540 H140 l18-48 12 96 18-140 10 70 22-22 H900"
-              fill="none"
-              stroke="url(#hl-ecg-reg)"
-              strokeWidth="1.25"
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="hl-compass">
-            <span className="hl-compass__ring" />
-            <span className="hl-compass__ring hl-compass__ring--2" />
-            <span className="hl-compass__ring hl-compass__ring--3" />
-            <span className="hl-compass__ticks" />
-            <span className="hl-compass__north">N</span>
-            <div className="hl-compass__photo">
-              <img
-                src="/assets/brand/harbor-hands.png"
-                alt="HealthHub"
-                loading="lazy"
-              />
-            </div>
+      <AuthHero
+        kicker="Free for patients · Private beta"
+        headline="Your health has a history."
+        highlight="Start writing it."
+        lede="Records, medicines and visits — private, readable, and doctor-ready in English, Sinhala and Tamil."
+        photo="/assets/brand/harbor-hands.png"
+        float={{
+          icon: <ShieldCheck size={15} />,
+          title: "Your vault, your keys",
+          caption: "Share only what you choose",
+        }}
+        card={{
+          initials,
+          title: name.trim() || "Your name here",
+          subtitle: "Personal health vault",
+          chip: "ENCRYPTED",
+          stats: [
+            { label: "Languages", value: "EN · SI · TA" },
+            { label: "Family", value: "Shareable" },
+            { label: "Cost", value: "Free" },
+          ],
+        }}
+      />
+
+      <main className="au-panel">
+        <div className="au-topbar">
+          <Link href="/" className="au-back">
+            <ArrowLeft size={15} />
+            Back to site
+          </Link>
+          <Link href="/" className="au-mobile-brand">
+            <img src="/assets/logo.svg" alt="" width={26} height={26} />
+            HealthHub
+          </Link>
+          <div className="au-topbar__cta">
+            <span>Have an account?</span>
+            <Link href="/login?port=patient">Sign in</Link>
           </div>
         </div>
 
-        <Link href="/" className="hl-brand">
-          <div className="hl-brand__icon-wrap">
-            <img src="/assets/logo.svg" alt="" width={22} height={22} />
-          </div>
-          <div>
-            <div className="hl-brand__name">HealthHub</div>
-            <div className="hl-brand__badge">Beta</div>
-          </div>
-        </Link>
-
-        <div className="hl-hero__body">
-          <div className="hl-kicker">
-            <span className="hl-kicker__dot" />
-            <span>Private beta · 6°55′N Colombo</span>
-          </div>
-
-          <div>
-            <h1 className="hl-headline">
-              Your health has a history.
-              <span className="hl-headline-accent">Start writing it.</span>
+        <div className="au-form au-form--wide" id="register-form">
+          <div className="au-head">
+            <h1>
+              Create your <em>health vault.</em>
             </h1>
-            <p className="hl-lede">
-              Records, medicines and visits — private, readable, and
-              doctor-ready in English, Sinhala and Tamil.
-            </p>
-            <div className="hl-langs" aria-label="Languages">
-              <b>EN</b>
-              <i />
-              <b>සිංහල</b>
-              <i />
-              <b>தமிழ்</b>
-            </div>
-          </div>
-        </div>
-
-        <div className="hl-card-preview">
-          <div className="hl-card-preview__top">
-            <div className="hl-card-preview__brand">
-              <ShieldCheck size={16} />
-              <span>Personal health vault</span>
-            </div>
-            <span className="hl-card-preview__chip">LK-NHI · ENCRYPTED</span>
+            <p>Takes about a minute. We&apos;ll verify your email or phone next.</p>
           </div>
 
-          <div className="hl-card-preview__content">
-            <div className="hl-card-row">
-              <div className="hl-card-meta">
-                <div className="hl-card-avatar">
-                  {name.trim()
-                    ? name
-                        .trim()
-                        .split(/\s+/)
-                        .map((w) => w[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()
-                    : "YOU"}
-                </div>
-                <div>
-                  <div className="hl-card-title">
-                    {name.trim() || "New Member"}
-                  </div>
-                  <div className="hl-card-subtitle">
-                    ID: LK-NEW-CITIZEN · Universal EHR
-                  </div>
-                </div>
-              </div>
-              <div className="hl-card-tag">
-                <Heart size={12} className="text-rose-400 animate-pulse" />
-                <span>
-                  <strong>Live</strong> Sync
-                </span>
-              </div>
-            </div>
-            <div className="hl-card-badges">
-              <span className="hl-card-tag">
-                Language: <strong>Tri-lingual OCR</strong>
+          <div className="au-roles au-roles--3" role="tablist" aria-label="Select account registration type">
+            <button type="button" role="tab" aria-selected className="au-role au-role--patient is-active">
+              <span className="au-role__icon">
+                <User size={17} strokeWidth={2.2} />
               </span>
-              <span className="hl-card-tag">
-                Family Sharing: <strong>Granular</strong>
-              </span>
-              <span className="hl-card-tag">
-                Privacy: <strong>Zero-Knowledge</strong>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hl-hero__foot">
-          <div className="hl-hero__trust">
-            <span>
-              <ShieldCheck size={13} />
-              256-bit encrypted
-            </span>
-            <span>
-              <Lock size={13} />
-              Never sold
-            </span>
-          </div>
-          <span>© {new Date().getFullYear()} HealthHub</span>
-        </div>
-      </aside>
-
-      {/* ── Right Form Panel ─────────────────────────────────────────────── */}
-      <main className="hl-panel">
-        <div className="hl-mobile-brand">
-          <div className="hl-mobile-brand__left">
-            <img src="/assets/logo.svg" alt="" width={30} height={30} />
-            <strong>HealthHub</strong>
-          </div>
-          <span className="hl-secure">
-            <ShieldCheck size={12} />
-            Secure Portal
-          </span>
-        </div>
-
-        <div className="hl-form-container" id="register-form">
-          <div className="hl-header">
-            <span className="hl-eyebrow">Onboarding Portal</span>
-            <h2>
-              Create your <em>account.</em>
-            </h2>
-            <p>
-              Already have an account?{" "}
-              <Link
-                href="/login?port=patient"
-                className="font-semibold text-[#0284c7] hover:underline"
-              >
-                Sign in here
-              </Link>
-            </p>
-          </div>
-
-          {/* 3-Role Registration Switcher (Patient, Doctor, Hospital) */}
-          <div
-            className="hl-tabs"
-            role="tablist"
-            aria-label="Select account registration type"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={true}
-              className="hl-tab-btn hl-tab-btn--patient is-active"
-            >
-              <User size={16} strokeWidth={2.2} />
               <span>Patient</span>
             </button>
-
-            <Link
-              href="/doctor/register"
-              role="tab"
-              aria-selected={false}
-              className="hl-tab-btn hl-tab-btn--doctor"
-            >
-              <Stethoscope size={16} strokeWidth={1.8} />
+            <Link href="/doctor/register" role="tab" aria-selected={false} className="au-role au-role--doctor">
+              <span className="au-role__icon">
+                <Stethoscope size={17} strokeWidth={1.8} />
+              </span>
               <span>Doctor</span>
             </Link>
-
-            <Link
-              href="/hospital/register"
-              role="tab"
-              aria-selected={false}
-              className="hl-tab-btn hl-tab-btn--hospital"
-            >
-              <Building2 size={16} strokeWidth={1.8} />
+            <Link href="/hospital/register" role="tab" aria-selected={false} className="au-role au-role--facility">
+              <span className="au-role__icon">
+                <Building2 size={17} strokeWidth={1.8} />
+              </span>
               <span>Hospital</span>
             </Link>
           </div>
 
-          {/* Progress: details → verify */}
-          <div className="hl-steps" aria-label="Registration progress">
-            <div
-              className={cn(
-                "hl-step",
-                step === "details" && "is-active",
-                step === "verify" && "is-done"
-              )}
-            >
-              <span className="hl-step__num">
-                {step === "verify" ? <Check size={11} /> : "1"}
+          <div className="au-steps" aria-label="Registration progress">
+            <div className={cn("au-step", step === "details" && "is-active", step === "verify" && "is-done")}>
+              <span>
+                <b>{step === "verify" ? <Check size={11} style={{ display: "inline" }} /> : "01"}</b>
+                Your details
               </span>
-              <span>Your details</span>
             </div>
-            <span className="hl-steps__line" aria-hidden />
-            <div className={cn("hl-step", step === "verify" && "is-active")}>
-              <span className="hl-step__num">2</span>
-              <span>Verify code</span>
+            <div className={cn("au-step", step === "verify" && "is-active")}>
+              <span>
+                <b>02</b>
+                Verify code
+              </span>
             </div>
           </div>
 
           {error && (
-            <div className="hl-error" role="alert">
-              <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+            <div className="au-alert" role="alert">
+              <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
           {step === "verify" ? (
-            <form onSubmit={onVerify} className="flex flex-col gap-4">
-              <button
-                type="button"
-                onClick={() => setStep("details")}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-soft hover:text-text self-start"
-              >
-                <ChevronLeft size={14} /> Back to details
+            <form onSubmit={onVerify} className="au-fields">
+              <button type="button" onClick={() => setStep("details")} className="au-textbtn">
+                <ChevronLeft size={15} /> Back to details
               </button>
 
-              <div className="flex flex-col gap-1">
-                <h3 className="t-card-title text-text">
-                  Verify your account
-                </h3>
-                <p className="text-sm text-slate-500">
-                  We sent a 6-digit verification code to{" "}
-                  <strong>{email || phone}</strong>.
+              <div className="au-verify">
+                <span className="au-verify__icon">
+                  <MessageSquareText size={22} />
+                </span>
+                <h2>Check your {email ? "inbox" : "messages"}</h2>
+                <p>
+                  We sent a 6-digit code to <strong>{email || phone}</strong>.
                 </p>
               </div>
 
-              <div className="hl-field">
-                <label htmlFor="otp" className="hl-label">
-                  Enter 6-Digit Code
+              <div className="au-field">
+                <label htmlFor="otp" className="au-label">
+                  Verification code
                 </label>
                 <input
                   id="otp"
@@ -408,35 +282,30 @@ function RegisterForm() {
                   inputMode="numeric"
                   maxLength={6}
                   value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="000000"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="••••••"
                   required
+                  autoFocus
                   autoComplete="one-time-code"
-                  className="hl-input hl-input--otp"
+                  className="au-input au-input--otp"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={busy || otp.length !== 6}
-                className="hl-btn-primary"
-              >
-                {busy ? "Verifying code…" : "Verify & access health record"}
+              <button type="submit" disabled={busy || otp.length !== 6} className="au-btn" aria-busy={busy}>
+                {btnInner("Verifying…", "Verify & open my vault")}
               </button>
             </form>
           ) : (
-            <form onSubmit={onSubmit} className="flex flex-col gap-3.5">
-              <div className="hl-section">Identity</div>
+            <form onSubmit={onSubmit} className="au-fields">
+              <div className="au-section">About you</div>
 
-              <div className="hl-field">
-                <label htmlFor="name" className="hl-label">
-                  Full Name
+              <div className="au-field">
+                <label htmlFor="name" className="au-label">
+                  Full name
                 </label>
-                <div className="hl-input-wrap">
-                  <span className="hl-input-icon">
-                    <User size={15} />
+                <div className="au-input-wrap">
+                  <span className="au-input-icon">
+                    <User size={16} />
                   </span>
                   <input
                     id="name"
@@ -446,42 +315,41 @@ function RegisterForm() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="hl-input"
+                    className="au-input"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="hl-field">
-                  <label htmlFor="dob" className="hl-label">
-                    Date of Birth
+              <div className="au-grid-2">
+                <div className="au-field">
+                  <label htmlFor="dob" className="au-label">
+                    Date of birth <small>optional</small>
                   </label>
-                  <div className="hl-input-wrap">
-                    <span className="hl-input-icon">
-                      <Calendar size={15} />
+                  <div className="au-input-wrap">
+                    <span className="au-input-icon">
+                      <Calendar size={16} />
                     </span>
                     <input
                       id="dob"
                       type="date"
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="hl-input"
+                      className="au-input"
                     />
                   </div>
                 </div>
 
-                <div className="hl-field">
-                  <label htmlFor="gender" className="hl-label">
-                    Gender
+                <div className="au-field">
+                  <label htmlFor="gender" className="au-label">
+                    Gender <small>optional</small>
                   </label>
                   <select
                     id="gender"
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="hl-input hl-select"
-                    style={{ paddingLeft: 14 }}
+                    className="au-input au-input--plain au-select"
                   >
-                    <option value="">Select gender…</option>
+                    <option value="">Select…</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
@@ -490,16 +358,16 @@ function RegisterForm() {
                 </div>
               </div>
 
-              <div className="hl-section">Contact</div>
+              <div className="au-section">Contact</div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="hl-field">
-                  <label htmlFor="email" className="hl-label">
-                    Email Address
+              <div className="au-grid-2">
+                <div className="au-field">
+                  <label htmlFor="email" className="au-label">
+                    Email
                   </label>
-                  <div className="hl-input-wrap">
-                    <span className="hl-input-icon">
-                      <Mail size={15} />
+                  <div className="au-input-wrap">
+                    <span className="au-input-icon">
+                      <Mail size={16} />
                     </span>
                     <input
                       id="email"
@@ -508,18 +376,18 @@ function RegisterForm() {
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="hl-input"
+                      className="au-input"
                     />
                   </div>
                 </div>
 
-                <div className="hl-field">
-                  <label htmlFor="phone" className="hl-label">
-                    Mobile Phone
+                <div className="au-field">
+                  <label htmlFor="phone" className="au-label">
+                    Mobile
                   </label>
-                  <div className="hl-input-wrap">
-                    <span className="hl-input-icon">
-                      <Phone size={15} />
+                  <div className="au-input-wrap">
+                    <span className="au-input-icon">
+                      <Phone size={16} />
                     </span>
                     <input
                       id="phone"
@@ -528,22 +396,22 @@ function RegisterForm() {
                       placeholder="077 123 4567"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="hl-input"
+                      className="au-input"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="hl-section">Security</div>
+              <div className="au-section">Security</div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="hl-field">
-                  <label htmlFor="password" className="hl-label">
+              <div className="au-grid-2">
+                <div className="au-field">
+                  <label htmlFor="password" className="au-label">
                     Password
                   </label>
-                  <div className="hl-input-wrap">
-                    <span className="hl-input-icon">
-                      <Lock size={15} />
+                  <div className="au-input-wrap">
+                    <span className="au-input-icon">
+                      <Lock size={16} />
                     </span>
                     <input
                       id="password"
@@ -554,48 +422,36 @@ function RegisterForm() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={8}
-                      className="hl-input"
-                      style={{ paddingRight: 38 }}
+                      className="au-input au-input--pr"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
-                      className="hl-reveal"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
+                      className="au-adorn"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   {password.length > 0 && (
-                    <div
-                      className="hl-strength"
-                      aria-label={`Password strength: ${pwLabel}`}
-                    >
-                      <div className="hl-strength__bars">
+                    <div className="au-strength" aria-label={`Password strength: ${pwLabel}`}>
+                      <div className="au-strength__bars">
                         {[1, 2, 3, 4].map((i) => (
-                          <span
-                            key={i}
-                            className={cn(
-                              "hl-strength__bar",
-                              pwScore >= i && `is-on-${pwScore}`
-                            )}
-                          />
+                          <span key={i} className={cn(pwScore >= i && `is-${pwScore}`)} />
                         ))}
                       </div>
-                      <span className="hl-strength__label">{pwLabel}</span>
+                      <span className="au-strength__label">{pwLabel}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="hl-field">
-                  <label htmlFor="confirmPassword" className="hl-label">
-                    Confirm Password
+                <div className="au-field">
+                  <label htmlFor="confirmPassword" className="au-label">
+                    Confirm password
                   </label>
-                  <div className="hl-input-wrap">
-                    <span className="hl-input-icon">
-                      <Lock size={15} />
+                  <div className="au-input-wrap">
+                    <span className="au-input-icon">
+                      <Lock size={16} />
                     </span>
                     <input
                       id="confirmPassword"
@@ -606,30 +462,25 @@ function RegisterForm() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       minLength={8}
+                      aria-invalid={!!confirmPassword && confirmPassword !== password}
                       className={cn(
-                        "hl-input",
-                        confirmPassword &&
-                          (confirmPassword === password
-                            ? "!border-emerald-400"
-                            : "!border-rose-300")
+                        "au-input au-input--pr",
+                        confirmPassword && confirmPassword === password && "is-valid",
                       )}
-                      style={{ paddingRight: 38 }}
                     />
                     {confirmPassword && confirmPassword === password && (
-                      <span className="hl-reveal" aria-hidden>
-                        <Check size={15} className="text-emerald-500" />
+                      <span className="au-adorn" aria-hidden style={{ color: "var(--au-ok)" }}>
+                        <Check size={16} />
                       </span>
                     )}
                   </div>
                   {confirmPassword && confirmPassword !== password && (
-                    <p className="text-[11.5px] font-medium text-rose-500 m-0">
-                      Passwords do not match
-                    </p>
+                    <p className="au-hint">Passwords do not match</p>
                   )}
                 </div>
               </div>
 
-              <label className="hl-check mt-1">
+              <label className="au-check">
                 <input
                   type="checkbox"
                   checked={acceptTerms}
@@ -637,7 +488,7 @@ function RegisterForm() {
                   required
                 />
                 <span>
-                  I accept the{" "}
+                  I agree to the{" "}
                   <Link href="/terms" target="_blank">
                     Terms of Service
                   </Link>{" "}
@@ -649,40 +500,30 @@ function RegisterForm() {
                 </span>
               </label>
 
-              <button
-                type="submit"
-                disabled={busy}
-                className="hl-btn-primary mt-2"
-                aria-busy={busy}
-              >
-                {busy ? (
-                  <span>Creating account…</span>
-                ) : (
-                  <>
-                    <span>Create Patient Account</span>
-                    <span className="hl-btn-primary__glyph" aria-hidden>
-                      <ArrowRight size={15} />
-                    </span>
-                  </>
-                )}
+              <button type="submit" disabled={busy} className="au-btn" aria-busy={busy}>
+                {btnInner("Creating account…", "Create Patient Account")}
               </button>
+
+              <p className="au-assure">
+                <ShieldCheck size={14} />
+                Your records are encrypted and never sold
+              </p>
             </form>
           )}
         </div>
 
-        <div className="hl-foot">
-          <div>
-            <span>
-              Are you a clinician?{" "}
-              <Link href="/doctor/register">Join Doctor Network</Link>
-            </span>
-          </div>
-          <div className="hl-foot__legal">
+        <footer className="au-foot">
+          <span>
+            Are you a clinician?{" "}
+            <Link href="/doctor/register" style={{ color: "var(--au-sky)", fontWeight: 600 }}>
+              Join the doctor network
+            </Link>
+          </span>
+          <nav>
             <Link href="/privacy">Privacy</Link>
-            <span aria-hidden>·</span>
             <Link href="/terms">Terms</Link>
-          </div>
-        </div>
+          </nav>
+        </footer>
       </main>
     </div>
   );
@@ -690,7 +531,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="hl-root" />}>
+    <Suspense fallback={<div className="au-root" />}>
       <RegisterForm />
     </Suspense>
   );

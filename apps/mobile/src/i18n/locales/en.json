@@ -172,6 +172,36 @@
       "info_other": "{{count}} types send push notifications. In-app stays enabled unless you turn it off."
     },
     "alwaysOn": "always on",
+    "hero": {
+      "push": "Push",
+      "inApp": "In-app"
+    },
+    "mode": {
+      "all": "Everything",
+      "essentials": "Essentials",
+      "custom": "Custom",
+      "allHelp": "Every alert as a push notification and in the app.",
+      "essentialsHelp": "Push only for care & safety; hospital and insurance news stays in the app.",
+      "customHelp": "Your own mix — fine-tune each type below."
+    },
+    "category": {
+      "clinical": {
+        "title": "Clinical & Treatments",
+        "subtitle": "Appointments, medicines, prescriptions & lab alerts"
+      },
+      "safety": {
+        "title": "Critical & Emergency",
+        "subtitle": "Urgent health alerts, SOS & patient safety"
+      },
+      "services": {
+        "title": "Hospital & Services",
+        "subtitle": "Facility announcements, insurance claims & policies"
+      }
+    },
+    "unsaved": "Unsaved changes",
+    "discard": "Discard",
+    "mutedLabel": "Muted",
+    "emergencyLocked": "In-app emergency alerts stay on for your safety.",
     "toggle": {
       "inApp": "In-app",
       "push": "Push"
@@ -433,6 +463,30 @@
     "errorBody": "Check your connection and try again.",
     "retry": "Retry",
     "actorSystem": "System",
+    "you": "You",
+    "event": {
+      "healthIdIssued": "Health ID QR shown",
+      "healthIdSuperseded": "Previous QR retired",
+      "healthIdRevoked": "Health ID QR revoked",
+      "healthIdScanned": "Health ID scanned",
+      "healthIdRejected": "Scan blocked",
+      "emergencyQrIssued": "Emergency QR created",
+      "emergencyQrScanned": "Emergency QR scanned",
+      "emergencyQrRevoked": "Emergency QR revoked"
+    },
+    "detail": {
+      "fullRecord": "Full record",
+      "validFor": "valid {{hours}} h",
+      "rotates": "refreshes every {{seconds}}s",
+      "scansLeft_one": "{{count}} scan left",
+      "scansLeft_other": "{{count}} scans left"
+    },
+    "summary": {
+      "onlyYou_one": "The only event was made by you.",
+      "onlyYou_other": "All {{count}} events were made by you.",
+      "others_one": "{{count}} action by someone else — review it below.",
+      "others_other": "{{count}} actions by other people — review them below."
+    },
     "filter": {
       "all": "All",
       "records": "Records",
@@ -500,6 +554,30 @@
     "title": "Edit Profile",
     "save": "Save",
     "saveButton": "Save changes",
+    "tagHelper": "Press return or add a comma after each one",
+    "removeTag": "Remove {{tag}}",
+    "addFirstContact": "Add emergency contact",
+    "vitals": {
+      "age": "Age",
+      "blood": "Blood",
+      "bmi": "BMI",
+      "ageHelper_one": "{{count}} year old",
+      "ageHelper_other": "{{count}} years old",
+      "bmiLine": "BMI {{value}} · {{band}}",
+      "bmiBand": {
+        "under": "Underweight",
+        "healthy": "Healthy range",
+        "over": "Overweight",
+        "obese": "Obese range"
+      }
+    },
+    "relationship": {
+      "parent": "Parent",
+      "spouse": "Spouse",
+      "sibling": "Sibling",
+      "child": "Child",
+      "friend": "Friend"
+    },
     "accessibilityLabel": {
       "goBack": "Go back",
       "saveProfile": "Save profile",
@@ -550,6 +628,7 @@
       "placeholder": "Hypertension, Asthma"
     },
     "contact": {
+      "newContact": "Contact {{n}}",
       "namePlaceholder": "Name",
       "relationshipPlaceholder": "Relationship (e.g. Spouse)",
       "phonePlaceholder": "Phone"
@@ -575,6 +654,32 @@
     "title": "Activity log",
     "subtitle": "Who accessed your records",
     "helperText": "Your right-of-access log. We record every action that touches your records. Tap any entry for details.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "actorSystem": "System",
+    "byActor": "by {{name}}",
+    "shareCta": "Share records with a doctor",
+    "filter": {
+      "all": "All",
+      "records": "Records",
+      "prescriptions": "Prescriptions",
+      "appointments": "Appointments",
+      "security": "Security"
+    },
+    "hero": {
+      "kicker": "Right of access",
+      "title": "Your record, fully traceable",
+      "body": "Every time your record is opened, changed or shared, it's logged here with who did it and when.",
+      "last30": "Events · 30d",
+      "latest": "Latest",
+      "alerts": "Alerts"
+    },
+    "logged": {
+      "title": "What gets logged",
+      "views": "When a doctor or hospital opens your record",
+      "changes": "Records, prescriptions and appointments added or changed",
+      "sharing": "Share links, Health ID scans and data exports"
+    },
     "empty": {
       "title": "No activity yet",
       "message": "Your access log will appear here once you start using the app."
@@ -739,6 +844,65 @@
       "heading": "SUMMARY"
     }
   },
+  "careNetwork": {
+    "title": "Hospitals & Clinics",
+    "subtitle": "Your connected care network",
+    "showQrA11y": "Show Health ID QR",
+    "showQr": "Show QR",
+    "viewHealthId": "View my Health ID",
+    "searchPlaceholder": "Search hospitals and clinics",
+    "clearSearch": "Clear search",
+    "noMatchBody": "Nothing matches “{{query}}”. Try a different name.",
+    "activeNow": "Currently selected",
+    "hospitalCount_one": "{{count}} hospital",
+    "hospitalCount_other": "{{count}} hospitals",
+    "clinicCount_one": "{{count}} clinic",
+    "clinicCount_other": "{{count}} clinics",
+    "tabs": {
+      "all": "All",
+      "hospitals": "Hospitals",
+      "clinics": "Clinics"
+    },
+    "hero": {
+      "kicker": "Connected care",
+      "linked_one": "{{count}} linked facility",
+      "linked_other": "{{count}} linked facilities",
+      "none": "No facilities linked",
+      "syncing": "Syncing",
+      "notLinked": "Not linked",
+      "body": "Records, lab results and prescriptions sync to your timeline automatically.",
+      "cta": "Link a new facility"
+    },
+    "hospitals": {
+      "kicker": "Registered at",
+      "title": "Hospitals",
+      "emptyTitle": "No hospitals linked yet",
+      "emptyHint": "Show your Health ID at admission to link",
+      "emptyBody": "Register at any partner hospital or present your Health ID at admission to sync your records.",
+      "noMatch": "No matching hospitals",
+      "type": "Hospital · Inpatient care"
+    },
+    "clinics": {
+      "kicker": "Outpatient",
+      "title": "Clinics",
+      "emptyTitle": "No clinics linked yet",
+      "emptyHint": "Share your Health ID at your next visit",
+      "emptyBody": "Visit a clinic or private practice and share your Health ID to link consultation notes and prescriptions.",
+      "noMatch": "No matching clinics",
+      "type": "Clinic · Outpatient care"
+    },
+    "guide": {
+      "kicker": "Guide",
+      "title": "How linking works",
+      "step": "Step {{n}}",
+      "s1Title": "Show your Health ID",
+      "s1Body": "Open your QR pass at the registration or admission desk.",
+      "s2Title": "Desk scans and validates",
+      "s2Body": "Staff scan the code to securely link your medical chart.",
+      "s3Title": "Records sync automatically",
+      "s3Body": "Prescriptions, lab results and doctor notes appear in your records."
+    }
+  },
   "allergies": {
     "title": "Allergies",
     "subtitleEmpty": "Track drugs, food, and environmental triggers",
@@ -754,6 +918,12 @@
       "moderate": "Moderate",
       "severe": "Severe",
       "critical": "Critical"
+    },
+    "severityHelp": {
+      "mild": "Minor discomfort, no treatment needed",
+      "moderate": "Noticeable reaction, may need medicine",
+      "severe": "Needs urgent medical care",
+      "critical": "Life-threatening — e.g. anaphylaxis"
     },
     "status": {
       "inactive": "Inactive"
@@ -786,7 +956,13 @@
       "food": "Food",
       "environmental": "Latex & environment",
       "customTitle": "Something else?",
-      "customBody": "Add any substance with its severity and reaction"
+      "customBody": "Add any substance with its severity and reaction",
+      "allAdded": "All common ones here are on your list",
+      "tab": {
+        "medications": "Medicines",
+        "food": "Food",
+        "environmental": "Environment"
+      }
     },
     "addButton": "Add allergy",
     "deleteConfirm": {
@@ -795,7 +971,9 @@
     },
     "sheet": {
       "editTitle": "Edit allergy",
-      "newTitle": "New allergy"
+      "newTitle": "New allergy",
+      "save": "Save changes",
+      "add": "Add to profile"
     },
     "field": {
       "substanceLabel": "Substance",
@@ -821,6 +999,24 @@
   "notes": {
     "title": "Notes",
     "subtitle": "Personal journal",
+    "entryCount_one": "{{count}} journal entry",
+    "entryCount_other": "{{count}} journal entries",
+    "hero": {
+      "kicker": "Health journal",
+      "title": "Your health, in your words",
+      "lastEntry": "Last entry {{when}}",
+      "body": "Record symptoms, prepare doctor questions, track wellness.",
+      "cta": "Write a new note"
+    },
+    "relative": {
+      "today": "today",
+      "yesterday": "yesterday"
+    },
+    "tags": {
+      "question": "Question",
+      "symptom": "Symptom",
+      "journal": "Journal"
+    },
     "composing": {
       "editTitle": "Edit note",
       "newTitle": "New note",
@@ -835,7 +1031,24 @@
       "titleOptional": "Optional",
       "titlePlaceholder": "e.g., Follow-up questions",
       "bodyLabel": "Note",
-      "bodyPlaceholder": "Write your note..."
+      "bodyPlaceholder": "Write your note...",
+      "discardTitle": "Discard changes?",
+      "discardBody": "Your edits to this note will be lost.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard",
+      "unsaved": "Unsaved changes",
+      "editing": "Editing",
+      "titlePlaceholderShort": "Title (optional)",
+      "bodyPlaceholderLong": "How are you feeling? Symptoms, questions for your doctor, anything worth remembering…",
+      "words_one": "{{count}} word",
+      "words_other": "{{count}} words",
+      "pinHelp": "Pinned notes stay at the top of your journal",
+      "tools": {
+        "bullet": "Bullet",
+        "time": "Time",
+        "severity": "Severity",
+        "question": "Question"
+      }
     },
     "list": {
       "untitled": "Untitled",
@@ -843,7 +1056,9 @@
       "pinLabel": "Pin",
       "unpinLabel": "Unpin",
       "editLabel": "Edit",
-      "deleteLabel": "Delete"
+      "deleteLabel": "Delete",
+      "kicker": "Your entries",
+      "recent": "Recent"
     },
     "searchPlaceholder": "Search notes, questions, symptoms…",
     "filters": {
@@ -857,7 +1072,10 @@
       "questions": "Doctor Questions",
       "symptoms": "Symptom Tracker",
       "medications": "Medication Note",
-      "daily": "Daily Check-in"
+      "daily": "Daily Check-in",
+      "kicker": "Start faster",
+      "prompts_one": "{{count}} prompt",
+      "prompts_other": "{{count}} prompts"
     },
     "empty": {
       "title": "No notes yet",
@@ -947,10 +1165,20 @@
   },
   "emergency": {
     "sos": {
+      "hold": "Hold",
+      "keepHolding": "Keep holding",
+      "subHint": "Hold 1.5s \u00b7 sends your live location",
       "accessibilityLabel": "SOS. Press and hold.",
       "hint": "Press and hold for 1.5 seconds"
     },
+    "hotline": {
+      "ambulance": "Ambulance",
+      "police": "Police",
+      "ambulanceCall": "Call ambulance, {{number}}",
+      "policeCall": "Call police, {{number}}"
+    },
     "header": {
+      "kicker": "Emergency",
       "brand": "HEALTHHUB",
       "accessibilityOpenProfile": "Open profile",
       "accessibilityNotifications": "Notifications"
@@ -1046,6 +1274,7 @@
     },
     "hero": {
       "kicker": "Immunization card",
+      "coverage": "Recommended coverage",
       "upToDate": "You're up to date",
       "upToDateBody": "Nothing due in the next 30 days",
       "onRecord": "On record",
@@ -1071,7 +1300,15 @@
     "doseN": "Dose {{n}}",
     "logged": "Logged",
     "logNamed": "Log {{name}}",
-    "scanCard": "Scan card"
+    "scanCard": "Scan card",
+    "saveRecord": "Save vaccination",
+    "doseDecrease": "Decrease dose",
+    "doseIncrease": "Increase dose",
+    "quickDate": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "lastMonth": "A month ago"
+    }
   },
   "vaccinationCard": {
     "title": "Scan Vaccination Card",
@@ -1097,6 +1334,27 @@
     "rescan": "Rescan",
     "noValidEntries": "Please add at least one valid vaccination",
     "disclaimer": "AI-extracted data may contain errors. Please verify before saving.",
+    "retake": "Retake photo",
+    "galleryShort": "From gallery",
+    "privacy": "Your photo is encrypted and only used to read your vaccines.",
+    "entryN": "Vaccination {{n}}",
+    "removeEntry": "Remove this vaccination",
+    "addPhotoHint": "Add a photo of your card to continue",
+    "photoReady": "Photo ready",
+    "frameTitle": "Tap to photograph your card",
+    "frameBody": "Lay it flat and line it up inside the corners",
+    "matchedSummary": "{{matched}} of {{total}} matched to known vaccines",
+    "steps": {
+      "capture": "Capture",
+      "review": "Review",
+      "save": "Save"
+    },
+    "tips": {
+      "title": "For the best scan",
+      "light": "Use bright, even light — avoid glare and shadows",
+      "frame": "Fit the whole card inside the frame",
+      "legible": "Make sure handwriting and dates are readable"
+    },
     "field": {
       "name": "Vaccine name",
       "namePlaceholder": "e.g. Influenza",
@@ -1115,6 +1373,13 @@
     "subtitle": "Track trends over time",
     "subtitleWithCount": "{{count}} tracked · {{alerts}} alert",
     "subtitleWithCount_other": "{{count}} tracked · {{alerts}} alerts",
+    "subtitleTracked_one": "{{tracked}} tracked · {{count}} alert",
+    "subtitleTracked_other": "{{tracked}} tracked · {{count}} alerts",
+    "quickLog": {
+      "kicker": "Quick log",
+      "title": "Add a reading",
+      "a11y": "Log {{label}}"
+    },
     "hero": {
       "kicker": "Health status",
       "emptyTitle": "Start tracking your vitals",
@@ -1183,6 +1448,8 @@
     },
     "chart": {
       "trendHeading": "Trend",
+      "bothReadings": "Systolic + Diastolic",
+      "systolicOnly": "Systolic only",
       "kicker": "History",
       "points_one": "{{count}} point",
       "points_other": "{{count}} points",
@@ -1308,6 +1575,16 @@
     "composeTitle": "Add family member",
     "heroTitle": "Care together",
     "heroBody": "Add family to share health info and unlock emergency access.",
+    "how": {
+      "addShort": "Add",
+      "inviteShort": "Invite",
+      "careShort": "Care",
+      "step": "Step {{n}}"
+    },
+    "quickStart": {
+      "title": "Who are you adding?",
+      "other": "Someone else"
+    },
     "empty": {
       "title": "No family members",
       "message": "Invite a family member to share health info and emergency access"
@@ -1338,6 +1615,20 @@
       "toastError": "Couldn't update the lock"
     },
     "compose": {
+      "previewName": "New family member",
+      "immediateCaption": "Immediate family",
+      "extendedCaption": "Extended family",
+      "fullNamePlaceholder": "e.g., Sarah Perera",
+      "ageHelper": "Age {{age}}",
+      "dobPick": "Select date of birth",
+      "passedAway": "Has passed away",
+      "passedAwayHelper": "Still counts toward hereditary risk",
+      "causeOfDeathHelper": "Optional — helps assess hereditary risk",
+      "causeOfDeathExample": "e.g., Heart condition",
+      "optional": "Optional",
+      "removeCondition": "Remove {{name}}",
+      "moreConditions": "+{{count}} more",
+      "addNamed": "Add {{name}}",
       "nameLabel": "Name",
       "namePlaceholder": "e.g., Mother",
       "nameRequired": "Name is required",
@@ -1407,6 +1698,7 @@
       "Other": "Other"
     },
     "invite": {
+      "prompt": "Adult with their own phone?",
       "buttonTitle": "Invite by link",
       "sheetTitle": "Invite a family member",
       "intro": "Generate a link to invite {{name}} as your {{relationship}}.",
@@ -1447,6 +1739,9 @@
     }
   },
   "careTeam": {
+    "resultCount_one": "{{count}} patient",
+    "resultCount_other": "{{count}} patients",
+    "call": "Call",
     "title": "Care team",
     "subtitle": "Doctors who can see your records.",
     "add": "Add doctor",
@@ -2061,6 +2356,75 @@
       "invoice": "Invoice"
     }
   },
+  "shareSheet": {
+    "title": "Share records",
+    "intro": "Choose how you want to share. Each option has its own audience and expiry.",
+    "introPack_one": "How would you like to share the {{count}} selected record?",
+    "introPack_other": "How would you like to share the {{count}} selected records?",
+    "recommended": "Recommended",
+    "footer": "Every share is logged. You can revoke access anytime from the Sharing tab.",
+    "back": "All options",
+    "expiresIn": "Expires in",
+    "expiresOn": "Access ends {{date}}",
+    "label": "Label",
+    "labelHelper": "Optional — helps you recognise it later",
+    "failed": "Something went wrong. Please try again.",
+    "done": "Done",
+    "duration": {
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years"
+    },
+    "visit": {
+      "title": "Share for a visit",
+      "packTitle": "Share pack for a visit",
+      "subtitle": "A secure link for one appointment.",
+      "meta": "1 hour – 30 days",
+      "meta2": "Link",
+      "intro": "Send a secure link to your doctor. It stops working automatically when it expires.",
+      "packIntro_one": "Bundling {{count}} record into one secure link.",
+      "packIntro_other": "Bundling {{count}} records into one secure link.",
+      "placeholder": "e.g. Dr Smith follow-up",
+      "packPlaceholder": "e.g. Pre-cardiology visit",
+      "create": "Create link",
+      "createPack": "Create share pack",
+      "linkCreated": "Share link created",
+      "packCreated": "Share pack created"
+    },
+    "ongoing": {
+      "title": "Ongoing access",
+      "subtitle": "Long-term access for family, insurance or referrals.",
+      "meta": "Purpose-bound",
+      "meta2": "Revocable",
+      "intro": "The recipient gets access only for the purpose you pick, until it expires.",
+      "purpose": "Purpose",
+      "duration": "Duration",
+      "placeholder": "e.g. Insurance review",
+      "issue": "Grant access",
+      "issued": "Access granted"
+    },
+    "inPerson": {
+      "title": "Show in person",
+      "subtitle": "Show a QR code at the clinic for them to scan.",
+      "meta": "2 hours",
+      "meta2": "5 scans",
+      "intro": "Useful at reception when you can't send a link.",
+      "step1": "Generate a one-time QR code",
+      "step2": "Staff scan it to open your records",
+      "step3": "It expires after 2 hours or 5 scans",
+      "generate": "Generate QR code",
+      "ready": "Ask staff to scan this code",
+      "scans_one": "{{count}} scan",
+      "scans_other": "{{count}} scans",
+      "until": "Valid until {{time}}",
+      "regenerate": "New code"
+    }
+  },
   "addRecord": {
     "title": "Add record",
     "attachOptional": "Attach file (optional)",
@@ -2082,6 +2446,20 @@
     },
     "optionalHelper": "Optional",
     "save": "Save record",
+    "sections": {
+      "attachment": "Attachment",
+      "type": "Record type",
+      "details": "Details"
+    },
+    "takePhoto": "Take photo",
+    "takePhotoHelper": "Scan a report or prescription",
+    "chooseFileHelper": "PDF or image from your files",
+    "fileReady": "Ready to upload",
+    "removeFile": "Remove file",
+    "summary": {
+      "untitled": "Untitled record",
+      "withFile": "1 file attached"
+    },
     "ocrSheet": {
       "title": "Extracted from prescription",
       "readMedicines_one": "We read {{count}} medicine from your prescription.",
@@ -2617,6 +2995,16 @@
     "aiOcrLabel": "Prescription OCR"
   },
   "aiChat": {
+    "assistantName": "Health assistant",
+    "copy": "Copy",
+    "copied": "Copied",
+    "notAdvice": "Not a diagnosis — check with your doctor",
+    "groundedNote": "Answers are grounded in your connected health records",
+    "status": {
+      "reading": "Reading your records…",
+      "checking": "Checking results and trends…",
+      "writing": "Writing your answer…"
+    },
     "title": "Health Q&A",
     "subtitle": "AI chat with patient context",
     "listTitle": "Health chat",
@@ -2663,6 +3051,21 @@
     "whenDays_other": "{{count}}d ago"
   },
   "aiSummary": {
+    "v2": {
+      "working": "Reading your health record…",
+      "workingBody": "This usually takes a few seconds",
+      "generatedAt": "Generated at {{time}}",
+      "idleTitle": "Your health, in one page",
+      "sourcesTitle": "What we'll read",
+      "srcRecords": "Records",
+      "srcMedicines": "Medicines",
+      "srcLabs": "Lab results",
+      "srcVitals": "Vitals",
+      "getTitle": "You'll get",
+      "get1": "A short overview in everyday language",
+      "get2": "Your diagnoses, medicines and recent tests",
+      "get3": "Risks worth raising with your doctor"
+    },
     "title": "AI summary",
     "subtitle": "Plain-language overview of your record",
     "aiPill": "AI",
@@ -2687,6 +3090,20 @@
     "generateError": "Could not generate summary"
   },
   "aiClinicalNote": {
+    "v2": {
+      "intro": "Paste a free-text note and we'll structure it into a one-line summary, SOAP sections and key terms.",
+      "inputPlaceholder": "Type or paste the doctor's note here…",
+      "paste": "Paste",
+      "example": "Example",
+      "clipboardEmpty": "Clipboard is empty",
+      "chars_one": "{{count}} character",
+      "chars_other": "{{count}} characters",
+      "working": "Structuring your note…",
+      "copy": "Copy",
+      "copied": "SOAP note copied",
+      "notMentioned": "Not mentioned in the note",
+      "addNoteFirst": "Add a note to generate"
+    },
     "title": "Clinical note AI",
     "subtitle": "Turn your notes into SOAP",
     "aiPill": "AI",
@@ -2713,6 +3130,21 @@
     "generateError": "Could not generate summary"
   },
   "aiLabExplain": {
+    "reading": "Reading {{name}}…",
+    "empty": {
+      "title": "Understand your lab results",
+      "body": "Add a lab report and we'll explain each value in plain language — what's normal, what to watch, and what to ask your doctor.",
+      "exampleLabel": "Example",
+      "exampleValue": "Haemoglobin · 11.2 g/dL",
+      "exampleFlag": "Slightly below range",
+      "exampleText": "This carries oxygen in your blood. A little low can cause tiredness — worth asking about iron levels.",
+      "howTitle": "How it works",
+      "step1": "Upload a PDF or photo of your report",
+      "step2": "We read each test value and its range",
+      "step3": "Get a plain-language explanation",
+      "upload": "Upload a lab report",
+      "browse": "Browse my records"
+    },
     "title": "Lab explainer",
     "subtitle": "Plain-language explanation of your lab report",
     "aiPill": "AI",
@@ -2729,6 +3161,27 @@
     "explainError": "Could not explain report"
   },
   "aiLabTrend": {
+    "v2": {
+      "pickTitle": "Which test?",
+      "otherPlaceholder": "Or type another test, e.g. Vitamin D",
+      "monthsShort_one": "{{count}} mo",
+      "monthsShort_other": "{{count}} mo",
+      "yearsShort_one": "{{count}} yr",
+      "yearsShort_other": "{{count}} yrs",
+      "onTrack": "On track",
+      "nextLabel": "Suggested next",
+      "pickFirst": "Pick a test to check",
+      "rerun": "Re-run check",
+      "runFor": "Check {{name}}",
+      "testHint": {
+        "hba1c": "Diabetes",
+        "lipid": "Cholesterol",
+        "cbc": "Blood count",
+        "tsh": "Thyroid",
+        "creatinine": "Kidneys",
+        "lft": "Liver"
+      }
+    },
     "title": "Lab cadence",
     "subtitle": "Track testing frequency for a specific test",
     "aiPill": "AI",
@@ -2805,6 +3258,28 @@
     "requested": "Requested · Doctor notified"
   },
   "aiDrugCheck": {
+    "v2": {
+      "listTitle": "Medicines to check",
+      "addPlaceholder": "Type a medicine name…",
+      "emptyList": "Add at least 2 medicines to check how they interact",
+      "remove": "Remove {{name}}",
+      "loadActiveTitle": "Add my active medicines",
+      "loadActiveCount_one": "{{count}} on your list",
+      "loadActiveCount_other": "{{count}} on your list",
+      "foundN_one": "{{count}} interaction found",
+      "foundN_other": "{{count}} interactions found",
+      "severeN_one": "{{count}} severe — talk to your doctor before taking these together",
+      "severeN_other": "{{count}} severe — talk to your doctor before taking these together",
+      "reviewBody": "Review the notes below with your pharmacist",
+      "addMore_one": "Add {{count}} more to check",
+      "addMore_other": "Add {{count}} more to check",
+      "disclaimer": "Not a substitute for advice from your doctor or pharmacist.",
+      "severity": {
+        "severe": "Severe",
+        "moderate": "Moderate",
+        "minor": "Minor"
+      }
+    },
     "title": "Drug interaction check",
     "subtitle": "Check medicines for conflicts",
     "aiPill": "AI",
@@ -2832,6 +3307,35 @@
     "checkError": "Check failed"
   },
   "aiOcr": {
+    "v2": {
+      "captureTitle": "Scan a prescription",
+      "captureBody": "Tap to open the camera. We'll pick out each medicine and its dose.",
+      "fromGallery": "Choose from gallery",
+      "tipLight": "Good light",
+      "tipFlat": "Lay it flat",
+      "tipFrame": "Fill the frame",
+      "retake": "Retake",
+      "statusUploading": "Uploading photo…",
+      "statusReading": "Reading medicines…",
+      "hintTitle": "Help us read it (optional)",
+      "hintPlaceholder": "Anything else? e.g. doctor's name",
+      "preset": {
+        "handwritten": "Handwritten",
+        "blurry": "Blurry photo",
+        "brandNames": "Brand names"
+      },
+      "foundN_one": "Found {{count}} medicine",
+      "foundN_other": "Found {{count}} medicines",
+      "noDose": "Dose not detected",
+      "doctor": "Doctor",
+      "date": "Date",
+      "diagnosis": "Diagnosis",
+      "addAll_one": "Add {{count}} to my medicines",
+      "addAll_other": "Add all {{count}} to my medicines",
+      "addedN_one": "Added {{count}} medicine",
+      "addedN_other": "Added {{count}} medicines",
+      "addError": "Could not add medicines"
+    },
     "title": "Prescription OCR",
     "subtitle": "Scan or pick a photo — extract medicines",
     "aiPill": "AI",
@@ -2895,6 +3399,12 @@
     "heroChipPatients": "{{count}} patients",
     "heroChipAlerts": "{{count}} alerts",
     "heroChipNoAlerts": "All clear",
+    "heroApptLabel_one": "appointment today",
+    "heroApptLabel_other": "appointments today",
+    "heroWaiting_one": "{{count}} patient waiting",
+    "heroWaiting_other": "{{count}} patients waiting",
+    "heroQueueClear": "No one waiting right now",
+    "openQueue": "Open queue",
     "sectionQuickActions": "Quick actions",
     "kicker": {
       "today": "Live",
@@ -2955,7 +3465,9 @@
       "inboxSubtitleEmpty": "No new messages",
       "labSubtitleCount_one": "{{count}} active order",
       "labSubtitleCount_other": "{{count}} active orders",
-      "labSubtitleEmpty": "Review tests"
+      "labSubtitleEmpty": "Review tests",
+      "prescribeShort": "Prescribe",
+      "labShort": "Labs"
     }
   },
   "doctorProfile": {
@@ -3159,7 +3671,12 @@
   "doctorFollowUps": {
     "title": "Follow-ups",
     "subtitle": "Pending, completed and cancelled",
+    "subtitlePending_one": "{{count}} pending",
+    "subtitlePending_other": "{{count}} pending",
+    "subtitleOverdue_one": "{{count}} overdue",
+    "subtitleOverdue_other": "{{count}} overdue",
     "tabs": {
+      "pending": "Pending",
       "upcoming": "Upcoming",
       "completed": "Completed",
       "all": "All"
@@ -3173,7 +3690,10 @@
       "upcomingTitle": "No follow-ups",
       "upcomingBody": "Nothing pending on the schedule.",
       "completedBody": "Mark a follow-up complete to see it here.",
-      "allBody": "Schedule a follow-up from any patient detail screen."
+      "allBody": "Schedule a follow-up from any patient detail screen.",
+      "completedTitle": "Nothing completed yet",
+      "allTitle": "No follow-ups yet",
+      "cta": "Open my patients"
     },
     "markedComplete": "Follow-up marked complete",
     "cancelledToast": "Follow-up cancelled",
@@ -3191,7 +3711,36 @@
     "completeA11y": "Mark {{title}} as complete",
     "cancelA11y": "Cancel {{title}}",
     "reopenA11y": "Reopen {{title}}",
-    "openPatientA11y": "Open patient"
+    "openPatientA11y": "Open patient",
+    "metrics": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "week": "This week",
+      "done": "Done"
+    },
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Due today",
+      "week": "This week",
+      "later": "Later"
+    },
+    "relative": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "inDays_one": "In {{count}} day",
+      "inDays_other": "In {{count}} days",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago",
+      "overdue_one": "{{count}} day overdue",
+      "overdue_other": "{{count}} days overdue"
+    },
+    "hint": {
+      "title": "How to schedule a follow-up",
+      "step1": "Open a patient from your care team",
+      "step2": "Tap “Follow-up” on their profile",
+      "step3": "Pick a date — it shows up here"
+    }
   },
   "doctorClinicalNotes": {
     "title": "Clinical notes",
@@ -3210,6 +3759,15 @@
     "itemA11y": "Note for {{name}}: {{title}}"
   },
   "clinicalNote": {
+    "forPatient": "Note for",
+    "modeSoap": "SOAP",
+    "modeFree": "Free text",
+    "soapHint": "Fill any sections that apply — empty ones are left out.",
+    "freeHint": "Write the note in your own format.",
+    "discardTitle": "Discard this note?",
+    "discardBody": "What you've written will be lost.",
+    "titlePresets": { "initial": "Initial assessment", "followUp": "Follow-up visit", "review": "Results review", "procedure": "Procedure note" },
+    "soap": { "subjective": "Subjective", "subjectiveHint": "Complaint, history, symptoms in the patient's words", "objective": "Objective", "objectiveHint": "Exam findings, vitals, test results", "plan": "Plan", "planHint": "Treatment, advice, referrals, follow-up" },
     "title": "Clinical note",
     "subtitle": "Document the visit",
     "titleLabel": "Title",
@@ -3296,6 +3854,15 @@
     "attachmentCount_other": "{{count}} attachments"
   },
   "doctorAvailability": {
+    "unsaved": "Unsaved changes",
+    "statDays": "Open days",
+    "statHours": "Per week",
+    "statSlot": "Slot length",
+    "copyToAll": "Copy to all open days",
+    "copiedToast": "Hours copied to all open days",
+    "errFormat": "Use 24-hour time, e.g. 09:30",
+    "errOrder": "End time must be after start time",
+    "fixErrors": "Fix the highlighted shifts before saving.",
     "kicker": "Hours",
     "closed": "Closed",
     "timeOffKicker": "Away",
@@ -3346,6 +3913,10 @@
     },
     "title": "Lab orders",
     "subtitle": "Track progress and results",
+    "subtitleOpen_one": "{{count}} open",
+    "subtitleOpen_other": "{{count}} open",
+    "subtitleUrgent_one": "{{count}} urgent",
+    "subtitleUrgent_other": "{{count}} urgent",
     "tabs": {
       "all": "All",
       "ordered": "Ordered",
@@ -3360,9 +3931,54 @@
     "marked": "Marked {{status}}",
     "updateError": "Update failed",
     "result": "Result: {{value}}",
-    "fallbackName": "Lab order"
+    "fallbackName": "Lab order",
+    "metrics": {
+      "toCollect": "To collect",
+      "processing": "Processing",
+      "urgent": "Urgent",
+      "done": "Done"
+    },
+    "next": {
+      "ordered": "Mark sample collected",
+      "sample_collected": "Start processing",
+      "in_progress": "Mark complete"
+    },
+    "priority": {
+      "stat": "STAT",
+      "urgent": "URGENT"
+    },
+    "emptyFilteredTitle": "Nothing at this stage",
+    "emptyFilteredBody": "No orders are in “{{stage}}” right now.",
+    "showAll": "Show all orders",
+    "cta": "Open my patients",
+    "hint": {
+      "title": "How to order a lab test",
+      "step1": "Open a patient from your care team",
+      "step2": "Tap “Order labs” on their profile",
+      "step3": "Track the sample through to results here"
+    }
   },
   "visitSummary": {
+    "stepsHint": "Fill what applies — everything saves in one go.",
+    "statusNoDiagnosis": "No diagnosis yet",
+    "statusSoap_one": "{{count}} of 4 sections",
+    "statusSoap_other": "{{count}} of 4 sections",
+    "statusEmpty": "Not started",
+    "statusNone": "None added",
+    "statusOff": "Not scheduled",
+    "commonTests": "Common tests — tap to add",
+    "inWeeks_one": "{{count}} week",
+    "inWeeks_other": "{{count}} weeks",
+    "inMonths_one": "{{count}} month",
+    "inMonths_other": "{{count}} months",
+    "reviewHeading": "Will be saved",
+    "reviewNote": "Visit note",
+    "reviewRx_one": "{{count}} medicine",
+    "reviewRx_other": "{{count}} medicines",
+    "reviewLabs_one": "{{count}} lab test",
+    "reviewLabs_other": "{{count}} lab tests",
+    "reviewFollowUp": "Follow-up on {{date}}",
+    "reviewEmpty": "Add a diagnosis, notes, medicines or tests to save this visit.",
     "title": "Complete visit",
     "subtitleFor": "For {{name}}",
     "subtitleFallback": "Patient visit",
@@ -3438,6 +4054,12 @@
     "emptyInitialTitle": "Start typing to find a patient",
     "emptyInitialBody": "Search by name, NIC, or phone number",
     "changePill": "Change",
+    "prescribingFor": "Prescribing for",
+    "quickStart": "Start from a template",
+    "reviewSummary_one": "{{count}} medicine ready",
+    "reviewSummary_other": "{{count}} medicines ready",
+    "reviewNoDiagnosis": "Add a diagnosis to continue",
+    "ongoingShort": "Ongoing",
     "patientFallback": "Patient",
     "assessment": "Assessment",
     "diagnosis": "Diagnosis",
@@ -3575,6 +4197,22 @@
     "saveAction": "Save reading"
   },
   "doctorPatientDetail": {
+    "bornOn": "Born {{date}}",
+    "factAge": "Age",
+    "ageYears_one": "{{count}} yr",
+    "ageYears_other": "{{count}} yrs",
+    "visitHint": "Notes, prescription and follow-up in one flow",
+    "noneRecorded": "Nothing recorded yet",
+    "accessFull": "Full access",
+    "accessRecent": "Recent only",
+    "accessExpiring": "Expiring soon",
+    "recordsSearch": "Search patient or purpose",
+    "showAll": "Show all",
+    "noMatch": "No patients match this view",
+    "expired": "Expired",
+    "expiresInDays_one": "{{count}} day left",
+    "expiresInDays_other": "{{count}} days left",
+    "until": "Until {{date}}",
     "kicker": "Patient chart",
     "factBlood": "Blood",
     "factSex": "Sex",
@@ -4078,6 +4716,36 @@
     "alreadyRated": "You rated this visit on {{date}}."
   },
   "verify": {
+    "subtitle": "Prescription authenticity check",
+    "validHeadline": "Authentic prescription",
+    "fingerprint": "Fingerprint",
+    "copyHash": "Copy fingerprint",
+    "shareHelp": "A pharmacist can scan this to confirm the prescription themselves.",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "shareShort": "Share",
+    "check": {
+      "signature": "Digital signature is valid",
+      "unchanged": "Contents unchanged since signing",
+      "registered": "Signed by an SLMC-registered doctor"
+    },
+    "dir": {
+      "once_daily": "Once daily",
+      "twice_daily": "Twice daily",
+      "three_times_daily": "Three times daily",
+      "four_times_daily": "Four times daily",
+      "every_morning": "Every morning",
+      "every_night": "Every night",
+      "as_needed": "As needed",
+      "every_other_day": "Every other day",
+      "weekly": "Once weekly",
+      "before_food": "Before meals",
+      "after_food": "After meals",
+      "with_food": "With meals",
+      "empty_stomach": "On an empty stomach",
+      "bedtime": "At bedtime",
+      "morning": "In the morning"
+    },
     "title": "Verify prescription",
     "validTitle": "Verified",
     "validBody": "This prescription matches a digital signature on file.",
@@ -4134,6 +4802,28 @@
     "wrongRole": "This invite is for hospital staff, but you're signed in as {{role}}.",
     "signOutSwitch": "Sign in as a different user",
     "dismiss": "Dismiss"
+  },
+  "patientInbox": {
+    "kicker": "Care team",
+    "unreadKicker": "{{count}} unread",
+    "subtitle": "Direct messages from your doctors",
+    "careTeam": "View your care team",
+    "searchPlaceholder": "Search doctors or messages",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "yourDoctor": "Your Doctor",
+    "you": "You",
+    "allCaughtUp": "You're all caught up",
+    "noResults": "No matching conversations",
+    "privateTitle": "Private & encrypted",
+    "privateBody": "Only you and your care team can read these messages.",
+    "needHelp": "Need something else?",
+    "bookTitle": "Book an Appointment",
+    "bookBody": "In-person or video consultation",
+    "aiTitle": "Ask AI Health Assistant",
+    "aiBody": "Instant 24/7 health guidance",
+    "instant": "Instant",
+    "emptyBody": "When your doctor or care team sends a consultation message or follow-up, it will appear here."
   },
   "inbox": {
     "pathwaysKicker": "Shortcuts",
@@ -4260,6 +4950,10 @@
     },
     "totalThisPeriod": "Total this period",
     "vsPrevious": "vs previous period",
+    "noChange": "No change",
+    "feeShort": "Your fee",
+    "pendingSub": "Awaiting settlement",
+    "nothingPending": "You're all settled up",
     "visits": "Visits",
     "avgPerVisit": "Avg / visit",
     "chart": "Revenue trend",
@@ -4301,6 +4995,21 @@
     "medsShort_one": "{{count}} med",
     "medsShort_other": "{{count}} meds",
     "viewEdit": "View & Edit",
+    "sectionDetails": "Details",
+    "fieldDose": "Dose",
+    "fieldFrequency": "Frequency",
+    "fieldDuration": "Duration",
+    "fieldInstructions": "Instructions",
+    "notesLabel": "Advice for the patient",
+    "unsaved": "Unsaved changes",
+    "discardTitle": "Discard changes?",
+    "discardBody": "Your edits to this template haven't been saved.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "moreMeds": "+{{count}} more",
+    "longPressHint": "Long-press to delete",
+    "listHint_one": "{{count}} template · long-press to delete",
+    "listHint_other": "{{count}} templates · long-press to delete",
     "searchPlaceholder": "Search templates, drugs, or diagnosis...",
     "categoryAll": "All",
     "noMatchingTitle": "No matching templates",
@@ -4526,6 +5235,10 @@
     "emptyTitle": "No caretakers yet",
     "emptyBody": "Invite a family member to help manage your records, medicines, and appointments.",
     "inviteSheetTitle": "Invite a caretaker",
+    "inviteIntro": "They can help manage your records, medicines and appointments. Pause or revoke anytime.",
+    "namePlaceholder": "e.g., Nimal Perera",
+    "mobilePlaceholder": "+94 77 123 4567",
+    "emailPlaceholder": "name@example.com",
     "nameField": "Their name",
     "nameHelper": "So they recognise the invite.",
     "roleLabel": "How are they related?",
@@ -4751,6 +5464,19 @@
     "flipCamera": "Flip camera"
   },
   "testCatalog": {
+    "v2": {
+      "home": "Home visit",
+      "labs_one": "{{count}} lab",
+      "labs_other": "{{count}} labs",
+      "from": "from {{price}}",
+      "packagesKicker": "Health packages",
+      "packagesTitle": "Bundle tests & save",
+      "packagesBody": "Curated panels for full check-ups",
+      "count_one": "{{count}} test",
+      "count_other": "{{count}} tests",
+      "loadError": "Failed to load tests",
+      "loadErrorBody": "Please check your connection and try again."
+    },
     "title": "Book a Test",
     "subtitle": "Home sample collection",
     "searchPlaceholder": "Search tests...",
@@ -4949,6 +5675,8 @@
     "marketplaceTitle": "Find your perfect plan",
     "marketplaceSubtitle": "{{providers}} providers · {{plans}} plans",
     "getQuoteCta": "Get a personalised quote in 60s",
+    "quoteBanner": { "title": "Get a personalised quote", "body": "A few quick questions · takes about 60 seconds" },
+    "card": { "cover": "Cover", "hospitals": "Hospitals", "copay": "Co-pay", "save": "Save {{pct}}%", "off": "{{pct}}% off", "expertPick": "Expert pick", "view": "View", "orYearly": "or LKR {{amount}}/yr", "hospitalsCount": "{{count}}+ hospitals" },
     "browseByType": "Browse by plan type",
     "showingPlans_one": "{{count}} plan",
     "showingPlans_other": "{{count}} plans",
@@ -5233,6 +5961,26 @@
       "notActive": "E-card only available when policy is active"
     },
     "claim": {
+      "newSubtitle": "Get reimbursed for treatment you've paid for.",
+      "pickDate": "Select date",
+      "amountHint": "Enter the total on your final bill.",
+      "required": "Required for review",
+      "docKindHint": "Pick the document type before adding.",
+      "uploadDocSub": "PDF or image",
+      "takePhoto": "Take photo",
+      "takePhotoSub": "Scan a paper bill",
+      "remarksPlaceholder": "Optional — anything the reviewer should know",
+      "claiming": "Claiming",
+      "listSubtitle": "Track submissions and payouts",
+      "totalClaimed": "Claimed",
+      "totalApproved": "Approved",
+      "inProgress": "In progress",
+      "emptyBody": "Paid for treatment out of pocket? File a claim and get reimbursed by your insurer.",
+      "howKicker": "3 simple steps",
+      "howTitle": "How claims work",
+      "howUpload": "Upload your final bill and discharge summary",
+      "howReview": "Your insurer reviews the claim and may ask questions",
+      "howPaid": "Approved amounts are paid out to you",
       "kicker": "Claims",
       "new": "Submit a claim",
       "list": "My claims",
@@ -5324,6 +6072,10 @@
       "outOfPocket": "Estimated out-of-pocket",
       "requiresPreAuth": "Pre-authorization required",
       "procedures": {
+        "hospitalization": "Hospitalization",
+        "day_care": "Day care",
+        "opd": "OPD",
+        "diagnostic": "Diagnostics",
         "consultation": "Consultation",
         "lab_test": "Lab test",
         "diagnostic_imaging": "Diagnostic imaging",
@@ -5339,7 +6091,18 @@
       "estimatedOop": "Estimated out-of-pocket",
       "deductible": "Deductible",
       "copay": "Co-pay",
-      "noPolicy": "You need an active policy to use this tool."
+      "noPolicy": "You need an active policy to use this tool.",
+      "step": "Step {{n}}",
+      "noPolicyTitle": "No active policy",
+      "browsePlans": "Browse plans",
+      "details": "Treatment details",
+      "enterAmountHint": "Enter an estimated bill to see your share.",
+      "resultKicker": "Estimate",
+      "resultTitle": "Your coverage",
+      "ofBill": "of an estimated LKR {{amount}} bill",
+      "insurerPays": "Insurer pays",
+      "youPay": "You pay",
+      "disclaimer": "Estimate only — the final amount is confirmed when your claim is assessed."
     },
     "status": {
       "payment_pending": "Payment pending",

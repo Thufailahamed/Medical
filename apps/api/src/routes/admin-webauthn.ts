@@ -23,13 +23,14 @@ import { randomBytes, createHmac } from "node:crypto";
 import { and, eq, desc } from "drizzle-orm";
 import { users, adminPasskeys } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import { flattenTranslated } from "../lib/validation-error";
 import { issueStepUpToken } from "../middleware/stepup";
 import { verifyPassword } from "../lib/crypto";
 import type { AppEnvironment } from "../types";
 
 const webauthnRouter = new Hono<AppEnvironment>();
-webauthnRouter.use("*", requireAdmin);
+webauthnRouter.use("*", authMiddleware, requireAdmin);
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 interface ChallengeEntry { challenge: string; userId: string; createdAt: number; }

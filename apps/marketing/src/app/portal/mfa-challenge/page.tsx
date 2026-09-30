@@ -38,6 +38,7 @@ import { MfaRequiredError, verifyMfaChallenge } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { ApiError } from "@/portal/lib/api";
+import "@/app/login/login.css";
 
 type Mode = "totp" | "recovery";
 

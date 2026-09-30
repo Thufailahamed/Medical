@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,10 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Minus,
+  Stethoscope,
+  Users,
+  BarChart3,
 } from "lucide-react-native";
 import {
   useDoctorEarningsSummary,
@@ -42,18 +46,43 @@ const PERIODS = [
   { key: "year", label: "Year" },
 ] as const;
 
-function fmtLkr(n: number): string {
-  if (!isFinite(n)) return "LKR 0";
-  if (n >= 1_000_000) return `LKR ${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `LKR ${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
-  return `LKR ${Math.round(n)}`;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Thousands-separated below 1M ("12,450"), compact above ("1.2M"). */
+function fmtAmount(n: number): string {
+  if (!isFinite(n)) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  return Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-function lkrParts(n: number): { currency: string; value: string } {
-  if (!isFinite(n)) return { currency: "LKR", value: "0" };
-  if (n >= 1_000_000) return { currency: "LKR", value: `${(n / 1_000_000).toFixed(1)}M` };
-  if (n >= 1_000) return { currency: "LKR", value: `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k` };
-  return { currency: "LKR", value: `${Math.round(n)}` };
+function fmtLkr(n: number): string {
+  return `LKR ${fmtAmount(n)}`;
+}
+
+/** Compact axis/label form: 950, 12k, 1.2M. */
+function fmtShort(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
+  return `${Math.round(n)}`;
+}
+
+/** "2026-08-30" → "30 Aug". */
+function fmtDay(iso?: string): string {
+  if (!iso) return "";
+  const [, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!m || !d) return iso;
+  return `${d} ${MONTHS[m - 1]}`;
+}
+
+function fmtRange(start?: string, end?: string): string {
+  if (!start || !end) return "";
+  const sy = start.slice(0, 4);
+  const ey = end.slice(0, 4);
+  return sy === ey
+    ? `${fmtDay(start)} – ${fmtDay(end)} ${ey}`
+    : `${fmtDay(start)} ${sy} – ${fmtDay(end)} ${ey}`;
 }
 
 function BarChart({
@@ -62,15 +91,16 @@ function BarChart({
   series: { bucket: string; total: number; count: number }[];
 }) {
   const { colors, fontFamily } = useTheme();
-  const max = Math.max(1, ...series.map((s) => s.total));
-  if (!series.length) return null;
   // Show last 14 buckets max for legibility.
   const visible = series.slice(-14);
-  const labelStride = Math.max(1, Math.floor(visible.length / 5));
+  const max = Math.max(1, ...visible.map((s) => s.total));
+  const peakIdx = visible.reduce((best, s, i) => (s.total > visible[best].total ? i : best), 0);
+  if (!visible.length) return null;
+  const labelStride = Math.max(1, Math.ceil(visible.length / 4));
   return (
-    <View style={{ height: 164 }}>
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
-        {[0.25, 0.5, 0.75].map((line) => (
+    <View style={{ height: 176 }}>
+      <View style={{ flex: 1, paddingTop: 18 }}>
+        {[0.33, 0.66, 1].map((line) => (
           <View
             key={line}
             pointerEvents="none"
@@ -78,9 +108,10 @@ function BarChart({
               position: "absolute",
               left: 0,
               right: 0,
-              bottom: `${line * 100}%`,
-              height: StyleSheet.hairlineWidth,
-              backgroundColor: colors.separator,
+              bottom: `${line * 90}%`,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderStyle: "dashed",
+              borderColor: colors.separator,
             }}
           />
         ))}
@@ -89,14 +120,13 @@ function BarChart({
             flex: 1,
             flexDirection: "row",
             alignItems: "flex-end",
-            gap: 6,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: colors.separator,
+            gap: 5,
           }}
         >
           {visible.map((s, idx) => {
-            const heightPct = Math.max(5, (s.total / max) * 100);
-            const latest = idx === visible.length - 1;
+            const empty = s.total <= 0;
+            const heightPct = empty ? 0 : Math.max(6, (s.total / max) * 100);
+            const peak = idx === peakIdx && !empty;
             return (
               <View
                 key={`${s.bucket}-${idx}`}
@@ -107,17 +137,53 @@ function BarChart({
                   height: "100%",
                 }}
               >
-                <View
-                  style={{
-                    width: "72%",
-                    height: `${heightPct}%`,
-                    minHeight: 6,
-                    backgroundColor: latest ? colors.primary : colors.primarySoft,
-                    borderRadius: 7,
-                    borderCurve: "continuous",
-                    opacity: latest ? 1 : 0.88,
-                  }}
-                />
+                {peak ? (
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      position: "absolute",
+                      bottom: `${heightPct}%`,
+                      marginBottom: 4,
+                      width: 60,
+                      textAlign: "center",
+                      fontSize: 10.5,
+                      color: colors.primary,
+                      fontFamily: fontFamily.bodyBold,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
+                    {fmtShort(s.total)}
+                  </Text>
+                ) : null}
+                {empty ? (
+                  <View
+                    style={{
+                      width: 4,
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor: colors.separator,
+                    }}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={
+                      peak
+                        ? [colors.primaryGradientStart, colors.primaryGradientEnd]
+                        : [colors.primarySoft, colors.primarySoft]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={{
+                      width: "78%",
+                      maxWidth: 22,
+                      height: `${heightPct}%`,
+                      borderTopLeftRadius: 7,
+                      borderTopRightRadius: 7,
+                      borderBottomLeftRadius: 3,
+                      borderBottomRightRadius: 3,
+                    }}
+                  />
+                )}
               </View>
             );
           })}
@@ -126,21 +192,19 @@ function BarChart({
       <View
         style={{
           flexDirection: "row",
-          marginTop: 6,
-          paddingHorizontal: 2,
+          marginTop: 8,
+          paddingTop: 6,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
         {visible.map((s, idx) => (
-          <View
-            key={`lbl-${s.bucket}-${idx}`}
-            style={{
-              flex: 1,
-              alignItems: "center",
-            }}
-          >
+          <View key={`lbl-${s.bucket}-${idx}`} style={{ flex: 1, alignItems: "center" }}>
             {idx % labelStride === 0 || idx === visible.length - 1 ? (
               <Text
                 style={{
+                  width: 48,
+                  textAlign: "center",
                   fontSize: 10,
                   color: colors.textSubtle,
                   fontFamily: fontFamily.bodyMedium ?? fontFamily.body,
@@ -148,7 +212,7 @@ function BarChart({
                 }}
                 numberOfLines={1}
               >
-                {s.bucket.slice(5)}
+                {fmtDay(s.bucket)}
               </Text>
             ) : null}
           </View>
@@ -185,11 +249,18 @@ export default function EarningsScreen() {
     bucket,
   });
 
+  const total = summary?.totalLkr ?? 0;
   const trend = summary?.trendPct ?? 0;
-  const trendPositive = trend >= 0;
+  const trendFlat = Math.abs(trend) < 0.05;
+  const trendPositive = trend > 0;
+  const pending = summary?.pendingPayoutLkr ?? 0;
+  const rangeLabel = fmtRange(summary?.start, summary?.end) || t(`earnings.period.${period}`);
 
   const payouts = payoutData?.payouts || [];
-  const amount = lkrParts(summary?.totalLkr ?? 0);
+  const hasSeries = useMemo(
+    () => (tsData?.series ?? []).some((s) => s.total > 0),
+    [tsData]
+  );
 
   const handlePeriod = useCallback((p: typeof PERIODS[number]["key"]) => {
     setPeriod(p);
@@ -224,6 +295,12 @@ export default function EarningsScreen() {
     );
   }
 
+  const trendChip = trendFlat
+    ? { Icon: Minus, fg: "rgba(255,255,255,0.85)", bg: "rgba(255,255,255,0.14)", border: "rgba(255,255,255,0.26)" }
+    : trendPositive
+      ? { Icon: TrendingUp, fg: "#A7F3D0", bg: "rgba(52,211,153,0.16)", border: "rgba(52,211,153,0.45)" }
+      : { Icon: TrendingDown, fg: "#FECACA", bg: "rgba(248,113,113,0.16)", border: "rgba(248,113,113,0.45)" };
+
   return (
     <Screen
       padded={false}
@@ -250,18 +327,15 @@ export default function EarningsScreen() {
           />
         }
       >
-        {/* Period chips */}
+        {/* Period segmented control */}
         <View
           style={{
             flexDirection: "row",
             marginHorizontal: spacing.lg,
-            padding: 4,
-            gap: 3,
+            padding: 3,
             borderRadius: radius.full,
             borderCurve: "continuous",
             backgroundColor: colors.fill,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
             marginBottom: spacing.lg,
           }}
         >
@@ -271,24 +345,24 @@ export default function EarningsScreen() {
               <Pressable
                 key={p.key}
                 onPress={() => handlePeriod(p.key)}
-                accessibilityRole="button"
+                accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 style={({ pressed }) => ({
                   flex: 1,
-                  height: 36,
+                  height: 34,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: radius.full - 4,
+                  borderRadius: radius.full,
                   borderCurve: "continuous",
                   backgroundColor: active ? colors.surface : "transparent",
-                  opacity: pressed && !active ? 0.65 : 1,
-                  ...(active ? shadow.xs : shadow.none),
+                  opacity: pressed && !active ? 0.6 : 1,
+                  ...(active && !isDark ? shadow.xs : shadow.none),
                 })}
               >
                 <Text
                   style={[
-                    active ? typography.label.md : typography.body.sm,
-                    { color: active ? colors.primary : colors.textMuted },
+                    typography.label.md,
+                    { color: active ? colors.text : colors.textMuted },
                   ]}
                 >
                   {t(`earnings.period.${p.key}`)}
@@ -302,9 +376,10 @@ export default function EarningsScreen() {
         <View
           style={{
             marginHorizontal: spacing.lg,
-            borderRadius: radius.xxl,
+            borderRadius: 28,
             borderCurve: "continuous",
             padding: spacing.xl,
+            paddingBottom: spacing.lg,
             overflow: "hidden",
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: "rgba(255,255,255,0.22)",
@@ -312,7 +387,16 @@ export default function EarningsScreen() {
           }}
         >
           <LinearGradient
-            colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+            colors={["#082247", "#0A4874", "#0C7888"]}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0)", "rgba(94,234,212,0.10)"]}
+            locations={[0, 0.5, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -321,270 +405,194 @@ export default function EarningsScreen() {
             pointerEvents="none"
             style={{
               position: "absolute",
-              top: -72,
-              right: -48,
-              width: 190,
-              height: 190,
-              borderRadius: 95,
-              backgroundColor: "rgba(255,255,255,0.1)",
-            }}
-          />
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              bottom: -56,
-              left: -44,
-              width: 150,
-              height: 150,
-              borderRadius: 75,
-              backgroundColor: "rgba(255,255,255,0.07)",
+              top: -70,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: 100,
+              borderWidth: 28,
+              borderColor: "rgba(255,255,255,0.05)",
             }}
           />
 
+          {/* Label + range */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: spacing.md,
+              gap: spacing.sm,
             }}
           >
-            <View style={{ flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "rgba(255,255,255,0.72)",
+                fontSize: 11,
+                letterSpacing: 1.2,
+                fontFamily: fontFamily.displayBold,
+                textTransform: "uppercase",
+              }}
+            >
+              {t("earnings.totalThisPeriod")}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.12)",
+              }}
+            >
+              <Calendar size={11} color="rgba(255,255,255,0.8)" strokeWidth={2.4} />
               <Text
+                numberOfLines={1}
                 style={{
-                  fontSize: 11,
-                  fontWeight: "800",
-                  color: "rgba(255,255,255,0.82)",
-                  fontFamily: fontFamily.displayBold,
-                  letterSpacing: 1.15,
-                  textTransform: "uppercase",
-                }}
-              >
-                {t("earnings.totalThisPeriod")}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.72)",
-                  marginTop: 4,
+                  color: "rgba(255,255,255,0.85)",
+                  fontSize: 11.5,
+                  fontFamily: fontFamily.bodySemibold ?? fontFamily.bodyBold,
                   fontVariant: ["tabular-nums"],
                 }}
               >
-                {summary?.start && summary?.end
-                  ? `${summary.start} → ${summary.end}`
-                  : t(`earnings.period.${period}`)}
+                {rangeLabel}
               </Text>
-            </View>
-            <View
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 15,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "rgba(255,255,255,0.18)",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.26)",
-              }}
-            >
-              <Wallet size={21} color="#FFFFFF" strokeWidth={2.2} />
             </View>
           </View>
 
+          {/* Amount */}
           {isLoading ? (
             <View
               style={{
-                width: 190,
-                height: 44,
+                width: 200,
+                height: 52,
                 borderRadius: 14,
-                backgroundColor: "rgba(255,255,255,0.22)",
+                backgroundColor: "rgba(255,255,255,0.16)",
                 marginTop: spacing.md,
               }}
             />
           ) : (
-            <View style={{ marginTop: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: spacing.md }}>
               <Text
                 style={{
-                  fontSize: 12,
-                  lineHeight: 16,
-                  color: "rgba(255,255,255,0.78)",
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 16,
+                  lineHeight: 20,
+                  paddingBottom: 9,
                   fontFamily: fontFamily.bodyBold,
-                  fontWeight: "800",
-                  letterSpacing: 0.8,
+                  letterSpacing: 0.4,
                 }}
               >
-                {amount.currency}
+                LKR
               </Text>
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                style={[
-                  typography.display.lg,
-                  {
-                    fontSize: 44,
-                    lineHeight: 50,
-                    color: "#FFFFFF",
-                    marginTop: -2,
-                    letterSpacing: -1.6,
-                    fontVariant: ["tabular-nums"],
-                  },
-                ]}
+                minimumFontScale={0.6}
+                style={{
+                  flexShrink: 1,
+                  color: "#FFFFFF",
+                  fontSize: 48,
+                  lineHeight: 54,
+                  letterSpacing: -1.8,
+                  fontFamily: fontFamily.heavy ?? fontFamily.displayBold,
+                  fontVariant: ["tabular-nums"],
+                }}
               >
-                {amount.value}
+                {fmtAmount(total)}
               </Text>
             </View>
           )}
 
+          {/* Trend chip */}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               alignSelf: "flex-start",
-              marginTop: spacing.md,
+              marginTop: spacing.sm,
               gap: 6,
               paddingHorizontal: 10,
-              paddingVertical: 6,
+              paddingVertical: 5,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.18)",
+              backgroundColor: trendChip.bg,
               borderWidth: StyleSheet.hairlineWidth,
-              borderColor: "rgba(255,255,255,0.28)",
+              borderColor: trendChip.border,
             }}
           >
-            {trendPositive ? (
-              <TrendingUp size={14} color="#FFFFFF" strokeWidth={2.5} />
-            ) : (
-              <TrendingDown size={14} color="#FFFFFF" strokeWidth={2.5} />
-            )}
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#FFFFFF",
-                fontFamily: fontFamily.bodyBold,
-                fontWeight: "800",
-              }}
-            >
-              {trendPositive ? "+" : ""}
-              {trend.toFixed(1)}%
+            <trendChip.Icon size={13} color={trendChip.fg} strokeWidth={2.6} />
+            <Text style={{ fontSize: 12.5, color: trendChip.fg, fontFamily: fontFamily.bodyBold }}>
+              {trendFlat
+                ? t("earnings.noChange", "No change")
+                : `${trendPositive ? "+" : ""}${trend.toFixed(1)}%`}
             </Text>
-            <Text
-              style={{
-                fontSize: 12,
-                color: "rgba(255,255,255,0.84)",
-                marginLeft: 2,
-              }}
-            >
+            <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
               {t("earnings.vsPrevious")}
             </Text>
           </View>
 
+          {/* Metrics strip */}
           <View
             style={{
               flexDirection: "row",
               marginTop: spacing.xl,
               paddingTop: spacing.md,
               borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: "rgba(255,255,255,0.24)",
+              borderTopColor: "rgba(255,255,255,0.18)",
             }}
           >
             <HeroMetric
+              icon={Users}
               label={t("earnings.visits")}
               value={`${summary?.visitCount ?? 0}`}
             />
+            <HeroDivider />
             <HeroMetric
+              icon={BarChart3}
               label={t("earnings.avgPerVisit")}
-              value={fmtLkr(summary?.avgPerVisitLkr ?? 0)}
-              last
+              value={fmtShort(summary?.avgPerVisitLkr ?? 0)}
+            />
+            <HeroDivider />
+            <HeroMetric
+              icon={Stethoscope}
+              label={t("earnings.feeShort", "Your fee")}
+              value={fmtShort(summary?.consultationFee ?? 0)}
             />
           </View>
         </View>
 
-        <View
-          style={{
-            flexDirection: "row",
-            gap: spacing.sm,
-            marginHorizontal: spacing.lg,
-            marginTop: spacing.lg,
-          }}
-        >
-          <EarningsStatCard
-            icon={Wallet}
-            label={t("earnings.consultationFee", "Consultation fee")}
-            value={fmtLkr(summary?.consultationFee ?? 0)}
-            tone="primary"
-          />
-          <EarningsStatCard
-            icon={Clock}
-            label={t("earnings.pendingPayout", "Pending payout")}
-            value={fmtLkr(summary?.pendingPayoutLkr ?? 0)}
-            tone={summary?.pendingPayoutLkr ? "warning" : "neutral"}
-          />
-        </View>
+        {/* Pending payout */}
+        <PendingPayoutCard amount={pending} />
 
         {/* Revenue trend */}
-        <Card padded={false} style={{ marginHorizontal: spacing.lg, marginTop: spacing.lg }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.md,
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.lg,
-              paddingBottom: spacing.md,
-            }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
-                borderCurve: "continuous",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: colors.primarySoft,
-              }}
-            >
-              <TrendingUp size={20} color={colors.primary} strokeWidth={2.3} />
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, gap: spacing.md }}>
+          <SectionHeader
+            kicker={t(`earnings.period.${period}`)}
+            title={t("earnings.chart")}
+            style={{ paddingTop: 0, paddingBottom: 0 }}
+          />
+          <Card padded={false}>
+            <View style={{ padding: spacing.lg }}>
+              {trendLoading ? (
+                <Skeleton height={176} radius={18} />
+              ) : hasSeries ? (
+                <BarChart series={tsData?.series ?? []} />
+              ) : (
+                <TrendEmptyState />
+              )}
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[typography.title.md, { color: colors.text }]}>
-                {t("earnings.chart")}
-              </Text>
-              <Text
-                style={[typography.body.xs, { color: colors.textMuted, marginTop: 2 }]}
-                numberOfLines={1}
-              >
-                {summary?.start && summary?.end
-                  ? `${summary.start} → ${summary.end}`
-                  : t(`earnings.period.${period}`)}
-              </Text>
-            </View>
-            <Pill label={t(`earnings.period.${period}`)} tone="neutral" size="sm" />
-          </View>
-          <View
-            style={{
-              paddingHorizontal: spacing.lg,
-              paddingBottom: spacing.lg,
-            }}
-          >
-            {trendLoading ? (
-              <Skeleton height={164} radius={18} />
-            ) : tsData?.series && tsData.series.length > 0 ? (
-              <BarChart series={tsData.series} />
-            ) : (
-              <TrendEmptyState />
-            )}
-          </View>
-        </Card>
+          </Card>
+        </View>
 
         {/* Payout history */}
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, gap: spacing.md }}>
           <SectionHeader
             kicker={t("earnings.payoutsKicker", "Payouts")}
             title={t("earnings.payoutsTitle")}
             count={payouts.length || undefined}
-            style={{ paddingTop: 0 }}
+            style={{ paddingTop: 0, paddingBottom: 0 }}
           />
 
           {payoutsLoading ? (
@@ -599,7 +607,7 @@ export default function EarningsScreen() {
               <PayoutEmptyState />
             </Card>
           ) : (
-            <Card padded={false}>
+            <Card padded={false} style={{ paddingVertical: 4 }}>
               {payouts.map((p, pIdx) => (
                 <PayoutRow
                   key={p.id}
@@ -615,120 +623,112 @@ export default function EarningsScreen() {
   );
 }
 
-function EarningsStatCard({
-  icon: Icon,
-  label,
-  value,
-  tone = "neutral",
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone?: "neutral" | "primary" | "warning" | "success" | "danger" | "info";
-}) {
-  const { colors, spacing, typography } = useTheme();
-  const palette =
-    tone === "warning"
-      ? { bg: colors.warningSoft, fg: colors.warning }
-      : tone === "success"
-      ? { bg: colors.successSoft, fg: colors.success }
-      : tone === "danger"
-      ? { bg: colors.dangerSoft, fg: colors.danger }
-      : tone === "info"
-      ? { bg: colors.infoSoft, fg: colors.info }
-      : tone === "primary"
-      ? { bg: colors.primarySoft, fg: colors.primary }
-      : { bg: colors.fill, fg: colors.textMuted };
+function PendingPayoutCard({ amount }: { amount: number }) {
+  const { t } = useTranslation();
+  const { colors, spacing, typography, fontFamily } = useTheme();
+  const has = amount > 0;
+  const fg = has ? colors.warning : colors.success;
+  const bg = has ? colors.warningSoft : colors.successSoft;
+  const Icon = has ? Clock : CheckCircle2;
 
   return (
-    <Card padded={false} style={{ flex: 1 }}>
+    <Card padded={false} style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}>
       <View
         style={{
-          minHeight: 104,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
           padding: spacing.md,
-          justifyContent: "space-between",
+          paddingRight: spacing.lg,
         }}
       >
         <View
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 13,
+            width: 44,
+            height: 44,
+            borderRadius: 14,
             borderCurve: "continuous",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: palette.bg,
+            backgroundColor: bg,
           }}
         >
-          <Icon size={19} color={palette.fg} strokeWidth={2.2} />
+          <Icon size={20} color={fg} strokeWidth={2.3} />
         </View>
-        <View>
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.title.md,
-              { color: colors.text, fontVariant: ["tabular-nums"] },
-            ]}
-          >
-            {value}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
+            {t("earnings.pendingPayout", "Pending payout")}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}
-          >
-            {label}
+          <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+            {has
+              ? t("earnings.pendingSub", "Awaiting settlement")
+              : t("earnings.nothingPending", "You're all settled up")}
           </Text>
         </View>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontFamily: fontFamily.heavy ?? fontFamily.displayBold,
+            fontSize: 18,
+            letterSpacing: -0.4,
+            color: has ? colors.text : colors.textSubtle,
+            fontVariant: ["tabular-nums"],
+          }}
+        >
+          {fmtLkr(amount)}
+        </Text>
       </View>
     </Card>
   );
 }
 
 function HeroMetric({
+  icon: Icon,
   label,
   value,
-  last,
 }: {
+  icon: any;
   label: string;
   value: string;
-  last?: boolean;
 }) {
-  const { typography, fontFamily } = useTheme();
+  const { fontFamily } = useTheme();
   return (
-    <View
-      style={{
-        flex: 1,
-        paddingRight: last ? 0 : 12,
-      }}
-    >
+    <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Icon size={13} color="rgba(255,255,255,0.75)" strokeWidth={2.4} />
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={{
+            color: "#FFFFFF",
+            fontSize: 18,
+            lineHeight: 22,
+            fontFamily: fontFamily.displayBold,
+            fontVariant: ["tabular-nums"],
+          }}
+        >
+          {value}
+        </Text>
+      </View>
       <Text
-        style={{
-          fontSize: 10,
-          fontWeight: "800",
-          color: "rgba(255,255,255,0.68)",
-          fontFamily: fontFamily.displayBold,
-          letterSpacing: 0.9,
-          textTransform: "uppercase",
-        }}
         numberOfLines={1}
+        style={{ color: "rgba(255,255,255,0.68)", fontSize: 11, fontFamily: fontFamily.bodySemibold ?? fontFamily.body }}
       >
         {label}
       </Text>
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        style={[
-          typography.title.lg,
-          {
-            color: "#FFFFFF",
-            marginTop: 3,
-            fontVariant: ["tabular-nums"],
-          },
-        ]}
-      >
-        {value}
-      </Text>
     </View>
+  );
+}
+
+function HeroDivider() {
+  return (
+    <View
+      style={{
+        width: StyleSheet.hairlineWidth,
+        marginVertical: 4,
+        backgroundColor: "rgba(255,255,255,0.22)",
+      }}
+    />
   );
 }
 
@@ -886,7 +886,7 @@ function PayoutRow({
           {fmtLkr(payout.amountLkr)}
         </Text>
         <Text style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}>
-          {t(`earnings.payoutStatus.${payout.status}`)} · {payout.eventCount} {t("earnings.events")}
+          {payout.eventCount} {t("earnings.events")}
         </Text>
         <Text
           style={[
@@ -895,7 +895,7 @@ function PayoutRow({
           ]}
           numberOfLines={1}
         >
-          {payout.periodStart} → {payout.periodEnd}
+          {fmtRange(payout.periodStart, payout.periodEnd)}
         </Text>
       </View>
       <Pill

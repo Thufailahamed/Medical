@@ -88,6 +88,7 @@ import {
   Pill,
   Divider,
   Pressable,
+  DateField,
   useToast,
 } from "@/components/ui";
 import { FamilyInviteSheet } from "@/components/FamilyInviteSheet";
@@ -151,10 +152,6 @@ export default function FamilyScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { spacing, colors, typography, radius, shadow, scheme } = useTheme();
-  const segOn = {
-    backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
-    ...(scheme === "dark" ? null : shadow.xs),
-  };
   const toast = useToast();
   const { data, isLoading, isError, refetch } = useFamilyMembers();
   const addMember = useAddFamilyMember();
@@ -180,7 +177,6 @@ export default function FamilyScreen() {
   const [isDeceased, setIsDeceased] = useState(false);
   const [causeOfDeath, setCauseOfDeath] = useState("");
   const [notes, setNotes] = useState("");
-  const [relationCategory, setRelationCategory] = useState<"immediate" | "extended">("immediate");
   const [showAllConditions, setShowAllConditions] = useState(false);
 
   function callNumber(num?: string) {
@@ -323,10 +319,47 @@ export default function FamilyScreen() {
       ? HEREDITARY_CONDITIONS
       : HEREDITARY_CONDITIONS.slice(0, 6);
 
-    const activeRelations =
-      relationCategory === "immediate"
-        ? PRIMARY_RELATIONSHIPS
-        : EXTENDED_RELATIONSHIPS;
+
+    const previewAge = getMemberAge(dateOfBirth);
+    const relLabel = t(`family.relationship.${relationship}`, { defaultValue: relationship });
+    const customConditions = conditions.filter((c) => !HEREDITARY_CONDITIONS.includes(c));
+    const addCustomCondition = () => {
+      const v = conditionInput.trim();
+      if (v && !conditions.some((c) => c.toLowerCase() === v.toLowerCase())) {
+        setConditions((p) => [...p, v]);
+      }
+      setConditionInput("");
+    };
+
+    const relChip = (r: string) => {
+      const isSelected = relationship === r;
+      return (
+        <Pressable
+          key={r}
+          onPress={() => setRelationship(r)}
+          haptic="light"
+          accessibilityRole="radio"
+          accessibilityState={{ selected: isSelected }}
+          style={{
+            height: 38,
+            paddingHorizontal: 14,
+            borderRadius: 19,
+            borderCurve: "continuous",
+            borderWidth: 1.5,
+            borderColor: isSelected ? colors.primary : "transparent",
+            backgroundColor: isSelected ? colors.primarySoft : colors.fill,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          {isSelected && <Check size={13} color={colors.primary} strokeWidth={3} />}
+          <Text style={[typography.label.md, { color: isSelected ? colors.primary : colors.text }]}>
+            {t(`family.relationship.${r}`, { defaultValue: r })}
+          </Text>
+        </Pressable>
+      );
+    };
 
     return (
       <Screen scroll={false} keyboard padded={false} edges={["top"]} bottomInset>
@@ -334,274 +367,66 @@ export default function FamilyScreen() {
           back
           onBack={() => setComposing(false)}
           title={t("family.composeTitle", "Add family member")}
-          right={
-            <Button
-              title={t("common.save", "Save")}
-              variant="ghost"
-              compact
-              onPress={saveMember}
-              loading={addMember.isPending}
-            />
-          }
         />
 
         <ScrollView
-          contentContainerStyle={{
-            padding: spacing.lg,
-            paddingBottom: 110,
-            gap: spacing.lg,
-          }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Card 1: Personal Details */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              gap: spacing.md,
-            }}
-          >
-            <FormSectionHeader
-              icon={User}
-              title={t("family.compose.personalSection", "Personal Details")}
-              subtitle={t("family.compose.personalSubtitle", "Basic identity and family connection")}
-            />
-
-            <FormField label={t("family.compose.nameLabel", "Name")} required>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder={t("family.compose.namePlaceholder", "e.g., Sarah Perera")}
-                autoCapitalize="words"
-              />
-            </FormField>
-
-            {/* Living vs Deceased Segmented Control */}
-            <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.title.xs, { color: colors.text }]}>
-                {t("family.compose.deceasedLabel", "Status")}
+          {/* Live preview of the member being created */}
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.xl }}>
+            <Avatar name={name.trim() || relLabel} size="lg" tone={isDeceased ? "neutral" : "primary"} />
+            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+              <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+                {name.trim() || t("family.compose.previewName", "New family member")}
               </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  padding: 3,
-                  gap: 2,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.fill,
-                }}
-              >
-                <Pressable
-                  onPress={() => setIsDeceased(false)}
-                  haptic="light"
-                  style={{
-                    flex: 1,
-                    minHeight: 34,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    ...(!isDeceased ? segOn : { backgroundColor: "transparent" }),
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.md,
-                      {
-                        color: !isDeceased ? colors.text : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {t("family.compose.living", "Living")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setIsDeceased(true)}
-                  haptic="light"
-                  style={{
-                    flex: 1,
-                    minHeight: 34,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    ...(isDeceased ? segOn : { backgroundColor: "transparent" }),
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.md,
-                      {
-                        color: isDeceased ? colors.danger : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {t("family.compose.deceased", "Deceased")}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {isDeceased && (
-              <FormField
-                label={t("family.compose.causeOfDeathLabel", "Cause of death")}
-                helper={t("family.compose.causeOfDeathPlaceholder", "Optional — helps assess hereditary risk")}
-              >
-                <TextInput
-                  value={causeOfDeath}
-                  onChangeText={setCauseOfDeath}
-                  placeholder={t("family.compose.causeOfDeathPlaceholder", "e.g., Natural causes, Heart condition…")}
-                />
-              </FormField>
-            )}
-
-            {/* Relationship Field with Categorized Selector */}
-            <View style={{ gap: spacing.xs }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={[typography.title.xs, { color: colors.text }]}>
-                  {t("family.compose.relationshipLabel", "Relationship")}
-                </Text>
-                <View
-                  style={{
-                    paddingHorizontal: spacing.sm + 2,
-                    paddingVertical: 3,
-                    borderRadius: radius.full,
-                    backgroundColor: colors.primarySoft,
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.sm,
-                      { color: colors.primary },
-                    ]}
-                  >
-                    {t(`family.relationship.${relationship}`, { defaultValue: relationship })}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Category tabs */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.fill,
-                  padding: 3,
-                  gap: 2,
-                  marginBottom: spacing.xs,
-                }}
-              >
-                <Pressable
-                  onPress={() => setRelationCategory("immediate")}
-                  haptic="light"
-                  style={{
-                    flex: 1,
-                    minHeight: 32,
-                    justifyContent: "center",
-                    paddingVertical: 6,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    ...(relationCategory === "immediate" ? segOn : { backgroundColor: "transparent" }),
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.sm,
-                      {
-                        color:
-                          relationCategory === "immediate" ? colors.text : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {t("family.compose.immediateFamily", "Immediate (7)")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setRelationCategory("extended")}
-                  haptic="light"
-                  style={{
-                    flex: 1,
-                    minHeight: 32,
-                    justifyContent: "center",
-                    paddingVertical: 6,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    alignItems: "center",
-                    ...(relationCategory === "extended" ? segOn : { backgroundColor: "transparent" }),
-                  }}
-                >
-                  <Text
-                    style={[
-                      typography.label.sm,
-                      {
-                        color:
-                          relationCategory === "extended" ? colors.text : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {t("family.compose.extendedFamily", "Extended (6)")}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.sm,
-                }}
-              >
-                {activeRelations.map((r) => {
-                  const isSelected = relationship === r;
-                  return (
-                    <Pressable
-                      key={r}
-                      onPress={() => setRelationship(r)}
-                      haptic="light"
-                      style={{
-                        minHeight: 36,
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: 8,
-                        borderRadius: radius.full,
-                        backgroundColor: isSelected ? colors.primary : colors.fill,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      {isSelected && <Check size={13} color={colors.onPrimary} strokeWidth={3} />}
-                      <Text
-                        style={[
-                          typography.label.md,
-                          {
-                            color: isSelected ? colors.onPrimary : colors.text,
-                          },
-                        ]}
-                      >
-                        {t(`family.relationship.${r}`, { defaultValue: r })}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                <Pill tone="primary" size="sm">{relLabel}</Pill>
+                {previewAge ? <Pill tone="neutral" size="sm" icon={Calendar}>{previewAge}</Pill> : null}
+                {bloodGroup ? <Pill tone="danger" size="sm" icon={Droplet}>{bloodGroup}</Pill> : null}
+                {isDeceased ? (
+                  <Pill tone="neutral" size="sm">{t("family.compose.deceased", "Deceased")}</Pill>
+                ) : null}
               </View>
             </View>
           </Card>
 
-          {/* Card 2: Contact & Emergency */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              gap: spacing.md,
-            }}
-          >
-            <FormSectionHeader
-              icon={Phone}
-              title={t("family.compose.contactSection", "Contact & Emergency")}
-              subtitle={t("family.compose.contactSubtitle", "Direct reach for urgent situations")}
-            />
+          {/* ─── Relationship ─── */}
+          <ComposeSection title={t("family.compose.relationshipLabel", "Relationship")}>
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[typography.caption, { color: colors.textSubtle, marginLeft: 2 }]}>
+                {t("family.compose.immediateCaption", "Immediate family")}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+                {PRIMARY_RELATIONSHIPS.map(relChip)}
+              </View>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[typography.caption, { color: colors.textSubtle, marginLeft: 2 }]}>
+                {t("family.compose.extendedCaption", "Extended family")}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+                {EXTENDED_RELATIONSHIPS.map(relChip)}
+              </View>
+            </View>
+          </ComposeSection>
+
+          {/* ─── Personal details ─── */}
+          <ComposeSection title={t("family.compose.personalSection", "Personal Details")}>
+            <FormField label={t("family.compose.nameLabel", "Name")} required>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder={t("family.compose.fullNamePlaceholder", "e.g., Sarah Perera")}
+                autoCapitalize="words"
+                textContentType="name"
+                leadingIcon={User}
+                tone="soft"
+                maxLength={60}
+              />
+            </FormField>
 
             <FormField
               label={t("family.compose.phoneLabel", "Phone Number")}
@@ -612,34 +437,29 @@ export default function FamilyScreen() {
                 onChangeText={setPhone}
                 placeholder={t("family.compose.phonePlaceholder", "+94 77 123 4567")}
                 keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                leadingIcon={Phone}
+                tone="soft"
               />
             </FormField>
-          </Card>
 
-          {/* Card 3: Medical Profile */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              gap: spacing.md,
-            }}
-          >
-            <FormSectionHeader
-              icon={HeartPulse}
-              title={t("family.compose.medicalSection", "Medical Profile")}
-              subtitle={t("family.compose.medicalSubtitle", "Age-aware dosing and hereditary risk assessment")}
-            />
-
-            {/* Date of birth */}
             <FormField
               label={t("family.compose.dobLabel", "Date of Birth")}
-              helper={t("family.compose.dobHelper", "Encouraged for children — used for age-aware care.")}
+              helper={
+                previewAge
+                  ? t("family.compose.ageHelper", { age: previewAge, defaultValue: "Age {{age}}" })
+                  : t("family.compose.dobHelper", "Encouraged for children — used for age-aware care.")
+              }
             >
-              <TextInput
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                placeholder={t("family.compose.dobPlaceholder", "YYYY-MM-DD")}
-                keyboardType="numbers-and-punctuation"
-                autoComplete="birthdate-full"
+              <DateField
+                value={parseDob(dateOfBirth.trim()) ?? undefined}
+                maximumDate={new Date()}
+                placeholder={t("family.compose.dobPick", "Select date of birth")}
+                onChange={(d) => {
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  setDateOfBirth(`${d.getFullYear()}-${mm}-${dd}`);
+                }}
               />
             </FormField>
 
@@ -656,147 +476,122 @@ export default function FamilyScreen() {
                 }}
               >
                 <AlertCircle size={18} color={colors.warning} style={{ marginTop: 1 }} />
-                <Text
-                  style={[
-                    typography.body.sm,
-                    { color: colors.text, flex: 1 },
-                  ]}
-                >
+                <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
                   {t("family.compose.adultDobWarning")}
                 </Text>
               </View>
             )}
 
-            {/* Blood Group: Symmetric 4x2 Grid */}
-            <View style={{ gap: spacing.xs }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Living / deceased — quiet toggle row rather than a primary control */}
+            <Pressable
+              onPress={() => setIsDeceased(!isDeceased)}
+              haptic="light"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: isDeceased }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                paddingTop: spacing.md,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+              }}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
                 <Text style={[typography.title.xs, { color: colors.text }]}>
-                  {t("family.compose.bloodGroupLabel", "Blood Group")}
+                  {t("family.compose.passedAway", "Has passed away")}
                 </Text>
-                {bloodGroup && (
-                  <Pressable onPress={() => setBloodGroup(null)} haptic="light">
-                    <Text style={[typography.label.sm, { color: colors.primary }]}>
-                      {t("common.clear", "Clear")}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-              <Text style={[typography.caption, { color: colors.textMuted, marginBottom: 2 }]}>
-                {t("family.compose.bloodGroupHelper", "Optional — used for emergency profile")}
-              </Text>
-
-              <View style={{ gap: spacing.sm }}>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  {["A+", "A-", "B+", "B-"].map((bg) => {
-                    const isSelected = bloodGroup === bg;
-                    return (
-                      <Pressable
-                        key={bg}
-                        onPress={() => setBloodGroup(isSelected ? null : bg)}
-                        haptic="light"
-                        style={{
-                          flex: 1,
-                          height: 46,
-                          borderRadius: 14,
-                          borderCurve: "continuous",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: isSelected ? colors.danger : colors.fill,
-                          flexDirection: "row",
-                          gap: 4,
-                        }}
-                      >
-                        {isSelected && <Droplet size={13} color="#FFFFFF" strokeWidth={2.5} />}
-                        <Text
-                          style={[
-                            typography.label.lg,
-                            {
-                              color: isSelected ? "#FFFFFF" : colors.text,
-                            },
-                          ]}
-                        >
-                          {bg}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  {["AB+", "AB-", "O+", "O-"].map((bg) => {
-                    const isSelected = bloodGroup === bg;
-                    return (
-                      <Pressable
-                        key={bg}
-                        onPress={() => setBloodGroup(isSelected ? null : bg)}
-                        haptic="light"
-                        style={{
-                          flex: 1,
-                          height: 46,
-                          borderRadius: 14,
-                          borderCurve: "continuous",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: isSelected ? colors.danger : colors.fill,
-                          flexDirection: "row",
-                          gap: 4,
-                        }}
-                      >
-                        {isSelected && <Droplet size={13} color="#FFFFFF" strokeWidth={2.5} />}
-                        <Text
-                          style={[
-                            typography.label.lg,
-                            {
-                              color: isSelected ? "#FFFFFF" : colors.text,
-                            },
-                          ]}
-                        >
-                          {bg}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-
-            {/* Hereditary Conditions */}
-            <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={[typography.title.xs, { color: colors.text }]}>
-                  {t("family.compose.conditionsLabel", "Hereditary Conditions")}
+                <Text style={[typography.caption, { color: colors.textSubtle }]}>
+                  {t("family.compose.passedAwayHelper", "Still counts toward hereditary risk")}
                 </Text>
-                {conditions.length > 0 && (
-                  <View
-                    style={{
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: 2,
-                      borderRadius: radius.full,
-                      backgroundColor: colors.warningSoft,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.label.sm,
-                        { color: colors.warning },
-                      ]}
-                    >
-                      {t("family.compose.conditionsSelected", { count: conditions.length })}
-                    </Text>
-                  </View>
-                )}
               </View>
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {t("family.compose.conditionsHelper", "Helps assess your personal and family health risks")}
-              </Text>
-
               <View
                 style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: spacing.sm,
-                  marginVertical: spacing.sm,
+                  width: 50,
+                  height: 30,
+                  borderRadius: 15,
+                  padding: 3,
+                  backgroundColor: isDeceased ? colors.primary : colors.fillStrong,
+                  alignItems: isDeceased ? "flex-end" : "flex-start",
                 }}
               >
+                <View
+                  style={[
+                    { width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF" },
+                    shadow.xs,
+                  ]}
+                />
+              </View>
+            </Pressable>
+
+            {isDeceased && (
+              <FormField
+                label={t("family.compose.causeOfDeathLabel", "Cause of death")}
+                helper={t("family.compose.causeOfDeathHelper", "Optional — helps assess hereditary risk")}
+              >
+                <TextInput
+                  value={causeOfDeath}
+                  onChangeText={setCauseOfDeath}
+                  placeholder={t("family.compose.causeOfDeathExample", "e.g., Heart condition")}
+                  tone="soft"
+                />
+              </FormField>
+            )}
+          </ComposeSection>
+
+          {/* ─── Medical profile ─── */}
+          <ComposeSection
+            title={t("family.compose.medicalSection", "Medical Profile")}
+            trailing={t("family.compose.optional", "Optional")}
+          >
+            <FormField
+              label={t("family.compose.bloodGroupLabel", "Blood Group")}
+              helper={t("family.compose.bloodGroupHelper", "Optional — used for emergency profile")}
+            >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+                {BLOOD_GROUPS.map((bg) => {
+                  const isSelected = bloodGroup === bg;
+                  return (
+                    <Pressable
+                      key={bg}
+                      onPress={() => setBloodGroup(isSelected ? null : bg)}
+                      haptic="light"
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      style={{
+                        flexBasis: "22%",
+                        flexGrow: 1,
+                        height: 46,
+                        borderRadius: 14,
+                        borderCurve: "continuous",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexDirection: "row",
+                        gap: 4,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? colors.danger : "transparent",
+                        backgroundColor: isSelected ? colors.dangerSoft : colors.fill,
+                      }}
+                    >
+                      {isSelected && (
+                        <Droplet size={13} color={colors.danger} fill={colors.danger} strokeWidth={2} />
+                      )}
+                      <Text
+                        style={[typography.title.sm, { color: isSelected ? colors.danger : colors.text }]}
+                      >
+                        {bg}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </FormField>
+
+            <FormField
+              label={t("family.compose.conditionsLabel", "Hereditary Conditions")}
+              helper={t("family.compose.conditionsHelper", "Helps assess your personal and family health risks")}
+            >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
                 {displayedConditions.map((c) => {
                   const isSelected = conditions.includes(c);
                   return (
@@ -804,110 +599,100 @@ export default function FamilyScreen() {
                       key={c}
                       onPress={() => toggleCondition(c)}
                       haptic="light"
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
                       style={{
-                        minHeight: 34,
-                        paddingHorizontal: spacing.md,
-                        paddingVertical: 7,
-                        borderRadius: radius.full,
-                        backgroundColor: isSelected
-                          ? colors.warningSoft
-                          : colors.fill,
+                        height: 36,
+                        paddingHorizontal: 13,
+                        borderRadius: 18,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? colors.warning : "transparent",
+                        backgroundColor: isSelected ? colors.warningSoft : colors.fill,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 5,
                       }}
                     >
                       {isSelected && <Check size={12} color={colors.warning} strokeWidth={3} />}
-                      <Text
-                        style={[
-                          typography.label.sm,
-                          {
-                            color: isSelected ? colors.warning : colors.text,
-                          },
-                        ]}
-                      >
+                      <Text style={[typography.label.md, { color: isSelected ? colors.warning : colors.text }]}>
                         {t(`family.condition.${c}`, { defaultValue: c })}
                       </Text>
                     </Pressable>
                   );
                 })}
-              </View>
-
-              {/* Show more toggle */}
-              <Pressable
-                onPress={() => setShowAllConditions(!showAllConditions)}
-                haptic="light"
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  alignSelf: "flex-start",
-                  marginBottom: spacing.xs,
-                }}
-              >
-                <Text
-                  style={[
-                    typography.label.md,
-                    { color: colors.primary },
-                  ]}
+                {customConditions.map((c) => (
+                  <Pressable
+                    key={`custom-${c}`}
+                    onPress={() => toggleCondition(c)}
+                    haptic="light"
+                    accessibilityRole="button"
+                    accessibilityLabel={t("family.compose.removeCondition", { name: c, defaultValue: "Remove {{name}}" })}
+                    style={{
+                      height: 36,
+                      paddingLeft: 13,
+                      paddingRight: 9,
+                      borderRadius: 18,
+                      borderWidth: 1.5,
+                      borderColor: colors.warning,
+                      backgroundColor: colors.warningSoft,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <Text style={[typography.label.md, { color: colors.warning }]}>{c}</Text>
+                    <X size={13} color={colors.warning} strokeWidth={2.75} />
+                  </Pressable>
+                ))}
+                <Pressable
+                  onPress={() => setShowAllConditions(!showAllConditions)}
+                  haptic="light"
+                  style={{
+                    height: 36,
+                    paddingHorizontal: 12,
+                    borderRadius: 18,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
                 >
-                  {showAllConditions
-                    ? t("common.showLess", "Show fewer")
-                    : t("family.compose.showAllConditions", `All conditions (${HEREDITARY_CONDITIONS.length})`)}
-                </Text>
-                {showAllConditions ? (
-                  <ChevronUp size={14} color={colors.primary} />
-                ) : (
-                  <ChevronDown size={14} color={colors.primary} />
-                )}
-              </Pressable>
-
-              {/* Custom condition input with Plus action */}
-              <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "center" }}>
-                <TextInput
-                  value={conditionInput}
-                  onChangeText={setConditionInput}
-                  onSubmitEditing={() => {
-                    const v = conditionInput.trim();
-                    if (v && !conditions.includes(v)) {
-                      setConditions((p) => [...p, v]);
-                    }
-                    setConditionInput("");
-                  }}
-                  placeholder={t("family.compose.conditionsPlaceholder", "Type custom condition…")}
-                  returnKeyType="done"
-                  style={{ flex: 1 }}
-                />
-                <IconButton
-                  icon={Plus}
-                  variant="solid"
-                  onPress={() => {
-                    const v = conditionInput.trim();
-                    if (v && !conditions.includes(v)) {
-                      setConditions((p) => [...p, v]);
-                    }
-                    setConditionInput("");
-                  }}
-                  disabled={!conditionInput.trim()}
-                  accessibilityLabel="Add condition"
-                />
+                  <Text style={[typography.label.md, { color: colors.primary }]}>
+                    {showAllConditions
+                      ? t("common.showLess", "Show fewer")
+                      : t("family.compose.moreConditions", {
+                          count: HEREDITARY_CONDITIONS.length - displayedConditions.length,
+                          defaultValue: "+{{count}} more",
+                        })}
+                  </Text>
+                  {showAllConditions ? (
+                    <ChevronUp size={14} color={colors.primary} />
+                  ) : (
+                    <ChevronDown size={14} color={colors.primary} />
+                  )}
+                </Pressable>
               </View>
-            </View>
-          </Card>
 
-          {/* Card 4: Additional Notes */}
-          <Card
-            style={{
-              padding: spacing.lg,
-              gap: spacing.md,
-            }}
+              <TextInput
+                value={conditionInput}
+                onChangeText={setConditionInput}
+                onSubmitEditing={addCustomCondition}
+                blurOnSubmit={false}
+                placeholder={t("family.compose.conditionsPlaceholder", "Type custom condition…")}
+                returnKeyType="done"
+                tone="soft"
+                leadingIcon={Plus}
+                trailingIcon={conditionInput.trim() ? Check : undefined}
+                onTrailingIconPress={addCustomCondition}
+                containerStyle={{ marginTop: spacing.xs }}
+              />
+            </FormField>
+          </ComposeSection>
+
+          {/* ─── Notes ─── */}
+          <ComposeSection
+            title={t("family.compose.notesSection", "Additional Context")}
+            trailing={t("family.compose.optional", "Optional")}
           >
-            <FormSectionHeader
-              icon={FileText}
-              title={t("family.compose.notesSection", "Additional Context")}
-              subtitle={t("family.compose.notesSubtitle", "Optional notes, allergies, or context")}
-            />
-
             <TextInput
               value={notes}
               onChangeText={setNotes}
@@ -915,27 +700,28 @@ export default function FamilyScreen() {
               multiline
               numberOfLines={3}
               tone="soft"
+              leadingIcon={FileText}
+              style={{ minHeight: 84, textAlignVertical: "top" }}
             />
-          </Card>
+          </ComposeSection>
         </ScrollView>
 
-        {/* Sticky Bottom Save Action */}
+        {/* Sticky save */}
         <View
           style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.md,
-            paddingBottom: spacing.lg,
-            backgroundColor: scheme === "dark" ? colors.bgElevated : colors.surface,
+            backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
             borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.separator,
+            borderTopColor: colors.hairline,
           }}
         >
           <Button
-            title={t("family.addButton", "Add member")}
+            title={
+              name.trim()
+                ? t("family.compose.addNamed", { name: name.trim().split(/\s+/)[0], defaultValue: "Add {{name}}" })
+                : t("family.addButton", "Add member")
+            }
             onPress={saveMember}
             loading={addMember.isPending}
             icon={Plus}
@@ -1154,6 +940,39 @@ export default function FamilyScreen() {
               </View>
             </AuroraSurface>
 
+            {/* Quick start — preset the relationship and jump into the form */}
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title={t("family.quickStart.title", "Who are you adding?")}
+                style={{ paddingBottom: 0 }}
+              />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+                {[
+                  { rel: "Spouse", icon: HeartHandshake, tone: "danger" as const },
+                  { rel: "Mother", icon: UserRound, tone: "accent2" as const },
+                  { rel: "Father", icon: UserRound, tone: "primary" as const },
+                  { rel: "Son", icon: Baby, tone: "success" as const },
+                  { rel: "Daughter", icon: Baby, tone: "warning" as const },
+                  { rel: null, icon: Users, tone: "neutral" as const },
+                ].map((q) => (
+                  <QuickStartTile
+                    key={q.rel ?? "other"}
+                    icon={q.icon}
+                    tone={q.tone}
+                    label={
+                      q.rel
+                        ? t(`family.relationship.${q.rel}`, { defaultValue: q.rel })
+                        : t("family.quickStart.other", "Someone else")
+                    }
+                    onPress={() => {
+                      if (q.rel) setRelationship(q.rel);
+                      setComposing(true);
+                    }}
+                  />
+                ))}
+              </View>
+            </View>
+
             <View style={{ gap: spacing.md }}>
               <SectionHeader
                 title={t("family.features.sectionTitle", "What you get")}
@@ -1190,25 +1009,25 @@ export default function FamilyScreen() {
                   },
                 ].map((f, i) => (
                   <Fragment key={f.title}>
-                    {i > 0 ? <Divider inset={spacing.lg + 42 + spacing.md} /> : null}
+                    {i > 0 ? <Divider inset={spacing.lg + 44 + spacing.md} /> : null}
                     <View
                       style={{
                         flexDirection: "row",
-                        alignItems: "center",
+                        alignItems: "flex-start",
                         gap: spacing.md,
                         paddingHorizontal: spacing.lg,
                         paddingVertical: spacing.md + 2,
                       }}
                     >
-                      <IconTile icon={f.icon} tone={f.tone} size={42} />
-                      <View style={{ flex: 1, gap: 2 }}>
+                      <IconTile icon={f.icon} tone={f.tone} size={44} />
+                      <View style={{ flex: 1, gap: 2, paddingTop: 2 }}>
                         <Text style={[typography.title.sm, { color: colors.text }]}>
                           {f.title}
                         </Text>
                         <Text
                           style={[
                             typography.body.sm,
-                            { color: colors.textMuted, lineHeight: 18 },
+                            { color: colors.textMuted, lineHeight: 19 },
                           ]}
                         >
                           {f.description}
@@ -1220,78 +1039,71 @@ export default function FamilyScreen() {
               </Card>
             </View>
 
+            {/* How it works — compact horizontal stepper */}
             <View style={{ gap: spacing.md }}>
               <SectionHeader
                 title={t("family.howTitle", "How it works")}
                 style={{ paddingBottom: 0 }}
               />
-              <Card style={{ paddingVertical: spacing.lg }}>
-                {[
-                  {
-                    title: t("family.how.addTitle", "Add a family member"),
-                    body: t("family.how.addBody", "Create a profile for a child, parent or partner."),
-                  },
-                  {
-                    title: t("family.how.inviteTitle", "Invite with a link"),
-                    body: t("family.how.inviteBody", "Let adults manage their own records securely."),
-                  },
-                  {
-                    title: t("family.how.careTitle", "Care in one place"),
-                    body: t("family.how.careBody", "Track medicines, visits and emergency info together."),
-                  },
-                ].map((s, i, all) => (
-                  <View key={s.title} style={{ flexDirection: "row", gap: spacing.md }}>
-                    {/* Step rail: numbered dot + connector to the next step */}
-                    <View style={{ alignItems: "center", width: 28 }}>
-                      <View
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: i === 0 ? colors.primary : colors.primarySoft,
-                        }}
-                      >
-                        <Text
-                          style={[
-                            typography.label.sm,
-                            { color: i === 0 ? colors.onPrimary : colors.primary },
-                          ]}
-                        >
-                          {i + 1}
-                        </Text>
-                      </View>
-                      {i < all.length - 1 ? (
+              <Card style={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.md }}>
+                <View style={{ flexDirection: "row" }}>
+                  {[
+                    { icon: UserPlus, title: t("family.how.addShort", "Add") , body: t("family.how.addBody", "Create a profile for a child, parent or partner.") },
+                    { icon: Share2, title: t("family.how.inviteShort", "Invite"), body: t("family.how.inviteBody", "Let adults manage their own records securely.") },
+                    { icon: HeartPulse, title: t("family.how.careShort", "Care"), body: t("family.how.careBody", "Track medicines, visits and emergency info together.") },
+                  ].map((s, i, all) => (
+                    <View key={s.title} style={{ flex: 1, alignItems: "center", gap: spacing.sm }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch" }}>
                         <View
                           style={{
                             flex: 1,
-                            width: 2,
-                            minHeight: 18,
-                            marginVertical: 4,
+                            height: 2,
                             borderRadius: 1,
-                            backgroundColor: colors.primarySoft,
+                            backgroundColor: i === 0 ? "transparent" : colors.primarySoft,
                           }}
                         />
-                      ) : null}
-                    </View>
-                    <View
-                      style={{
-                        flex: 1,
-                        gap: 2,
-                        paddingTop: 3,
-                        paddingBottom: i < all.length - 1 ? spacing.md : 0,
-                      }}
-                    >
-                      <Text style={[typography.title.sm, { color: colors.text }]}>
+                        <View
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: i === 0 ? colors.primary : colors.primarySoft,
+                          }}
+                        >
+                          <s.icon
+                            size={19}
+                            color={i === 0 ? colors.onPrimary : colors.primary}
+                            strokeWidth={2.3}
+                          />
+                        </View>
+                        <View
+                          style={{
+                            flex: 1,
+                            height: 2,
+                            borderRadius: 1,
+                            backgroundColor: i === all.length - 1 ? "transparent" : colors.primarySoft,
+                          }}
+                        />
+                      </View>
+                      <Text style={[typography.overline, { color: colors.primary, fontSize: 10 }]}>
+                        {t("family.how.step", { n: i + 1, defaultValue: `Step ${i + 1}` })}
+                      </Text>
+                      <Text style={[typography.title.sm, { color: colors.text, marginTop: -4 }]}>
                         {s.title}
                       </Text>
-                      <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                      <Text
+                        style={[
+                          typography.caption,
+                          { color: colors.textMuted, textAlign: "center", paddingHorizontal: 4 },
+                        ]}
+                      >
                         {s.body}
                       </Text>
                     </View>
-                  </View>
-                ))}
+                  ))}
+                </View>
               </Card>
             </View>
 
@@ -1800,9 +1612,65 @@ function AuroraSurface({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Relationship shortcut on the empty state — opens the form preset. */
+function QuickStartTile({
+  icon: Icon,
+  tone,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  tone: Tone;
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  const pal = useTone(tone);
+  return (
+    <Pressable
+      onPress={onPress}
+      haptic="light"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[
+        {
+          flexBasis: "30%",
+          flexGrow: 1,
+          alignItems: "center",
+          gap: spacing.sm,
+          paddingVertical: spacing.md + 2,
+          paddingHorizontal: spacing.xs,
+          borderRadius: 20,
+          borderCurve: "continuous",
+          backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
+        },
+        scheme === "dark" ? null : shadow.xs,
+      ]}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: pal.bg,
+        }}
+      >
+        <Icon size={20} color={pal.fg} strokeWidth={2.3} />
+      </View>
+      <Text style={[typography.label.md, { color: colors.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /**
- * Pinned bottom action bar for the empty state — keeps the primary action
- * reachable without scrolling, and dissolves the list into the canvas.
+ * Pinned bottom action bar for the empty state — one full-width primary
+ * action, with the invite path as a quieter secondary line underneath.
  */
 function FamilyActionBar({
   onAdd,
@@ -1812,40 +1680,49 @@ function FamilyActionBar({
   onInvite: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, scheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View>
-      <View
+    <View
+      style={{
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.hairline,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        paddingBottom: Math.max(insets.bottom, spacing.md),
+        backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+        gap: spacing.sm,
+      }}
+    >
+      <Button
+        title={t("family.addLabel", "Add family member")}
+        icon={Plus}
+        size="lg"
+        variant="primary"
+        onPress={onAdd}
+      />
+      <Pressable
+        onPress={onInvite}
+        haptic="light"
+        accessibilityRole="button"
+        accessibilityLabel={t("family.invite.buttonTitle", "Invite by link")}
         style={{
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.hairline,
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          paddingBottom: Math.max(insets.bottom, spacing.md),
-          backgroundColor: colors.bg,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          paddingVertical: spacing.sm,
         }}
       >
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <Button
-            title={t("family.invite.buttonTitle", "Invite by link")}
-            icon={Share2}
-            size="lg"
-            variant="secondary"
-            onPress={onInvite}
-            style={{ flex: 1 }}
-          />
-          <Button
-            title={t("family.addLabel", "Add family member")}
-            icon={Plus}
-            size="lg"
-            variant="primary"
-            onPress={onAdd}
-            style={{ flex: 1.4 }}
-          />
-        </View>
-      </View>
+        <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+          {t("family.invite.prompt", "Adult with their own phone?")}
+        </Text>
+        <Share2 size={14} color={colors.primary} strokeWidth={2.5} />
+        <Text style={[typography.label.lg, { color: colors.primary }]}>
+          {t("family.invite.buttonTitle", "Invite by link")}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -1912,41 +1789,36 @@ function MemberAction({
 }
 
 /** Section header inside the composer cards */
-function FormSectionHeader({
-  icon: Icon,
+/** Overline-titled grouped card used by the add-member form. */
+function ComposeSection({
   title,
-  subtitle,
+  trailing,
+  children,
 }: {
-  icon: LucideIcon;
   title: string;
-  subtitle?: string;
+  trailing?: string;
+  children: React.ReactNode;
 }) {
   const { spacing, typography, colors } = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.xs }}>
+    <View style={{ marginBottom: spacing.xl }}>
       <View
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          borderCurve: "continuous",
-          backgroundColor: colors.primarySoft,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "space-between",
+          marginBottom: 10,
+          marginHorizontal: 4,
         }}
       >
-        <Icon size={16} color={colors.primary} strokeWidth={2.2} />
+        <Text style={[typography.overline, { color: colors.textMuted }]}>{title}</Text>
+        {trailing ? (
+          <Text style={[typography.caption, { color: colors.textSubtle }]}>{trailing}</Text>
+        ) : null}
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[typography.title.md, { color: colors.text }]}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 1 }]}>
-            {subtitle}
-          </Text>
-        )}
-      </View>
+      <Card padded={false}>
+        <View style={{ padding: spacing.lg, gap: spacing.lg }}>{children}</View>
+      </Card>
     </View>
   );
 }

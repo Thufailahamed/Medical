@@ -19,7 +19,7 @@ export function CareAssistant({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "patient-ink-glow anim-rise anim-rise-delay-2 relative flex h-full flex-col justify-between overflow-hidden p-5 text-white sm:p-6",
+        "patient-ink-glow anim-rise anim-rise-delay-2 relative flex h-full flex-col overflow-hidden p-5 text-white",
         className,
       )}
       style={{
@@ -27,67 +27,58 @@ export function CareAssistant({ className }: { className?: string }) {
         boxShadow: "var(--shadow-float)",
       }}
     >
-      <div className="relative z-10">
-        <div className="relative flex flex-wrap items-center gap-2">
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full border border-white/10"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-2 -top-2 h-24 w-24 rounded-full border border-white/10"
+        aria-hidden
+      />
+
+      <div className="relative z-10 flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2">
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-white/10 text-sky-200">
+            <Sparkles size={17} aria-hidden />
+          </span>
           <p className="pt-hero-kicker">Care insights</p>
-          {unread > 0 ? (
-            <span
-              className="inline-flex items-center gap-1 bg-brand px-2.5 py-1 text-[11px] font-semibold text-white"
-              style={{ borderRadius: "var(--radius-pill)" }}
-            >
-              <MessageSquare size={12} aria-hidden />
-              {unread} unread
-            </span>
-          ) : (
-            <span
-              className="inline-flex items-center gap-1 border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/85"
-              style={{ borderRadius: "var(--radius-pill)" }}
-            >
-              <Sparkles size={12} aria-hidden />
-              AI ready
-            </span>
-          )}
-        </div>
-        <h3 className="mt-3 text-lg font-bold tracking-tight sm:text-xl">
-          Questions about your plan?
-        </h3>
-        <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/65">
-          Ask about medicines, vitals, or what's next — with your record
-          attached.
-        </p>
+        </span>
+        {unread > 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white">
+            <MessageSquare size={12} aria-hidden />
+            {unread} unread
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-white/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+            AI ready
+          </span>
+        )}
       </div>
 
-      <div className="relative z-10 mt-6 flex flex-wrap gap-2">
+      <h3 className="relative z-10 mt-4 font-display text-lg font-semibold tracking-[-0.02em]">
+        Questions about your plan?
+      </h3>
+      <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-white/65">
+        Ask about medicines, vitals, or what&apos;s next — with your record attached.
+      </p>
+
+      <div className="relative z-10 mt-5 grid grid-cols-2 gap-2">
         <Link
           href="/patient/ai/chat"
           data-testid="ask-ai-cta"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-4 text-sm font-bold text-ink-card transition-all hover:translate-y-[-1px]"
-          style={{
-            boxShadow: "var(--shadow-brand)",
-          }}
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-white text-sm font-semibold text-ink-card transition-all hover:-translate-y-px hover:bg-sky-50"
         >
           <Sparkles size={15} aria-hidden />
           Ask AI
         </Link>
         <Link
           href="/patient/messages"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-4 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
         >
           <MessageSquare size={15} aria-hidden />
           Messages
         </Link>
-      </div>
-
-      <div
-        className="pointer-events-none absolute -right-6 top-1/2 h-36 w-36 -translate-y-1/2 opacity-35"
-        aria-hidden
-      >
-        <div
-          className="absolute inset-4 rounded-full border border-brand/50"
-          style={{ transform: "rotateX(60deg)" }}
-        />
-        <div className="absolute inset-8 rounded-full border border-white/20" />
-        <div className="absolute inset-12 rounded-full bg-brand/30 blur-xl" />
       </div>
     </div>
   );

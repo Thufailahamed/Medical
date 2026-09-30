@@ -20,6 +20,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { users } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import { requirePasskeyFresh } from "../middleware/stepup";
 import { getJwtSecret } from "../lib/jwt-secret";
 import { generateToken } from "../lib/crypto";
@@ -34,7 +35,7 @@ const startSchema = z.object({
 
 const impersonateRouter = new Hono<AppEnvironment>();
 
-impersonateRouter.use("*", requireAdmin);
+impersonateRouter.use("*", authMiddleware, requireAdmin);
 
 impersonateRouter.post("/start", requirePasskeyFresh, async (c) => {
   const db = c.get("db");

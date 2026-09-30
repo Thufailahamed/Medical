@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Users as UsersIcon,
   HeartPulse,
+  CheckCircle2,
 } from "lucide-react-native";
 import {
   Screen,
@@ -125,6 +126,11 @@ export default function AdminDashboard() {
   ];
 
   const attentionTotal = attention.reduce((s, i) => s + i.count, 0);
+  // No data at all (first load failed) — never claim "all clear" or show fake zeros.
+  const unavailable = isError && !data;
+  const hot = attention.filter((i) => i.count > 0).sort((a, b) => b.count - a.count);
+  const quiet = attention.filter((i) => i.count === 0);
+  const statValue = (n: number) => (unavailable ? "—" : isLoading ? "…" : String(n));
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -145,8 +151,12 @@ export default function AdminDashboard() {
           eyebrow={`Admin console · ${today}`}
           title={`Welcome${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`}
           subtitle={
-            attentionTotal > 0
-              ? `${attentionTotal} items need your attention`
+            unavailable
+              ? "Live data unavailable right now"
+              : isLoading
+              ? "Checking your queues…"
+              : attentionTotal > 0
+              ? `${attentionTotal} item${attentionTotal === 1 ? "" : "s"} need${attentionTotal === 1 ? "s" : ""} your attention`
               : "All queues are clear"
           }
           right={
@@ -173,17 +183,17 @@ export default function AdminDashboard() {
           stats={[
             {
               icon: UsersIcon,
-              value: String(totals.total),
+              value: statValue(totals.total),
               label: "Users",
             },
             {
               icon: UserCheck,
-              value: String(attentionTotal),
+              value: statValue(attentionTotal),
               label: "To review",
             },
             {
               icon: CalendarClock,
-              value: String(data?.today.appointments ?? 0),
+              value: statValue(data?.today.appointments ?? 0),
               label: "Appts today",
             },
           ]}
@@ -198,33 +208,67 @@ export default function AdminDashboard() {
         }}
       >
         {isError ? (
-          <AdminError message="Couldn't load the dashboard. Pull to refresh." />
+          <AdminError
+            title="Couldn't load the dashboard"
+            message="Check your connection, then retry or pull to refresh."
+            onRetry={() => refetch()}
+            retrying={isRefetching}
+          />
         ) : null}
 
         {isLoading ? (
           <ListSkeleton rows={6} />
         ) : (
           <>
-            {/* ─── Needs attention ─── */}
-            <View>
-              <AdminSection title="Needs attention" count={attentionTotal} />
-              <AdminCard style={{ padding: 0 }}>
-                {attention.map((item, i) => (
-                  <React.Fragment key={item.label}>
-                    {i > 0 ? <RowDivider inset={spacing.lg + 34 + spacing.md} /> : null}
-                    <AttentionRow
+            {/* ─── Needs attention: only queues with work in them ─── */}
+            {!unavailable ? (
+              <View>
+                <AdminSection
+                  title="Needs attention"
+                  count={attentionTotal > 0 ? attentionTotal : undefined}
+                />
+                {hot.length > 0 ? (
+                  <AdminCard style={{ padding: 0 }}>
+                    {hot.map((item, i) => (
+                      <React.Fragment key={item.label}>
+                        {i > 0 ? <RowDivider inset={spacing.lg + 40 + spacing.md} /> : null}
+                        <AttentionRow
+                          icon={item.icon}
+                          tone={item.tone}
+                          label={item.label}
+                          count={item.count}
+                          onPress={() => router.push(item.route as any)}
+                        />
+                      </React.Fragment>
+                    ))}
+                  </AdminCard>
+                ) : (
+                  <AllClearCard />
+                )}
+              </View>
+            ) : null}
+
+            {/* ─── Every queue, as compact shortcuts ─── */}
+            {(unavailable ? attention : quiet).length > 0 ? (
+              <View>
+                <AdminSection title={hot.length > 0 ? "Other queues" : "Queues"} />
+                <StatGrid>
+                  {(unavailable ? attention : quiet).map((item) => (
+                    <QueueTile
+                      key={item.label}
                       icon={item.icon}
                       tone={item.tone}
                       label={item.label}
-                      count={item.count}
                       onPress={() => router.push(item.route as any)}
                     />
-                  </React.Fragment>
-                ))}
-              </AdminCard>
-            </View>
+                  ))}
+                </StatGrid>
+              </View>
+            ) : null}
 
             {/* ─── Platform metrics ─── */}
+            {!unavailable ? (
+            <>
             <View>
               <AdminSection title="Platform" />
               <StatGrid>
@@ -281,6 +325,8 @@ export default function AdminDashboard() {
                 />
               </StatGrid>
             </View>
+            </>
+            ) : null}
 
             {/* ─── Quick actions ─── */}
             <View>
@@ -346,33 +392,96 @@ function AttentionRow({
   onPress: () => void;
 }) {
   const { colors, spacing, typography } = useTheme();
-  const hot = count > 0;
   return (
     <Pressable
       onPress={onPress}
       haptic="light"
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${count}`}
-      style={{
+      style={({ pressed }: { pressed: boolean }) => ({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
-        minHeight: 60,
-      }}
+        minHeight: 64,
+        backgroundColor: pressed ? colors.fill : "transparent",
+      })}
     >
-      <IconTile icon={icon} tone={hot ? tone : "neutral"} size={34} />
-      <Text
-        style={[
-          typography.title.sm,
-          { color: hot ? colors.text : colors.textMuted, flex: 1 },
-        ]}
-      >
+      <IconTile icon={icon} tone={tone} size={40} />
+      <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]} numberOfLines={2}>
         {label}
       </Text>
       <CountBadge count={count} />
-      <ChevronRight size={16} color={colors.textSubtle} />
+      <View
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.well,
+        }}
+      >
+        <ChevronRight size={14} color={colors.textMuted} strokeWidth={2.4} />
+      </View>
     </Pressable>
+  );
+}
+
+/** Compact tappable tile for a queue with nothing waiting in it. */
+function QueueTile({
+  icon,
+  tone,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  tone: React.ComponentProps<typeof IconTile>["tone"];
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <AdminCard onPress={onPress} style={{ padding: spacing.md, minHeight: 104 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <IconTile icon={icon} tone={tone} size={34} />
+        <ChevronRight size={15} color={colors.textSubtle} />
+      </View>
+      <Text
+        style={[typography.label.md, { color: colors.text, marginTop: spacing.sm + 2 }]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
+    </AdminCard>
+  );
+}
+
+/** Replaces the attention list when every queue is empty. */
+function AllClearCard() {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <AdminCard tone="success" style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.surface,
+        }}
+      >
+        <CheckCircle2 size={22} color={colors.success} strokeWidth={2.3} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.title.sm, { color: colors.text }]}>You're all caught up</Text>
+        <Text style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}>
+          No approvals, verifications, claims or requests are waiting.
+        </Text>
+      </View>
+    </AdminCard>
   );
 }

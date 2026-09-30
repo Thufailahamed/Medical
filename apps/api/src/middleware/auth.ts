@@ -91,6 +91,18 @@ export async function authMiddleware(c: Context<AppEnvironment>, next: Next) {
   }
 
   // ── Normal JWT auth ──────────────────────────────────────
+  // Idempotency: if this request was already authenticated upstream
+  // (dbUser + aud both present), don't re-verify. Production never
+  // sets these before authMiddleware runs, so this is a no-op there —
+  // it exists so unit-test harnesses can stub the identity without
+  // going through JWT verification per test. The dedicated
+  // tests/admin/auth-wiring.test.ts exercises the REAL chain with
+  // signed tokens to guard against routers missing authMiddleware.
+  if (c.get("dbUser") && c.get("aud")) {
+    await next();
+    return;
+  }
+
   const authHeader = c.req.header("Authorization");
   // SSE fallback: EventSource can't set custom headers, so the
   // /realtime route accepts the JWT via ?token= query param. Scoped

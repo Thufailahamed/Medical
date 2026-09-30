@@ -5,6 +5,8 @@ import { Bell, CheckCircle2 } from "lucide-react";
 import { useNotifications } from "@/patient/hooks";
 import type { PatientNotification } from "@/patient/hooks/notifications-feed";
 import { cn } from "@/portal/lib/utils";
+import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -53,84 +55,72 @@ export function NotificationsPreview({ className }: { className?: string }) {
   const loading = q.isLoading;
   const items: PatientNotification[] = (q.data?.notifications ?? []).slice(0, 5);
 
+  const unread = items.filter((n) => !n.read).length;
+
   return (
-    <section
-      aria-labelledby="notif-heading"
-      className={cn(
-        "anim-rise anim-rise-delay-1 flex h-full flex-col justify-between rounded-xl bg-surface p-5 md:p-6 shadow-card transition-all",
-        className,
-      )}
+    <Card
+      as="section"
+      className={cn("anim-rise anim-rise-delay-1 flex h-full flex-col", className)}
     >
       <div>
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
-              aria-hidden
-            >
-              <Bell size={16} />
-            </div>
-            <div>
-              <h2 id="notif-heading" className="text-sm font-bold text-text tracking-tight">
-                Notifications
-              </h2>
-              <p className="text-[11px] font-medium text-text-muted">
-                Recent updates &amp; alerts
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/patient/notifications"
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
-          >
-            <span>View all</span>
-            <span aria-hidden>→</span>
-          </Link>
-        </header>
+        <CardHeader
+          title="Notifications"
+          caption={unread > 0 ? `${unread} unread` : "Recent updates & alerts"}
+          icon={<Bell size={16} aria-hidden />}
+          href="/patient/notifications"
+          linkLabel="View all"
+        />
 
         {loading ? (
-          <ul data-testid="notif-skeleton" className="space-y-2.5">
+          <ul data-testid="notif-skeleton" className="mt-4 space-y-2.5">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="h-12 rounded-xl patient-shimmer rounded-xl" />
+              <li key={i} className="h-11 rounded-lg patient-shimmer" />
             ))}
           </ul>
         ) : items.length === 0 ? (
-          <div className="my-6 flex items-center gap-2.5 rounded-xl border border-dashed border-border bg-surface-2/70 p-4 text-xs font-medium text-text-soft">
-            <CheckCircle2 size={16} className="text-emerald-500 shrink-0" aria-hidden />
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-surface-2 p-3.5 text-sm text-text-soft">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-success-soft text-success">
+              <CheckCircle2 size={16} aria-hidden />
+            </span>
             <span>You&apos;re all caught up. No unread alerts.</span>
           </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="mt-3 divide-y divide-border">
             {items.map((n) => (
               <li key={n.id}>
                 <Link
                   href={notificationHref(n)}
                   data-testid="notif-row"
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface-2/40 hover:bg-blue-50/30 hover:border-blue-200/80 px-3.5 py-2.5 transition-all"
+                  className="group -mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2"
                 >
                   <span
                     className={cn(
-                      "h-2 w-2 shrink-0 rounded-full",
+                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
                       SEVERITY[n.type] ?? "bg-text-muted",
                     )}
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs md:text-[13px] font-bold text-text group-hover:text-brand transition-colors">
+                    <span
+                      className={cn(
+                        "block truncate text-[13px] text-text transition-colors group-hover:text-brand",
+                        n.read ? "font-medium" : "font-semibold",
+                      )}
+                    >
                       {n.title}
                     </span>
                     {n.body ? (
-                      <span className="block truncate text-[11px] text-text-soft mt-0.5">
+                      <span className="mt-0.5 block truncate text-xs text-text-muted">
                         {n.body}
                       </span>
                     ) : null}
                   </span>
-                  <span className="text-[11px] font-medium text-text-muted shrink-0">
+                  <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-[11px] text-text-muted">
                     {relativeTime(n.createdAt)}
+                    {!n.read ? (
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-label="unread" />
+                    ) : null}
                   </span>
-                  {!n.read ? (
-                    <span className="h-2 w-2 rounded-full bg-brand shrink-0" aria-label="unread" />
-                  ) : null}
                 </Link>
               </li>
             ))}
@@ -138,15 +128,14 @@ export function NotificationsPreview({ className }: { className?: string }) {
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
-        <span className="text-[10px] text-text-muted">Activity stream</span>
+      <div className="mt-auto flex items-center justify-end pt-4">
         <Link
           href="/patient/notifications"
-          className="text-xs font-semibold text-brand hover:underline"
+          className="text-xs font-medium text-text-muted hover:text-brand"
         >
-          Notification settings →
+          Notification settings
         </Link>
       </div>
-    </section>
+    </Card>
   );
 }

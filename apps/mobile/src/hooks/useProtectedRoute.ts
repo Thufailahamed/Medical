@@ -23,13 +23,27 @@ const DEV_USER = {
 /** Canonical role → route-group home. super_admin lands on the admin
  * portal; doctor/caretaker on theirs; everyone else on the patient app. */
 export function homeForRole(role: string | null | undefined): string {
-  return role === "super_admin"
+  return role === "super_admin" || role === "admin"
     ? "/(admin)"
     : role === "doctor"
     ? "/(doctor)"
     : role === "caretaker"
     ? "/(caretaker)"
     : "/(app)";
+}
+
+/** Route group a role is allowed to sit in. Used to bounce users who
+ * landed in the wrong group (e.g. a doctor stuck on /(app) after a
+ * buggy MFA-enroll finish) back to their canonical home instead of
+ * showing an empty patient screen. */
+function groupForRole(role: string | null | undefined): string {
+  return role === "super_admin" || role === "admin"
+    ? "(admin)"
+    : role === "doctor"
+    ? "(doctor)"
+    : role === "caretaker"
+    ? "(caretaker)"
+    : "(app)";
 }
 
 export function useProtectedRoute(isReady: boolean = true) {
@@ -81,8 +95,9 @@ export function useProtectedRoute(isReady: boolean = true) {
     if (!isReady || isLoading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inLockGroup = segments[0] === "lock";
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !inLockGroup) {
       const t = setTimeout(() => {
         router.replace("/(auth)/login");
       }, 0);
@@ -94,6 +109,25 @@ export function useProtectedRoute(isReady: boolean = true) {
         router.replace(home as any);
       }, 0);
       return () => clearTimeout(t);
+    } else if (isAuthenticated && !inAuthGroup && !inLockGroup) {
+      // Already signed in but sitting in the wrong role group (e.g. a
+      // doctor on /(app) after a stale MFA-enroll finish). Bounce to
+      // the canonical home so screens call role-correct endpoints
+      // instead of rendering empty 403 states.
+      const role = (useAuthStore.getState().user as any)?.role;
+      const expected = groupForRole(role);
+      const current = segments[0];
+      if (
+        current &&
+        current !== expected &&
+        ["(app)", "(doctor)", "(admin)", "(caretaker)"].includes(current)
+      ) {
+        const home = homeForRole(role);
+        const t = setTimeout(() => {
+          router.replace(home as any);
+        }, 0);
+        return () => clearTimeout(t);
+      }
     }
   }, [isReady, isAuthenticated, isLoading, segments]);
 }

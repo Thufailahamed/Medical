@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   Stethoscope,
@@ -46,6 +47,7 @@ import {
 type FilterTab = "all" | "hospitals" | "clinics";
 
 export default function PatientTenants() {
+  const { t } = useTranslation();
   const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
   const router = useRouter();
 
@@ -99,19 +101,18 @@ export default function PatientTenants() {
 
   const filteredHospitals = useMemo(() => {
     if (!query) return myHospitals;
-    return myHospitals.filter((h) =>
-      (h.name || "").toLowerCase().includes(query)
-    );
+    return myHospitals.filter((h) => (h.name || "").toLowerCase().includes(query));
   }, [myHospitals, query]);
 
   const filteredClinics = useMemo(() => {
     if (!query) return myClinics;
-    return myClinics.filter((c) =>
-      (c.name || "").toLowerCase().includes(query)
-    );
+    return myClinics.filter((c) => (c.name || "").toLowerCase().includes(query));
   }, [myClinics, query]);
 
   const totalCount = myHospitals.length + myClinics.length;
+  // Search and filter only earn their space once the list is long enough to need them.
+  const showTools = totalCount >= 4;
+  const tab = showTools ? activeTab : "all";
   const isDark = scheme === "dark";
   const openHealthId = () => router.push("/(app)/health-id" as any);
 
@@ -125,23 +126,30 @@ export default function PatientTenants() {
   };
 
   const tabs: { key: FilterTab; label: string; count: number; icon: any }[] = [
-    { key: "all", label: "All", count: totalCount, icon: Layers },
-    { key: "hospitals", label: "Hospitals", count: myHospitals.length, icon: Building2 },
-    { key: "clinics", label: "Clinics", count: myClinics.length, icon: Stethoscope },
+    { key: "all", label: t("careNetwork.tabs.all", "All"), count: totalCount, icon: Layers },
+    { key: "hospitals", label: t("careNetwork.tabs.hospitals", "Hospitals"), count: myHospitals.length, icon: Building2 },
+    { key: "clinics", label: t("careNetwork.tabs.clinics", "Clinics"), count: myClinics.length, icon: Stethoscope },
   ];
+
+  const breakdown = [
+    myHospitals.length ? t("careNetwork.hospitalCount", { count: myHospitals.length }) : null,
+    myClinics.length ? t("careNetwork.clinicCount", { count: myClinics.length }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Screen padded={false}>
       <ScreenHeader
-        title="Hospitals & Clinics"
-        subtitle="Your connected care network"
+        title={t("careNetwork.title", "Hospitals & Clinics")}
+        subtitle={t("careNetwork.subtitle", "Your connected care network")}
         back={true}
         right={
           <IconButton
             icon={QrCode}
             variant="soft"
             onPress={openHealthId}
-            accessibilityLabel="Show Health ID QR"
+            accessibilityLabel={t("careNetwork.showQrA11y", "Show Health ID QR")}
           />
         }
       />
@@ -152,13 +160,11 @@ export default function PatientTenants() {
           paddingTop: spacing.xs,
           paddingBottom: spacing.xxxxl,
         }}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Network hero ── */}
+        {/* ── Network hero (compact: counts live in the sections below) ── */}
         <LinearGradient
           colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -183,91 +189,39 @@ export default function PatientTenants() {
               backgroundColor: "rgba(255,255,255,0.10)",
             }}
           />
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              width: 150,
-              height: 150,
-              borderRadius: 75,
-              bottom: -70,
-              left: -50,
-              backgroundColor: "rgba(255,255,255,0.07)",
-            }}
-          />
 
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-              <IconTile icon={ShieldCheck} appearance="glass" size={34} />
-              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.85)" }]}>
-                CONNECTED CARE
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+            <IconTile icon={ShieldCheck} appearance="glass" size={48} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.8)", textTransform: "uppercase" }]}>
+                {t("careNetwork.hero.kicker", "Connected care")}
               </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                height: 26,
-                paddingHorizontal: 10,
-                borderRadius: 13,
-                backgroundColor: "rgba(255,255,255,0.16)",
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: "rgba(255,255,255,0.28)",
-              }}
-            >
-              <View
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: 4,
-                  backgroundColor: totalCount > 0 ? "#4ADE80" : "rgba(255,255,255,0.55)",
-                }}
-              />
-              <Text style={[typography.label.xs, { color: "#FFFFFF" }]}>
-                {totalCount > 0 ? "Syncing" : "Not linked"}
+              <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 2 }]} numberOfLines={1}>
+                {totalCount > 0
+                  ? t("careNetwork.hero.linked", { count: totalCount })
+                  : t("careNetwork.hero.none", "No facilities linked")}
               </Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, marginTop: spacing.lg }}>
-            <Text style={[typography.display.lg, { color: "#FFFFFF" }]}>{totalCount}</Text>
-            <Text style={[typography.title.sm, { color: "rgba(255,255,255,0.9)", marginBottom: 6 }]}>
-              linked {totalCount === 1 ? "facility" : "facilities"}
-            </Text>
-          </View>
-          <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.82)", marginTop: 2 }]}>
-            Records, lab results and prescriptions sync to your timeline automatically.
-          </Text>
-
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
-            {[
-              { n: myHospitals.length, l: myHospitals.length === 1 ? "Hospital" : "Hospitals", icon: Building2 },
-              { n: myClinics.length, l: myClinics.length === 1 ? "Clinic" : "Clinics", icon: Stethoscope },
-            ].map((s) => (
-              <View
-                key={s.l}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.sm + 2,
-                  padding: spacing.md,
-                  borderRadius: 18,
-                  borderCurve: "continuous",
-                  backgroundColor: "rgba(255,255,255,0.14)",
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.22)",
-                }}
-              >
-                <IconTile icon={s.icon} appearance="glass" size={34} />
-                <View>
-                  <Text style={[typography.title.lg, { color: "#FFFFFF" }]}>{s.n}</Text>
-                  <Text style={[typography.caption, { color: "rgba(255,255,255,0.78)" }]}>{s.l}</Text>
-                </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 4,
+                    backgroundColor: totalCount > 0 ? "#4ADE80" : "rgba(255,255,255,0.55)",
+                  }}
+                />
+                <Text style={[typography.label.sm, { color: "rgba(255,255,255,0.88)" }]} numberOfLines={1}>
+                  {totalCount > 0
+                    ? [t("careNetwork.hero.syncing", "Syncing"), breakdown].filter(Boolean).join(" · ")
+                    : t("careNetwork.hero.notLinked", "Not linked")}
+                </Text>
               </View>
-            ))}
+            </View>
           </View>
+
+          <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.84)", marginTop: spacing.md }]}>
+            {t("careNetwork.hero.body", "Records, lab results and prescriptions sync to your timeline automatically.")}
+          </Text>
 
           <Pressable
             onPress={openHealthId}
@@ -284,138 +238,150 @@ export default function PatientTenants() {
               backgroundColor: "#FFFFFF",
             }}
           >
-            <Plus size={17} color={colors.primary} strokeWidth={2.6} />
-            <Text style={[typography.label.lg, { color: colors.primary }]}>Link a new facility</Text>
+            <QrCode size={17} color={colors.primary} strokeWidth={2.4} />
+            <Text style={[typography.label.lg, { color: colors.primary }]}>
+              {t("careNetwork.hero.cta", "Link a new facility")}
+            </Text>
           </Pressable>
         </LinearGradient>
 
-        {/* ── Search ── */}
-        <View
-          style={{
-            ...surfaceCard,
-            borderRadius: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            height: 48,
-            paddingHorizontal: 14,
-            marginTop: spacing.xl,
-          }}
-        >
-          <Search size={18} color={colors.textSubtle} strokeWidth={2.2} />
-          <RNTextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search hospitals and clinics"
-            placeholderTextColor={colors.textSubtle}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            style={{
-              flex: 1,
-              height: "100%",
-              paddingHorizontal: spacing.sm,
-              fontSize: 15,
-              fontFamily: typography.body.md.fontFamily,
-              color: colors.text,
-            }}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              hitSlop={8}
-              accessibilityLabel="Clear search"
+        {showTools ? (
+          <>
+            {/* ── Search ── */}
+            <View
               style={{
-                width: 20,
-                height: 20,
-                borderRadius: 10,
-                backgroundColor: colors.textSubtle,
+                ...surfaceCard,
+                borderRadius: 16,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
+                height: 48,
+                paddingHorizontal: 14,
+                marginTop: spacing.xl,
               }}
             >
-              <X size={12} color={colors.surface} strokeWidth={3} />
-            </Pressable>
-          )}
-        </View>
-
-        {/* ── Segmented filter ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            marginTop: spacing.md,
-            padding: 4,
-            borderRadius: 16,
-            borderCurve: "continuous",
-            backgroundColor: colors.fill,
-          }}
-        >
-          {tabs.map((tab) => {
-            const active = activeTab === tab.key;
-            const Icon = tab.icon;
-            return (
-              <Pressable
-                key={tab.key}
-                onPress={() => setActiveTab(tab.key)}
-                hapticOnPress
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                style={[
-                  {
-                    flex: 1,
-                    flexDirection: "row",
+              <Search size={18} color={colors.textSubtle} strokeWidth={2.2} />
+              <RNTextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={t("careNetwork.searchPlaceholder", "Search hospitals and clinics")}
+                placeholderTextColor={colors.textSubtle}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                style={{
+                  flex: 1,
+                  height: "100%",
+                  paddingHorizontal: spacing.sm,
+                  fontSize: 15,
+                  fontFamily: typography.body.md.fontFamily,
+                  color: colors.text,
+                }}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  onPress={() => setSearchQuery("")}
+                  hitSlop={8}
+                  accessibilityLabel={t("careNetwork.clearSearch", "Clear search")}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: colors.textSubtle,
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 6,
-                    height: 38,
-                    borderRadius: 12,
-                    borderCurve: "continuous",
-                    backgroundColor: active ? colors.surface : "transparent",
-                  },
-                  active && !isDark ? shadow.sm : null,
-                ]}
-              >
-                <Icon size={14} color={active ? colors.primary : colors.textSubtle} strokeWidth={2.3} />
-                <Text
-                  style={[typography.label.md, { color: active ? colors.text : colors.textMuted }]}
-                  numberOfLines={1}
+                  }}
                 >
-                  {tab.label}
-                </Text>
-                <Text style={[typography.label.xs, { color: active ? colors.primary : colors.textSubtle }]}>
-                  {tab.count}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <X size={12} color={colors.surface} strokeWidth={3} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* ── Segmented filter ── */}
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: spacing.md,
+                padding: 4,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: colors.fill,
+              }}
+            >
+              {tabs.map((tb) => {
+                const active = activeTab === tb.key;
+                const Icon = tb.icon;
+                return (
+                  <Pressable
+                    key={tb.key}
+                    onPress={() => setActiveTab(tb.key)}
+                    hapticOnPress
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    style={[
+                      {
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        height: 38,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: active ? colors.surface : "transparent",
+                      },
+                      active && !isDark ? shadow.sm : null,
+                    ]}
+                  >
+                    <Icon size={14} color={active ? colors.primary : colors.textSubtle} strokeWidth={2.3} />
+                    <Text
+                      style={[typography.label.md, { color: active ? colors.text : colors.textMuted }]}
+                      numberOfLines={1}
+                    >
+                      {tb.label}
+                    </Text>
+                    <Text style={[typography.label.xs, { color: active ? colors.primary : colors.textSubtle }]}>
+                      {tb.count}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
 
         {/* ── Hospitals ── */}
-        {(activeTab === "all" || activeTab === "hospitals") && (
+        {(tab === "all" || tab === "hospitals") && (
           <View style={{ gap: spacing.md }}>
             <SectionHeader
-              kicker="Registered at"
-              title="Hospitals"
-              count={filteredHospitals.length}
+              kicker={t("careNetwork.hospitals.kicker", "Registered at")}
+              title={t("careNetwork.hospitals.title", "Hospitals")}
+              count={filteredHospitals.length || undefined}
               style={{ paddingBottom: 0 }}
             />
             {filteredHospitals.length === 0 ? (
-              activeTab === "all" ? (
+              tab === "all" && !query ? (
                 <CompactEmptyStrip
                   icon={Building2}
-                  title={searchQuery ? "No matching hospitals" : "No hospitals linked yet"}
-                  subtitle="Show your Health ID at admission to link"
+                  title={t("careNetwork.hospitals.emptyTitle", "No hospitals linked yet")}
+                  subtitle={t("careNetwork.hospitals.emptyHint", "Show your Health ID at admission to link")}
+                  cta={t("careNetwork.showQr", "Show QR")}
                   onPress={openHealthId}
                 />
               ) : (
                 <FullEmptyCard
                   icon={Building2}
-                  title={searchQuery ? "No matching hospitals" : "No hospitals yet"}
-                  body={
-                    searchQuery
-                      ? `No hospitals match "${searchQuery}". Try a different name.`
-                      : "Register at any partner hospital or present your Health ID at admission to sync your records."
+                  title={
+                    query
+                      ? t("careNetwork.hospitals.noMatch", "No matching hospitals")
+                      : t("careNetwork.hospitals.emptyTitle", "No hospitals linked yet")
                   }
-                  showCta={!searchQuery}
+                  body={
+                    query
+                      ? t("careNetwork.noMatchBody", { query: searchQuery.trim() })
+                      : t("careNetwork.hospitals.emptyBody")
+                  }
+                  showCta={!query}
+                  cta={t("careNetwork.viewHealthId", "View my Health ID")}
                   onCtaPress={openHealthId}
                 />
               )
@@ -426,8 +392,7 @@ export default function PatientTenants() {
                   facility={h}
                   icon={Building2}
                   tone="primary"
-                  typeLabel="Hospital"
-                  typeSubtitle="Hospital · Inpatient care"
+                  typeSubtitle={t("careNetwork.hospitals.type", "Hospital · Inpatient care")}
                   isActive={h.id === activeHospitalId}
                   onPress={() => go("hospital", h.id)}
                 />
@@ -437,32 +402,38 @@ export default function PatientTenants() {
         )}
 
         {/* ── Clinics ── */}
-        {(activeTab === "all" || activeTab === "clinics") && (
+        {(tab === "all" || tab === "clinics") && (
           <View style={{ gap: spacing.md }}>
             <SectionHeader
-              kicker="Outpatient"
-              title="Clinics"
-              count={filteredClinics.length}
+              kicker={t("careNetwork.clinics.kicker", "Outpatient")}
+              title={t("careNetwork.clinics.title", "Clinics")}
+              count={filteredClinics.length || undefined}
               style={{ paddingBottom: 0 }}
             />
             {filteredClinics.length === 0 ? (
-              activeTab === "all" ? (
+              tab === "all" && !query ? (
                 <CompactEmptyStrip
                   icon={Stethoscope}
-                  title={searchQuery ? "No matching clinics" : "No clinics linked yet"}
-                  subtitle="Share your Health ID at your next visit"
+                  title={t("careNetwork.clinics.emptyTitle", "No clinics linked yet")}
+                  subtitle={t("careNetwork.clinics.emptyHint", "Share your Health ID at your next visit")}
+                  cta={t("careNetwork.showQr", "Show QR")}
                   onPress={openHealthId}
                 />
               ) : (
                 <FullEmptyCard
                   icon={Stethoscope}
-                  title={searchQuery ? "No matching clinics" : "No clinics yet"}
-                  body={
-                    searchQuery
-                      ? `No clinics match "${searchQuery}". Try a different name.`
-                      : "Visit a clinic or private practice and share your Health ID to link consultation notes and prescriptions."
+                  title={
+                    query
+                      ? t("careNetwork.clinics.noMatch", "No matching clinics")
+                      : t("careNetwork.clinics.emptyTitle", "No clinics linked yet")
                   }
-                  showCta={!searchQuery}
+                  body={
+                    query
+                      ? t("careNetwork.noMatchBody", { query: searchQuery.trim() })
+                      : t("careNetwork.clinics.emptyBody")
+                  }
+                  showCta={!query}
+                  cta={t("careNetwork.viewHealthId", "View my Health ID")}
                   onCtaPress={openHealthId}
                 />
               )
@@ -473,8 +444,7 @@ export default function PatientTenants() {
                   facility={c}
                   icon={Stethoscope}
                   tone="info"
-                  typeLabel="Clinic"
-                  typeSubtitle="Clinic · Outpatient care"
+                  typeSubtitle={t("careNetwork.clinics.type", "Clinic · Outpatient care")}
                   isActive={c.id === activeClinicId}
                   onPress={() => go("clinic", c.id)}
                 />
@@ -484,36 +454,26 @@ export default function PatientTenants() {
         )}
 
         {/* ── How to link ── */}
-        <SectionHeader kicker="Guide" title="Link a new facility" />
+        <SectionHeader
+          kicker={t("careNetwork.guide.kicker", "Guide")}
+          title={t("careNetwork.guide.title", "How linking works")}
+        />
         <View style={{ ...surfaceCard, padding: spacing.lg }}>
           {[
-            {
-              icon: QrCode,
-              title: "Show your Health ID",
-              body: "Open your QR pass at the registration or admission desk.",
-            },
-            {
-              icon: ScanLine,
-              title: "Desk scans and validates",
-              body: "Staff scan the code to securely link your medical chart.",
-            },
-            {
-              icon: RefreshCcw,
-              title: "Records sync automatically",
-              body: "Prescriptions, lab results and doctor notes appear in your records.",
-            },
+            { icon: QrCode, title: t("careNetwork.guide.s1Title"), body: t("careNetwork.guide.s1Body") },
+            { icon: ScanLine, title: t("careNetwork.guide.s2Title"), body: t("careNetwork.guide.s2Body") },
+            { icon: RefreshCcw, title: t("careNetwork.guide.s3Title"), body: t("careNetwork.guide.s3Body") },
           ].map((s, i, arr) => (
-            <GuideStep key={i} n={i + 1} icon={s.icon} title={s.title} body={s.body} last={i === arr.length - 1} />
+            <GuideStep
+              key={i}
+              n={i + 1}
+              icon={s.icon}
+              title={s.title}
+              body={s.body}
+              stepLabel={t("careNetwork.guide.step", { n: i + 1 })}
+              last={i === arr.length - 1}
+            />
           ))}
-          <Button
-            variant="primary"
-            size="md"
-            title="Open my Health ID"
-            icon={QrCode}
-            onPress={openHealthId}
-            fullWidth
-            style={{ marginTop: spacing.md }}
-          />
         </View>
       </ScrollView>
     </Screen>
@@ -525,7 +485,6 @@ function FacilityCard({
   facility,
   icon,
   tone,
-  typeLabel,
   typeSubtitle,
   isActive,
   onPress,
@@ -533,11 +492,11 @@ function FacilityCard({
   facility: TenantRef;
   icon: any;
   tone: "primary" | "info";
-  typeLabel: string;
   typeSubtitle: string;
   isActive: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors, spacing, typography, shadow, scheme } = useTheme();
   const isDark = scheme === "dark";
 
@@ -547,7 +506,7 @@ function FacilityCard({
       pressedScale={0.985}
       haptic="light"
       accessibilityRole="button"
-      accessibilityLabel={`View ${typeLabel} ${facility.name}`}
+      accessibilityLabel={`${facility.name}. ${typeSubtitle}`}
       wrapperStyle={isDark ? null : shadow.sm}
       style={{
         flexDirection: "row",
@@ -561,47 +520,39 @@ function FacilityCard({
         borderColor: isActive ? colors.primary : isDark ? colors.borderStrong : colors.hairline,
       }}
     >
-      <IconTile icon={icon} tone={tone} appearance={isActive ? "solid" : "soft"} size={48} />
+      <View>
+        <IconTile icon={icon} tone={tone} appearance={isActive ? "solid" : "soft"} size={48} />
+        {/* Status dot on the tile replaces a separate "Connected" pill. */}
+        <View
+          style={{
+            position: "absolute",
+            right: -2,
+            bottom: -2,
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: colors.success,
+            borderWidth: 2.5,
+            borderColor: colors.surface,
+          }}
+        />
+      </View>
 
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={1}>
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text style={[typography.title.md, { color: colors.text }]} numberOfLines={2}>
           {facility.name}
         </Text>
-        <Text style={[typography.caption, { color: colors.textSubtle, marginTop: 2 }]} numberOfLines={1}>
+        <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
           {typeSubtitle}
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.sm }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-              height: 22,
-              paddingHorizontal: 8,
-              borderRadius: 11,
-              backgroundColor: colors.successSoft,
-            }}
-          >
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
-            <Text style={[typography.label.xs, { color: colors.success, letterSpacing: 0 }]}>Connected</Text>
+        {isActive ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+            <CheckCircle2 size={12} color={colors.primary} strokeWidth={2.6} />
+            <Text style={[typography.label.xs, { color: colors.primary, letterSpacing: 0 }]}>
+              {t("careNetwork.activeNow", "Currently selected")}
+            </Text>
           </View>
-          {isActive ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                height: 22,
-                paddingHorizontal: 8,
-                borderRadius: 11,
-                backgroundColor: colors.primarySoft,
-              }}
-            >
-              <CheckCircle2 size={11} color={colors.primary} strokeWidth={2.6} />
-              <Text style={[typography.label.xs, { color: colors.primary, letterSpacing: 0 }]}>Active</Text>
-            </View>
-          ) : null}
-        </View>
+        ) : null}
       </View>
 
       <View
@@ -625,11 +576,13 @@ function CompactEmptyStrip({
   icon,
   title,
   subtitle,
+  cta,
   onPress,
 }: {
   icon: any;
   title: string;
   subtitle: string;
+  cta: string;
   onPress: () => void;
 }) {
   const { colors, spacing, typography, radius } = useTheme();
@@ -654,7 +607,7 @@ function CompactEmptyStrip({
         <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
           {title}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]} numberOfLines={1}>
+        <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]} numberOfLines={2}>
           {subtitle}
         </Text>
       </View>
@@ -673,7 +626,7 @@ function CompactEmptyStrip({
         }}
       >
         <QrCode size={13} color={colors.primary} strokeWidth={2.4} />
-        <Text style={[typography.label.sm, { color: colors.primary }]}>Show QR</Text>
+        <Text style={[typography.label.sm, { color: colors.primary }]}>{cta}</Text>
       </Pressable>
     </View>
   );
@@ -685,12 +638,14 @@ function FullEmptyCard({
   title,
   body,
   showCta,
+  cta,
   onCtaPress,
 }: {
   icon: any;
   title: string;
   body: string;
   showCta: boolean;
+  cta: string;
   onCtaPress: () => void;
 }) {
   const { colors, spacing, typography, shadow, scheme } = useTheme();
@@ -722,9 +677,7 @@ function FullEmptyCard({
       >
         {body}
       </Text>
-      {showCta && (
-        <Button variant="secondary" size="sm" title="View my Health ID" icon={QrCode} onPress={onCtaPress} />
-      )}
+      {showCta && <Button variant="secondary" size="sm" title={cta} icon={QrCode} onPress={onCtaPress} />}
     </View>
   );
 }
@@ -735,12 +688,14 @@ function GuideStep({
   icon: Icon,
   title,
   body,
+  stepLabel,
   last,
 }: {
   n: number;
   icon: any;
   title: string;
   body: string;
+  stepLabel: string;
   last?: boolean;
 }) {
   const { colors, spacing, typography } = useTheme();
@@ -765,7 +720,7 @@ function GuideStep({
         ) : null}
       </View>
       <View style={{ flex: 1, paddingTop: 2, paddingBottom: last ? 0 : spacing.lg }}>
-        <Text style={[typography.overline, { color: colors.primary }]}>STEP {n}</Text>
+        <Text style={[typography.overline, { color: colors.primary, textTransform: "uppercase" }]}>{stepLabel}</Text>
         <Text style={[typography.title.sm, { color: colors.text, marginTop: 2 }]}>{title}</Text>
         <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 2 }]}>{body}</Text>
       </View>

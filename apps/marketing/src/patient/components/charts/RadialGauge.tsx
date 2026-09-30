@@ -51,7 +51,7 @@ export function RadialGauge({
           cy={c}
           r={r}
           fill="none"
-          stroke="var(--color-surface-2)"
+          stroke="var(--color-surface-3)"
           strokeWidth={10}
         />
         <circle

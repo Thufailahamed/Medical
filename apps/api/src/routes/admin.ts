@@ -50,6 +50,7 @@ import {
   labProfiles,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import { requirePasskeyFresh } from "../middleware/stepup";
 import { anonymisePatient } from "../lib/dsar";
 import { flattenTranslated } from "../lib/validation-error";
@@ -60,7 +61,7 @@ import type { AppEnvironment } from "../types";
 const adminRouter = new Hono<AppEnvironment>();
 
 // Single guard for every endpoint below.
-adminRouter.use("*", requireAdmin);
+adminRouter.use("*", authMiddleware, requireAdmin);
 
 // ─────────────────────────────────────────────────────────────
 // 1. Dashboard

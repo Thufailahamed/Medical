@@ -33,14 +33,15 @@ import {
 import { usePatientConversations } from "@/hooks/useApi";
 import {
   Screen,
-  ScreenHeader,
+  LargeHeader,
   ErrorState,
   Skeleton,
   Card,
   Avatar,
   Pill,
-  TextInput,
-  Button,
+  SearchField,
+  ChipGroup,
+  IconButton,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { withOpacity } from "@/constants/theme";
@@ -315,7 +316,7 @@ function EmptyInbox({ onRefresh, isRefetching }: { onRefresh: () => void; isRefe
 export default function PatientInboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography, radius, scheme } = useTheme();
+  const { colors, spacing, typography, radius, scheme, shadow } = useTheme();
   const { data, isLoading, isError, refetch, isRefetching } = usePatientConversations();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -336,20 +337,35 @@ export default function PatientInboxScreen() {
     });
   }, [conversations, filterUnreadOnly, searchQuery]);
 
+  const lastIndex = filteredConversations.length - 1;
+
   const renderItem = useCallback(
-    ({ item }: { item: any }) => {
+    ({ item, index }: { item: any; index: number }) => {
       const unread = item.patientUnread || 0;
+      const isFirst = index === 0;
+      const isLast = index === lastIndex;
+      const doctorName = item.doctor?.name || t("patientInbox.yourDoctor", { defaultValue: "Your Doctor" });
+      const specialty = item.doctor?.specialty;
+      const closed = item.status === "closed";
       return (
-        <Card
+        <Pressable
           onPress={() => router.push(`/(app)/inbox/${item.id}` as any)}
-          padded={false}
-          style={{
-            borderRadius: radius.card,
+          accessibilityRole="button"
+          accessibilityLabel={`${doctorName}${unread > 0 ? `, ${unread} unread` : ""}`}
+          style={({ pressed }) => ({
+            backgroundColor: pressed ? colors.fill : colors.surface,
+            borderTopLeftRadius: isFirst ? radius.card : 0,
+            borderTopRightRadius: isFirst ? radius.card : 0,
+            borderBottomLeftRadius: isLast ? radius.card : 0,
+            borderBottomRightRadius: isLast ? radius.card : 0,
             borderCurve: "continuous",
-            borderWidth: unread > 0 ? 1 : StyleSheet.hairlineWidth,
-            borderColor: unread > 0 ? withOpacity(colors.primary, 0.35) : scheme === "dark" ? colors.borderStrong : colors.separator,
-            backgroundColor: colors.surface,
-          }}
+            borderLeftWidth: StyleSheet.hairlineWidth,
+            borderRightWidth: StyleSheet.hairlineWidth,
+            borderTopWidth: isFirst ? StyleSheet.hairlineWidth : 0,
+            borderBottomWidth: isLast ? StyleSheet.hairlineWidth : 0,
+            borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+            ...(isFirst && scheme !== "dark" ? shadow.card : null),
+          })}
         >
           <View
             style={{
@@ -360,23 +376,23 @@ export default function PatientInboxScreen() {
               gap: spacing.md,
             }}
           >
-            {/* Doctor Avatar with Optional Online/Unread Dot */}
-            <View style={{ position: "relative" }}>
+            {/* Avatar with unread / active status dot */}
+            <View>
               <Avatar
-                name={item.doctor?.name || "Doctor"}
+                name={doctorName}
                 source={item.doctor?.photo ? { uri: item.doctor.photo } : undefined}
-                size="md"
+                size={52}
               />
-              {unread > 0 ? (
+              {!closed ? (
                 <View
                   style={{
                     position: "absolute",
-                    top: -1,
-                    right: -1,
+                    bottom: 0,
+                    right: 0,
                     width: 14,
                     height: 14,
                     borderRadius: 7,
-                    backgroundColor: colors.primary,
+                    backgroundColor: unread > 0 ? colors.primary : colors.success,
                     borderWidth: 2.5,
                     borderColor: colors.surface,
                   }}
@@ -384,106 +400,215 @@ export default function PatientInboxScreen() {
               ) : null}
             </View>
 
-            {/* Conversation Details */}
             <View style={{ flex: 1, minWidth: 0 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 3,
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text
                   numberOfLines={1}
-                  style={[
-                    unread > 0 ? typography.title.md : typography.title.sm,
-                    {
-                      color: colors.text,
-                      flex: 1,
-                    },
-                  ]}
+                  style={[typography.title.md, { color: colors.text, flex: 1 }]}
                 >
-                  {item.doctor?.name || "Your Doctor"}
+                  {doctorName}
                 </Text>
                 <Text
                   style={[
                     unread > 0 ? typography.label.sm : typography.caption,
-                    {
-                      color: unread > 0 ? colors.primary : colors.textSubtle,
-                      marginLeft: 8,
-                    },
+                    { color: unread > 0 ? colors.primary : colors.textSubtle },
                   ]}
                 >
                   {timeAgo(item.lastMessageAt)}
                 </Text>
               </View>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
+              {specialty ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                  <Stethoscope size={11} color={colors.primary} strokeWidth={2.4} />
+                  <Text numberOfLines={1} style={[typography.label.sm, { color: colors.primary, flexShrink: 1 }]}>
+                    {specialty}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
                 <Text
                   numberOfLines={1}
                   style={[
                     unread > 0 ? typography.label.md : typography.body.sm,
-                    {
-                      color: unread > 0 ? colors.text : colors.textMuted,
-                      flex: 1,
-                    },
+                    { color: unread > 0 ? colors.text : colors.textMuted, flex: 1 },
                   ]}
                 >
-                  {item.lastMessageSender === "patient" ? "You: " : ""}
+                  {item.lastMessageSender === "patient" ? (
+                    <Text style={{ color: colors.textSubtle }}>
+                      {t("patientInbox.you", { defaultValue: "You" })}:{" "}
+                    </Text>
+                  ) : null}
                   {item.lastMessagePreview || t("inbox.noMessagesYet", { defaultValue: "No messages yet" })}
                 </Text>
 
-                {item.status === "closed" ? (
-                  <Pill
-                    label={t("inbox.closed", { defaultValue: "Closed" })}
-                    tone="warning"
-                    size="sm"
-                  />
-                ) : null}
+                {closed ? (
+                  <Pill label={t("inbox.closed", { defaultValue: "Closed" })} tone="warning" size="sm" />
+                ) : unread > 0 ? (
+                  <View
+                    style={{
+                      minWidth: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: colors.primary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingHorizontal: 6,
+                    }}
+                  >
+                    <Text style={[typography.label.xs, { color: colors.onPrimary, letterSpacing: 0 }]}>
+                      {unread > 99 ? "99+" : unread}
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: colors.well,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ChevronRight size={14} color={colors.textMuted} strokeWidth={2.4} />
+                  </View>
+                )}
               </View>
             </View>
-
-            {/* Unread Pill or Chevron */}
-            {unread > 0 ? (
-              <View
-                style={{
-                  minWidth: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 6,
-                }}
-              >
-                <Text
-                  style={[
-                    typography.label.xs,
-                    {
-                      color: colors.onPrimary,
-                      letterSpacing: 0,
-                    },
-                  ]}
-                >
-                  {unread > 99 ? "99+" : unread}
-                </Text>
-              </View>
-            ) : (
-              <ChevronRight size={18} color={colors.textSubtle} />
-            )}
           </View>
-        </Card>
+
+          {/* Inset divider aligned with the text column */}
+          {!isLast ? (
+            <View
+              style={{
+                height: StyleSheet.hairlineWidth,
+                backgroundColor: colors.separator,
+                marginLeft: spacing.lg + 52 + spacing.md,
+              }}
+            />
+          ) : null}
+        </Pressable>
       );
     },
-    [colors, router, spacing, t, typography, radius, scheme]
+    [colors, router, spacing, t, typography, radius, scheme, shadow, lastIndex]
+  );
+
+  const filterOptions = [
+    { label: t("patientInbox.filterAll", { defaultValue: "All" }), value: "all" },
+    {
+      label:
+        totalUnread > 0
+          ? `${t("patientInbox.filterUnread", { defaultValue: "Unread" })} · ${totalUnread}`
+          : t("patientInbox.filterUnread", { defaultValue: "Unread" }),
+      value: "unread",
+    },
+  ];
+
+  const listHeader = (
+    <View style={{ gap: spacing.md, paddingBottom: spacing.md }}>
+      <SearchField
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={t("patientInbox.searchPlaceholder", { defaultValue: "Search doctors or messages" })}
+      />
+      <ChipGroup
+        size="sm"
+        options={filterOptions}
+        value={filterUnreadOnly ? "unread" : "all"}
+        onChange={(v: string) => setFilterUnreadOnly(v === "unread")}
+      />
+    </View>
+  );
+
+  const listEmpty = (
+    <View style={{ alignItems: "center", paddingVertical: spacing.xxl, gap: spacing.sm }}>
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 18,
+          borderCurve: "continuous",
+          backgroundColor: colors.well,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {filterUnreadOnly && !searchQuery ? (
+          <MessageSquare size={24} color={colors.textMuted} />
+        ) : (
+          <Search size={24} color={colors.textMuted} />
+        )}
+      </View>
+      <Text style={[typography.title.sm, { color: colors.text }]}>
+        {filterUnreadOnly && !searchQuery
+          ? t("patientInbox.allCaughtUp", { defaultValue: "You're all caught up" })
+          : t("patientInbox.noResults", { defaultValue: "No matching conversations" })}
+      </Text>
+    </View>
+  );
+
+  const listFooter = (
+    <View style={{ gap: spacing.md, paddingTop: spacing.xl }}>
+      {/* Privacy reassurance */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          backgroundColor: withOpacity(colors.success, scheme === "dark" ? 0.12 : 0.07),
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 11,
+            borderCurve: "continuous",
+            backgroundColor: colors.successSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ShieldCheck size={18} color={colors.success} strokeWidth={2.2} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.label.md, { color: colors.text }]}>
+            {t("patientInbox.privateTitle", { defaultValue: "Private & encrypted" })}
+          </Text>
+          <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+            {t("patientInbox.privateBody", {
+              defaultValue: "Only you and your care team can read these messages.",
+            })}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={[typography.kicker, { color: colors.textSubtle, textTransform: "uppercase", marginTop: spacing.sm, marginLeft: 2 }]}>
+        {t("patientInbox.needHelp", { defaultValue: "Need something else?" })}
+      </Text>
+      <QuickActionCard
+        icon={CalendarCheck}
+        iconTint={colors.primary}
+        iconBg={colors.primarySoft}
+        title={t("patientInbox.bookTitle", { defaultValue: "Book an Appointment" })}
+        subtitle={t("patientInbox.bookBody", { defaultValue: "In-person or video consultation" })}
+        onPress={() => router.push("/(app)/book-appointment" as any)}
+      />
+      <QuickActionCard
+        icon={Sparkles}
+        iconTint={colors.accent}
+        iconBg={colors.accentSoft}
+        title={t("patientInbox.aiTitle", { defaultValue: "Ask AI Health Assistant" })}
+        subtitle={t("patientInbox.aiBody", { defaultValue: "Instant 24/7 health guidance" })}
+        badge={t("patientInbox.instant", { defaultValue: "Instant" })}
+        onPress={() => router.push("/(app)/ai/chat" as any)}
+      />
+    </View>
   );
 
   return (
@@ -494,30 +619,21 @@ export default function PatientInboxScreen() {
       tabBarOffset={true}
       style={{ backgroundColor: colors.bg }}
     >
-      {/* ── Native Clean Screen Header (No Clunky Gradient or Misplaced Back Arrow) ── */}
-      <ScreenHeader
-        title={t("nav.tabs.messages", { defaultValue: "Messages" })}
-        subtitle={
+      <LargeHeader
+        kicker={
           totalUnread > 0
-            ? `${totalUnread} unread consultation${totalUnread > 1 ? "s" : ""}`
-            : "Direct messages from your doctors"
+            ? t("patientInbox.unreadKicker", { count: totalUnread, defaultValue: "{{count}} unread" })
+            : t("patientInbox.kicker", { defaultValue: "Care team" })
         }
-        back={false}
+        title={t("nav.tabs.messages", { defaultValue: "Messages" })}
+        subtitle={t("patientInbox.subtitle", { defaultValue: "Direct messages from your doctors" })}
         right={
-          totalUnread > 0 ? (
-            <Pill
-              label={`${totalUnread} Unread`}
-              tone="primary"
-              size="sm"
-            />
-          ) : (
-            <Pill
-              label="Encrypted"
-              icon={Lock}
-              tone="neutral"
-              size="sm"
-            />
-          )
+          <IconButton
+            icon={Users}
+            variant="surface"
+            onPress={() => router.push("/(app)/care-team" as any)}
+            accessibilityLabel={t("patientInbox.careTeam", { defaultValue: "View your care team" })}
+          />
         }
       />
 
@@ -538,35 +654,20 @@ export default function PatientInboxScreen() {
         <EmptyInbox onRefresh={refetch} isRefetching={isRefetching} />
       ) : (
         <View style={{ flex: 1 }}>
-          {/* Search Input when conversations exist */}
-          <View
-            style={{
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.xs,
-              paddingBottom: spacing.md,
-            }}
-          >
-            <TextInput
-              leadingIcon={Search}
-              placeholder="Search doctors or messages..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              tone="soft"
-              trailingIcon={searchQuery ? X : undefined}
-              onTrailingIconPress={() => setSearchQuery("")}
-            />
-          </View>
-
           <FlatList
             data={filteredConversations}
             keyExtractor={(c) => c.id}
             renderItem={renderItem}
+            ListHeaderComponent={listHeader}
+            ListEmptyComponent={listEmpty}
+            ListFooterComponent={listFooter}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
             contentContainerStyle={{
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xs,
-              paddingBottom: 24,
+              paddingBottom: spacing.xxxxl,
             }}
             refreshControl={
               <RefreshControl

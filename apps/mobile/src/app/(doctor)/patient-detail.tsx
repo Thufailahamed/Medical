@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtDateLong, parseDob } from "@/lib/format";
 import {
   Stethoscope,
   Pill,
@@ -35,6 +35,8 @@ import {
   Plus,
   ClipboardList,
   AlertTriangle,
+  ChevronRight,
+  Minus,
 } from "lucide-react-native";
 import {
   usePatientSummary,
@@ -161,6 +163,26 @@ export default function DoctorPatientDetail() {
     }
   })();
 
+  const dob = parseDob(patient.dateOfBirth);
+  const age = dob
+    ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    : null;
+  const identityLine = [
+    dob ? t("doctorPatientDetail.bornOn", { date: fmtDateLong(dob, locale), defaultValue: `Born ${fmtDateLong(dob, locale)}` }) : null,
+    user?.nic ? `NIC ${user.nic}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const messageAction = async () => {
+    try {
+      const res = await startConversation.mutateAsync(id);
+      const convId = res?.conversation?.id;
+      if (convId) router.push(`/(doctor)/inbox/${convId}` as any);
+    } catch {
+      // no-op: React Query surfaces the error state
+    }
+  };
+
   const TABS: Tab[] = ["summary", "records", "meds", "labs", "vitals"];
   const patientActions = [
     {
@@ -173,21 +195,6 @@ export default function DoctorPatientDetail() {
           pathname: "/(doctor)/visit-summary",
           params: { patientId: id },
         }),
-    },
-    {
-      key: "message",
-      title: t("doctorPatientDetail.actionMessage"),
-      icon: MessageSquare,
-      loading: startConversation.isPending,
-      onPress: async () => {
-        try {
-          const res = await startConversation.mutateAsync(id);
-          const convId = res?.conversation?.id;
-          if (convId) router.push(`/(doctor)/inbox/${convId}` as any);
-        } catch {
-          // no-op: React Query surfaces the error state
-        }
-      },
     },
     {
       key: "note",
@@ -241,8 +248,7 @@ export default function DoctorPatientDetail() {
       <ScreenHeader
         back
         onBack={() => router.back()}
-        kicker={t("doctorPatientDetail.kicker", "Patient chart")}
-        title={user?.name || t("doctorPatientDetail.fallbackTitle")}
+        title={t("doctorPatientDetail.kicker", "Patient chart")}
         variant="compact"
         style={{ backgroundColor: "transparent" }}
       />
@@ -318,7 +324,7 @@ export default function DoctorPatientDetail() {
                     { color: "rgba(255,255,255,0.75)", marginTop: 2, fontVariant: ["tabular-nums"] },
                   ]}
                 >
-                  {user?.nic ? `NIC ${user.nic}` : user?.phone || "—"}
+                  {identityLine || user?.phone || "—"}
                 </Text>
                 {nextAppt ? (
                   <View
@@ -363,7 +369,7 @@ export default function DoctorPatientDetail() {
               {[
                 { icon: Droplet, label: t("doctorPatientDetail.factBlood", "Blood"), value: patient.bloodGroup },
                 { icon: User, label: t("doctorPatientDetail.factSex", "Sex"), value: patient.gender },
-                { icon: Cake, label: t("doctorPatientDetail.factDob", "Born"), value: patient.dateOfBirth },
+                { icon: Cake, label: t("doctorPatientDetail.factAge", "Age"), value: age != null ? t("doctorPatientDetail.ageYears", { count: age, defaultValue: `${age} yrs` }) : null },
               ].map((f, i) => (
                 <View key={f.label} style={{ flex: 1, flexDirection: "row" }}>
                   {i > 0 ? (
@@ -398,28 +404,21 @@ export default function DoctorPatientDetail() {
               ))}
             </View>
 
-            {user?.phone ? (
-              <Pressable
-                onPress={() => Linking.openURL(`tel:${user.phone}`).catch(() => {})}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  height: 42,
-                  borderRadius: 21,
-                  backgroundColor: pressed ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.16)",
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
-                })}
-              >
-                <Phone size={15} color="#FFFFFF" strokeWidth={2.3} />
-                <Text style={[typography.label.md, { color: "#FFFFFF", fontVariant: ["tabular-nums"] }]}>
-                  {user.phone}
-                </Text>
-              </Pressable>
-            ) : null}
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {user?.phone ? (
+                <HeroGlassButton
+                  icon={Phone}
+                  label={t("careTeam.call", "Call")}
+                  onPress={() => Linking.openURL(`tel:${user.phone}`).catch(() => {})}
+                />
+              ) : null}
+              <HeroGlassButton
+                icon={MessageSquare}
+                label={t("doctorPatientDetail.actionMessage")}
+                loading={startConversation.isPending}
+                onPress={messageAction}
+              />
+            </View>
           </View>
         </View>
 
@@ -459,16 +458,30 @@ export default function DoctorPatientDetail() {
 
         {/* Quick actions */}
         <View style={{ gap: spacing.sm }}>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              {patientActions.slice(0, 3).map((action) => (
-                <PatientActionTile key={action.key} {...action} />
+          {patientActions
+            .filter((a) => a.primary)
+            .map(({ key, ...action }) => (
+              <PrimaryVisitButton key={key} {...action} />
+            ))}
+          <View
+            style={{
+              flexDirection: "row",
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.xs,
+              borderRadius: 22,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
+              ...(scheme === "dark" ? {} : shadow.card),
+            }}
+          >
+            {patientActions
+              .filter((a) => !a.primary)
+              .map(({ key, ...action }) => (
+                <PatientActionTile key={key} {...action} />
               ))}
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              {patientActions.slice(3).map((action) => (
-                <PatientActionTile key={action.key} {...action} />
-              ))}
-            </View>
+          </View>
         </View>
 
         {/* Record sections */}
@@ -1223,7 +1236,6 @@ function PatientActionTile({
   title,
   icon: Icon,
   onPress,
-  primary,
   loading,
 }: {
   title: string;
@@ -1232,8 +1244,7 @@ function PatientActionTile({
   primary?: boolean;
   loading?: boolean;
 }) {
-  const { colors, spacing, typography, shadow, scheme } = useTheme();
-  const fg = primary ? colors.onPrimary : colors.primary;
+  const { colors, typography } = useTheme();
 
   return (
     <Pressable
@@ -1242,71 +1253,145 @@ function PatientActionTile({
       accessibilityRole="button"
       accessibilityState={{ busy: !!loading }}
       accessibilityLabel={title}
-      style={({ pressed }) => [
-        {
-          flex: 1,
-          minWidth: 0,
-          minHeight: 82,
-          paddingHorizontal: spacing.xs,
-          paddingVertical: spacing.sm,
-          borderRadius: 16,
-          borderCurve: "continuous",
-          overflow: "hidden",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: spacing.sm,
-          backgroundColor: primary ? colors.primary : colors.surface,
-          borderWidth: primary ? 0 : StyleSheet.hairlineWidth,
-          borderColor: scheme === "dark" ? colors.borderStrong : colors.hairline,
-          opacity: loading ? 0.7 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-        },
-        !primary && scheme !== "dark" ? shadow.xs : null,
-        primary && scheme !== "dark" ? shadow.primary : null,
-      ]}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        alignItems: "center",
+        gap: 7,
+        opacity: loading ? 0.7 : 1,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
+      })}
     >
-      {primary ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
       <View
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: 12,
+          width: 46,
+          height: 46,
+          borderRadius: 15,
           borderCurve: "continuous",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: primary
-            ? "rgba(255,255,255,0.20)"
-            : colors.primarySoft,
+          backgroundColor: colors.primarySoft,
         }}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={fg} />
+          <ActivityIndicator size="small" color={colors.primary} />
         ) : (
-          <Icon size={18} color={fg} strokeWidth={2.3} />
+          <Icon size={20} color={colors.primary} strokeWidth={2.2} />
         )}
       </View>
       <Text
-        numberOfLines={2}
-        style={[
-          typography.label.sm,
-          {
-            color: fg,
-            textAlign: "center",
-            fontWeight: "700",
-            lineHeight: 16,
-          },
-        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[typography.label.sm, { color: colors.text, textAlign: "center" }]}
       >
         {title}
       </Text>
+    </Pressable>
+  );
+}
+
+function PrimaryVisitButton({
+  title,
+  icon: Icon,
+  onPress,
+}: {
+  title: string;
+  icon: any;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors, spacing, typography, shadow, scheme } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => [
+        {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          padding: spacing.md,
+          paddingRight: spacing.lg,
+          borderRadius: 22,
+          borderCurve: "continuous",
+          overflow: "hidden",
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
+        scheme !== "dark" ? shadow.primary : null,
+      ]}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(255,255,255,0.2)",
+        }}
+      >
+        <Icon size={21} color={colors.onPrimary} strokeWidth={2.3} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={[typography.title.sm, { color: colors.onPrimary }]}>
+          {title}
+        </Text>
+        <Text numberOfLines={1} style={[typography.caption, { color: "rgba(255,255,255,0.8)" }]}>
+          {t("doctorPatientDetail.visitHint", "Notes, prescription and follow-up in one flow")}
+        </Text>
+      </View>
+      <ChevronRight size={18} color={colors.onPrimary} strokeWidth={2.5} />
+    </Pressable>
+  );
+}
+
+function HeroGlassButton({
+  icon: Icon,
+  label,
+  onPress,
+  loading,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+  loading?: boolean;
+}) {
+  const { typography } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: pressed ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.16)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.28)",
+      })}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <Icon size={15} color="#FFFFFF" strokeWidth={2.3} />
+      )}
+      <Text style={[typography.label.md, { color: "#FFFFFF" }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -1357,6 +1442,7 @@ function OverviewSection({
   emptyTitle?: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const { typography, colors, spacing } = useTheme();
   return (
     <Card padded={false}>
@@ -1397,8 +1483,24 @@ function OverviewSection({
           <Skeleton lines={3} />
         </View>
       ) : isEmpty ? (
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
-          <EmptyState title={emptyTitle ?? ""} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            marginHorizontal: spacing.lg,
+            marginBottom: spacing.lg,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            backgroundColor: colors.surfaceMuted,
+          }}
+        >
+          <Minus size={14} color={colors.textSubtle} strokeWidth={2.4} />
+          <Text style={[typography.body.sm, { color: colors.textMuted, flex: 1 }]}>
+            {emptyTitle || t("doctorPatientDetail.noneRecorded", "Nothing recorded yet")}
+          </Text>
         </View>
       ) : (
         children

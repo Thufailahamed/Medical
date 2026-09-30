@@ -14,10 +14,11 @@ import {
   doctorVerificationDocs,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
 
 const exportRouter = new Hono<AppEnvironment>();
-exportRouter.use("*", requireAdmin);
+exportRouter.use("*", authMiddleware, requireAdmin);
 
 function csvField(v: unknown): string {
   if (v === null || v === undefined) return "";

@@ -19,7 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 type Props = {
   /** `pill` (default) — compact outlined capsule for top bars.
    *  `row` — full-width card row: tone tile + "Workspace" eyebrow + name. */
-  variant?: "pill" | "row";
+  variant?: "pill" | "row" | "chip";
   /** Eyebrow shown above the name in the `row` variant. */
   caption?: string;
 };
@@ -104,7 +104,51 @@ export function TenantSwitcher({ variant = "pill", caption = "Workspace" }: Prop
 
   const isDark = scheme === "dark";
   const trigger =
-    variant === "row" ? (
+    variant === "chip" ? (
+      <Pressable
+        onPress={() => {
+          setOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Active workspace: ${label}. Tap to switch.`}
+        hitSlop={4}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          alignSelf: "flex-start",
+          gap: 6,
+          height: 34,
+          paddingLeft: 5,
+          paddingRight: 10,
+          borderRadius: 999,
+          borderCurve: "continuous",
+          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.borderStrong : colors.hairline,
+          ...(isDark ? {} : shadow.xs),
+        })}
+      >
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Icon size={13} color={colors.primary} strokeWidth={2.3} />
+        </View>
+        <Text
+          numberOfLines={1}
+          style={[typography.label.md, { color: unset ? colors.primary : colors.text, maxWidth: 220 }]}
+        >
+          {label}
+        </Text>
+        <ChevronsUpDown size={13} color={colors.textMuted} strokeWidth={2.4} />
+      </Pressable>
+    ) : variant === "row" ? (
       <Pressable
         onPress={() => {
           setOpen(true);

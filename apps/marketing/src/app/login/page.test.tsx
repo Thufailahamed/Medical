@@ -56,6 +56,7 @@ vi.mock("@/portal/lib/auth", () => ({
   login: (...args: any[]) => mockLogin(...args),
   loginWithPhone: vi.fn(),
   logout: vi.fn(),
+  MfaRequiredError: class MfaRequiredError extends Error {},
 }));
 
 vi.mock("@/portal/components/ui/Toast", () => ({

@@ -15,6 +15,7 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { users, notifications } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import { requirePasskeyFresh } from "../middleware/stepup";
 import { flattenTranslated } from "../lib/validation-error";
 import { getSetting } from "../lib/settings";
@@ -54,7 +55,7 @@ async function ensureBulkEnabled(c: any): Promise<{ ok: true } | Response> {
 }
 
 const bulkRouter = new Hono<AppEnvironment>();
-bulkRouter.use("*", requireAdmin);
+bulkRouter.use("*", authMiddleware, requireAdmin);
 
 // ─── Bulk approve ───────────────────────────────────────────
 bulkRouter.post("/approve", async (c) => {

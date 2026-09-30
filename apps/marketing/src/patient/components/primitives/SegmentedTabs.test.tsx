@@ -14,15 +14,15 @@ describe("SegmentedTabs", () => {
     expect(screen.getByRole("button", { name: "Pinned (1)" })).toBeTruthy();
   });
 
-  it("marks only the active tab pressed with the dark pill", () => {
+  it("marks only the active tab pressed with the raised tab", () => {
     const { container } = render(
       <SegmentedTabs tabs={tabs} activeId="pinned" onChange={() => {}} />
     );
     const buttons = container.querySelectorAll("button");
     expect(buttons[0].getAttribute("aria-pressed")).toBe("false");
     expect(buttons[1].getAttribute("aria-pressed")).toBe("true");
-    expect(buttons[1].className).toMatch(/bg-ink/);
-    expect(buttons[0].className).not.toMatch(/bg-ink/);
+    expect(buttons[1].className).toMatch(/bg-surface\b/);
+    expect(buttons[0].className).not.toMatch(/bg-surface\b/);
   });
 
   it("calls onChange with the tab id on click", () => {
@@ -32,11 +32,11 @@ describe("SegmentedTabs", () => {
     expect(onChange).toHaveBeenCalledWith("pinned");
   });
 
-  it("renders the VYRO pill track", () => {
+  it("renders the soft segmented track", () => {
     const { container } = render(
       <SegmentedTabs tabs={tabs} activeId="all" onChange={() => {}} />
     );
     expect(container.firstChild).toBeTruthy();
-    expect((container.firstChild as HTMLElement).className).toMatch(/rounded-full/);
+    expect((container.firstChild as HTMLElement).className).toMatch(/bg-surface-2/);
   });
 });

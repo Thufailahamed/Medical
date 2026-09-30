@@ -123,10 +123,12 @@ const NAV_GROUPS: Array<{
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export function Sidebar() {
+export function Sidebar({ forceExpanded = false }: { forceExpanded?: boolean } = {}) {
   const pathname = usePathname();
   const router   = useRouter();
-  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const storeCollapsed = useUiStore((s) => s.sidebarCollapsed);
+  // The mobile drawer always shows labels, whatever the desktop rail state.
+  const collapsed = storeCollapsed && !forceExpanded;
   const toggle    = useUiStore((s) => s.toggleSidebar);
   const t         = useT();
   const user      = useAuthStore((s) => s.user);

@@ -100,7 +100,7 @@ function getTemplatePalette(specialty: string | undefined, name: string | undefi
     const tones = Object.values(SPECIALTY_TONES);
     let hash = 0;
     for (let i = 0; i < (name || "").length; i++) {
-      hash = (hash + name.charCodeAt(i)) % tones.length;
+      hash = (hash + (name || "").charCodeAt(i)) % tones.length;
     }
     tone = tones[hash];
   }
@@ -131,6 +131,14 @@ export default function RxTemplatesScreen() {
       if (item.specialty) set.add(item.specialty);
     });
     return ["All", ...Array.from(set)];
+  }, [rawTemplates]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: rawTemplates.length };
+    rawTemplates.forEach((item: any) => {
+      if (item.specialty) counts[item.specialty] = (counts[item.specialty] ?? 0) + 1;
+    });
+    return counts;
   }, [rawTemplates]);
 
   const filteredTemplates = useMemo(() => {
@@ -194,30 +202,45 @@ export default function RxTemplatesScreen() {
     ({ item }: { item: any }) => {
       const meds = Array.isArray(item.medicines) ? item.medicines : [];
       const palette = getTemplatePalette(item.specialty, item.name, colors);
+      const shown = meds.slice(0, 3);
+      const extra = meds.length - shown.length;
 
       return (
         <Pressable
           onPress={() => router.push(`/(doctor)/rx-templates/${item.id}` as any)}
+          onLongPress={() => handleDelete(item.id, item.name)}
+          delayLongPress={350}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.name}. ${t("rxTemplates.medsShort", { count: meds.length })}`}
+          accessibilityHint={t("rxTemplates.longPressHint", "Long-press to delete")}
           style={({ pressed }) => ({
             backgroundColor: colors.surface,
             borderRadius: radius.card,
             borderCurve: "continuous",
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: hairline,
-            padding: 16,
             marginHorizontal: spacing.lg,
-            marginBottom: 12,
+            marginBottom: spacing.md,
+            overflow: "hidden",
             ...(isDark ? {} : shadow.card),
-            opacity: pressed ? 0.94 : 1,
-            transform: [{ scale: pressed ? 0.99 : 1 }],
+            transform: [{ scale: pressed ? 0.985 : 1 }],
           })}
         >
-          {/* Card Top: Icon, Title, Diagnosis, Usage Badge, Trash */}
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.lg,
+              paddingBottom: spacing.md,
+            }}
+          >
             <View
               style={{
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 borderRadius: 13,
                 borderCurve: "continuous",
                 backgroundColor: palette.bg,
@@ -225,139 +248,134 @@ export default function RxTemplatesScreen() {
                 justifyContent: "center",
               }}
             >
-              <Pill size={20} color={palette.fg} strokeWidth={2.2} />
+              <Pill size={19} color={palette.fg} strokeWidth={2.2} />
             </View>
 
             <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <Text
-                  style={[typography.title.md, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-              </View>
-
-              {item.diagnosis && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
-                  <Stethoscope size={12} color={colors.textSubtle} />
+              <Text
+                style={[typography.title.sm, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+              {item.diagnosis ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                  <Stethoscope size={11} color={colors.textSubtle} strokeWidth={2.2} />
                   <Text
-                    style={[typography.body.sm, { color: colors.textMuted, flexShrink: 1 }]}
+                    style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]}
                     numberOfLines={1}
                   >
                     {item.diagnosis}
                   </Text>
                 </View>
-              )}
-            </View>
-
-            {/* Badges & Actions */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              {item.useCount > 0 ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 3,
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 12,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                  }}
-                >
-                  <Flame size={11} color={colors.primary} />
-                  <Text style={[typography.label.xs, { color: colors.primary, fontVariant: ["tabular-nums"] }]}>
-                    {item.useCount}x
-                  </Text>
-                </View>
               ) : null}
-
-              <Pressable
-                onPress={() => handleDelete(item.id, item.name)}
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  backgroundColor: pressed ? colors.dangerSoft : colors.well,
-                  alignItems: "center",
-                  justifyContent: "center",
-                })}
-              >
-                <Trash2 size={14} color={colors.danger} strokeWidth={2} />
-              </Pressable>
             </View>
-          </View>
 
-          {/* Medicines List Chips */}
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 6,
-              marginTop: 12,
-              paddingTop: 10,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.separator,
-            }}
-          >
-            {meds.map((m: any, idx: number) => (
+            {item.useCount > 0 ? (
               <View
-                key={idx}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  backgroundColor: colors.surfaceMuted,
-                  paddingHorizontal: 9,
-                  paddingVertical: 4,
-                  borderRadius: 9,
-                  borderCurve: "continuous",
+                  gap: 3,
+                  paddingHorizontal: 7,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: colors.primarySoft,
                 }}
               >
-                <Text style={[typography.label.sm, { color: colors.text }]}>
-                  {m.name}
+                <Flame size={11} color={colors.primary} strokeWidth={2.4} />
+                <Text style={[typography.label.xs, { color: colors.primary, fontVariant: ["tabular-nums"] }]}>
+                  {item.useCount}×
                 </Text>
-                {m.dosage ? (
-                  <Text style={[typography.caption, { fontSize: 11, color: colors.textMuted }]}>
-                    {m.dosage}
-                  </Text>
-                ) : null}
-                {m.frequency ? (
-                  <Text style={[typography.caption, { fontSize: 11, color: colors.textSubtle }]}>
-                    • {m.frequency}
-                  </Text>
-                ) : null}
               </View>
-            ))}
+            ) : null}
+
+            <View
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 13,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.well,
+              }}
+            >
+              <ChevronRight size={15} color={colors.textMuted} strokeWidth={2.5} />
+            </View>
           </View>
 
-          {/* Card Footer: Quick stats & Action trigger */}
+          {/* Medicines — compact regimen list */}
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 10,
-              paddingTop: 8,
+              marginHorizontal: spacing.md,
+              marginBottom: spacing.md,
+              paddingVertical: 4,
+              borderRadius: 14,
+              borderCurve: "continuous",
+              backgroundColor: colors.surfaceMuted,
             }}
           >
-            <Text style={[typography.caption, { color: colors.textSubtle }]}>
-              {t("rxTemplates.medsConfigured", { count: meds.length })}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={[typography.label.md, { color: colors.primary }]}>
-                {t("rxTemplates.viewEdit")}
+            {shown.length === 0 ? (
+              <Text
+                style={[typography.caption, { color: colors.textSubtle, paddingHorizontal: 12, paddingVertical: 8 }]}
+              >
+                {t("rxTemplates.noMeds")}
               </Text>
-              <ChevronRight size={13} color={colors.primary} strokeWidth={2.4} />
-            </View>
+            ) : (
+              shown.map((m: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderTopWidth: idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.separator,
+                  }}
+                >
+                  <View
+                    style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: palette.fg }}
+                  />
+                  <Text numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[typography.label.md, { color: colors.text }]}>{m.name}</Text>
+                    {m.dosage ? (
+                      <Text style={[typography.caption, { color: colors.textMuted }]}>  {m.dosage}</Text>
+                    ) : null}
+                  </Text>
+                  {m.frequency ? (
+                    <Text
+                      numberOfLines={1}
+                      style={[typography.caption, { color: colors.textSubtle, maxWidth: "45%" }]}
+                    >
+                      {m.frequency}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            )}
+            {extra > 0 ? (
+              <Text
+                style={[
+                  typography.caption,
+                  {
+                    color: colors.primary,
+                    paddingHorizontal: 12,
+                    paddingTop: 2,
+                    paddingBottom: 6,
+                    marginLeft: 14,
+                  },
+                ]}
+              >
+                {t("rxTemplates.moreMeds", { count: extra, defaultValue: `+${extra} more` })}
+              </Text>
+            ) : null}
           </View>
         </Pressable>
       );
     },
-    [colors, spacing, typography, fontFamily, radius, router, handleDelete, hairline, isDark, shadow, t]
+    [colors, spacing, typography, radius, router, handleDelete, hairline, isDark, shadow, t]
   );
 
   return (
@@ -395,39 +413,71 @@ export default function RxTemplatesScreen() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ marginHorizontal: -spacing.lg }}
-                contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg, paddingVertical: 10 }}
+                contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.lg, paddingVertical: 10 }}
               >
                 {categories.map((cat) => {
                   const active = selectedCategory === cat;
+                  const count = categoryCounts[cat] ?? 0;
                   return (
                     <Pressable
                       key={cat}
                       onPress={() => setSelectedCategory(cat)}
-                      style={{
-                        height: 34,
-                        justifyContent: "center",
-                        paddingHorizontal: 14,
-                        borderRadius: 17,
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        height: 32,
+                        paddingLeft: 12,
+                        paddingRight: 6,
+                        borderRadius: 16,
                         borderCurve: "continuous",
-                        backgroundColor: active ? colors.primary : colors.surface,
+                        backgroundColor: active ? colors.text : colors.surface,
                         borderWidth: active ? 0 : StyleSheet.hairlineWidth,
                         borderColor: hairline,
-                        ...(isDark || active ? {} : shadow.xs),
-                      }}
+                        opacity: pressed && !active ? 0.7 : 1,
+                      })}
                     >
                       <Text
                         style={[
                           typography.label.md,
-                          { color: active ? colors.onPrimary : colors.text },
+                          { color: active ? colors.bg : colors.text },
                         ]}
                       >
                         {cat === "All" ? t("rxTemplates.categoryAll") : cat}
                       </Text>
+                      <View
+                        style={{
+                          minWidth: 20,
+                          height: 20,
+                          paddingHorizontal: 5,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: active ? withOpacity(colors.bg, 0.18) : colors.fill,
+                        }}
+                      >
+                        <Text
+                          style={[
+                            typography.label.xs,
+                            { color: active ? colors.bg : colors.textMuted, fontVariant: ["tabular-nums"] },
+                          ]}
+                        >
+                          {count}
+                        </Text>
+                      </View>
                     </Pressable>
                   );
                 })}
               </ScrollView>
             )}
+            <Text style={[typography.caption, { color: colors.textSubtle, paddingHorizontal: 2, paddingBottom: 4 }]}>
+              {t("rxTemplates.listHint", {
+                count: filteredTemplates.length,
+                defaultValue: `${filteredTemplates.length} templates · long-press to delete`,
+              })}
+            </Text>
           </View>
         )}
       </View>

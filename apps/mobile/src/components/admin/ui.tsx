@@ -5,14 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Switch,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
+  AlertTriangle,
   ArrowLeft,
   ChevronRight,
+  RotateCw,
   Search,
   X,
 } from "lucide-react-native";
@@ -20,6 +23,7 @@ import type { LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { tonePalette, useTone, type Tone } from "@/theme/tone";
 import {
+  Button,
   Card,
   Chip,
   ListItem,
@@ -64,15 +68,9 @@ export function statusTone(status?: string | null): PillTone {
 }
 
 export function StatusPill({ status }: { status?: string | null }) {
-  const label = (status ?? "unknown").replace(/_/g, " ");
-  return (
-    <Pill
-      label={label}
-      tone={statusTone(status)}
-      size="sm"
-      style={{ textTransform: "capitalize" } as any}
-    />
-  );
+  const raw = (status ?? "unknown").replace(/_/g, " ");
+  const label = raw.charAt(0).toUpperCase() + raw.slice(1);
+  return <Pill label={label} tone={statusTone(status)} size="sm" />;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -813,15 +811,18 @@ export function FilterChips({
   flush?: boolean;
 }) {
   const { spacing } = useTheme();
+  // Extra vertical room (cancelled by negative margin) so the selected chip's
+  // coloured shadow isn't clipped into a hard rectangle by the ScrollView.
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={{ marginVertical: -8, overflow: "visible" }}
       contentContainerStyle={{
         flexDirection: "row",
         gap: spacing.sm,
         paddingHorizontal: flush ? 0 : spacing.lg,
-        paddingVertical: spacing.xs,
+        paddingVertical: spacing.xs + 8,
       }}
     >
       {options.map((opt) => (
@@ -836,6 +837,280 @@ export function FilterChips({
       ))}
     </ScrollView>
   );
+}
+
+// ─── Segmented control (fixed set of 2–4 filters) ───────────
+
+export function AdminSegmented({
+  options,
+  value,
+  onChange,
+}: {
+  options: { label: string; value: string; count?: number; tone?: Tone }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { colors, typography, shadow, scheme } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        padding: 4,
+        borderRadius: 16,
+        borderCurve: "continuous",
+        backgroundColor: colors.fill,
+      }}
+      accessibilityRole="tablist"
+    >
+      {options.map((o) => (
+        <SegmentButton
+          key={o.value}
+          option={o}
+          selected={o.value === value}
+          onPress={() => onChange(o.value)}
+          colors={colors}
+          typography={typography}
+          lift={scheme !== "dark" ? shadow.xs : null}
+        />
+      ))}
+    </View>
+  );
+}
+
+function SegmentButton({
+  option,
+  selected,
+  onPress,
+  colors,
+  typography,
+  lift,
+}: {
+  option: { label: string; count?: number; tone?: Tone };
+  selected: boolean;
+  onPress: () => void;
+  colors: ReturnType<typeof useTheme>["colors"];
+  typography: ReturnType<typeof useTheme>["typography"];
+  lift: ViewStyle | null;
+}) {
+  const tone = useTone(option.tone ?? "neutral");
+  const hasCount = typeof option.count === "number";
+  return (
+    <Pressable
+      onPress={onPress}
+      haptic="light"
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      accessibilityLabel={hasCount ? `${option.label}, ${option.count}` : option.label}
+      style={[
+        {
+          flex: 1,
+          height: 38,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          paddingHorizontal: 6,
+          backgroundColor: selected ? colors.surface : "transparent",
+        },
+        selected ? lift : null,
+      ]}
+    >
+      <Text
+        style={[typography.label.md, { color: selected ? colors.text : colors.textMuted, flexShrink: 1 }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+      >
+        {option.label}
+      </Text>
+      {hasCount ? (
+        <View
+          style={{
+            minWidth: 20,
+            height: 18,
+            borderRadius: 9,
+            paddingHorizontal: 5,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: option.tone && option.count! > 0 ? tone.bg : selected ? colors.fill : colors.surface,
+          }}
+        >
+          <Text
+            style={[
+              typography.label.xs,
+              {
+                color: option.tone && option.count! > 0 ? tone.fg : colors.textMuted,
+                fontVariant: ["tabular-nums"],
+                letterSpacing: 0,
+              },
+            ]}
+          >
+            {option.count}
+          </Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+// ─── Compact empty state card ───────────────────────────────
+
+export function AdminEmpty({
+  icon: Icon,
+  title,
+  message,
+  positive = false,
+  actionLabel,
+  onAction,
+}: {
+  icon: LucideIcon;
+  title: string;
+  message?: string;
+  /** Green "all caught up" treatment instead of neutral grey. */
+  positive?: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <AdminCard style={{ alignItems: "center", paddingVertical: spacing.xxl }}>
+      <View
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 20,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: positive ? colors.successSoft : colors.well,
+        }}
+      >
+        <Icon size={28} color={positive ? colors.success : colors.textMuted} strokeWidth={2.2} />
+      </View>
+      <Text style={[typography.title.lg, { color: colors.text, marginTop: spacing.lg, textAlign: "center" }]}>
+        {title}
+      </Text>
+      {message ? (
+        <Text
+          style={[
+            typography.body.sm,
+            { color: colors.textMuted, marginTop: 4, textAlign: "center", maxWidth: 280 },
+          ]}
+        >
+          {message}
+        </Text>
+      ) : null}
+      {actionLabel && onAction ? (
+        <Pressable
+          onPress={onAction}
+          haptic="light"
+          accessibilityRole="button"
+          hitSlop={6}
+          style={{
+            marginTop: spacing.lg,
+            height: 36,
+            paddingHorizontal: spacing.lg,
+            borderRadius: 18,
+            justifyContent: "center",
+            backgroundColor: colors.fill,
+          }}
+        >
+          <Text style={[typography.label.md, { color: colors.text }]}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
+    </AdminCard>
+  );
+}
+
+// ─── "Review ›" call-to-action pill for queue rows ──────────
+
+export function ReviewPill({ label = "Review", tone = "warning" }: { label?: string; tone?: Tone }) {
+  const { typography } = useTheme();
+  const { bg, fg } = useTone(tone);
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+        height: 30,
+        paddingLeft: 12,
+        paddingRight: 8,
+        borderRadius: 15,
+        backgroundColor: bg,
+      }}
+    >
+      <Text style={[typography.label.sm, { color: fg }]}>{label}</Text>
+      <ChevronRight size={14} color={fg} strokeWidth={2.6} />
+    </View>
+  );
+}
+
+// ─── Icon + label + value rows inside a muted panel ─────────
+
+export function DetailRows({
+  rows,
+}: {
+  rows: { icon: LucideIcon; label: string; value: string; tone?: "danger" }[];
+}) {
+  const { colors, spacing, typography, radius } = useTheme();
+  return (
+    <View
+      style={{
+        borderRadius: radius.lg,
+        borderCurve: "continuous",
+        backgroundColor: colors.surfaceMuted,
+        paddingHorizontal: spacing.md,
+      }}
+    >
+      {rows.map((r, i) => {
+        const Icon = r.icon;
+        return (
+          <View
+            key={r.label}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              paddingVertical: spacing.md,
+              borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+              borderTopColor: colors.separator,
+            }}
+          >
+            <Icon size={16} color={colors.textSubtle} strokeWidth={2.2} />
+            <Text style={[typography.body.sm, { color: colors.textMuted, width: 86 }]}>{r.label}</Text>
+            <Text
+              style={[
+                typography.label.md,
+                { color: r.tone === "danger" ? colors.danger : colors.text, flex: 1, textAlign: "right" },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              selectable
+            >
+              {r.value}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** "5m ago" / "3d ago"; empty string past 30 days so callers can fall back to a date. */
+export function relTime(iso?: string | null): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "";
+  const min = Math.floor((Date.now() - t) / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}d ago` : "";
 }
 
 // ─── Key-value row for detail cards ─────────────────────────
@@ -918,18 +1193,88 @@ export function ListSkeleton({ rows = 4 }: { rows?: number }) {
 
 // ─── Error card ─────────────────────────────────────────────
 
-export function AdminError({ message }: { message?: string }) {
-  const { colors, spacing, typography } = useTheme();
+export function AdminError({
+  message,
+  title,
+  onRetry,
+  retrying,
+}: {
+  message?: string;
+  /** When set, renders the richer icon + title + retry layout. */
+  title?: string;
+  onRetry?: () => void;
+  retrying?: boolean;
+}) {
+  const { colors, spacing, typography, radius } = useTheme();
+  if (!title && !onRetry) {
+    return (
+      <Card tone="danger" style={{ marginVertical: spacing.sm }}>
+        <Text
+          style={[
+            typography.body.sm,
+            { color: colors.danger, fontWeight: "600" },
+          ]}
+        >
+          {message ?? "Something went wrong"}
+        </Text>
+      </Card>
+    );
+  }
   return (
-    <Card tone="danger" style={{ marginVertical: spacing.sm }}>
-      <Text
-        style={[
-          typography.body.sm,
-          { color: colors.danger, fontWeight: "600" },
-        ]}
-      >
-        {message ?? "Something went wrong"}
-      </Text>
+    <Card tone="danger" style={{ padding: spacing.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.surface,
+          }}
+        >
+          <AlertTriangle size={19} color={colors.danger} strokeWidth={2.3} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {title ? (
+            <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+              {title}
+            </Text>
+          ) : null}
+          <Text
+            style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
+            numberOfLines={2}
+          >
+            {message ?? "Something went wrong"}
+          </Text>
+        </View>
+        {onRetry ? (
+          <Pressable
+            onPress={onRetry}
+            disabled={retrying}
+            haptic="light"
+            accessibilityRole="button"
+            accessibilityLabel="Retry"
+            hitSlop={8}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              height: 34,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.full,
+              backgroundColor: colors.danger,
+              opacity: retrying ? 0.6 : 1,
+            }}
+          >
+            <RotateCw size={13} color={colors.onDanger} strokeWidth={2.6} />
+            <Text style={[typography.label.sm, { color: colors.onDanger }]}>
+              {retrying ? "Retrying" : "Retry"}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </Card>
   );
 }
@@ -971,5 +1316,215 @@ export function AdminRow({
       onPress={onPress}
       showChevron={!!onPress}
     />
+  );
+}
+
+// ─── Form kit for admin create/edit sheets ──────────────────
+
+/** Titled group of fields inside a sheet. */
+export function FormGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View style={{ gap: spacing.md }}>
+      <Text style={[typography.title.sm, { color: colors.text }]}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+/** Lays children out in equal-width columns. */
+export function FormRow({ children }: { children: React.ReactNode }) {
+  const { spacing } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+      {React.Children.map(children, (c) =>
+        c ? <View style={{ flex: 1 }}>{c}</View> : null
+      )}
+    </View>
+  );
+}
+
+/** Sentence-case label (+ red asterisk / muted hint) above an input. */
+export function SheetField({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  const { colors, typography } = useTheme();
+  return (
+    <View>
+      <Text
+        style={[
+          typography.label.sm,
+          { color: colors.textMuted, marginBottom: 6, marginLeft: 2 },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+        {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
+        {hint ? (
+          <Text style={{ color: colors.textSubtle, fontWeight: "400" }}>
+            {"  "}
+            {hint}
+          </Text>
+        ) : null}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+export type ToggleItem = {
+  key: string;
+  label: string;
+  hint?: string;
+  icon?: LucideIcon;
+  value: boolean;
+  onChange: (v: boolean) => void;
+};
+
+/** Grouped list of labelled switches in a muted panel. */
+export function ToggleList({ items }: { items: ToggleItem[] }) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View
+      style={{
+        borderRadius: 18,
+        borderCurve: "continuous",
+        backgroundColor: colors.surfaceMuted,
+        paddingHorizontal: spacing.md,
+      }}
+    >
+      {items.map((it, i) => {
+        const Icon = it.icon;
+        return (
+          <View
+            key={it.key}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              paddingVertical: spacing.md,
+              borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+              borderTopColor: colors.separator,
+            }}
+          >
+            {Icon ? (
+              <Icon size={18} color={colors.textMuted} strokeWidth={2.2} />
+            ) : null}
+            <View style={{ flex: 1 }}>
+              <Text style={[typography.label.md, { color: colors.text }]}>
+                {it.label}
+              </Text>
+              {it.hint ? (
+                <Text style={[typography.caption, { color: colors.textSubtle }]}>
+                  {it.hint}
+                </Text>
+              ) : null}
+            </View>
+            <Switch
+              value={it.value}
+              onValueChange={it.onChange}
+              trackColor={{ true: colors.primary, false: colors.fillStrong }}
+              accessibilityLabel={it.label}
+            />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Scrollable sheet body with Cancel / primary action pinned below. */
+export function SheetForm({
+  children,
+  submitLabel,
+  onSubmit,
+  onCancel,
+  loading,
+  disabled,
+  submitVariant = "primary",
+  submitIcon,
+}: {
+  children: React.ReactNode;
+  submitLabel: string;
+  submitVariant?: "primary" | "danger";
+  submitIcon?: LucideIcon;
+  onSubmit: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}) {
+  const { colors, spacing } = useTheme();
+  return (
+    <>
+      <ScrollView
+        style={{ flexShrink: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{ gap: spacing.xl, paddingBottom: spacing.md }}>
+          {children}
+        </View>
+      </ScrollView>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: spacing.sm,
+          paddingTop: spacing.md,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Button title="Cancel" variant="secondary" onPress={onCancel} />
+        </View>
+        <View style={{ flex: 2 }}>
+          <Button
+            title={submitLabel}
+            variant={submitVariant}
+            icon={submitIcon}
+            onPress={onSubmit}
+            loading={loading}
+            disabled={disabled}
+          />
+        </View>
+      </View>
+    </>
+  );
+}
+
+/** Small grey icon + text tag (e.g. "24h turnaround"). */
+export function MetaTag({ icon: Icon, label }: { icon?: LucideIcon; label: string }) {
+  const { colors, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        height: 26,
+        paddingHorizontal: 9,
+        borderRadius: 13,
+        backgroundColor: colors.well,
+      }}
+    >
+      {Icon ? <Icon size={12} color={colors.textMuted} strokeWidth={2.3} /> : null}
+      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
   );
 }

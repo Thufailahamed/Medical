@@ -6,9 +6,8 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/portal/lib/utils";
 
 /**
- * Section card header — ink icon tile + kicker caption + title +
- * optional “open” link with a travelling arrow. VYRO-style header
- * adapted to the patient palette.
+ * Section card header — soft brand icon tile + title + muted caption,
+ * with an optional quiet "open" link whose arrow travels on hover.
  */
 export function CardHeader({
   title,
@@ -16,6 +15,7 @@ export function CardHeader({
   icon,
   href,
   linkLabel = "View all",
+  action,
   className,
 }: {
   title: string;
@@ -23,34 +23,47 @@ export function CardHeader({
   icon?: React.ReactNode;
   href?: string;
   linkLabel?: string;
+  /** Extra control rendered before the link (e.g. an "Upload" button). */
+  action?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-3", className)}>
-      <div className="flex min-w-0 items-start gap-3">
+    <div className={cn("flex items-center justify-between gap-3", className)}>
+      <div className="flex min-w-0 items-center gap-3">
         {icon ? (
           <div
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-ink text-sky-300"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-brand-soft text-brand"
             aria-hidden
           >
             {icon}
           </div>
         ) : null}
         <div className="min-w-0">
-          {caption ? <p className="pt-kicker pt-kicker-muted">{caption}</p> : null}
-          <p className="mt-0.5 text-[15px] font-extrabold tracking-tight text-text">
+          <p className="truncate font-display text-[15.5px] font-semibold leading-tight tracking-[-0.01em] text-text">
             {title}
           </p>
+          {caption ? (
+            <p className="mt-0.5 truncate text-xs text-text-muted">{caption}</p>
+          ) : null}
         </div>
       </div>
-      {href ? (
-        <Link
-          href={href}
-          className="pt-btn pt-btn-ghost -mr-2 inline-flex h-8 shrink-0 items-center gap-1 px-2 text-[11px] font-bold uppercase tracking-[0.12em] text-brand"
-        >
-          {linkLabel}
-          <ArrowRight size={12} className="pt-btn-arrow" aria-hidden />
-        </Link>
+      {href || action ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          {action}
+          {href ? (
+            <Link
+              href={href}
+              className="group/link -mr-1.5 inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-brand transition-colors hover:bg-brand-soft"
+            >
+              {linkLabel}
+              <ArrowRight
+                size={13}
+                className="transition-transform duration-200 group-hover/link:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

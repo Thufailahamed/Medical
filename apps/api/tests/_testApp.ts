@@ -22,12 +22,19 @@ const TEST_SECRET = "test-secret-do-not-use-in-prod";
 type TestUser = {
   id: string;
   role: string;
+  // JWT audience. Defaults to "mobile" (authMiddleware's own default).
+  // Admin-route tests must pass aud: "admin" — requireAdmin rejects
+  // mobile-audience tokens with audience_mismatch.
+  aud?: "mobile" | "admin";
 };
 
-async function makeToken(userId: string): Promise<string> {
+async function makeToken(userId: string, aud?: "mobile" | "admin"): Promise<string> {
   return sign(
     {
       sub: userId,
+      // Only set aud when the caller asked — keeps the historical
+      // no-aud shape for every existing caller.
+      ...(aud ? { aud } : {}),
       exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1h
     } as any,
     TEST_SECRET
@@ -56,7 +63,7 @@ export async function buildTestApp(db: MockD1, user?: TestUser) {
     c.set("db", db as any);
     c.set("locale", "en" as any);
     if (user) {
-      const token = await makeToken(user.id);
+      const token = await makeToken(user.id, user.aud);
       // Re-inject Authorization header so authMiddleware takes the
       // JWT path (not the dev bypass).
       const req = new Request(c.req.raw, {

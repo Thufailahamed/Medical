@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import "./login.css";
 
 export const metadata: Metadata = {
   title: "Sign in — HealthHub",

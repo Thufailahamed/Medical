@@ -14,13 +14,14 @@ import {
   ArrowRight,
   Calendar,
   CalendarCheck,
+  CalendarClock,
   CalendarOff,
   ChevronLeft,
   ChevronRight,
   Clock,
   DoorOpen,
   ListOrdered,
-  UserCheck,
+  Repeat,
   Users,
 } from "lucide-react";
 
@@ -29,6 +30,17 @@ import { Button } from "@/portal/components/ui/Button";
 import { Skeleton, ErrorState } from "@/portal/components/ui/Empty";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PrimaryLink,
+  SecondaryLink,
+} from "@/portal/components/doctor/Workspace";
 
 interface ScheduleEvent {
   id: string;
@@ -58,6 +70,7 @@ const KIND_META: Record<
     bg: string;
     fg: string;
     border: string;
+    dot: string;
     label: string;
   }
 > = {
@@ -66,6 +79,7 @@ const KIND_META: Record<
     bg: "bg-sky-50",
     fg: "text-sky-700",
     border: "border-sky-200",
+    dot: "bg-sky-500",
     label: "Appointment",
   },
   walkin: {
@@ -73,13 +87,15 @@ const KIND_META: Record<
     bg: "bg-amber-50",
     fg: "text-amber-700",
     border: "border-amber-200",
+    dot: "bg-amber-500",
     label: "Walk-in",
   },
   followup: {
-    icon: CalendarCheck,
+    icon: Repeat,
     bg: "bg-emerald-50",
     fg: "text-emerald-700",
     border: "border-emerald-200",
+    dot: "bg-emerald-500",
     label: "Follow-up",
   },
   timeoff: {
@@ -87,6 +103,7 @@ const KIND_META: Record<
     bg: "bg-rose-50",
     fg: "text-rose-600",
     border: "border-rose-200",
+    dot: "bg-rose-400",
     label: "Time off",
   },
 };
@@ -98,6 +115,7 @@ function getKindMeta(kind: string) {
       bg: "bg-slate-50",
       fg: "text-slate-700",
       border: "border-slate-200",
+      dot: "bg-slate-400",
       label: kind,
     }
   );
@@ -115,127 +133,82 @@ function formatTime12(time: string | null) {
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-function StatChip({
-  label,
-  count,
-  tone,
-  icon: Icon,
-}: {
-  label: string;
-  count: number;
-  tone: "brand" | "sky" | "amber";
-  icon: typeof Users;
-}) {
-  const styles = {
-    brand: "bg-sky-50 text-sky-800 border-sky-200",
-    sky: "bg-blue-50 text-blue-800 border-blue-200",
-    amber: "bg-amber-50 text-amber-800 border-amber-200",
-  }[tone];
-
-  return (
-    <div
-      className={cn(
-        "flex flex-1 items-center gap-3 rounded-xl border px-3.5 py-2.5 min-w-0 shadow-2xs bg-white",
-        styles,
-      )}
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-2xs border border-inherit">
-        <Icon size={16} />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-          {label}
-        </p>
-        <p className="text-xl font-extrabold text-slate-900 tabular-nums leading-none mt-0.5">
-          {count}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function EventCard({ event }: { event: ScheduleEvent }) {
+function EventRow({ event, isLast }: { event: ScheduleEvent; isLast: boolean }) {
   const meta = getKindMeta(event.kind);
   const Icon = meta.icon;
-  const timeStr = formatTime12(event.startTime);
+  const start = formatTime12(event.startTime);
+  const end = formatTime12(event.endTime);
   const subtitleParts = [
     event.title,
     event.queueNumber != null ? `Token #${event.queueNumber}` : null,
-    event.status,
   ].filter(Boolean);
-  const href = event.patientId
-    ? `/portal/patients/${event.patientId}/overview`
-    : undefined;
+  const href = event.patientId ? `/portal/patients/${event.patientId}/overview` : undefined;
 
-  const content = (
-    <div className="group flex items-stretch gap-0 overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-sky-300 hover:shadow-xs transition-all">
-      <div
-        className={cn(
-          "flex w-16 shrink-0 flex-col items-center justify-center border-r border-slate-200 px-2 py-3",
-          meta.bg,
-        )}
-      >
-        {timeStr ? (
-          <>
-            <span className={cn("text-[10px] font-bold uppercase", meta.fg)}>
-              {timeStr.split(" ")[1]}
-            </span>
-            <span className={cn("text-sm font-extrabold tabular-nums", meta.fg)}>
-              {timeStr.split(" ")[0]}
-            </span>
-          </>
-        ) : (
-          <Clock size={16} className={meta.fg} />
-        )}
-      </div>
-
-      <div className="flex min-w-0 flex-1 items-center gap-3 p-3.5">
-        <span
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
-            meta.bg,
-            meta.fg,
-            meta.border,
-          )}
-        >
-          <Icon size={17} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="mb-0.5 flex items-center gap-2">
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide border",
-                meta.bg,
-                meta.fg,
-                meta.border,
-              )}
-            >
-              {meta.label}
-            </span>
-          </div>
-          <p className="truncate text-sm font-bold text-slate-900">
-            {event.patientName ?? "Consultation Encounter"}
+  const card = (
+    <div
+      className={cn(
+        "group flex min-w-0 flex-1 items-center gap-3 rounded-xl bg-slate-50 p-3.5 transition-all",
+        href && "hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_24px_-10px_rgba(15,23,42,0.2),inset_0_0_0_1px_rgba(15,23,42,0.07)]",
+      )}
+    >
+      <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px]", meta.bg, meta.fg)} aria-hidden>
+        <Icon size={16} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate text-sm font-semibold text-slate-900 group-hover:text-sky-700">
+            {event.patientName ?? (event.kind === "timeoff" ? "Unavailable" : "Consultation")}
           </p>
-          {subtitleParts.length > 0 ? (
-            <p className="mt-0.5 truncate text-xs text-slate-500">
-              {subtitleParts.join(" · ")}
-            </p>
-          ) : null}
+          <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold", meta.bg, meta.fg)}>
+            {meta.label}
+          </span>
         </div>
+        {subtitleParts.length > 0 ? (
+          <p className="mt-0.5 truncate text-xs text-slate-500">{subtitleParts.join(" · ")}</p>
+        ) : null}
+      </div>
+      {event.status ? (
+        <span className="hidden shrink-0 rounded-md bg-white px-2 py-1 text-[11px] font-medium capitalize text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)] sm:inline">
+          {event.status.replace(/_/g, " ")}
+        </span>
+      ) : null}
+      {href ? (
         <ArrowRight
           size={15}
-          className="shrink-0 text-slate-400 transition-all group-hover:translate-x-0.5 group-hover:text-sky-600 mr-2"
+          className="shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-sky-600"
+          aria-hidden
         />
-      </div>
+      ) : null}
     </div>
   );
 
-  if (href) return <Link href={href}>{content}</Link>;
-  return content;
+  return (
+    <li className="flex gap-4">
+      {/* Time rail */}
+      <div className="w-16 shrink-0 pt-3 text-right">
+        {start ? (
+          <>
+            <div className="text-sm font-semibold tabular-nums text-slate-900">{start}</div>
+            {end ? <div className="text-[11px] tabular-nums text-slate-400">{end}</div> : null}
+          </>
+        ) : (
+          <Clock size={14} className="ml-auto text-slate-300" aria-hidden />
+        )}
+      </div>
+      <div className="relative flex flex-col items-center" aria-hidden>
+        <span className={cn("mt-4 h-2.5 w-2.5 rounded-full ring-4 ring-white", meta.dot)} />
+        {!isLast ? <span className="w-px flex-1 bg-slate-200" /> : null}
+      </div>
+      <div className="min-w-0 flex-1 pb-3">
+        {href ? <Link href={href} className="flex">{card}</Link> : card}
+      </div>
+    </li>
+  );
 }
 
 export default function SchedulePage() {
   const t = useT();
+  void t;
   const [anchor, setAnchor] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(() => new Date());
 
@@ -270,28 +243,43 @@ export default function SchedulePage() {
   }, [events]);
 
   const stats = useMemo(() => {
-    let total = events.length;
+    const total = events.length;
     let appointments = 0;
     let walkins = 0;
+    let followups = 0;
+    let timeoff = 0;
     for (const e of events) {
       if (e.kind === "appointment") appointments++;
       else if (e.kind === "walkin") walkins++;
+      else if (e.kind === "followup") followups++;
+      else if (e.kind === "timeoff") timeoff++;
     }
-    return { total, appointments, walkins };
+    return { total, appointments, walkins, followups, timeoff };
   }, [events]);
+
+  const busiest = useMemo(() => {
+    let best: { day: Date; count: number } | null = null;
+    for (const d of days) {
+      const c = (byDay.get(isoDay(d)) ?? []).length;
+      if (c > 0 && (!best || c > best.count)) best = { day: d, count: c };
+    }
+    return best;
+  }, [days, byDay]);
+  const maxPerDay = busiest?.count ?? 0;
 
   const selectedKey = isoDay(selectedDay);
   const selectedEvents = useMemo(() => {
-    const evts = byDay.get(selectedKey) ?? [];
+    const evts = [...(byDay.get(selectedKey) ?? [])];
     return evts.sort((a, b) =>
       (a.startTime ?? "").localeCompare(b.startTime ?? ""),
     );
   }, [byDay, selectedKey]);
 
   const today = new Date();
+  const isThisWeek = isSameDay(startOfWeek(today, { weekStartsOn: 1 }), weekStart);
   const selectedDayLabel = isSameDay(selectedDay, today)
     ? "Today"
-    : format(selectedDay, "EEEE, MMM d");
+    : format(selectedDay, "EEEE");
 
   function goToday() {
     const now = new Date();
@@ -299,311 +287,173 @@ export default function SchedulePage() {
     setSelectedDay(now);
   }
 
+  function shiftWeek(delta: number) {
+    setAnchor((d) => addWeeks(d, delta));
+    setSelectedDay((d) => addWeeks(d, delta));
+  }
+
+  const breakdown = [
+    { key: "appointment", label: "Appointments", count: stats.appointments },
+    { key: "walkin", label: "Walk-ins", count: stats.walkins },
+    { key: "followup", label: "Follow-ups", count: stats.followups },
+    { key: "timeoff", label: "Time off", count: stats.timeoff },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* ── 1. Signature Oceanic Doctor Schedule Hero ──────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Calendar size={12} className="text-sky-300" />
-                Clinical Consultation Roster
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Doctor Schedule &amp; Encounters
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                {format(weekStart, "MMMM d")} – {format(weekEnd, "MMMM d, yyyy")} · Comprehensive weekly consultation timeline across booked appointments, walk-ins, and follow-ups.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <div className="flex items-center gap-1 bg-white/15 border border-white/25 rounded-xl p-1 backdrop-blur-md">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-10">
+      {/* ── Hero + week strip ─────────────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<Calendar size={13} aria-hidden />}
+          kicker="Schedule"
+          kickerMeta={`${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`}
+          title={isThisWeek ? "This week" : `Week of ${format(weekStart, "MMMM d")}`}
+          description={
+            isLoading
+              ? "Loading your week…"
+              : stats.total > 0
+                ? `${stats.total} encounter${stats.total === 1 ? "" : "s"} across the week${busiest ? ` — busiest on ${format(busiest.day, "EEEE")}` : ""}.`
+                : "Nothing booked this week yet. Open slots or check in walk-ins as they arrive."
+          }
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
+                {stats.appointments} appointment{stats.appointments === 1 ? "" : "s"}
+              </span>
+              <span className={HERO_CHIP}>
+                <span className="h-2 w-2 rounded-full bg-amber-400" aria-hidden />
+                {stats.walkins} walk-in{stats.walkins === 1 ? "" : "s"}
+              </span>
+              {stats.followups > 0 ? (
+                <span className={HERO_CHIP}>
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+                  {stats.followups} follow-up{stats.followups === 1 ? "" : "s"}
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <div className="flex h-10 items-center gap-0.5 rounded-[10px] border border-white/20 bg-white/[0.06] p-1">
                 <button
                   type="button"
-                  onClick={() => setAnchor((d) => addWeeks(d, -1))}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
-                  title="Previous Week"
+                  onClick={() => shiftWeek(-1)}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-white transition-colors hover:bg-white/15"
+                  aria-label="Previous week"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={goToday}
-                  className="px-3 py-1 text-xs font-bold text-white hover:bg-white/20 rounded-lg transition-all cursor-pointer"
+                  disabled={isThisWeek && isSameDay(selectedDay, today)}
+                  className="h-8 rounded-lg px-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 disabled:opacity-50"
                 >
                   Today
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAnchor((d) => addWeeks(d, 1))}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
-                  title="Next Week"
+                  onClick={() => shiftWeek(1)}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-white transition-colors hover:bg-white/15"
+                  aria-label="Next week"
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
-
-              <Link
-                href="/portal/queue"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <ListOrdered size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>Live Queue</span>
+              <Link href="/portal/queue" className={HERO_PRIMARY}>
+                <ListOrdered size={15} className="text-sky-600" aria-hidden />
+                Live queue
               </Link>
-            </div>
-          </div>
+            </>
+          }
+        />
 
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Users size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Week Encounters
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.total} Total Visits
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <UserCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Appointments
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.appointments} Scheduled
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <DoorOpen size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Walk-In Queue
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.walkins} Walk-Ins
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <CalendarCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Selected Day
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {selectedEvents.length} on {format(selectedDay, "MMM d")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Unified 7-Day Interactive Scroller Card ─────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col gap-4">
-        {/* Full-width 7-day selector grid */}
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((d) => {
-            const isSelected = isSameDay(d, selectedDay);
-            const isToday = isSameDay(d, today);
-            const dayEvents = byDay.get(isoDay(d)) ?? [];
-            return (
-              <button
-                key={d.toISOString()}
-                type="button"
-                onClick={() => setSelectedDay(d)}
-                style={{
-                  backgroundColor: isSelected ? "#0284c7" : "#ffffff",
-                  borderColor: isSelected ? "#0284c7" : isToday ? "#38bdf8" : "#e2e8f0",
-                  color: isSelected ? "#ffffff" : "#0f172a",
-                }}
-                className={cn(
-                  "p-3 rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs hover:scale-[1.02]",
-                  isSelected ? "shadow-md" : "hover:bg-slate-50",
-                )}
-                aria-pressed={isSelected}
-              >
-                <span
-                  style={{ color: isSelected ? "rgba(255,255,255,0.85)" : "#64748b" }}
-                  className="text-[11px] font-bold uppercase tracking-wider"
-                >
-                  {format(d, "EEE")}
-                </span>
-                <span
-                  style={{ color: isSelected ? "#ffffff" : "#0f172a" }}
-                  className="text-xl sm:text-2xl font-black tabular-nums leading-none"
-                >
-                  {format(d, "d")}
-                </span>
-                <span
-                  style={{
-                    backgroundColor: isSelected ? "rgba(255,255,255,0.25)" : dayEvents.length > 0 ? "#e0f2fe" : "#f1f5f9",
-                    color: isSelected ? "#ffffff" : dayEvents.length > 0 ? "#0369a1" : "#94a3b8",
-                  }}
-                  className="px-2 py-0.5 rounded-full text-[10px] font-extrabold mt-0.5"
-                >
-                  {dayEvents.length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 3 Telemetry Summary Chips */}
-        <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-          <StatChip
-            label="This Week Total"
-            count={stats.total}
-            tone="brand"
-            icon={Users}
-          />
-          <StatChip
-            label="Scheduled Appointments"
-            count={stats.appointments}
-            tone="sky"
-            icon={UserCheck}
-          />
-          <StatChip
-            label="Walk-In Encounters"
-            count={stats.walkins}
-            tone="amber"
-            icon={DoorOpen}
-          />
-        </div>
-      </section>
-
-      {/* ── 3. Day Timeline & Schedule Details ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        {/* Week At A Glance Navigation Card */}
-        <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-          <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Week At A Glance
-            </h3>
-            <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/60">
-              {stats.total} total
-            </span>
-          </div>
-
-          <ul className="divide-y divide-slate-100">
+        <HeroOverlap>
+          <div className="grid grid-cols-7 gap-1.5 rounded-2xl bg-white p-2 shadow-[0_16px_40px_-16px_rgba(15,23,42,0.22),inset_0_0_0_1px_rgba(15,23,42,0.07)] sm:gap-2 sm:p-3">
             {days.map((d) => {
-              const key = isoDay(d);
-              const count = (byDay.get(key) ?? []).length;
               const isSelected = isSameDay(d, selectedDay);
               const isToday = isSameDay(d, today);
+              const count = (byDay.get(isoDay(d)) ?? []).length;
+              const fill = maxPerDay > 0 ? Math.max(12, Math.round((count / maxPerDay) * 100)) : 0;
               return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDay(d)}
+                <button
+                  key={d.toISOString()}
+                  type="button"
+                  onClick={() => setSelectedDay(d)}
+                  aria-pressed={isSelected}
+                  aria-label={`${format(d, "EEEE, MMMM d")}: ${count} event${count === 1 ? "" : "s"}`}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 transition-all sm:py-3",
+                    isSelected
+                      ? "bg-sky-600 text-white shadow-[0_10px_24px_-10px_rgba(2,132,199,0.7)]"
+                      : isToday
+                        ? "bg-sky-50 text-sky-700 hover:bg-sky-100"
+                        : "text-slate-900 hover:bg-slate-50",
+                  )}
+                >
+                  <span
                     className={cn(
-                      "flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-all cursor-pointer",
-                      isSelected
-                        ? "bg-sky-50 border-l-4 border-sky-600 font-bold"
-                        : "hover:bg-slate-50",
+                      "text-[10.5px] font-semibold uppercase tracking-wider",
+                      isSelected ? "text-white/75" : isToday ? "text-sky-600" : "text-slate-400",
                     )}
                   >
-                    <span className="min-w-0">
-                      <span
-                        className={cn(
-                          "block text-xs truncate",
-                          isSelected ? "text-sky-900 font-bold" : "text-slate-700 font-medium",
-                        )}
-                      >
-                        {isToday ? "Today" : format(d, "EEEE")}
-                        <span className="text-slate-400 font-normal">
-                          {" "}
-                          · {format(d, "MMM d")}
-                        </span>
-                      </span>
-                    </span>
+                    {format(d, "EEE")}
+                  </span>
+                  <span className="text-xl font-semibold leading-none tabular-nums sm:text-2xl">
+                    {format(d, "d")}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-0.5 h-1 w-8 overflow-hidden rounded-full",
+                      isSelected ? "bg-white/25" : "bg-slate-100",
+                    )}
+                    aria-hidden
+                  >
                     <span
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold tabular-nums",
-                        count > 0
-                          ? "bg-sky-100 text-sky-800"
-                          : "bg-slate-100 text-slate-400",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                </li>
+                      className={cn("block h-full rounded-full", isSelected ? "bg-white" : "bg-sky-500")}
+                      style={{ width: `${fill}%` }}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[11px] tabular-nums",
+                      isSelected ? "text-white/85" : count > 0 ? "font-medium text-slate-600" : "text-slate-300",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
               );
             })}
-          </ul>
-        </section>
-
-        {/* Selected Day Encounters Stage */}
-        <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col min-h-[380px]">
-          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50/40">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <CalendarCheck size={17} className="text-sky-600" />
-                <span>{selectedDayLabel}</span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {format(selectedDay, "EEEE, MMMM d, yyyy")}
-              </p>
-            </div>
-            <span className="rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-xs font-bold text-sky-800 tabular-nums">
-              {selectedEvents.length} event{selectedEvents.length !== 1 ? "s" : ""}
-            </span>
           </div>
+        </HeroOverlap>
+      </div>
 
-          <div className="flex-1 p-5">
-            {isLoading ? (
-              <div className="flex flex-col gap-3">
-                <Skeleton className="h-20 w-full rounded-xl" />
-                <Skeleton className="h-20 w-full rounded-xl" />
-                <Skeleton className="h-20 w-full rounded-xl" />
-              </div>
-            ) : error ? (
+      {/* ── Body ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        <section className={cn(PANEL, "xl:col-span-8")} aria-labelledby="sched-day">
+          <PanelHeader
+            id="sched-day"
+            icon={<CalendarCheck size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title={selectedDayLabel}
+            caption={format(selectedDay, "EEEE, MMMM d, yyyy")}
+            action={
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold tabular-nums text-slate-600">
+                {selectedEvents.length} event{selectedEvents.length === 1 ? "" : "s"}
+              </span>
+            }
+          />
+
+          {isLoading ? (
+            <div className="mt-5 flex flex-col gap-3">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          ) : error ? (
+            <div className="mt-5">
               <ErrorState
                 retry={
                   <Button size="sm" variant="secondary" onClick={() => refetch()}>
@@ -611,56 +461,98 @@ export default function SchedulePage() {
                   </Button>
                 }
               />
-            ) : selectedEvents.length === 0 ? (
-              /* Rich Empty State for Selected Day */
-              <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
-                  <CalendarCheck size={26} />
-                </div>
-                <div className="max-w-md">
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                    No Events Scheduled for This Day
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                    {format(selectedDay, "EEEE, MMMM d")} · Your consultation calendar is clear. You can open booking slots, accept patient walk-in arrivals, or view the live clinical queue.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-                  <Link
-                    href="/portal/queue"
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
-                  >
-                    <ListOrdered size={14} />
-                    <span>Live Patient Queue</span>
-                  </Link>
-                  <Link
-                    href="/portal/walk-ins"
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <DoorOpen size={14} />
-                    <span>Check-In Walk-In</span>
-                  </Link>
-                  <Link
-                    href="/portal/patients"
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Users size={14} />
-                    <span>Patient Registry</span>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {selectedEvents.map((e) => (
-                  <EventCard key={e.id} event={e} />
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : selectedEvents.length === 0 ? (
+            <EmptyBlock
+              className="py-12"
+              icon={<CalendarClock size={20} />}
+              title={`Nothing scheduled ${isSameDay(selectedDay, today) ? "today" : `on ${format(selectedDay, "EEEE")}`}`}
+              body="Your calendar is clear for this day. Take walk-ins from the live queue or book a follow-up from a patient's chart."
+              actions={
+                <>
+                  <PrimaryLink href="/portal/queue" icon={<ListOrdered size={13} />}>
+                    Live queue
+                  </PrimaryLink>
+                  <SecondaryLink href="/portal/walk-ins" icon={<DoorOpen size={13} />}>
+                    Check in walk-in
+                  </SecondaryLink>
+                </>
+              }
+            />
+          ) : (
+            <ol className="mt-5">
+              {selectedEvents.map((e, i) => (
+                <EventRow key={e.id} event={e} isLast={i === selectedEvents.length - 1} />
+              ))}
+            </ol>
+          )}
         </section>
+
+        <aside className="flex min-w-0 flex-col gap-5 xl:col-span-4" aria-label="Week summary">
+          <section className={PANEL} aria-labelledby="sched-week">
+            <PanelHeader
+              id="sched-week"
+              icon={<Users size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="Week summary"
+              caption={`${stats.total} encounter${stats.total === 1 ? "" : "s"} in total`}
+            />
+            <ul className="mt-5 flex flex-col gap-3.5">
+              {breakdown.map((b) => {
+                const meta = getKindMeta(b.key);
+                const pct = stats.total > 0 ? Math.round((b.count / stats.total) * 100) : 0;
+                return (
+                  <li key={b.key}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="inline-flex items-center gap-2 font-medium text-slate-600">
+                        <span className={cn("h-2 w-2 rounded-full", meta.dot)} aria-hidden />
+                        {b.label}
+                      </span>
+                      <span className="font-semibold tabular-nums text-slate-900">{b.count}</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                      <div className={cn("h-full rounded-full", meta.dot)} style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-5 flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3 text-xs">
+              <span className="text-slate-500">Busiest day</span>
+              <span className="font-semibold text-slate-900">
+                {busiest ? `${format(busiest.day, "EEEE")} · ${busiest.count}` : "—"}
+              </span>
+            </div>
+          </section>
+
+          <section className={PANEL} aria-labelledby="sched-links">
+            <h2 id="sched-links" className="text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
+              Manage availability
+            </h2>
+            <ul className="mt-3 divide-y divide-slate-100">
+              {[
+                { href: "/portal/availability", label: "Working hours & slots", icon: Clock },
+                { href: "/portal/appointments", label: "All appointments", icon: CalendarCheck },
+                { href: "/portal/follow-ups", label: "Follow-ups due", icon: Repeat },
+                { href: "/portal/walk-ins", label: "Walk-in desk", icon: DoorOpen },
+              ].map((l) => {
+                const Icon = l.icon;
+                return (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-sky-700"
+                    >
+                      <Icon size={15} className="text-slate-400 group-hover:text-sky-600" aria-hidden />
+                      <span className="flex-1">{l.label}</span>
+                      <ChevronRight size={15} className="text-slate-300 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </aside>
       </div>
     </div>
   );

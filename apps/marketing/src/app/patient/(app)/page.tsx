@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  BodyOverview,
   CareAssistant,
   DashboardHero,
   HealthSummaryStrip,
@@ -9,65 +8,45 @@ import {
   MedicationsToday,
   NotificationsPreview,
   QuickActions,
-  RecentActivity,
   RecentRecords,
   SafetyBanner,
   UpcomingAppointment,
   VitalsTrend,
   WeekStrip,
-  WellnessScore,
 } from "@/patient/components/dashboard";
 
+/**
+ * Patient home — ink hero with the stat strip floating over its edge,
+ * then a main column (today's plan, vitals, records) beside a rail of
+ * shortcuts, schedule, assistant, inbox and cover.
+ */
 export default function DashboardPage() {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-1 pb-6 pt-1">
-      <DashboardHero />
-      <SafetyBanner />
-      <QuickActions />
-      <HealthSummaryStrip />
-
-      {/* Today: medication plan + schedule */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-start">
-        <div className="lg:col-span-7">
-          <MedicationsToday />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-8">
+      <div>
+        <DashboardHero />
+        <div className="relative z-10 -mt-14 px-3 md:-mt-16 md:px-6">
+          <HealthSummaryStrip />
         </div>
-        <div className="flex flex-col gap-4 lg:col-span-5">
+      </div>
+
+      <SafetyBanner />
+
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-8">
+          <MedicationsToday />
+          <VitalsTrend />
+          <RecentRecords />
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-5 xl:col-span-4" aria-label="Today">
+          <QuickActions />
           <UpcomingAppointment />
           <WeekStrip />
-        </div>
-      </div>
-
-      <VitalsTrend />
-
-      {/* Deeper health picture */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12 items-stretch">
-        <div className="flex lg:col-span-4">
-          <WellnessScore className="w-full" />
-        </div>
-        <div className="flex lg:col-span-4">
-          <BodyOverview className="w-full" />
-        </div>
-        <div className="flex md:col-span-2 lg:col-span-4">
-          <RecentActivity className="w-full" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
-        <div className="flex lg:col-span-7">
-          <RecentRecords className="w-full" />
-        </div>
-        <div className="flex lg:col-span-5">
-          <NotificationsPreview className="w-full" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
-        <div className="flex lg:col-span-5">
-          <InsuranceCoverage className="w-full" />
-        </div>
-        <div className="flex lg:col-span-7">
-          <CareAssistant className="w-full" />
-        </div>
+          <CareAssistant />
+          <NotificationsPreview />
+          <InsuranceCoverage />
+        </aside>
       </div>
     </div>
   );

@@ -11,11 +11,13 @@ import {
   Bell,
   Command,
   ChevronDown,
+  Menu,
   Sparkles,
   X,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
+import { useUiStore } from "@/portal/stores/ui";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { TenantSwitcher } from "./TenantSwitcher";
@@ -33,6 +35,7 @@ export function Topbar() {
   const showPageTitle = topbarShowsPageTitle(pathname) && pageMeta;
   const t = useT();
   const user = useAuthStore((s) => s.user);
+  const toggleMobileNav = useUiStore((s) => s.toggleMobileNav);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [search, setSearch] = useState("");
@@ -107,6 +110,14 @@ export function Topbar() {
         searchFocused && "shadow-md"
       )}
     >
+      <button
+        type="button"
+        aria-label="Open navigation menu"
+        onClick={toggleMobileNav}
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-text-soft transition-colors hover:bg-slate-100 hover:text-text lg:hidden"
+      >
+        <Menu size={19} aria-hidden />
+      </button>
       {showPageTitle ? (
         <div className="flex items-center gap-2.5 shrink-0 min-w-0 max-w-[min(220px,28vw)]">
           <div className="h-9 w-9 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
@@ -126,7 +137,7 @@ export function Topbar() {
       ) : null}
 
       {/* ── Search bar ────────────────────────────────────────────────────── */}
-      <form onSubmit={onSubmitSearch} className="flex-1 min-w-0 max-w-xl">
+      <form onSubmit={onSubmitSearch} className="hidden min-w-0 max-w-xl flex-1 sm:block">
         <div
           className={cn(
             "portal-input-search-wrap rounded-xl transition-all duration-200",

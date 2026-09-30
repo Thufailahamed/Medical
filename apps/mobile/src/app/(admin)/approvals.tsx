@@ -7,6 +7,8 @@ import {
   Stethoscope,
   FlaskConical,
   Clock,
+  CheckCircle2,
+  Inbox,
 } from "lucide-react-native";
 import {
   Screen,
@@ -14,7 +16,6 @@ import {
   Button,
   BottomSheet,
   TextInput,
-  EmptyState,
   useToast,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -26,6 +27,7 @@ import {
 } from "@/hooks/useAdminApi";
 import {
   AdminHero,
+  AdminSegmented,
   FilterChips,
   ListSkeleton,
   AdminError,
@@ -100,6 +102,18 @@ export default function ApprovalsScreen() {
   };
 
   const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const statusLabel = STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+  const roleLabel = ROLE_OPTIONS.find((o) => o.value === role)?.label;
+  const noun = total === 1 ? "application" : "applications";
+
+  const heroSubtitle = isLoading
+    ? "Loading applications…"
+    : isError && !data
+    ? "Couldn't load the queue"
+    : total === 0
+    ? `No ${status} ${role ? `${roleLabel?.toLowerCase()} ` : ""}applications`
+    : `${total} ${status} ${role ? `${roleLabel?.toLowerCase()} ` : ""}${noun}`;
 
   return (
     <Screen
@@ -115,42 +129,57 @@ export default function ApprovalsScreen() {
           compact
           eyebrow="Review queue"
           title="Approvals"
-          subtitle={`${data?.total ?? 0} ${status} applications`}
+          subtitle={heroSubtitle}
           icon={UserCheck}
         />
       </View>
 
-      <View style={{ marginTop: spacing.lg, gap: 2 }}>
-        <FilterChips
-          options={STATUS_OPTIONS}
-          value={status}
-          onChange={setStatus}
-        />
-        <FilterChips
-          options={ROLE_OPTIONS}
-          value={role}
-          onChange={setRole}
-          size="sm"
-        />
+      {/* Status: one segmented control instead of a second chip row */}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+        <AdminSegmented options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+      </View>
+
+      {/* Role filter */}
+      <View style={{ marginTop: spacing.md }}>
+        <Text
+          style={[
+            typography.overline,
+            { color: colors.textSubtle, paddingHorizontal: spacing.lg + 4, marginBottom: 4 },
+          ]}
+        >
+          ROLE
+        </Text>
+        <FilterChips options={ROLE_OPTIONS} value={role} onChange={setRole} size="sm" />
       </View>
 
       <View
         style={{
           paddingHorizontal: spacing.lg,
           gap: spacing.md,
-          marginTop: spacing.md,
+          marginTop: spacing.lg,
           paddingBottom: spacing.xl,
         }}
       >
-        {isError ? <AdminError message="Couldn't load applications." /> : null}
+        {isError ? (
+          <AdminError
+            title="Couldn't load applications"
+            message="Check your connection, then retry or pull to refresh."
+            onRetry={() => refetch()}
+            retrying={isRefetching}
+          />
+        ) : null}
         {isLoading ? (
           <ListSkeleton rows={5} />
         ) : items.length === 0 ? (
-          <EmptyState
-            icon={UserCheck}
-            title="Nothing to review"
-            message={`No ${status} applications right now.`}
-          />
+          isError ? null : (
+            <EmptyQueue
+              status={status}
+              statusLabel={statusLabel}
+              roleLabel={role ? roleLabel : undefined}
+              onClearRole={role ? () => setRole("") : undefined}
+              onShowActive={status !== "active" ? () => setStatus("active") : undefined}
+            />
+          )
         ) : (
           items.map((item) => (
             <ApprovalCard
@@ -204,6 +233,74 @@ export default function ApprovalsScreen() {
         </View>
       </BottomSheet>
     </Screen>
+  );
+}
+
+const EMPTY_COPY: Record<string, { title: string; body: string }> = {
+  pending: {
+    title: "You're all caught up",
+    body: "New sign-ups that need approval will appear here.",
+  },
+  active: { title: "No active accounts", body: "Approved accounts will be listed here." },
+  rejected: { title: "No rejected applications", body: "Applications you reject will be kept here." },
+  suspended: { title: "No suspended accounts", body: "Suspended accounts will be listed here." },
+};
+
+function EmptyQueue({
+  status,
+  statusLabel,
+  roleLabel,
+  onClearRole,
+  onShowActive,
+}: {
+  status: string;
+  statusLabel: string;
+  roleLabel?: string;
+  onClearRole?: () => void;
+  onShowActive?: () => void;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  const copy = EMPTY_COPY[status] ?? { title: "Nothing here", body: "" };
+  const isPending = status === "pending";
+  const Icon = isPending ? CheckCircle2 : Inbox;
+  return (
+    <AdminCard style={{ alignItems: "center", paddingVertical: spacing.xxl }}>
+      <View
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 20,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: isPending ? colors.successSoft : colors.well,
+        }}
+      >
+        <Icon size={28} color={isPending ? colors.success : colors.textMuted} strokeWidth={2.2} />
+      </View>
+      <Text style={[typography.title.lg, { color: colors.text, marginTop: spacing.lg, textAlign: "center" }]}>
+        {copy.title}
+      </Text>
+      <Text
+        style={[
+          typography.body.sm,
+          { color: colors.textMuted, marginTop: 4, textAlign: "center", maxWidth: 280 },
+        ]}
+      >
+        {roleLabel
+          ? `No ${statusLabel.toLowerCase()} ${roleLabel.toLowerCase()} applications. Try another role.`
+          : copy.body}
+      </Text>
+      {onClearRole || onShowActive ? (
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
+          {onClearRole ? (
+            <Button title="Show all roles" size="sm" variant="secondary" onPress={onClearRole} />
+          ) : onShowActive ? (
+            <Button title="View active accounts" size="sm" variant="secondary" onPress={onShowActive} />
+          ) : null}
+        </View>
+      ) : null}
+    </AdminCard>
   );
 }
 

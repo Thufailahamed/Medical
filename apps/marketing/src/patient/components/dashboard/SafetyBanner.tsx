@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, Syringe } from "lucide-react";
+import { AlertTriangle, ChevronRight, Syringe } from "lucide-react";
 
 import {
   useAllergies,
@@ -29,16 +29,16 @@ export function SafetyBanner({ className }: { className?: string }) {
   if (critical.length === 0 && dueList.length === 0) return null;
 
   return (
-    <div className={cn("anim-rise flex flex-col gap-2", className)}>
+    <div className={cn("anim-rise grid gap-3 md:grid-cols-2", className)}>
       {critical.length > 0 ? (
         <Link
           href="/patient/allergies"
-          className="flex items-start gap-3 rounded-[var(--radius-inner)] border border-danger/25 bg-danger-soft px-4 py-3 transition-transform hover:-translate-y-0.5"
+          className="group flex items-center gap-3 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 transition-transform hover:-translate-y-0.5 md:only:col-span-2"
         >
-          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-danger text-white">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-danger text-white">
             <AlertTriangle size={16} aria-hidden />
           </span>
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-danger">
               Critical allergies on file
             </span>
@@ -46,18 +46,19 @@ export function SafetyBanner({ className }: { className?: string }) {
               {critical.map((a) => a.substance).join(" · ")}
             </span>
           </span>
+          <ChevronRight size={16} className="shrink-0 opacity-50 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </Link>
       ) : null}
 
       {dueList.length > 0 ? (
         <Link
           href="/patient/vaccinations"
-          className="flex items-start gap-3 rounded-[var(--radius-inner)] border border-warn/25 bg-warn-soft px-4 py-3 transition-transform hover:-translate-y-0.5"
+          className="group flex items-center gap-3 rounded-xl border border-warn/20 bg-warn-soft px-4 py-3 transition-transform hover:-translate-y-0.5 md:only:col-span-2"
         >
-          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warn text-white">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-warn text-white">
             <Syringe size={16} aria-hidden />
           </span>
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-warn">
               Vaccinations due
             </span>
@@ -65,6 +66,7 @@ export function SafetyBanner({ className }: { className?: string }) {
               {dueList.map((s) => s.vaccineName).join(" · ")}
             </span>
           </span>
+          <ChevronRight size={16} className="shrink-0 opacity-50 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </Link>
       ) : null}
     </div>

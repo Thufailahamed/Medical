@@ -23,6 +23,11 @@ import {
   Phone,
   Sparkles,
   UserRound,
+  Sunrise,
+  Sun,
+  Sunset,
+  Moon,
+  Minus,
 } from "lucide-react-native";
 import {
   useSearchPatients,
@@ -610,8 +615,10 @@ export default function PrescriptionScreen() {
           style={{
             marginHorizontal: spacing.lg,
             marginTop: spacing.xs,
-            marginBottom: spacing.md,
-            padding: spacing.lg,
+            marginBottom: spacing.lg,
+            paddingVertical: spacing.md,
+            paddingLeft: spacing.md,
+            paddingRight: spacing.md,
             borderRadius: radius.card,
             borderCurve: "continuous",
             backgroundColor: colors.surface,
@@ -619,6 +626,7 @@ export default function PrescriptionScreen() {
             borderColor: hairline,
             flexDirection: "row",
             alignItems: "center",
+            gap: spacing.md,
             ...(isDark ? {} : shadow.card),
           }}
         >
@@ -628,24 +636,20 @@ export default function PrescriptionScreen() {
             tone="primary"
             source={patientPhoto ? { uri: patientPhoto } : undefined}
           />
-          <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text
-                numberOfLines={1}
-                style={[typography.title.md, { color: colors.text, flexShrink: 1 }]}
-              >
-                {patientName}
-              </Text>
-
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[typography.caption, { color: colors.textSubtle }]}>
+              {t("doctorPrescription.prescribingFor", "Prescribing for")}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[typography.title.md, { color: colors.text }]}
+            >
+              {patientName}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
               <Phone size={11} color={colors.textSubtle} strokeWidth={2} />
               <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textMuted,
-                  fontFamily: fontFamily.body,
-                }}
+                style={[typography.caption, { color: colors.textMuted, fontVariant: ["tabular-nums"] }]}
                 numberOfLines={1}
               >
                 {patientPhone}
@@ -656,173 +660,93 @@ export default function PrescriptionScreen() {
           <Pressable
             onPress={() => setSelectedPatient(null)}
             hitSlop={8}
+            accessibilityRole="button"
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
-              gap: 4,
+              gap: 5,
               paddingHorizontal: 12,
               height: 32,
               borderRadius: 999,
               borderCurve: "continuous",
-              backgroundColor: pressed ? colors.primary : colors.primarySoft,
+              backgroundColor: pressed ? colors.fill : colors.well,
             })}
           >
-            <X size={13} color={colors.primary} strokeWidth={2.4} />
-            <Text style={[typography.label.sm, { color: colors.primary }]}>
+            <Users size={13} color={colors.text} strokeWidth={2.3} />
+            <Text style={[typography.label.sm, { color: colors.text }]}>
               {t("doctorPrescription.changePill", { defaultValue: "Change" })}
             </Text>
           </Pressable>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg }}>
-          <Card
-            padded={false}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: hairline,
-              overflow: "hidden",
-            }}
-          >
-            <View
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingTop: spacing.md + 2,
-                paddingBottom: 0,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <IconTile icon={Stethoscope} tone="primary" appearance="solid" size={30} />
-              <Text
-                style={[
-                  typography.title.md,
-                  { color: colors.text },
-                ]}
-              >
-                {t("doctorPrescription.assessment", { defaultValue: "Clinical Assessment" })}
-              </Text>
-            </View>
-            <View style={{ padding: spacing.lg, gap: spacing.md }}>
-              <FormField label={t("doctorPrescription.diagnosis", { defaultValue: "Diagnosis" })} required>
-                <TextInput
-                  value={diagnosis}
-                  onChangeText={setDiagnosis}
-                  placeholder={t("doctorPrescription.diagnosisPlaceholder", {
-                    defaultValue: "e.g., Acute pharyngitis, Type 2 Diabetes",
-                  })}
-                  leadingIcon={Stethoscope}
-                  multiline
-                  numberOfLines={2}
-                />
-              </FormField>
-
-              <FormField label={t("doctorPrescription.notes", { defaultValue: "Clinical Notes & Advice" })}>
-                <TextInput
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder={t("doctorPrescription.notesPlaceholder", {
-                    defaultValue: "Additional instructions, diet advice, or notes...",
-                  })}
-                  leadingIcon={FileText}
-                  multiline
-                  numberOfLines={3}
-                />
-              </FormField>
-            </View>
-          </Card>
-
-          {/* Phase 4.2: saved prescription templates. Chip carousel so
-              the doctor can autofill the medicine list with one tap.
-              Hidden when no templates exist (avoid empty UI). */}
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.xl }}>
+          {/* Phase 4.2: saved prescription templates — first, since applying
+              one fills the diagnosis and the medicine list. Hidden when no
+              templates exist (avoid empty UI). */}
           {templates.length > 0 && (
-            <View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: spacing.sm,
-                  paddingHorizontal: 2,
+            <View style={{ gap: spacing.sm }}>
+              <StepHeader
+                icon={Layers}
+                title={t("doctorPrescription.quickStart", "Start from a template")}
+                action={{
+                  label: t("doctorPrescription.manage"),
+                  onPress: () => router.push("/(doctor)/rx-templates" as any),
                 }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Layers size={14} color={colors.textSubtle} strokeWidth={2.2} />
-                  <Text
-                    style={[
-                      typography.kicker,
-                      { color: colors.textSubtle, textTransform: "uppercase" },
-                    ]}
-                  >
-                    {t("doctorPrescription.templatesHeading")}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => router.push("/(doctor)/rx-templates" as any)}
-                  hitSlop={6}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: colors.primary,
-                      fontFamily: fontFamily.bodyBold,
-                    }}
-                  >
-                    {t("doctorPrescription.manage")}
-                  </Text>
-                </Pressable>
-              </View>
+              />
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ marginHorizontal: -spacing.lg, marginVertical: -8 }}
-                contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg, paddingVertical: 8 }}
+                contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: 8 }}
               >
                 {templates.map((tpl) => {
-                  const count = (tpl.medicines || []).length;
+                  const meds = tpl.medicines || [];
                   return (
                     <Pressable
                       key={tpl.id}
                       onPress={() => applyTemplate(tpl as any)}
+                      accessibilityRole="button"
+                      accessibilityLabel={tpl.name}
                       style={({ pressed }) => ({
-                        paddingHorizontal: 14,
-                        height: 36,
-                        borderRadius: 999,
+                        width: 196,
+                        padding: spacing.md,
+                        gap: 6,
+                        borderRadius: 18,
                         borderCurve: "continuous",
                         backgroundColor: pressed ? colors.primarySoft : colors.surface,
                         borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: hairline,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
+                        borderColor: pressed ? colors.primary : hairline,
                         ...(isDark ? {} : shadow.xs),
                       })}
                     >
-                      <Text
-                        style={[
-                          typography.label.md,
-                          { color: colors.text },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {tpl.name}
-                      </Text>
-                      <View
-                        style={{
-                          paddingHorizontal: 6,
-                          paddingVertical: 1,
-                          borderRadius: 999,
-                          backgroundColor: colors.primarySoft,
-                        }}
-                      >
-                        <Text style={[typography.label.xs, { fontSize: 10, color: colors.primary }]}>
-                          {count}
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <View
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 8,
+                            borderCurve: "continuous",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: colors.primarySoft,
+                          }}
+                        >
+                          <Sparkles size={13} color={colors.primary} strokeWidth={2.4} />
+                        </View>
+                        <Text
+                          style={[typography.label.md, { color: colors.text, flex: 1 }]}
+                          numberOfLines={1}
+                        >
+                          {tpl.name}
                         </Text>
                       </View>
+                      <Text
+                        numberOfLines={1}
+                        style={[typography.caption, { color: colors.textMuted }]}
+                      >
+                        {meds.map((m: any) => m.name).filter(Boolean).join(" · ") ||
+                          t("rxTemplates.noMeds")}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -830,68 +754,65 @@ export default function PrescriptionScreen() {
             </View>
           )}
 
+          {/* ── Assessment ── */}
+          <View style={{ gap: spacing.sm }}>
+            <StepHeader
+              icon={Stethoscope}
+              title={t("doctorPrescription.assessment", { defaultValue: "Clinical Assessment" })}
+            />
+            <Card
+              padded={false}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: hairline,
+                overflow: "hidden",
+              }}
+            >
+              <View style={{ padding: spacing.md, gap: spacing.md }}>
+                <FormField label={t("doctorPrescription.diagnosis", { defaultValue: "Diagnosis" })} required>
+                  <TextInput
+                    value={diagnosis}
+                    onChangeText={setDiagnosis}
+                    placeholder={t("doctorPrescription.diagnosisPlaceholder", {
+                      defaultValue: "e.g., Acute pharyngitis, Type 2 Diabetes",
+                    })}
+                    leadingIcon={Stethoscope}
+                    multiline
+                  />
+                </FormField>
+
+                <FormField label={t("doctorPrescription.notes", { defaultValue: "Clinical Notes & Advice" })}>
+                  <TextInput
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder={t("doctorPrescription.notesPlaceholder", {
+                      defaultValue: "Additional instructions, diet advice, or notes...",
+                    })}
+                    leadingIcon={FileText}
+                    multiline
+                  />
+                </FormField>
+              </View>
+            </Card>
+          </View>
+
           {/* Phase 4: medicines list. Each entry renders its own
               MedicineCard with name + autocomplete, dosage, time-slot
               multi-select, food-relation chips, and duration. Tapping
-              the + button appends an empty entry; tapping the trash
-              removes one (always keeps at least one entry visible). */}
-          <Card
-            padded={false}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.card,
-              borderCurve: "continuous",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: hairline,
-              overflow: "hidden",
-            }}
-          >
-            <View
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingTop: spacing.md + 2,
-                paddingBottom: 0,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <IconTile icon={PillIcon} tone="primary" appearance="solid" size={30} />
-                <Text
-                  style={[
-                    typography.title.md,
-                    { color: colors.text },
-                  ]}
-                >
-                  {t("doctorPrescription.medicinesHeading", {
-                    defaultValue: "Prescribed Medicines",
-                  })}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  backgroundColor: colors.primarySoft,
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: 12,
-                  borderCurve: "continuous",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "800",
-                    color: colors.primary,
-                    fontFamily: fontFamily.displayBold,
-                  }}
-                >
-                  {medicines.length}
-                </Text>
-              </View>
-            </View>
-            <View style={{ padding: spacing.lg, gap: spacing.md }}>
+              the + button appends an empty entry; the × removes one
+              (always keeps at least one entry visible). */}
+          <View style={{ gap: spacing.sm }}>
+            <StepHeader
+              icon={PillIcon}
+              title={t("doctorPrescription.medicinesHeading", {
+                defaultValue: "Prescribed Medicines",
+              })}
+              count={medicines.length}
+            />
+            <View style={{ gap: spacing.md }}>
               {medicines.map((m, idx) => (
                 <MedicineCard
                   key={m.key}
@@ -925,17 +846,43 @@ export default function PrescriptionScreen() {
                   startDate={todayISO()}
                 />
               ))}
-
-              <Button
-                title={t("doctorPrescription.addMedicine")}
-                iconLeft={Plus}
-                variant="secondary"
-                size="md"
-                fullWidth
-                onPress={addEntry}
-              />
             </View>
-          </Card>
+
+            <Pressable
+              onPress={addEntry}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                marginTop: spacing.xs,
+                height: 52,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                borderRadius: radius.card,
+                borderCurve: "continuous",
+                borderWidth: 1.5,
+                borderStyle: "dashed",
+                borderColor: withOpacity(colors.primary, 0.45),
+                backgroundColor: pressed ? colors.primarySoft : "transparent",
+              })}
+            >
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Plus size={14} color={colors.onPrimary} strokeWidth={2.8} />
+              </View>
+              <Text style={[typography.label.md, { color: colors.primary }]}>
+                {t("doctorPrescription.addMedicine")}
+              </Text>
+            </Pressable>
+          </View>
 
           {safetyResult ? (
             <SafetyCard
@@ -944,18 +891,58 @@ export default function PrescriptionScreen() {
             />
           ) : null}
 
-          <Button
-            title={
-              safetyResult?.severity === "severe" ||
-              safetyResult?.severity === "critical"
-                ? t("doctorPrescription.safetyOverrideRequired")
-                : t("doctorPrescription.createPrescription")
-            }
-            onPress={() => handleCreate(false)}
-            loading={createPrescription.isPending}
-            icon={Save}
-            size="lg"
-          />
+          {/* ── Review & issue ── */}
+          <View
+            style={{
+              padding: spacing.md,
+              gap: spacing.md,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              backgroundColor: colors.surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: hairline,
+              ...(isDark ? {} : shadow.card),
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  borderCurve: "continuous",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.successSoft,
+                }}
+              >
+                <ShieldCheck size={18} color={colors.success} strokeWidth={2.3} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text numberOfLines={1} style={[typography.title.sm, { color: colors.text }]}>
+                  {t("doctorPrescription.reviewSummary", {
+                    count: medicines.filter((m) => m.name.trim()).length,
+                    defaultValue: `${medicines.filter((m) => m.name.trim()).length} medicines`,
+                  })}
+                </Text>
+                <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
+                  {diagnosis.trim() || t("doctorPrescription.reviewNoDiagnosis", "Add a diagnosis to continue")}
+                </Text>
+              </View>
+            </View>
+            <Button
+              title={
+                safetyResult?.severity === "severe" ||
+                safetyResult?.severity === "critical"
+                  ? t("doctorPrescription.safetyOverrideRequired")
+                  : t("doctorPrescription.createPrescription")
+              }
+              onPress={() => handleCreate(false)}
+              loading={createPrescription.isPending}
+              icon={Save}
+              size="lg"
+            />
+          </View>
         </View>
       </Screen>
 
@@ -1456,6 +1443,65 @@ export default function PrescriptionScreen() {
 // they're compressed into `frequency` because that matches what the
 // PDF renders and what the verify endpoint signs.
 
+/** Section heading used between the composer's blocks. */
+function StepHeader({
+  icon: Icon,
+  title,
+  count,
+  action,
+}: {
+  icon: any;
+  title: string;
+  count?: number;
+  action?: { label: string; onPress: () => void };
+}) {
+  const { colors, typography } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingHorizontal: 2,
+      }}
+    >
+      <Icon size={15} color={colors.primary} strokeWidth={2.4} />
+      <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+        {title}
+      </Text>
+      {typeof count === "number" ? (
+        <View
+          style={{
+            minWidth: 22,
+            height: 22,
+            paddingHorizontal: 7,
+            borderRadius: 11,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Text style={[typography.label.xs, { color: colors.primary }]}>{count}</Text>
+        </View>
+      ) : null}
+      {action ? (
+        <Pressable onPress={action.onPress} hitSlop={8} accessibilityRole="button">
+          <Text style={[typography.label.md, { color: colors.primary }]}>{action.label}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+const SLOT_ICONS = { morning: Sunrise, noon: Sun, evening: Sunset, night: Moon };
+const DURATION_PRESETS = [3, 5, 7, 14, 30];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function fmtShortDate(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return m && d ? `${d} ${MONTHS_SHORT[m - 1]}` : iso;
+}
+
 function MedicineCard({
   entry,
   index,
@@ -1502,7 +1548,8 @@ function MedicineCard({
   startDate: string;
 }) {
   const { t } = useTranslation();
-  const { spacing, colors, typography, radius } = useTheme();
+  const { spacing, colors, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
   const [localQuery, setLocalQuery] = useState("");
   const debouncedLocal = useDebounce(localQuery, 250);
   const { data: localResults } = useMedicineSearch(debouncedLocal);
@@ -1514,62 +1561,123 @@ function MedicineCard({
     { key: "night", label: slotLabels.night },
   ];
 
-  const endDatePreview = entry.ongoing
-    ? "—"
-    : addDays(startDate, Math.max(1, entry.durationDays || 1));
+  const days = Math.max(1, entry.durationDays || 1);
+  const endDatePreview = entry.ongoing ? null : addDays(startDate, days);
+  const freqKey = slotsToFrequencyKey(entry.slots);
+
+  const sectionLabel = (text: string, trailing?: any) => (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+      <Text style={[typography.caption, { color: colors.textSubtle, fontFamily: fontFamily.bodySemibold }]}>
+        {text}
+      </Text>
+      {trailing}
+    </View>
+  );
+
+  const chip = (label: string, active: boolean, onPress: () => void, key?: string) => (
+    <Pressable
+      key={key ?? label}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => ({
+        height: 30,
+        paddingHorizontal: 12,
+        justifyContent: "center",
+        borderRadius: 15,
+        borderCurve: "continuous",
+        backgroundColor: active ? colors.primary : pressed ? colors.primarySoft : colors.fill,
+      })}
+    >
+      <Text style={[typography.label.sm, { color: active ? colors.onPrimary : colors.textMuted }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
 
   return (
     <View
       style={{
-        borderRadius: 18,
+        borderRadius: radius.card,
         borderCurve: "continuous",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: colors.separator,
-        backgroundColor: colors.surfaceMuted,
-        padding: 16,
-        gap: spacing.md,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        backgroundColor: colors.surface,
+        overflow: "hidden",
+        ...(isDark ? {} : shadow.card),
       }}
     >
-      {/* Header row: index + name + remove */}
+      {/* Header: index + name input + remove */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
+          gap: spacing.sm,
+          paddingLeft: spacing.md,
+          paddingRight: spacing.sm,
+          paddingVertical: 6,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.separator,
         }}
       >
         <View
           style={{
-            flexDirection: "row",
+            width: 28,
+            height: 28,
+            borderRadius: 9,
+            borderCurve: "continuous",
+            backgroundColor: entry.name.trim() ? colors.primary : colors.primarySoft,
             alignItems: "center",
-            gap: spacing.sm,
+            justifyContent: "center",
           }}
         >
-          <View
+          <Text
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              borderCurve: "continuous",
-              backgroundColor: colors.primarySoft,
-              alignItems: "center",
-              justifyContent: "center",
+              fontSize: 12.5,
+              fontFamily: fontFamily.heavy,
+              color: entry.name.trim() ? colors.onPrimary : colors.primary,
             }}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "800",
-                color: colors.primary,
-              }}
-            >
-              {index + 1}
-            </Text>
-          </View>
-          <Text style={[typography.title.sm, { color: colors.text }]}>
-            {medicineLabel}
+            {index + 1}
           </Text>
         </View>
+        <RNTextInput
+          value={entry.name}
+          onChangeText={(v) => {
+            onChange({ name: v, masterMedicineId: null });
+            setLocalQuery(v);
+          }}
+          placeholder={medicinePlaceholder}
+          placeholderTextColor={colors.textSubtle}
+          accessibilityLabel={medicineLabel}
+          autoCorrect={false}
+          style={{
+            flex: 1,
+            height: 46,
+            fontSize: 16.5,
+            letterSpacing: -0.2,
+            color: colors.text,
+            fontFamily: fontFamily.bodyBold,
+          }}
+        />
+        {entry.masterMedicineId ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 3,
+              paddingHorizontal: 7,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: colors.successSoft,
+            }}
+          >
+            <ShieldCheck size={11} color={colors.success} strokeWidth={2.5} />
+            <Text style={[typography.label.xs, { fontSize: 10, color: colors.success }]}>
+              {t("doctorPrescription.masterLinked")}
+            </Text>
+          </View>
+        ) : null}
         {canRemove ? (
           <Pressable
             onPress={onRemove}
@@ -1577,43 +1685,31 @@ function MedicineCard({
             accessibilityLabel={removeLabel}
             hitSlop={8}
             style={({ pressed }) => ({
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              borderCurve: "continuous",
+              width: 30,
+              height: 30,
+              borderRadius: 15,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: pressed ? colors.dangerSoft : "transparent",
+              backgroundColor: pressed ? colors.dangerSoft : colors.well,
             })}
           >
-            <Trash2 size={16} color={colors.danger} strokeWidth={2.2} />
+            {({ pressed }) => (
+              <X size={15} color={pressed ? colors.danger : colors.textMuted} strokeWidth={2.5} />
+            )}
           </Pressable>
         ) : null}
       </View>
 
-      {/* Name + autocomplete */}
-      <FormField label={t("doctorPrescription.medicineLabel")} required>
-        <TextInput
-          value={entry.name}
-          onChangeText={(v) => {
-            onChange({ name: v, masterMedicineId: null });
-            setLocalQuery(v);
-          }}
-          placeholder={medicinePlaceholder}
-          leadingIcon={PillIcon}
-        />
-      </FormField>
+      {/* Autocomplete results */}
       {localResults?.medicines &&
       localResults.medicines.length > 0 &&
       localQuery.length >= 2 &&
       !entry.masterMedicineId ? (
         <View
           style={{
-            borderRadius: radius.md,
-            borderCurve: "continuous",
-            backgroundColor: colors.surface,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.separator,
+            backgroundColor: colors.surfaceMuted,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.separator,
             paddingVertical: spacing.xs,
           }}
         >
@@ -1631,9 +1727,7 @@ function MedicineCard({
                 title={m.brandName ? `${m.brandName} (${m.genericName})` : m.genericName}
                 subtitle={[m.strength, m.scheduleClass].filter(Boolean).join(" • ") || undefined}
                 iconTone="primary"
-                mediaSlot={
-                  <Avatar name={m.genericName} size="sm" tone="soft" />
-                }
+                mediaSlot={<Avatar name={m.genericName} size="sm" tone="soft" />}
                 onPress={() => {
                   onPickMaster(m);
                   setLocalQuery("");
@@ -1643,162 +1737,194 @@ function MedicineCard({
           ))}
         </View>
       ) : null}
-      {entry.masterMedicineId ? (
-        <PillCmp
-          icon={PillIcon}
-          label={t("doctorPrescription.masterLinked")}
-          tone="success"
-          size="sm"
-        />
-      ) : null}
 
-      {/* Quick-pick fallback when catalogue is empty */}
-      {localQuery.length >= 2 &&
-      (!localResults?.medicines || localResults.medicines.length === 0) ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {PRESET_MEDS.filter((p) =>
-            p.toLowerCase().includes(localQuery.toLowerCase())
-          )
-            .slice(0, 4)
-            .map((p) => (
-              <PillCmp
-                key={p}
-                label={p}
-                tone="neutral"
-                size="sm"
-                onPress={() => {
+      <View style={{ padding: spacing.md, gap: spacing.lg }}>
+        {/* Quick-pick fallback when catalogue is empty */}
+        {localQuery.length >= 2 &&
+        (!localResults?.medicines || localResults.medicines.length === 0) ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: -spacing.sm }}>
+            {PRESET_MEDS.filter((p) => p.toLowerCase().includes(localQuery.toLowerCase()))
+              .slice(0, 4)
+              .map((p) =>
+                chip(p, false, () => {
                   onChange({ name: p });
                   setLocalQuery("");
+                })
+              )}
+          </View>
+        ) : null}
+
+        {/* Dosage — field + common strengths in one row */}
+        <View>
+          {sectionLabel(`${dosageLabel} *`)}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <RNTextInput
+              value={entry.dosage}
+              onChangeText={(v) => onChange({ dosage: v })}
+              placeholder={dosagePlaceholder.replace(/^e\.g\.,?\s*/i, "")}
+              placeholderTextColor={colors.textSubtle}
+              accessibilityLabel={dosageLabel}
+              autoCorrect={false}
+              style={{
+                width: 96,
+                height: 40,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                backgroundColor: colors.surfaceMuted,
+                borderWidth: 1,
+                borderColor: entry.dosage ? colors.primary : "transparent",
+                fontSize: 15,
+                color: colors.text,
+                fontFamily: fontFamily.bodySemibold,
+              }}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ gap: 6, paddingRight: 4 }}
+            >
+              {COMMON_DOSAGES.map((d) => chip(d, entry.dosage === d, () => onChange({ dosage: d })))}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* Time slots — multi-select tiles */}
+        <View>
+          {sectionLabel(
+            slotsLabel,
+            freqKey ? (
+              <Text style={[typography.caption, { color: colors.primary, fontFamily: fontFamily.bodySemibold }]}>
+                {t(`doctorPrescription.frequencyPreview.${freqKey}`)}
+              </Text>
+            ) : null
+          )}
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {slotEntries.map(({ key, label }) => {
+              const selected = entry.slots[key];
+              const Icon = SLOT_ICONS[key];
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => onChange({ slots: { ...entry.slots, [key]: !selected } })}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={label}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    height: 58,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    borderRadius: 14,
+                    borderCurve: "continuous",
+                    backgroundColor: selected ? colors.primary : pressed ? colors.primarySoft : colors.surfaceMuted,
+                  })}
+                >
+                  <Icon size={17} color={selected ? colors.onPrimary : colors.textMuted} strokeWidth={2.2} />
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[typography.label.xs, { color: selected ? colors.onPrimary : colors.textMuted }]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Food relation */}
+        <View>
+          {sectionLabel(timingLabel)}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {timingOptions.map((o) =>
+              chip(o.label, entry.timing === o.value, () => onChange({ timing: o.value as MedicineEntry["timing"] }), o.value)
+            )}
+          </View>
+        </View>
+
+        {/* Duration — stepper + presets + ongoing */}
+        <View>
+          {sectionLabel(
+            durationLabel,
+            <Text style={[typography.caption, { color: colors.textMuted, fontVariant: ["tabular-nums"] }]}>
+              {endDatePreview
+                ? `${durationStartLabel} ${fmtShortDate(startDate)} → ${durationEndLabel} ${fmtShortDate(endDatePreview)}`
+                : ongoingLabel}
+            </Text>
+          )}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                height: 40,
+                borderRadius: 12,
+                borderCurve: "continuous",
+                backgroundColor: colors.surfaceMuted,
+                opacity: entry.ongoing ? 0.45 : 1,
+              }}
+              pointerEvents={entry.ongoing ? "none" : "auto"}
+            >
+              <Pressable
+                onPress={() => onChange({ durationDays: Math.max(1, days - 1) })}
+                hitSlop={4}
+                accessibilityLabel="-1"
+                style={{ width: 34, height: 40, alignItems: "center", justifyContent: "center" }}
+              >
+                <Minus size={15} color={colors.text} strokeWidth={2.5} />
+              </Pressable>
+              <RNTextInput
+                value={String(entry.durationDays || "")}
+                onChangeText={(v) => {
+                  const n = parseInt(v.replace(/[^0-9]/g, ""), 10);
+                  onChange({ durationDays: isNaN(n) ? 0 : n });
+                }}
+                keyboardType="number-pad"
+                accessibilityLabel={durationLabel}
+                style={{
+                  minWidth: 34,
+                  textAlign: "center",
+                  fontSize: 16,
+                  color: colors.text,
+                  fontFamily: fontFamily.bodyBold,
+                  fontVariant: ["tabular-nums"],
                 }}
               />
-            ))}
+              <Pressable
+                onPress={() => onChange({ durationDays: days + 1 })}
+                hitSlop={4}
+                accessibilityLabel="+1"
+                style={{ width: 34, height: 40, alignItems: "center", justifyContent: "center" }}
+              >
+                <Plus size={15} color={colors.text} strokeWidth={2.5} />
+              </Pressable>
+            </View>
+            <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+              {durationDaysLabel(days).replace(/^\d+\s*/, "")}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: spacing.sm }}>
+            {DURATION_PRESETS.map((d) =>
+              chip(
+                durationDaysLabel(d),
+                !entry.ongoing && entry.durationDays === d,
+                () => onChange({ durationDays: d, ongoing: false }),
+                `d${d}`
+              )
+            )}
+            {chip(
+              t("doctorPrescription.ongoingShort", "Ongoing"),
+              !!entry.ongoing,
+              () => onChange({ ongoing: !entry.ongoing }),
+              "ongoing"
+            )}
+          </View>
         </View>
-      ) : null}
-
-      {/* Dosage */}
-      <FormField label={dosageLabel} required>
-        <TextInput
-          value={entry.dosage}
-          onChangeText={(v) => onChange({ dosage: v })}
-          placeholder={dosagePlaceholder}
-        />
-      </FormField>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        {COMMON_DOSAGES.map((d) => (
-          <PillCmp
-            key={d}
-            label={d}
-            tone={entry.dosage === d ? "accent" : "neutral"}
-            size="sm"
-            onPress={() => onChange({ dosage: d })}
-          />
-        ))}
       </View>
-
-      {/* Time slots — multi-select */}
-      <FormField label={slotsLabel}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {slotEntries.map(({ key, label }) => {
-            const selected = entry.slots[key];
-            return (
-              <PillCmp
-                key={key}
-                label={label}
-                tone={selected ? "primary" : "neutral"}
-                size="sm"
-                onPress={() =>
-                  onChange({
-                    slots: { ...entry.slots, [key]: !selected },
-                  })
-                }
-              />
-            );
-          })}
-        </View>
-        {slotsToFrequencyKey(entry.slots) ? (
-          <Text
-            style={[
-              typography.caption,
-              { color: colors.textMuted, marginTop: 4 },
-            ]}
-          >
-            {t(`doctorPrescription.frequencyPreview.${slotsToFrequencyKey(entry.slots)}`)}
-          </Text>
-        ) : null}
-      </FormField>
-
-      {/* Food relation — single-select chip group */}
-      <FormField label={timingLabel}>
-        <ChipGroup
-          options={timingOptions}
-          value={entry.timing}
-          onChange={(v) => onChange({ timing: v as MedicineEntry["timing"] })}
-        />
-      </FormField>
-
-      {/* Duration — days + ongoing toggle */}
-      <FormField label={durationLabel}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          <View style={{ flex: 1 }}>
-            <TextInput
-              value={String(entry.durationDays)}
-              onChangeText={(v) => {
-                const n = parseInt(v.replace(/[^0-9]/g, ""), 10);
-                onChange({ durationDays: isNaN(n) ? 0 : n });
-              }}
-              keyboardType="number-pad"
-              placeholder="7"
-              editable={!entry.ongoing}
-              tone={entry.ongoing ? "soft" : undefined}
-            />
-          </View>
-          <Text style={[typography.body.sm, { color: colors.textMuted }]}>
-            {durationDaysLabel(Math.max(1, entry.durationDays))}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => onChange({ ongoing: !entry.ongoing })}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: entry.ongoing }}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-            paddingVertical: spacing.xs,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <View
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: 5,
-              borderWidth: 2,
-              borderColor: entry.ongoing ? colors.primary : colors.border,
-              backgroundColor: entry.ongoing ? colors.primary : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {entry.ongoing ? (
-              <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: "900" }}>
-                ✓
-              </Text>
-            ) : null}
-          </View>
-          <Text style={[typography.body.sm, { color: colors.text }]}>
-            {ongoingLabel}
-          </Text>
-        </Pressable>
-        <Text
-          style={[
-            typography.caption,
-            { color: colors.textSubtle, marginTop: 4 },
-          ]}
-        >
-          {durationStartLabel}: {startDate}    {durationEndLabel}: {endDatePreview}
-        </Text>
-      </FormField>
     </View>
   );
 }

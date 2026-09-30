@@ -51,7 +51,11 @@ import {
 import { apiSse } from "@/lib/api";
 import { SmartPromptChips } from "@/components/ai/SmartPromptChips";
 import { SourceCitationCard } from "@/components/ai/SourceCitationCard";
-import { LongitudinalTrendChart } from "@/components/ai/LongitudinalTrendChart";
+import { ChatMarkdown } from "@/components/ai/ChatMarkdown";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
+import { Animated, Easing } from "react-native";
+import { Copy, Check as CheckIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { palette } from "@/constants/theme";
 import {
@@ -286,7 +290,7 @@ export default function AiChatScreen() {
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.lg,
               paddingBottom: spacing.xl,
-              gap: spacing.sm,
+              gap: spacing.md,
             }}
             keyboardShouldPersistTaps="handled"
           >
@@ -385,7 +389,7 @@ export default function AiChatScreen() {
                   >
                     <Lock size={11} color={palette.white} strokeWidth={2.4} />
                     <Text style={{ fontSize: 10.5, fontWeight: "600", color: palette.white }}>
-                      Private, encrypted, and records-aware
+                      {t("aiChat.privacyPill", "Private & Encrypted")}
                     </Text>
                   </View>
                 </LinearGradient>
@@ -393,10 +397,10 @@ export default function AiChatScreen() {
                 <View style={{ gap: spacing.md }}>
                   <View style={{ gap: 2 }}>
                     <Text style={[typography.title.md, { color: colors.text, fontWeight: "700" }]}>
-                      Popular questions
+                      {t("aiChat.suggestedTitle", "Suggested Topics")}
                     </Text>
                     <Text style={[typography.body.xs, { color: colors.textMuted }]}>
-                      Choose a starting point or write your own question below
+                      {t("aiChat.suggestedSubtitle", "Tap any topic to ask with your context")}
                     </Text>
                   </View>
                   <SmartPromptChips onSelectPrompt={(txt) => handleSend(txt)} />
@@ -413,7 +417,7 @@ export default function AiChatScreen() {
                 >
                   <ShieldCheck size={13} color={colors.success} strokeWidth={2.2} />
                   <Text style={{ fontSize: 10.5, color: colors.textMuted }}>
-                    Answers are grounded in your connected health records
+                    {t("aiChat.groundedNote", "Answers are grounded in your connected health records")}
                   </Text>
                 </View>
               </View>
@@ -431,6 +435,7 @@ export default function AiChatScreen() {
                       content={m.content}
                       citations={m.citations}
                       showMeta={!sameAuthor}
+                      time={fmtTime(m.createdAt, locale)}
                       meta={t("aiChat.metaFormat", {
                         author: authorLabel,
                         time: fmtTime(m.createdAt, locale),
@@ -445,30 +450,9 @@ export default function AiChatScreen() {
                       isUser={true}
                       content={pendingUserText}
                       showMeta={true}
-                      meta="You · Just now"
+                      meta={t("aiChat.metaFormat", { author: t("aiChat.youLabel"), time: t("aiChat.whenJustNow") })}
                     />
-                    <View
-                      style={{
-                        alignSelf: "flex-start",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        backgroundColor: colors.surface,
-                        borderRadius: 18,
-                        borderCurve: "continuous",
-                        borderTopLeftRadius: 6,
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: colors.separator,
-                        marginTop: 4,
-                      }}
-                    >
-                      <ActivityIndicator size="small" color={colors.primary} />
-                      <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "600" }}>
-                        Analyzing medical records & trends...
-                      </Text>
-                    </View>
+                    <TypingIndicator />
                   </>
                 ) : null}
               </>
@@ -543,7 +527,7 @@ export default function AiChatScreen() {
                 style={({ pressed }) => ({
                   width: 42,
                   height: 42,
-                  borderRadius: 15,
+                  borderRadius: 21,
                   borderCurve: "continuous",
                   overflow: "hidden",
                   opacity: canSend ? (pressed ? 0.82 : 1) : 0.38,
@@ -556,14 +540,14 @@ export default function AiChatScreen() {
                   end={{ x: 1, y: 1 }}
                   style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
                 >
-                  <Send size={18} color={palette.white} strokeWidth={2.4} />
+                  <ArrowUp size={20} color={palette.white} strokeWidth={2.6} />
                 </LinearGradient>
               </Pressable>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 }}>
               <Lock size={10} color={colors.textSubtle} strokeWidth={2.3} />
-              <Text style={{ fontSize: 9.5, color: colors.textSubtle }}>
-                Your health information stays private and encrypted
+              <Text style={{ fontSize: 11, color: colors.textSubtle, fontFamily: fontFamily.body }}>
+                {t("aiChat.disclaimer")}
               </Text>
             </View>
           </View>
@@ -872,110 +856,205 @@ function Bubble({
   content,
   showMeta,
   meta,
+  time,
   citations,
 }: {
   isUser: boolean;
   content: string;
   showMeta: boolean;
   meta: string;
+  time?: string;
   citations?: any[];
 }) {
-  const { spacing, colors, typography } = useTheme();
-
-  const bubbleRadius = isUser
-    ? {
-        borderTopRightRadius: 6,
-        borderTopLeftRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 18,
-      }
-    : {
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 18,
-      };
-
+  const { t } = useTranslation();
+  const { spacing, colors, typography, fontFamily } = useTheme();
+  const [copied, setCopied] = useState(false);
   const displayText = formatAiText(content);
-  const isTrendResponse = !isUser && (displayText.includes("HbA1c") || displayText.includes("Cholesterol") || displayText.includes("Longitudinal Trend") || displayText.includes("progression over time"));
 
-  const trendPoints = displayText.includes("Cholesterol")
-    ? [
-        { date: "2024-03", value: 220, label: "220 mg/dL" },
-        { date: "2025-04", value: 195, label: "195 mg/dL" },
-        { date: "2026-06", value: 178, label: "178 mg/dL" },
-      ]
-    : [
-        { date: "2024-05", value: 6.8, label: "6.8%" },
-        { date: "2025-06", value: 6.2, label: "6.2%" },
-        { date: "2026-07", value: 5.7, label: "5.7%" },
-      ];
+  if (isUser) {
+    return (
+      <View style={{ alignSelf: "flex-end", maxWidth: "85%", gap: 4 }}>
+        <View
+          style={{
+            paddingHorizontal: spacing.md + 2,
+            paddingVertical: spacing.sm + 2,
+            backgroundColor: colors.primary,
+            borderRadius: 20,
+            borderBottomRightRadius: 6,
+            borderCurve: "continuous",
+          }}
+        >
+          <Text style={[typography.body.md, { color: colors.onPrimary, lineHeight: 22 }]}>{displayText}</Text>
+        </View>
+        {showMeta ? (
+          <Text numberOfLines={1} style={[typography.caption, { color: colors.textSubtle, alignSelf: "flex-end", paddingHorizontal: 4 }]}>
+            {meta}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Assistant replies are long-form: full-width card with an avatar row,
+  // real Markdown formatting and a copy action — not a narrow chat bubble.
+  async function copy() {
+    try {
+      await Clipboard.setStringAsync(displayText);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  }
 
   return (
-    <View
-      style={{
-        alignSelf: isUser ? "flex-end" : "flex-start",
-        maxWidth: "85%",
-        gap: 4,
-      }}
-    >
+    <View style={{ alignSelf: "stretch", gap: spacing.sm }}>
+      {showMeta ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }}
+          >
+            <Sparkles size={13} color="#FFFFFF" strokeWidth={2.4} />
+          </LinearGradient>
+          <Text style={[typography.label.md, { color: colors.text }]}>{t("aiChat.assistantName", "Health assistant")}</Text>
+          <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+            {time}
+          </Text>
+        </View>
+      ) : null}
       <View
         style={{
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          backgroundColor: isUser ? colors.primary : colors.surface,
-          borderWidth: isUser ? 0 : 1,
-          borderColor: colors.border,
-          ...bubbleRadius,
+          padding: spacing.lg,
+          backgroundColor: colors.surface,
+          borderRadius: 20,
+          borderTopLeftRadius: 6,
+          borderCurve: "continuous",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
         }}
       >
-        <Text
-          style={[
-            typography.body.sm,
-            {
-              color: isUser ? colors.onPrimary : colors.text,
-              lineHeight: 20,
-            },
-          ]}
-        >
-          {displayText}
-        </Text>
+        <ChatMarkdown text={displayText} />
       </View>
 
-      {isTrendResponse ? (
-        <LongitudinalTrendChart
-          testName={displayText.includes("Cholesterol") ? "Cholesterol" : "HbA1c"}
-          unit={displayText.includes("Cholesterol") ? "mg/dL" : "%"}
-          points={trendPoints}
-          insight={
-            displayText.includes("Cholesterol")
-              ? "Total Cholesterol improved by 19% (220 → 178 mg/dL), now within optimal range."
-              : "HbA1c decreased steadily from 6.8% to 5.7% over 24 months."
-          }
-        />
-      ) : null}
-      {!isUser && Array.isArray(citations) && citations.length > 0 ? (
-        <View style={{ gap: 4, marginTop: 2 }}>
+      {Array.isArray(citations) && citations.length > 0 ? (
+        <View style={{ gap: 4 }}>
           {citations.map((c: any, i: number) => (
             <SourceCitationCard key={c.recordId || i} citation={c} />
           ))}
         </View>
       ) : null}
-      {showMeta ? (
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.caption,
-            {
-              color: colors.textSubtle,
-              alignSelf: isUser ? "flex-end" : "flex-start",
-              paddingHorizontal: 4,
-            },
-          ]}
+
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingLeft: 2 }}>
+        <Pressable
+          onPress={copy}
+          accessibilityRole="button"
+          accessibilityLabel={t("aiChat.copy", "Copy")}
+          hitSlop={6}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+            height: 28,
+            paddingHorizontal: 10,
+            borderRadius: 14,
+            backgroundColor: pressed ? colors.fillStrong : colors.fill,
+          })}
         >
-          {meta}
+          {copied ? (
+            <CheckIcon size={13} color={colors.success} strokeWidth={2.6} />
+          ) : (
+            <Copy size={13} color={colors.textMuted} strokeWidth={2.4} />
+          )}
+          <Text style={[typography.label.xs, { color: copied ? colors.success : colors.textMuted, letterSpacing: 0 }]}>
+            {copied ? t("aiChat.copied", "Copied") : t("aiChat.copy", "Copy")}
+          </Text>
+        </Pressable>
+        <Text style={[typography.caption, { color: colors.textSubtle, flex: 1, fontSize: 11, fontFamily: fontFamily.body }]} numberOfLines={1}>
+          {t("aiChat.notAdvice", "Not a diagnosis — check with your doctor")}
         </Text>
-      ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Animated dots + rotating status line while the answer is generated. */
+function TypingIndicator() {
+  const { t } = useTranslation();
+  const { colors, spacing, typography } = useTheme();
+  const steps = [
+    t("aiChat.status.reading", "Reading your records…"),
+    t("aiChat.status.checking", "Checking results and trends…"),
+    t("aiChat.status.writing", "Writing your answer…"),
+  ];
+  const [step, setStep] = useState(0);
+  const dots = useRef([0, 1, 2].map(() => new Animated.Value(0.3))).current;
+
+  useEffect(() => {
+    const loops = dots.map((v, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 160),
+          Animated.timing(v, { toValue: 1, duration: 380, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: 380, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.delay((2 - i) * 160),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, steps.length - 1)), 2600);
+    return () => {
+      loops.forEach((l) => l.stop());
+      clearInterval(id);
+    };
+  }, []);
+
+  return (
+    <View style={{ alignSelf: "stretch", gap: spacing.sm }} accessibilityLiveRegion="polite">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }}
+        >
+          <Sparkles size={13} color="#FFFFFF" strokeWidth={2.4} />
+        </LinearGradient>
+        <Text style={[typography.label.md, { color: colors.text }]}>{t("aiChat.assistantName", "Health assistant")}</Text>
+      </View>
+      <View
+        style={{
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
+          backgroundColor: colors.surface,
+          borderRadius: 20,
+          borderTopLeftRadius: 6,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
+        }}
+      >
+        <View style={{ flexDirection: "row", gap: 4 }}>
+          {dots.map((v, i) => (
+            <Animated.View
+              key={i}
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: colors.primary,
+                opacity: v,
+                transform: [{ translateY: v.interpolate({ inputRange: [0.3, 1], outputRange: [0, -3] }) }],
+              }}
+            />
+          ))}
+        </View>
+        <Text style={[typography.body.sm, { color: colors.textMuted }]}>{steps[step]}</Text>
+      </View>
     </View>
   );
 }

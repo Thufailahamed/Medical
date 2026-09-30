@@ -215,15 +215,10 @@ function IconAction({
   );
 }
 
-function WellnessChip({ streak, score }: { streak?: number; score?: number }) {
-  if (streak == null && score == null) return null;
-  const label =
-    streak != null && streak > 0
-      ? `${streak}-day adherence`
-      : score != null
-        ? `Wellness ${score}`
-        : null;
-  if (!label) return null;
+/** Adherence streak only — the wellness score already lives on the dashboard strip. */
+function WellnessChip({ streak }: { streak?: number; score?: number }) {
+  if (streak == null || streak <= 0) return null;
+  const label = `${streak}-day adherence`;
   return (
     <>
       <span aria-hidden className="text-text-muted">

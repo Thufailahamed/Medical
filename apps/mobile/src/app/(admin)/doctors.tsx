@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Alert, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Stethoscope,
@@ -7,13 +7,22 @@ import {
   ShieldOff,
   Star,
   ChevronRight,
+  AlertTriangle,
+  ShieldCheck,
+  ShieldAlert,
+  IdCard,
+  Hash,
+  Mail,
+  Phone,
+  CalendarDays,
+  UserRound,
 } from "lucide-react-native";
 import {
   Screen,
   Avatar,
   Button,
   BottomSheet,
-  EmptyState,
+  Pressable,
   useToast,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -26,14 +35,12 @@ import {
 import {
   AdminHero,
   AdminCard,
-  InfoPanel,
-  FilterChips,
+  AdminSegmented,
+  RowDivider,
   ListSkeleton,
   AdminError,
-  StatusPill,
-  KV,
 } from "@/components/admin/ui";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 import { useLocaleStore } from "@/stores/locale";
 
 const FILTERS = [
@@ -59,6 +66,22 @@ export default function AdminDoctorsScreen() {
   const busy = verify.isPending || revoke.isPending;
 
   const items = data?.items ?? [];
+  // Counts come from the unfiltered list so they don't change with the active tab.
+  const { data: allData } = useAdminDoctors("all");
+  const all = allData?.items;
+  const counts = all
+    ? {
+        all: all.length,
+        unverified: all.filter((d) => !d.slmcVerifiedAt).length,
+        verified: all.filter((d) => !!d.slmcVerifiedAt).length,
+      }
+    : undefined;
+
+  const heroSubtitle = !counts
+    ? "SLMC registration verification"
+    : counts.unverified > 0
+    ? `${counts.unverified} doctor${counts.unverified === 1 ? "" : "s"} awaiting SLMC verification`
+    : "Every doctor is SLMC verified";
 
   const onVerify = () => {
     if (!selected) return;
@@ -72,6 +95,18 @@ export default function AdminDoctorsScreen() {
   };
 
   const onRevoke = () => {
+    if (!selected) return;
+    Alert.alert(
+      "Revoke SLMC verification?",
+      `${selected.name ?? "This doctor"} will lose the verified badge and return to the unverified queue.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Revoke", style: "destructive", onPress: doRevoke },
+      ]
+    );
+  };
+
+  const doRevoke = () => {
     if (!selected) return;
     revoke.mutate(selected.doctorId, {
       onSuccess: () => {
@@ -96,29 +131,14 @@ export default function AdminDoctorsScreen() {
           compact
           eyebrow="Directory"
           title="Doctors"
-          subtitle="SLMC registration verification"
+          subtitle={heroSubtitle}
           icon={Stethoscope}
-          stats={[
-            { value: String(items.length), label: "Shown" },
-            {
-              value: String(
-                items.filter((d) => !d.slmcVerifiedAt).length
-              ),
-              label: "Unverified",
-            },
-            {
-              value: String(
-                items.filter((d) => !!d.slmcVerifiedAt).length
-              ),
-              label: "Verified",
-            },
-          ]}
         />
       </View>
 
-      <View style={{ marginTop: spacing.md }}>
-        <FilterChips
-          options={FILTERS}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+        <AdminSegmented
+          options={FILTERS.map((f) => ({ ...f, count: counts?.[f.value as keyof typeof counts] }))}
           value={filter}
           onChange={(v) => setFilter(v as any)}
         />
@@ -128,26 +148,33 @@ export default function AdminDoctorsScreen() {
         style={{
           paddingHorizontal: spacing.lg,
           gap: spacing.md,
-          marginTop: spacing.sm,
+          marginTop: spacing.lg,
+          paddingBottom: spacing.xl,
         }}
       >
-        {isError ? <AdminError message="Couldn't load doctors." /> : null}
+        {isError ? (
+          <AdminError
+            title="Couldn't load doctors"
+            message="Check your connection, then retry or pull to refresh."
+            onRetry={() => refetch()}
+            retrying={isRefetching}
+          />
+        ) : null}
         {isLoading ? (
           <ListSkeleton rows={6} />
         ) : items.length === 0 ? (
-          <EmptyState
-            icon={Stethoscope}
-            title="No doctors"
-            message={
-              filter === "unverified"
-                ? "All doctors are verified."
-                : "No doctors match this filter."
-            }
-          />
+          isError ? null : (
+            <EmptyDoctors filter={filter} onShowAll={filter !== "all" ? () => setFilter("all") : undefined} />
+          )
         ) : (
-          items.map((d) => (
-            <DoctorCard key={d.doctorId} d={d} onPress={() => setSelected(d)} />
-          ))
+          <AdminCard style={{ padding: 0 }}>
+            {items.map((d, i) => (
+              <React.Fragment key={d.doctorId}>
+                {i > 0 ? <RowDivider inset={spacing.lg + 44 + spacing.md} /> : null}
+                <DoctorRow d={d} onPress={() => setSelected(d)} />
+              </React.Fragment>
+            ))}
+          </AdminCard>
         )}
       </View>
 
@@ -155,137 +182,316 @@ export default function AdminDoctorsScreen() {
       <BottomSheet
         visible={!!selected}
         onDismiss={() => setSelected(null)}
-        title={selected?.name ?? "Doctor"}
+        title="Doctor details"
       >
         {selected ? (
-          <View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-                marginBottom: spacing.md,
-              }}
-            >
-              <Avatar name={selected.name ?? "?"} size="lg" />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={[typography.title.md, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {selected.name ?? "Unnamed"}
-                </Text>
-                <Text
-                  style={[typography.caption, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {selected.specialization ?? "General"}
-                </Text>
-                <View style={{ marginTop: 4 }}>
-                  <StatusPill
-                    status={selected.slmcVerifiedAt ? "verified" : "pending"}
-                  />
-                </View>
-              </View>
-            </View>
-
-            <InfoPanel icon={Stethoscope} title="Registration" tone="primary">
-              <KV label="SLMC no." value={selected.slmcRegistrationNo} />
-              <KV label="Reg. number" value={selected.registrationNumber} />
-              <KV label="Email" value={selected.email} />
-              <KV label="Phone" value={selected.phone} />
-              <KV
-                label="Joined"
-                value={
-                  selected.createdAt
-                    ? fmtDateTime(selected.createdAt, locale as any)
-                    : null
-                }
-              />
-            </InfoPanel>
-
-            <View style={{ marginTop: spacing.md }}>
-              <Button
-                title="View full account"
-                variant="outline"
-                size="sm"
-                onPress={() => {
-                  setSelected(null);
-                  router.push({
-                    pathname: "/(admin)/user-detail",
-                    params: { id: selected.userId },
-                  } as any);
-                }}
-              />
-            </View>
-            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
-              {selected.slmcVerifiedAt ? (
-                <Button
-                  title="Revoke SLMC verification"
-                  variant="danger"
-                  icon={ShieldOff}
-                  onPress={onRevoke}
-                  loading={busy}
-                />
-              ) : (
-                <Button
-                  title="Verify SLMC registration"
-                  icon={BadgeCheck}
-                  onPress={onVerify}
-                  loading={busy}
-                />
-              )}
-              <Button
-                title="Close"
-                variant="ghost"
-                onPress={() => setSelected(null)}
-              />
-            </View>
-          </View>
+          <DoctorSheet
+            d={selected}
+            locale={locale}
+            busy={busy}
+            onVerify={onVerify}
+            onRevoke={onRevoke}
+            onViewAccount={() => {
+              const userId = selected.userId;
+              setSelected(null);
+              router.push({ pathname: "/(admin)/user-detail", params: { id: userId } } as any);
+            }}
+          />
         ) : null}
       </BottomSheet>
     </Screen>
   );
 }
 
-function DoctorCard({
+function DoctorSheet({
+  d,
+  locale,
+  busy,
+  onVerify,
+  onRevoke,
+  onViewAccount,
+}: {
+  d: AdminDoctorRow;
+  locale: string;
+  busy: boolean;
+  onVerify: () => void;
+  onRevoke: () => void;
+  onViewAccount: () => void;
+}) {
+  const { colors, spacing, typography, radius } = useTheme();
+  const verified = !!d.slmcVerifiedAt;
+  const showRegNo = !!d.registrationNumber && d.registrationNumber !== d.slmcRegistrationNo;
+
+  const rows: { icon: any; label: string; value: string; missing?: boolean }[] = [
+    {
+      icon: IdCard,
+      label: "SLMC no.",
+      value: d.slmcRegistrationNo ?? "Not provided",
+      missing: !d.slmcRegistrationNo,
+    },
+    ...(showRegNo ? [{ icon: Hash, label: "Reg. number", value: d.registrationNumber! }] : []),
+    ...(d.email ? [{ icon: Mail, label: "Email", value: d.email }] : []),
+    ...(d.phone ? [{ icon: Phone, label: "Phone", value: d.phone }] : []),
+    ...(d.createdAt
+      ? [{ icon: CalendarDays, label: "Joined", value: fmtDate(d.createdAt, locale as any) }]
+      : []),
+  ];
+
+  return (
+    <View style={{ gap: spacing.lg, paddingBottom: spacing.md }}>
+      {/* Identity */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <View>
+          <Avatar name={d.name ?? "?"} size="lg" />
+          {verified ? (
+            <View
+              style={{
+                position: "absolute",
+                right: -2,
+                bottom: -2,
+                borderRadius: 12,
+                backgroundColor: colors.surface,
+                padding: 2,
+              }}
+            >
+              <BadgeCheck size={20} color={colors.surface} fill={colors.success} strokeWidth={2.2} />
+            </View>
+          ) : null}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.title.lg, { color: colors.text }]} numberOfLines={1}>
+            {d.name ?? "Unnamed"}
+          </Text>
+          <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]} numberOfLines={1}>
+            {d.specialization ?? "General practice"}
+            {typeof d.experience === "number" && d.experience > 0 ? ` · ${d.experience} yrs` : ""}
+          </Text>
+        </View>
+      </View>
+
+      {/* Verification status banner */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.lg,
+          borderCurve: "continuous",
+          backgroundColor: verified ? colors.successSoft : colors.warningSoft,
+        }}
+      >
+        {verified ? (
+          <ShieldCheck size={20} color={colors.success} strokeWidth={2.2} />
+        ) : (
+          <ShieldAlert size={20} color={colors.warning} strokeWidth={2.2} />
+        )}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[typography.label.md, { color: verified ? colors.success : colors.warning }]}>
+            {verified ? "SLMC verified" : "Awaiting SLMC verification"}
+          </Text>
+          <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
+            {verified
+              ? `Verified on ${fmtDate(d.slmcVerifiedAt!, locale as any)}`
+              : d.slmcRegistrationNo
+              ? "Check the number against the SLMC register before verifying."
+              : "No SLMC number on file — confirm with SLMC before verifying."}
+          </Text>
+        </View>
+      </View>
+
+      {/* Details */}
+      <View
+        style={{
+          borderRadius: radius.lg,
+          borderCurve: "continuous",
+          backgroundColor: colors.surfaceMuted,
+          paddingHorizontal: spacing.md,
+        }}
+      >
+        {rows.map((r, i) => {
+          const Icon = r.icon;
+          return (
+            <View
+              key={r.label}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                paddingVertical: spacing.md,
+                borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+                borderTopColor: colors.separator,
+              }}
+            >
+              <Icon size={16} color={colors.textSubtle} strokeWidth={2.2} />
+              <Text style={[typography.body.sm, { color: colors.textMuted, width: 92 }]}>{r.label}</Text>
+              <Text
+                style={[
+                  typography.label.md,
+                  { color: r.missing ? colors.danger : colors.text, flex: 1, textAlign: "right" },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+                selectable
+              >
+                {r.value}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Actions */}
+      <View style={{ gap: spacing.sm }}>
+        {verified ? null : (
+          <Button title="Verify SLMC registration" icon={BadgeCheck} onPress={onVerify} loading={busy} />
+        )}
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <Button title="Full account" variant="secondary" icon={UserRound} onPress={onViewAccount} />
+          </View>
+          {verified ? (
+            <View style={{ flex: 1 }}>
+              <Button title="Revoke" variant="danger" icon={ShieldOff} onPress={onRevoke} loading={busy} />
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function EmptyDoctors({
+  filter,
+  onShowAll,
+}: {
+  filter: string;
+  onShowAll?: () => void;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  const caughtUp = filter === "unverified";
+  const Icon = caughtUp ? BadgeCheck : Stethoscope;
+  return (
+    <AdminCard style={{ alignItems: "center", paddingVertical: spacing.xxl }}>
+      <View
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 20,
+          borderCurve: "continuous",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: caughtUp ? colors.successSoft : colors.well,
+        }}
+      >
+        <Icon size={28} color={caughtUp ? colors.success : colors.textMuted} strokeWidth={2.2} />
+      </View>
+      <Text style={[typography.title.lg, { color: colors.text, marginTop: spacing.lg }]}>
+        {caughtUp ? "All doctors verified" : filter === "verified" ? "No verified doctors yet" : "No doctors yet"}
+      </Text>
+      <Text
+        style={[typography.body.sm, { color: colors.textMuted, marginTop: 4, textAlign: "center", maxWidth: 280 }]}
+      >
+        {caughtUp
+          ? "New doctor sign-ups needing an SLMC check will appear here."
+          : filter === "verified"
+          ? "Doctors appear here once you verify their SLMC registration."
+          : "Doctors will appear here once they sign up."}
+      </Text>
+      {onShowAll ? (
+        <View style={{ marginTop: spacing.lg }}>
+          <Button title="Show all doctors" size="sm" variant="secondary" onPress={onShowAll} />
+        </View>
+      ) : null}
+    </AdminCard>
+  );
+}
+
+function DoctorRow({
   d,
   onPress,
 }: {
   d: AdminDoctorRow;
   onPress: () => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, fontFamily } = useTheme();
   const verified = !!d.slmcVerifiedAt;
+  const hasSlmc = !!d.slmcRegistrationNo;
   return (
-    <AdminCard onPress={onPress}>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
-      >
-        <Avatar name={d.name ?? "?"} size="md" />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            style={[typography.title.sm, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {d.name ?? "Unnamed"}
-          </Text>
-          <Text
-            style={[typography.caption, { color: colors.textMuted }]}
-            numberOfLines={1}
-          >
-            {d.specialization ?? "General"} · SLMC {d.slmcRegistrationNo ?? "—"}
-          </Text>
+    <Pressable
+      onPress={onPress}
+      haptic="light"
+      accessibilityRole="button"
+      accessibilityLabel={`${d.name ?? "Unnamed"}, ${verified ? "verified" : "not verified"}`}
+      style={({ pressed }: { pressed: boolean }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        backgroundColor: pressed ? colors.fill : "transparent",
+      })}
+    >
+      <View>
+        <Avatar name={d.name ?? "?"} size={44} />
+        {verified ? (
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 5,
+              position: "absolute",
+              right: -3,
+              bottom: -3,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+              padding: 1.5,
             }}
           >
-            <StatusPill status={verified ? "verified" : "pending"} />
-            {typeof d.rating === "number" && d.rating > 0 ? (
+            <BadgeCheck size={16} color={colors.surface} fill={colors.success} strokeWidth={2.2} />
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[typography.title.sm, { color: colors.text }]} numberOfLines={1}>
+          {d.name ?? "Unnamed"}
+        </Text>
+        <Text style={[typography.body.sm, { color: colors.textMuted, marginTop: 1 }]} numberOfLines={1}>
+          {d.specialization ?? "General practice"}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+          {hasSlmc ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingHorizontal: 7,
+                height: 20,
+                borderRadius: 6,
+                backgroundColor: colors.well,
+              }}
+            >
+              <Text style={[typography.label.xs, { color: colors.textSubtle, letterSpacing: 0.3 }]}>SLMC</Text>
+              <Text style={[typography.label.xs, { color: colors.text, fontFamily: fontFamily.mono }]}>
+                {d.slmcRegistrationNo}
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingHorizontal: 7,
+                height: 20,
+                borderRadius: 6,
+                backgroundColor: colors.dangerSoft,
+              }}
+            >
+              <AlertTriangle size={10} color={colors.danger} strokeWidth={2.6} />
+              <Text style={[typography.label.xs, { color: colors.danger }]}>No SLMC no.</Text>
+            </View>
+          )}
+          {typeof d.rating === "number" && d.rating > 0 ? (
               <View
                 style={{
                   flexDirection: "row",
@@ -312,10 +518,39 @@ function DoctorCard({
                 </Text>
               </View>
             ) : null}
-          </View>
         </View>
-        <ChevronRight size={18} color={colors.textSubtle} />
       </View>
-    </AdminCard>
+
+      {verified ? (
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.well,
+          }}
+        >
+          <ChevronRight size={14} color={colors.textMuted} strokeWidth={2.4} />
+        </View>
+      ) : (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 2,
+            height: 30,
+            paddingLeft: 12,
+            paddingRight: 8,
+            borderRadius: 15,
+            backgroundColor: colors.warningSoft,
+          }}
+        >
+          <Text style={[typography.label.sm, { color: colors.warning }]}>Review</Text>
+          <ChevronRight size={14} color={colors.warning} strokeWidth={2.6} />
+        </View>
+      )}
+    </Pressable>
   );
 }

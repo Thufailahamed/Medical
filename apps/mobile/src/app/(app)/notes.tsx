@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   TextInput as RNTextInput,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,6 +30,8 @@ import {
   ChevronRight,
   ListPlus,
   MessageCircleQuestion,
+  Gauge,
+  HelpCircle,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/stores/locale";
@@ -62,7 +65,7 @@ const HEALTH_TEMPLATES = [
   {
     id: "questions",
     tone: "primary" as const,
-    hint: "4 prompts",
+    prompts: 4,
     title: "Questions for Doctor",
     icon: Stethoscope,
     body: "• Symptoms onset & changes:\n• Current medications & side effects:\n• Questions about treatment plan:\n• Next follow-up or test recommendations:",
@@ -70,7 +73,7 @@ const HEALTH_TEMPLATES = [
   {
     id: "symptoms",
     tone: "danger" as const,
-    hint: "5 prompts",
+    prompts: 5,
     title: "Symptom Tracker",
     icon: Activity,
     body: "• Primary symptom:\n• Severity (1-10):\n• When it started:\n• Possible triggers (food, stress, activity):\n• What helps relieve it:",
@@ -78,7 +81,7 @@ const HEALTH_TEMPLATES = [
   {
     id: "medications",
     tone: "success" as const,
-    hint: "4 prompts",
+    prompts: 4,
     title: "Medication Observation",
     icon: Pill,
     body: "• Medicine name & dose:\n• Time taken:\n• Observed reaction or side effect:\n• Questions for doctor/pharmacist:",
@@ -86,7 +89,7 @@ const HEALTH_TEMPLATES = [
   {
     id: "daily",
     tone: "accent2" as const,
-    hint: "4 prompts",
+    prompts: 4,
     title: "Daily Check-in",
     icon: Sparkles,
     body: "• Today's overall wellness (1-10):\n• Energy level & sleep quality:\n• Meals and hydration:\n• Physical activity or mood:",
@@ -134,6 +137,8 @@ export default function NotesScreen() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [pinned, setPinned] = useState(false);
+  // Snapshot at open so "cancel" only warns when something actually changed.
+  const [initial, setInitial] = useState({ title: "", body: "", pinned: false });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"all" | "pinned" | "questions" | "symptoms">("all");
@@ -172,6 +177,7 @@ export default function NotesScreen() {
     setTitle(n.title || "");
     setBody(n.body || "");
     setPinned(!!n.pinned);
+    setInitial({ title: n.title || "", body: n.body || "", pinned: !!n.pinned });
     setComposing(true);
   }
 
@@ -180,12 +186,27 @@ export default function NotesScreen() {
     setTitle(initialTitle || "");
     setBody(initialBody || "");
     setPinned(false);
+    setInitial({ title: initialTitle || "", body: initialBody || "", pinned: false });
     setComposing(true);
   }
 
   function cancel() {
     setComposing(false);
     setEditingId(null);
+  }
+
+  const dirty = title !== initial.title || body !== initial.body || pinned !== initial.pinned;
+
+  function requestCancel() {
+    if (!dirty) return cancel();
+    Alert.alert(
+      t("notes.composing.discardTitle", "Discard changes?"),
+      t("notes.composing.discardBody", "Your edits to this note will be lost."),
+      [
+        { text: t("notes.composing.keepEditing", "Keep editing"), style: "cancel" },
+        { text: t("notes.composing.discard", "Discard"), style: "destructive", onPress: cancel },
+      ]
+    );
   }
 
   async function save() {
@@ -253,166 +274,177 @@ export default function NotesScreen() {
   }
 
   if (composing) {
+    const words = body.trim() ? body.trim().split(/\s+/).length : 0;
+    const saving = createNote.isPending || updateNote.isPending;
+    const tools = [
+      { icon: ListPlus, label: t("notes.composing.tools.bullet", "Bullet"), snippet: "• " },
+      {
+        icon: Clock,
+        label: t("notes.composing.tools.time", "Time"),
+        snippet: () => `[${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}] `,
+      },
+      { icon: Gauge, label: t("notes.composing.tools.severity", "Severity"), snippet: "Severity: 5/10 - " },
+      { icon: HelpCircle, label: t("notes.composing.tools.question", "Question"), snippet: "Q: " },
+    ];
     return (
-      <Screen scroll keyboard padded={false} edges={["top"]} bottomInset>
+      <Screen padded={false} keyboard edges={["top"]} bottomInset>
         <ScreenHeader
+          onBack={requestCancel}
           title={editingId ? t("notes.composing.editTitle") : t("notes.composing.newTitle")}
-          right={
-            <IconButton
-              icon={X}
-              onPress={cancel}
-              accessibilityLabel={t("notes.composing.cancelLabel")}
-            />
+          subtitle={
+            dirty
+              ? t("notes.composing.unsaved", "Unsaved changes")
+              : editingId
+              ? t("notes.composing.editing", "Editing")
+              : undefined
           }
         />
-        <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-          {/* Quick Helper Snippets */}
-          <View>
-            <Text
-              style={[
-                typography.caption,
-                { color: colors.textMuted, marginBottom: spacing.xs, fontWeight: "600" },
-              ]}
-            >
-              QUICK INSERTIONS
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.sm }}
-            >
-              <Pressable
-                onPress={() => insertSnippet("• ")}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  paddingHorizontal: spacing.md,
-                  height: 32,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.fill,
-                }}
-              >
-                <ListPlus size={12} color={colors.primary} />
-                <Text style={[typography.label.sm, { color: colors.text }]}>
-                  + Bullet point
-                </Text>
-              </Pressable>
 
-              <Pressable
-                onPress={() => insertSnippet(`[${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}] `)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  paddingHorizontal: spacing.md,
-                  height: 32,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.fill,
-                }}
-              >
-                <Clock size={12} color={colors.primary} />
-                <Text style={[typography.label.sm, { color: colors.text }]}>
-                  + Timestamp
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => insertSnippet("Severity: 5/10 - ")}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  paddingHorizontal: spacing.md,
-                  height: 32,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.fill,
-                }}
-              >
-                <Activity size={12} color={colors.primary} />
-                <Text style={[typography.label.sm, { color: colors.text }]}>
-                  + Severity scale
-                </Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-
-          <FormField
-            label={t("notes.composing.fieldTitleLabel")}
-            helper={t("notes.composing.titleOptional")}
-          >
-            <TextInput
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.md }}
+        >
+          {/* One "paper" card: title + body + formatting toolbar */}
+          <Card padded={false}>
+            <RNTextInput
               value={title}
               onChangeText={setTitle}
-              placeholder={t("notes.composing.titlePlaceholder")}
+              placeholder={t("notes.composing.titlePlaceholderShort", "Title (optional)")}
+              placeholderTextColor={colors.textSubtle}
+              returnKeyType="next"
+              style={[
+                typography.title.lg,
+                {
+                  color: colors.text,
+                  paddingHorizontal: spacing.lg,
+                  paddingTop: spacing.lg,
+                  paddingBottom: spacing.md,
+                },
+              ]}
             />
-          </FormField>
-
-          <FormField label={t("notes.composing.bodyLabel")} required>
-            <TextInput
+            <View
+              style={{
+                height: StyleSheet.hairlineWidth,
+                backgroundColor: colors.separator,
+                marginHorizontal: spacing.lg,
+              }}
+            />
+            <RNTextInput
               value={body}
               onChangeText={setBody}
-              placeholder={t("notes.composing.bodyPlaceholder")}
+              placeholder={t("notes.composing.bodyPlaceholderLong", "How are you feeling? Symptoms, questions for your doctor, anything worth remembering…")}
+              placeholderTextColor={colors.textSubtle}
               multiline
-              numberOfLines={10}
-              tone="soft"
-              style={{ minHeight: 220, textAlignVertical: "top" }}
+              autoFocus={!editingId && !body}
+              textAlignVertical="top"
+              style={[
+                typography.body.lg ?? typography.body.md,
+                {
+                  color: colors.text,
+                  minHeight: 260,
+                  lineHeight: 24,
+                  paddingHorizontal: spacing.lg,
+                  paddingTop: spacing.md,
+                  paddingBottom: spacing.lg,
+                },
+              ]}
             />
-          </FormField>
-
-          {/* Pin Toggle Card */}
-          <Pressable
-            onPress={() => setPinned(!pinned)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: spacing.lg,
-              borderRadius: 18,
-              borderCurve: "continuous",
-              backgroundColor: pinned ? colors.warningSoft : colors.fill,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
-              <Pin
-                size={18}
-                color={pinned ? colors.warning : colors.textSubtle}
-                fill={pinned ? colors.warning : "none"}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[typography.title.sm, { color: colors.text }]}
-                >
-                  {pinned
-                    ? t("notes.composing.pinToggle.on")
-                    : t("notes.composing.pinToggle.off")}
-                </Text>
-                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}>
-                  Pinned notes stay at the top of your journal
-                </Text>
-              </View>
-            </View>
 
             <View
               style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: pinned ? colors.warning : "transparent",
-                borderWidth: pinned ? 0 : 1.5,
-                borderColor: colors.textSubtle,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
+                gap: spacing.sm,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.separator,
+                backgroundColor: colors.surfaceMuted,
+                borderBottomLeftRadius: radius.card,
+                borderBottomRightRadius: radius.card,
               }}
             >
-              {pinned && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 6 }}
+                style={{ flex: 1 }}
+                keyboardShouldPersistTaps="always"
+              >
+                {tools.map((tool) => {
+                  const Icon = tool.icon;
+                  return (
+                    <Pressable
+                      key={tool.label}
+                      haptic="light"
+                      onPress={() =>
+                        insertSnippet(typeof tool.snippet === "function" ? tool.snippet() : tool.snippet)
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={tool.label}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 5,
+                        height: 32,
+                        paddingHorizontal: 11,
+                        borderRadius: 16,
+                        backgroundColor: colors.surface,
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: colors.hairline,
+                      }}
+                    >
+                      <Icon size={14} color={colors.primary} strokeWidth={2.3} />
+                      <Text style={[typography.label.sm, { color: colors.text }]}>{tool.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <Text style={[typography.caption, { color: colors.textSubtle, fontVariant: ["tabular-nums"] }]}>
+                {t("notes.composing.words", { count: words, defaultValue: `${words} words` })}
+              </Text>
             </View>
-          </Pressable>
+          </Card>
 
+          {/* Pin setting as a native switch row */}
+          <Card padded={false}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, paddingHorizontal: spacing.lg }}>
+              <IconTile icon={Pin} tone={pinned ? "warning" : "neutral"} size={36} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[typography.title.sm, { color: colors.text }]}>
+                  {t("notes.composing.pinToggle.off")}
+                </Text>
+                <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={2}>
+                  {t("notes.composing.pinHelp", "Pinned notes stay at the top of your journal")}
+                </Text>
+              </View>
+              <Switch
+                value={pinned}
+                onValueChange={setPinned}
+                trackColor={{ true: colors.warning, false: colors.fillStrong }}
+                accessibilityLabel={t("notes.composing.pinToggle.off")}
+              />
+            </View>
+          </Card>
+        </ScrollView>
+
+        {/* Sticky save */}
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.separator,
+            backgroundColor: colors.bg,
+          }}
+        >
           <Button
             title={editingId ? t("notes.composing.submitEdit") : t("notes.composing.submitNew")}
             onPress={save}
-            loading={createNote.isPending || updateNote.isPending}
+            loading={saving}
+            disabled={!body.trim() || (!!editingId && !dirty)}
             icon={Check}
             size="lg"
             fullWidth
@@ -447,9 +479,7 @@ export default function NotesScreen() {
       <ScreenHeader
         title={t("notes.title")}
         subtitle={
-          notes.length === 1
-            ? "1 journal entry"
-            : `${notes.length} journal entries`
+          t("notes.entryCount", { count: notes.length, defaultValue: `${notes.length} journal entries` })
         }
         right={
           <IconButton
@@ -502,11 +532,11 @@ export default function NotesScreen() {
 
           <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
             <View style={{ flex: 1, paddingRight: spacing.md }}>
-              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.78)" }]}>
-                HEALTH JOURNAL
+              <Text style={[typography.kicker, { color: "rgba(255,255,255,0.78)", textTransform: "uppercase" }]}>
+                {t("notes.hero.kicker", "Health journal")}
               </Text>
-              <Text style={[typography.display.sm, { color: "#FFFFFF", marginTop: 6 }]}>
-                Your health,{"\n"}in your words
+              <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 6 }]}>
+                {t("notes.hero.title", "Your health, in your words")}
               </Text>
             </View>
             <IconTile icon={StickyNote} appearance="glass" size={46} />
@@ -514,40 +544,9 @@ export default function NotesScreen() {
 
           <Text style={[typography.body.sm, { color: "rgba(255,255,255,0.84)", marginTop: spacing.sm }]}>
             {lastEntry
-              ? `Last entry ${formatRelative(lastEntry, locale)}`
-              : "Record symptoms, prepare doctor questions, track wellness."}
+              ? t("notes.hero.lastEntry", { when: formatRelative(lastEntry, locale, t), defaultValue: `Last entry ${formatRelative(lastEntry, locale, t)}` })
+              : t("notes.hero.body", "Record symptoms, prepare doctor questions, track wellness.")}
           </Text>
-
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
-            {[
-              { n: notes.length, l: "Entries", icon: StickyNote },
-              { n: pinnedCount, l: "Pinned", icon: Pin },
-              { n: questionsCount, l: "Questions", icon: MessageCircleQuestion },
-            ].map((s) => {
-              const Icon = s.icon;
-              return (
-                <View
-                  key={s.l}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: 18,
-                    borderCurve: "continuous",
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: "rgba(255,255,255,0.22)",
-                  }}
-                >
-                  <Icon size={14} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
-                  <Text style={[typography.title.lg, { color: "#FFFFFF", marginTop: 6 }]}>{s.n}</Text>
-                  <Text style={[typography.label.xs, { color: "rgba(255,255,255,0.78)" }]} numberOfLines={1}>
-                    {s.l}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
 
           <Pressable
             onPress={() => startNew()}
@@ -564,65 +563,64 @@ export default function NotesScreen() {
             }}
           >
             <Plus size={17} color={colors.primary} strokeWidth={2.6} />
-            <Text style={[typography.label.lg, { color: colors.primary }]}>Write a new note</Text>
+            <Text style={[typography.label.lg, { color: colors.primary }]}>
+              {t("notes.hero.cta", "Write a new note")}
+            </Text>
           </Pressable>
         </LinearGradient>
       </View>
 
-      {/* Quick Starter Templates */}
+      {/* Quick Starter Templates: 2×2 grid so nothing clips off-screen */}
       <View style={{ paddingHorizontal: spacing.lg }}>
-        <SectionHeader kicker="Start faster" title={t("notes.templates.title", "Quick templates")} />
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: 6 }}
-      >
-        {HEALTH_TEMPLATES.map((tmpl) => (
-          <Pressable
-            key={tmpl.id}
-            onPress={() => startNew(tmpl.title, tmpl.body)}
-            haptic="light"
-            wrapperStyle={isDark ? null : shadow.xs}
-            style={{
-              width: 148,
-              padding: spacing.md,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              backgroundColor: colors.surface,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDark ? colors.borderStrong : colors.hairline,
-            }}
-          >
-            <IconTile icon={tmpl.icon} tone={tmpl.tone} size={38} />
-            <Text
-              style={[typography.title.xs, { color: colors.text, marginTop: spacing.md, minHeight: 36 }]}
-              numberOfLines={2}
-            >
-              {tmpl.title}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.xs }}>
-              <Text style={[typography.caption, { color: colors.textSubtle }]}>{tmpl.hint}</Text>
-              <View
+        <SectionHeader
+          kicker={t("notes.templates.kicker", "Start faster")}
+          title={t("notes.templates.title", "Quick templates")}
+        />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {HEALTH_TEMPLATES.map((tmpl) => {
+            const label = t(`notes.templates.${tmpl.id}`, tmpl.title);
+            return (
+              <Pressable
+                key={tmpl.id}
+                onPress={() => startNew(label, tmpl.body)}
+                haptic="light"
+                wrapperStyle={[{ flexGrow: 1, flexBasis: "40%" }, isDark ? null : shadow.xs]}
+                accessibilityRole="button"
+                accessibilityLabel={label}
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  backgroundColor: colors.well,
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: spacing.sm + 2,
+                  padding: spacing.md,
+                  borderRadius: 18,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.surface,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: isDark ? colors.borderStrong : colors.hairline,
                 }}
               >
-                <ChevronRight size={13} color={colors.textMuted} strokeWidth={2.6} />
-              </View>
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
+                <IconTile icon={tmpl.icon} tone={tmpl.tone} size={36} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[typography.label.md, { color: colors.text }]} numberOfLines={2}>
+                    {label}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
+                    {t("notes.templates.prompts", { count: tmpl.prompts, defaultValue: `${tmpl.prompts} prompts` })}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* Search + filters */}
       <View style={{ paddingHorizontal: spacing.lg }}>
-        <SectionHeader kicker="Your entries" title={t("notes.list.heading", "Journal")} count={notes.length} />
+        <SectionHeader
+          kicker={t("notes.list.kicker", "Your entries")}
+          title={t("notes.list.heading", "Journal")}
+          count={notes.length}
+        />
         <View
           style={{
             flexDirection: "row",
@@ -753,11 +751,11 @@ export default function NotesScreen() {
       ) : (
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.md }}>
           {pinnedNotes.length > 0 && otherNotes.length > 0 && (
-            <GroupLabel icon={Pin} label="Pinned" />
+            <GroupLabel icon={Pin} label={t("notes.filters.pinned", "Pinned")} />
           )}
           {pinnedNotes.map(renderNote)}
           {pinnedNotes.length > 0 && otherNotes.length > 0 && (
-            <GroupLabel icon={Clock} label="Recent" style={{ marginTop: spacing.sm }} />
+            <GroupLabel icon={Clock} label={t("notes.list.recent", "Recent")} style={{ marginTop: spacing.sm }} />
           )}
           {otherNotes.map(renderNote)}
         </View>
@@ -766,14 +764,14 @@ export default function NotesScreen() {
   );
 }
 
-function formatRelative(iso: string, locale: any): string {
+function formatRelative(iso: string, locale: any, t?: (k: string, o?: any) => string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return String(iso).slice(0, 10);
   const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((startOf(new Date()) - startOf(d)) / 86400000);
-  if (days === 0) return `today · ${time}`;
-  if (days === 1) return `yesterday · ${time}`;
+  if (days === 0) return `${t ? t("notes.relative.today", "today") : "today"} · ${time}`;
+  if (days === 1) return `${t ? t("notes.relative.yesterday", "yesterday") : "yesterday"} · ${time}`;
   return formatNoteDate(iso, locale);
 }
 
@@ -796,8 +794,8 @@ function NoteCard({
   const { colors, spacing, radius, typography, scheme, shadow } = useTheme();
   const isDark = scheme === "dark";
   const tags = [
-    isQuestionNote(n) && { label: "Question", tone: "primary" as const, icon: MessageCircleQuestion },
-    isSymptomNote(n) && { label: "Symptom", tone: "danger" as const, icon: Activity },
+    isQuestionNote(n) && { label: t("notes.tags.question", "Question"), tone: "primary" as const, icon: MessageCircleQuestion },
+    isSymptomNote(n) && { label: t("notes.tags.symptom", "Symptom"), tone: "danger" as const, icon: Activity },
   ].filter(Boolean) as { label: string; tone: any; icon: any }[];
 
   return (
@@ -829,7 +827,7 @@ function NoteCard({
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
               <Clock size={12} color={colors.textSubtle} strokeWidth={2.2} />
               <Text style={[typography.caption, { color: colors.textSubtle }]} numberOfLines={1}>
-                {formatRelative(n.updatedAt || n.createdAt, locale).replace(/^./, (c) => c.toUpperCase())}
+                {formatRelative(n.updatedAt || n.createdAt, locale, t).replace(/^./, (c) => c.toUpperCase())}
               </Text>
             </View>
           </View>
@@ -874,7 +872,7 @@ function NoteCard({
             {tags.length > 0 ? (
               tags.map((tag) => <TagPill key={tag.label} {...tag} />)
             ) : (
-              <TagPill label="Journal" tone="neutral" icon={StickyNote} />
+              <TagPill label={t("notes.tags.journal", "Journal")} tone="neutral" icon={StickyNote} />
             )}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>

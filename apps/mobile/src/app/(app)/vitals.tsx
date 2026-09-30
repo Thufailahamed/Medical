@@ -871,13 +871,15 @@ export default function VitalsScreen() {
   );
 
   return (
-    <Screen padded={false} edges={["top"]} tabBarOffset bottomInset={false}>
+    // No tabBarOffset: this route hides the tab bar, and the offset left a
+    // dead band that clipped the bottom of the scroll view.
+    <Screen padded={false} edges={["top"]} bottomInset={false}>
       <ScreenHeader
         onBack={() => router.back()}
         title={t("vitals.title", "Vitals")}
-        subtitle={t("vitals.subtitleWithCount", {
-          count: latestByType.length,
-          alerts: alertsCount,
+        subtitle={t("vitals.subtitleTracked", {
+          tracked: latestByType.length,
+          count: alertsCount,
           defaultValue: `${latestByType.length} tracked · ${alertsCount} alert${alertsCount === 1 ? "" : "s"}`,
         })}
         right={
@@ -1042,6 +1044,78 @@ export default function VitalsScreen() {
             </View>
           ) : null}
 
+          {/* ── Quick log: one tap straight into the composer for a type ── */}
+          <View>
+            <SectionHeader
+              kicker={t("vitals.quickLog.kicker", "Quick log")}
+              title={t("vitals.quickLog.title", "Add a reading")}
+              style={{ paddingTop: 0 }}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -spacing.lg }}
+              contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: 4 }}
+            >
+              {sortedVitalTypes.slice(0, 8).map((vt) => {
+                const VIcon = ICON_BY_TYPE[vt] ?? Activity;
+                const label = t(`vitals.type.${vt}.label`, vt.replace(/_/g, " "));
+                return (
+                  <Pressable
+                    key={vt}
+                    haptic="light"
+                    accessibilityRole="button"
+                    accessibilityLabel={t("vitals.quickLog.a11y", { label, defaultValue: `Log ${label}` })}
+                    onPress={() => {
+                      setType(vt);
+                      setComposing(true);
+                    }}
+                    wrapperStyle={isDark ? null : shadow.xs}
+                    style={{
+                      width: 96,
+                      alignItems: "center",
+                      gap: spacing.sm,
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.sm,
+                      borderRadius: 20,
+                      borderCurve: "continuous",
+                      backgroundColor: colors.surface,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: isDark ? colors.borderStrong : colors.hairline,
+                    }}
+                  >
+                    <View>
+                      <IconTile icon={VIcon} tone="primary" size={40} />
+                      <View
+                        style={{
+                          position: "absolute",
+                          right: -4,
+                          bottom: -4,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 9,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: colors.primary,
+                          borderWidth: 2,
+                          borderColor: colors.surface,
+                        }}
+                      >
+                        <Plus size={10} color={colors.onPrimary} strokeWidth={3} />
+                      </View>
+                    </View>
+                    <Text
+                      style={[typography.label.sm, { color: colors.text, textAlign: "center" }]}
+                      numberOfLines={2}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* ── Trend chart card ─────────────────────────────── */}
           <Card style={{ padding: spacing.lg, gap: spacing.md }}>
             <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing.sm }}>
@@ -1144,7 +1218,11 @@ export default function VitalsScreen() {
               <View style={{ flexDirection: "row", gap: spacing.xs, flexWrap: "wrap" }}>
                 {isSecondaryCapable ? (
                   <Chip
-                    label={showSecondary ? "Systolic + Diastolic" : "Systolic only"}
+                    label={
+                      showSecondary
+                        ? t("vitals.chart.bothReadings", "Systolic + Diastolic")
+                        : t("vitals.chart.systolicOnly", "Systolic only")
+                    }
                     tone={showSecondary ? "primary" : "neutral"}
                     size="sm"
                     onPress={() => {

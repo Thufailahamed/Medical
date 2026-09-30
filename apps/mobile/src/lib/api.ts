@@ -52,16 +52,31 @@ async function runRequest<T>(
   requestHeaders["Accept-Language"] = intlLocale(
     useLocaleStore.getState().locale
   );
+  // Request context (family / principal / tenant) is per-account and
+  // persisted across restarts. Attach it only to authenticated,
+  // non-auth calls: no /auth/* or /mfa/* handler reads tenant scope,
+  // and sending a previous account's tenant selection on a login (or
+  // /auth/me cold-start with a stale stored token) makes the server
+  // validate the wrong membership and 403 with tenant_access_denied.
+  // Authenticated app endpoints keep the previous behaviour.
+  const attachContext =
+    !!token &&
+    !endpoint.startsWith("/auth/") &&
+    !endpoint.startsWith("/mfa/");
   // Phase 2.3: forward active family member so list endpoints filter
   // and POST endpoints default-assign. Header is the request-level hint;
   // server column is the durable source of truth.
-  const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
+  const activeFmId = attachContext
+    ? useActiveFamilyMemberStore.getState().activeFamilyMemberId
+    : null;
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
   }
   // Caretaker Profiles: forward active principal so list endpoints scope
   // to the chosen patient. Mirrors family-member pattern.
-  const activePrincipalId = useActivePrincipalStore.getState().activePrincipalPatientId;
+  const activePrincipalId = attachContext
+    ? useActivePrincipalStore.getState().activePrincipalPatientId
+    : null;
   if (activePrincipalId) {
     requestHeaders["x-active-principal-patient-id"] = activePrincipalId;
   }
@@ -69,8 +84,12 @@ async function runRequest<T>(
   // chosen hospital/clinic. Mutex by design — server returns 400 if
   // both headers are set. Header wins over the user's persisted
   // column, which the server uses as offline fallback.
-  const activeHospId = useActiveTenantStore.getState().activeHospitalId;
-  const activeClinicId = useActiveTenantStore.getState().activeClinicId;
+  const activeHospId = attachContext
+    ? useActiveTenantStore.getState().activeHospitalId
+    : null;
+  const activeClinicId = attachContext
+    ? useActiveTenantStore.getState().activeClinicId
+    : null;
   if (activeHospId) {
     requestHeaders["x-active-hospital-id"] = activeHospId;
   } else if (activeClinicId) {
@@ -100,12 +119,28 @@ async function runRequest<T>(
   });
 
   if (!response.ok) {
+    // Peek at the structured code before deciding this is a dead
+    // session. Step-up challenges (401 + step_up_*) mean the session is
+    // FINE — the admin just needs a fresh 5-min proof. Firing
+    // onAuthError here would nuke a healthy admin/doctor session and
+    // bounce the user back to login on every destructive action.
+    let peekCode: string | undefined;
     if (response.status === 401 && !options.silent401) {
-      // Notify the auth layer that the session is bad.
       try {
-        useAuthStore.getState().onAuthError();
+        const peek = await response.clone().json().catch(() => ({}));
+        peekCode = (peek as any)?.code;
       } catch {
-        // store not ready; ignore
+        peekCode = undefined;
+      }
+      const isStepUp =
+        typeof peekCode === "string" && peekCode.startsWith("step_up");
+      if (!isStepUp) {
+        // Notify the auth layer that the session is bad.
+        try {
+          useAuthStore.getState().onAuthError();
+        } catch {
+          // store not ready; ignore
+        }
       }
     }
     // Phase 2.3: 410 with `family_member_gone` means the active FM the
@@ -254,16 +289,31 @@ export async function apiSse(
   requestHeaders["Accept-Language"] = intlLocale(
     useLocaleStore.getState().locale
   );
-  const activeFmId = useActiveFamilyMemberStore.getState().activeFamilyMemberId;
+  // Same per-account context rule as runRequest (see above): only
+  // attach family/principal/tenant headers to authenticated,
+  // non-auth calls. /realtime (the only SSE consumer) keeps them.
+  const attachContext =
+    !!token &&
+    !endpoint.startsWith("/auth/") &&
+    !endpoint.startsWith("/mfa/");
+  const activeFmId = attachContext
+    ? useActiveFamilyMemberStore.getState().activeFamilyMemberId
+    : null;
   if (activeFmId) {
     requestHeaders["x-active-family-member-id"] = activeFmId;
   }
-  const activePrincipalId = useActivePrincipalStore.getState().activePrincipalPatientId;
+  const activePrincipalId = attachContext
+    ? useActivePrincipalStore.getState().activePrincipalPatientId
+    : null;
   if (activePrincipalId) {
     requestHeaders["x-active-principal-patient-id"] = activePrincipalId;
   }
-  const activeHospId = useActiveTenantStore.getState().activeHospitalId;
-  const activeClinicId = useActiveTenantStore.getState().activeClinicId;
+  const activeHospId = attachContext
+    ? useActiveTenantStore.getState().activeHospitalId
+    : null;
+  const activeClinicId = attachContext
+    ? useActiveTenantStore.getState().activeClinicId
+    : null;
   if (activeHospId) {
     requestHeaders["x-active-hospital-id"] = activeHospId;
   } else if (activeClinicId) {

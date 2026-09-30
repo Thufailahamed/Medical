@@ -172,6 +172,36 @@
       "info_other": "{{count}} வகைகள் புஷ் அறிவிப்புகளை அனுப்புகின்றன. நீங்கள் அணைத்தால் மட்டுமே பயன்பாட்டு அறிவிப்புகள் நிறுத்தப்படும்."
     },
     "alwaysOn": "எப்போதும் செயலில்",
+    "hero": {
+      "push": "Push",
+      "inApp": "செயலியில்"
+    },
+    "mode": {
+      "all": "அனைத்தும்",
+      "essentials": "அத்தியாவசியம்",
+      "custom": "தனிப்பயன்",
+      "allHelp": "ஒவ்வொரு எச்சரிக்கையும் push அறிவிப்பாகவும் செயலியிலும்.",
+      "essentialsHelp": "பராமரிப்பு & பாதுகாப்புக்கு மட்டும் push; மருத்துவமனை மற்றும் காப்பீட்டுச் செய்திகள் செயலியில் மட்டும்.",
+      "customHelp": "உங்கள் சொந்தக் கலவை — கீழே ஒவ்வொரு வகையையும் சரிசெய்யவும்."
+    },
+    "category": {
+      "clinical": {
+        "title": "மருத்துவம் & சிகிச்சைகள்",
+        "subtitle": "சந்திப்புகள், மருந்துகள், மருந்துச்சீட்டுகள் & ஆய்வக எச்சரிக்கைகள்"
+      },
+      "safety": {
+        "title": "தீவிரம் & அவசரநிலை",
+        "subtitle": "அவசர சுகாதார எச்சரிக்கைகள், SOS & நோயாளர் பாதுகாப்பு"
+      },
+      "services": {
+        "title": "மருத்துவமனை & சேவைகள்",
+        "subtitle": "நிலைய அறிவிப்புகள், காப்பீட்டுக் கோரிக்கைகள் & கொள்கைகள்"
+      }
+    },
+    "unsaved": "சேமிக்கப்படாத மாற்றங்கள்",
+    "discard": "நிராகரி",
+    "mutedLabel": "முடக்கப்பட்டது",
+    "emergencyLocked": "உங்கள் பாதுகாப்பிற்காக செயலியில் அவசர எச்சரிக்கைகள் இயக்கத்தில் இருக்கும்.",
     "toggle": {
       "inApp": "பயன்பாட்டில்",
       "push": "புஷ்"
@@ -466,6 +496,30 @@
     "errorBody": "உங்கள் இணைப்பைச் சோதித்து மீண்டும் முயற்சிக்கவும்.",
     "retry": "மீண்டும் முயற்சி",
     "actorSystem": "கணினி",
+    "you": "நீங்கள்",
+    "event": {
+      "healthIdIssued": "சுகாதார ID QR காட்டப்பட்டது",
+      "healthIdSuperseded": "முந்தைய QR நீக்கப்பட்டது",
+      "healthIdRevoked": "சுகாதார ID QR ரத்துசெய்யப்பட்டது",
+      "healthIdScanned": "சுகாதார ID ஸ்கேன் செய்யப்பட்டது",
+      "healthIdRejected": "ஸ்கேன் தடுக்கப்பட்டது",
+      "emergencyQrIssued": "அவசர QR உருவாக்கப்பட்டது",
+      "emergencyQrScanned": "அவசர QR ஸ்கேன் செய்யப்பட்டது",
+      "emergencyQrRevoked": "அவசர QR ரத்துசெய்யப்பட்டது"
+    },
+    "detail": {
+      "fullRecord": "முழுப் பதிவு",
+      "validFor": "{{hours}} மணி நேரம் செல்லுபடியாகும்",
+      "rotates": "ஒவ்வொரு {{seconds}} வினாடிக்கும் புதுப்பிக்கப்படும்",
+      "scansLeft_one": "{{count}} ஸ்கேன் மீதமுள்ளது",
+      "scansLeft_other": "{{count}} ஸ்கேன்கள் மீதமுள்ளன"
+    },
+    "summary": {
+      "onlyYou_one": "ஒரே நிகழ்வு உங்களால் செய்யப்பட்டது.",
+      "onlyYou_other": "அனைத்து {{count}} நிகழ்வுகளும் உங்களால் செய்யப்பட்டவை.",
+      "others_one": "வேறொருவரால் {{count}} செயல் — கீழே மதிப்பாய்வு செய்யவும்.",
+      "others_other": "மற்றவர்களால் {{count}} செயல்கள் — கீழே மதிப்பாய்வு செய்யவும்."
+    },
     "filter": {
       "all": "அனைத்தும்",
       "records": "பதிவுகள்",
@@ -539,10 +593,20 @@
     "sosConfirm": "அனுப்பு",
     "qrHeading": "QR சுகாதார அடையாளம்",
     "sos": {
+      "hold": "Hold",
+      "keepHolding": "Keep holding",
+      "subHint": "Hold 1.5s \u00b7 sends your live location",
       "accessibilityLabel": "SOS. Press and hold.",
       "hint": "Press and hold for 1.5 seconds"
     },
+    "hotline": {
+      "ambulance": "Ambulance",
+      "police": "Police",
+      "ambulanceCall": "Call ambulance, {{number}}",
+      "policeCall": "Call police, {{number}}"
+    },
     "header": {
+      "kicker": "Emergency",
       "brand": "HEALTHHUB",
       "accessibilityOpenProfile": "Open profile",
       "accessibilityNotifications": "Notifications"
@@ -628,6 +692,7 @@
     "savedToast": "குடும்ப உறுப்பினர் சேமிக்கப்பட்டார்",
     "removeToast": "குடும்ப உறுப்பினர் அகற்றப்பட்டார்",
     "invite": {
+      "prompt": "Adult with their own phone?",
       "buttonTitle": "இணைப்பு மூலம் அழை",
       "sheetTitle": "குடும்ப உறுப்பினரை அழைக்கவும்",
       "intro": "{{name}} உங்கள் {{relationship}} ஆக சேர்க்க இணைப்பை உருவாக்கவும்.",
@@ -671,6 +736,16 @@
     "composeTitle": "Add family member",
     "heroTitle": "ஒன்றிணந்து பராமரிப்போம்",
     "heroBody": "உங்களைக் கவர்க்கும் ஒருவர்களுடன் பதிவுகளைப் பகிருங்கள்.",
+    "how": {
+      "addShort": "Add",
+      "inviteShort": "Invite",
+      "careShort": "Care",
+      "step": "Step {{n}}"
+    },
+    "quickStart": {
+      "title": "Who are you adding?",
+      "other": "Someone else"
+    },
     "heroNumeralLabel": "உங்கள் பராமரிப்புக் குழுவில் உள்ளவர்கள்",
     "emergencyReady": "அவசரத்திற்கு தயார்",
     "features": {
@@ -712,6 +787,20 @@
       "toastError": "பூட்டைப் புதுப்பிக்க முடியவில்லை"
     },
     "compose": {
+      "previewName": "New family member",
+      "immediateCaption": "Immediate family",
+      "extendedCaption": "Extended family",
+      "fullNamePlaceholder": "e.g., Sarah Perera",
+      "ageHelper": "Age {{age}}",
+      "dobPick": "Select date of birth",
+      "passedAway": "Has passed away",
+      "passedAwayHelper": "Still counts toward hereditary risk",
+      "causeOfDeathHelper": "Optional — helps assess hereditary risk",
+      "causeOfDeathExample": "e.g., Heart condition",
+      "optional": "Optional",
+      "removeCondition": "Remove {{name}}",
+      "moreConditions": "+{{count}} more",
+      "addNamed": "Add {{name}}",
       "nameLabel": "Name",
       "namePlaceholder": "e.g., Mother",
       "nameRequired": "Name is required",
@@ -1119,6 +1208,30 @@
     "title": "சுயவிவரத்தைத் திருத்து",
     "save": "சேமி",
     "saveButton": "மாற்றங்களைச் சேமி",
+    "tagHelper": "Press return or add a comma after each one",
+    "removeTag": "Remove {{tag}}",
+    "addFirstContact": "Add emergency contact",
+    "vitals": {
+      "age": "Age",
+      "blood": "Blood",
+      "bmi": "BMI",
+      "ageHelper_one": "{{count}} year old",
+      "ageHelper_other": "{{count}} years old",
+      "bmiLine": "BMI {{value}} · {{band}}",
+      "bmiBand": {
+        "under": "Underweight",
+        "healthy": "Healthy range",
+        "over": "Overweight",
+        "obese": "Obese range"
+      }
+    },
+    "relationship": {
+      "parent": "Parent",
+      "spouse": "Spouse",
+      "sibling": "Sibling",
+      "child": "Child",
+      "friend": "Friend"
+    },
     "accessibilityLabel": {
       "goBack": "திரும்பு",
       "saveProfile": "சுயவிவரத்தைச் சேமி",
@@ -1169,6 +1282,7 @@
       "placeholder": "உயர் இரத்த அழுத்தம், ஆஸ்துமா"
     },
     "contact": {
+      "newContact": "Contact {{n}}",
       "namePlaceholder": "பெயர்",
       "relationshipPlaceholder": "உறவு (எ.கா: கணவர்)",
       "phonePlaceholder": "தொலைபேசி"
@@ -1237,6 +1351,32 @@
     "title": "செயல்பாட்டு பதிவு",
     "subtitle": "உங்கள் பதிவுகளை அண்டியவர்கள்",
     "helperText": "உங்கள் அணுகல் உரிமைப் பதிவு. உங்கள் பதிவுகளைத் தொடும் ஒவ்வொரு செயலையும் நாங்கள் பதிவு செய்கிறோம். விவரங்களுக்கு ஒரு பதிவைத் தட்டவும்.",
+    "today": "இன்று",
+    "yesterday": "நேற்று",
+    "actorSystem": "அமைப்பு",
+    "byActor": "{{name}} மூலம்",
+    "shareCta": "மருத்துவருடன் பதிவுகளைப் பகிர்",
+    "filter": {
+      "all": "அனைத்தும்",
+      "records": "பதிவுகள்",
+      "prescriptions": "மருந்துச்சீட்டுகள்",
+      "appointments": "சந்திப்புகள்",
+      "security": "பாதுகாப்பு"
+    },
+    "hero": {
+      "kicker": "அணுகல் உரிமை",
+      "title": "உங்கள் பதிவு, முழுமையாகக் கண்டறியக்கூடியது",
+      "body": "உங்கள் பதிவு திறக்கப்படும், மாற்றப்படும் அல்லது பகிரப்படும் ஒவ்வொரு முறையும் யார், எப்போது என்பதுடன் இங்கே பதிவாகும்.",
+      "last30": "நிகழ்வுகள் · 30நா",
+      "latest": "சமீபத்தியது",
+      "alerts": "எச்சரிக்கைகள்"
+    },
+    "logged": {
+      "title": "என்ன பதிவாகிறது",
+      "views": "மருத்துவர் அல்லது மருத்துவமனை உங்கள் பதிவைத் திறக்கும்போது",
+      "changes": "சேர்க்கப்பட்ட அல்லது மாற்றப்பட்ட பதிவுகள், மருந்துச்சீட்டுகள் மற்றும் சந்திப்புகள்",
+      "sharing": "பகிர்வு இணைப்புகள், சுகாதார ID ஸ்கேன்கள் மற்றும் தரவு ஏற்றுமதிகள்"
+    },
     "empty": {
       "title": "இன்னும் செயல்பாடு இல்லை",
       "message": "பயன்பாட்டைப் பயன்படுத்தத் தொடங்கியதும் அணுகல் பதிவு இங்கே தோன்றும்."
@@ -1521,6 +1661,13 @@
     "subtitle": "பதிவு செய்து போக்குகளைக் காண்க",
     "subtitleWithCount_one": "{{count}} கண்காணிக்கப்படுகிறது · {{alerts}} எச்சரிக்கை",
     "subtitleWithCount_other": "{{count}} கண்காணிக்கப்படுகிறது · {{alerts}} எச்சரிக்கைகள்",
+    "subtitleTracked_one": "{{tracked}} கண்காணிக்கப்படுகிறது · {{count}} எச்சரிக்கை",
+    "subtitleTracked_other": "{{tracked}} கண்காணிக்கப்படுகிறது · {{count}} எச்சரிக்கைகள்",
+    "quickLog": {
+      "kicker": "விரைவுப் பதிவு",
+      "title": "அளவீட்டைச் சேர்",
+      "a11y": "{{label}} பதிவு செய்"
+    },
     "hero": {
       "kicker": "சுகாதார நிலை",
       "emptyTitle": "உங்கள் உயிர் அளவீடுகளைக் கண்காணிக்கத் தொடங்குங்கள்",
@@ -1584,6 +1731,8 @@
     },
     "chart": {
       "trendHeading": "போக்குகள்",
+      "bothReadings": "சிஸ்டாலிக் + டயஸ்டாலிக்",
+      "systolicOnly": "சிஸ்டாலிக் மட்டும்",
       "kicker": "வரலாறு",
       "points_one": "{{count}} புள்ளி",
       "points_other": "{{count}} புள்ளிகள்",
@@ -1706,6 +1855,65 @@
     },
     "subtitleWithCount": "{{count}} tracked · {{alerts}} alert"
   },
+  "careNetwork": {
+    "title": "மருத்துவமனைகள் & கிளினிக்குகள்",
+    "subtitle": "உங்கள் இணைக்கப்பட்ட பராமரிப்பு வலையமைப்பு",
+    "showQrA11y": "சுகாதார ID QR ஐக் காட்டு",
+    "showQr": "QR காட்டு",
+    "viewHealthId": "என் சுகாதார ID ஐப் பார்",
+    "searchPlaceholder": "மருத்துவமனைகள் மற்றும் கிளினிக்குகளைத் தேடு",
+    "clearSearch": "தேடலை அழி",
+    "noMatchBody": "“{{query}}” உடன் எதுவும் பொருந்தவில்லை. வேறு பெயரை முயற்சிக்கவும்.",
+    "activeNow": "தற்போது தேர்ந்தெடுக்கப்பட்டது",
+    "hospitalCount_one": "{{count}} மருத்துவமனை",
+    "hospitalCount_other": "{{count}} மருத்துவமனைகள்",
+    "clinicCount_one": "{{count}} கிளினிக்",
+    "clinicCount_other": "{{count}} கிளினிக்குகள்",
+    "tabs": {
+      "all": "அனைத்தும்",
+      "hospitals": "மருத்துவமனைகள்",
+      "clinics": "கிளினிக்குகள்"
+    },
+    "hero": {
+      "kicker": "இணைக்கப்பட்ட பராமரிப்பு",
+      "linked_one": "{{count}} இணைக்கப்பட்ட நிலையம்",
+      "linked_other": "{{count}} இணைக்கப்பட்ட நிலையங்கள்",
+      "none": "நிலையங்கள் இணைக்கப்படவில்லை",
+      "syncing": "ஒத்திசைக்கிறது",
+      "notLinked": "இணைக்கப்படவில்லை",
+      "body": "பதிவுகள், ஆய்வக முடிவுகள் மற்றும் மருந்துச்சீட்டுகள் உங்கள் காலவரிசையில் தானாக ஒத்திசைக்கப்படும்.",
+      "cta": "புதிய நிலையத்தை இணை"
+    },
+    "hospitals": {
+      "kicker": "பதிவுசெய்யப்பட்டது",
+      "title": "மருத்துவமனைகள்",
+      "emptyTitle": "இன்னும் மருத்துவமனைகள் இணைக்கப்படவில்லை",
+      "emptyHint": "இணைக்க அனுமதியின்போது உங்கள் சுகாதார ID ஐக் காட்டவும்",
+      "emptyBody": "எந்தவொரு கூட்டாளர் மருத்துவமனையிலும் பதிவுசெய்யவும் அல்லது உங்கள் பதிவுகளை ஒத்திசைக்க அனுமதியின்போது உங்கள் சுகாதார ID ஐக் காட்டவும்.",
+      "noMatch": "பொருந்தும் மருத்துவமனைகள் இல்லை",
+      "type": "மருத்துவமனை · உள்நோயாளர் பராமரிப்பு"
+    },
+    "clinics": {
+      "kicker": "வெளிநோயாளர்",
+      "title": "கிளினிக்குகள்",
+      "emptyTitle": "இன்னும் கிளினிக்குகள் இணைக்கப்படவில்லை",
+      "emptyHint": "உங்கள் அடுத்த வருகையில் உங்கள் சுகாதார ID ஐப் பகிரவும்",
+      "emptyBody": "ஆலோசனைக் குறிப்புகள் மற்றும் மருந்துச்சீட்டுகளை இணைக்க ஒரு கிளினிக்கிற்குச் சென்று உங்கள் சுகாதார ID ஐப் பகிரவும்.",
+      "noMatch": "பொருந்தும் கிளினிக்குகள் இல்லை",
+      "type": "கிளினிக் · வெளிநோயாளர் பராமரிப்பு"
+    },
+    "guide": {
+      "kicker": "வழிகாட்டி",
+      "title": "இணைப்பு எவ்வாறு செயல்படுகிறது",
+      "step": "படி {{n}}",
+      "s1Title": "உங்கள் சுகாதார ID ஐக் காட்டவும்",
+      "s1Body": "பதிவு அல்லது அனுமதி மேசையில் உங்கள் QR அனுமதியைத் திறக்கவும்.",
+      "s2Title": "மேசை ஸ்கேன் செய்து சரிபார்க்கிறது",
+      "s2Body": "உங்கள் மருத்துவ அட்டவணையைப் பாதுகாப்பாக இணைக்க ஊழியர்கள் குறியீட்டை ஸ்கேன் செய்கிறார்கள்.",
+      "s3Title": "பதிவுகள் தானாக ஒத்திசைக்கப்படும்",
+      "s3Body": "மருந்துச்சீட்டுகள், ஆய்வக முடிவுகள் மற்றும் மருத்துவர் குறிப்புகள் உங்கள் பதிவுகளில் தோன்றும்."
+    }
+  },
   "allergies": {
     "title": "ஒவ்வாமைகள்",
     "subtitle": "உங்கள் அறியப்பட்ட ஒவ்வாமைகளை பட்டியலிடுங்கள்",
@@ -1718,6 +1926,12 @@
       "moderate": "நடுத்தர",
       "severe": "கடுமையான",
       "critical": "மிகக் கடுமையான"
+    },
+    "severityHelp": {
+      "mild": "சிறிய அசௌகரியம், சிகிச்சை தேவையில்லை",
+      "moderate": "கவனிக்கத்தக்க எதிர்வினை, மருந்து தேவைப்படலாம்",
+      "severe": "அவசர மருத்துவ சிகிச்சை தேவை",
+      "critical": "உயிருக்கு ஆபத்தானது — எ.கா. அனாபிலாக்ஸிஸ்"
     },
     "reactionPlaceholder": "வினை (எ.கா: அரிப்பு, வாந்தி)",
     "notesPlaceholder": "குறிப்புகளைச் சேர்",
@@ -1776,11 +1990,19 @@
       "food": "Food",
       "environmental": "Latex & environment",
       "customTitle": "Something else?",
-      "customBody": "Add any substance with its severity and reaction"
+      "customBody": "Add any substance with its severity and reaction",
+      "allAdded": "இங்குள்ள பொதுவானவை அனைத்தும் உங்கள் பட்டியலில் உள்ளன",
+      "tab": {
+        "medications": "மருந்துகள்",
+        "food": "உணவு",
+        "environmental": "சுற்றுச்சூழல்"
+      }
     },
     "sheet": {
       "editTitle": "Edit allergy",
-      "newTitle": "New allergy"
+      "newTitle": "New allergy",
+      "save": "மாற்றங்களைச் சேமி",
+      "add": "சுயவிவரத்தில் சேர்"
     },
     "field": {
       "substanceLabel": "Substance",
@@ -1858,6 +2080,7 @@
     },
     "hero": {
       "kicker": "Immunization card",
+      "coverage": "பரிந்துரைக்கப்பட்ட பாதுகாப்பு",
       "upToDate": "You're up to date",
       "upToDateBody": "Nothing due in the next 30 days",
       "onRecord": "On record",
@@ -1883,7 +2106,15 @@
     "doseN": "Dose {{n}}",
     "logged": "Logged",
     "logNamed": "Log {{name}}",
-    "scanCard": "அட்டையை ஸ்கேன் செய்"
+    "scanCard": "அட்டையை ஸ்கேன் செய்",
+    "saveRecord": "தடுப்பூசியைச் சேமி",
+    "doseDecrease": "டோஸைக் குறை",
+    "doseIncrease": "டோஸை அதிகரி",
+    "quickDate": {
+      "today": "இன்று",
+      "yesterday": "நேற்று",
+      "lastMonth": "ஒரு மாதத்திற்கு முன்"
+    }
   },
   "vaccinationCard": {
     "title": "தடுப்பூசி அட்டையை ஸ்கேன் செய்",
@@ -1909,6 +2140,27 @@
     "rescan": "மீண்டும் ஸ்கேன்",
     "noValidEntries": "குறைந்தது ஒரு செல்லுபடியாகும் தடுப்பூசியைச் சேர்க்கவும்",
     "disclaimer": "AI பிரித்தெடுக்கப்பட்ட தரவில் பிழைகள் இருக்கலாம். சேமிப்பதற்கு முன் சரிபார்க்கவும்.",
+    "retake": "மீண்டும் புகைப்படம் எடு",
+    "galleryShort": "கேலரியிலிருந்து",
+    "privacy": "உங்கள் புகைப்படம் குறியாக்கம் செய்யப்பட்டு உங்கள் தடுப்பூசிகளைப் படிக்க மட்டுமே பயன்படுத்தப்படும்.",
+    "entryN": "தடுப்பூசி {{n}}",
+    "removeEntry": "இந்த தடுப்பூசியை அகற்று",
+    "addPhotoHint": "தொடர உங்கள் அட்டையின் புகைப்படத்தைச் சேர்க்கவும்",
+    "photoReady": "புகைப்படம் தயார்",
+    "frameTitle": "உங்கள் அட்டையைப் படம் எடுக்கத் தட்டவும்",
+    "frameBody": "அதைத் தட்டையாக வைத்து மூலைகளுக்குள் பொருத்தவும்",
+    "matchedSummary": "{{total}} இல் {{matched}} அறியப்பட்ட தடுப்பூசிகளுடன் பொருந்தியது",
+    "steps": {
+      "capture": "பிடிப்பு",
+      "review": "மதிப்பாய்வு",
+      "save": "சேமி"
+    },
+    "tips": {
+      "title": "சிறந்த ஸ்கேனுக்கு",
+      "light": "பிரகாசமான, சீரான ஒளியைப் பயன்படுத்தவும் — பளபளப்பு மற்றும் நிழல்களைத் தவிர்க்கவும்",
+      "frame": "முழு அட்டையையும் சட்டகத்திற்குள் பொருத்தவும்",
+      "legible": "கையெழுத்தும் தேதிகளும் படிக்கக்கூடியவை என உறுதிசெய்யவும்"
+    },
     "field": {
       "name": "தடுப்பூசி பெயர்",
       "namePlaceholder": "எ.கா: இன்ஃப்ளூயன்ஸா",
@@ -1925,6 +2177,24 @@
   "notes": {
     "title": "குறிப்புகள்",
     "subtitle": "மருத்துவருடன் பகிரக்கூடிய தனிப்பட்ட குறிப்புகள்",
+    "entryCount_one": "{{count}} நாட்குறிப்பு பதிவு",
+    "entryCount_other": "{{count}} நாட்குறிப்பு பதிவுகள்",
+    "hero": {
+      "kicker": "சுகாதார நாட்குறிப்பு",
+      "title": "உங்கள் ஆரோக்கியம், உங்கள் வார்த்தைகளில்",
+      "lastEntry": "கடைசி பதிவு {{when}}",
+      "body": "அறிகுறிகளைப் பதிவுசெய்யுங்கள், மருத்துவக் கேள்விகளைத் தயாரியுங்கள், நலனைக் கண்காணியுங்கள்.",
+      "cta": "புதிய குறிப்பு எழுது"
+    },
+    "relative": {
+      "today": "இன்று",
+      "yesterday": "நேற்று"
+    },
+    "tags": {
+      "question": "கேள்வி",
+      "symptom": "அறிகுறி",
+      "journal": "நாட்குறிப்பு"
+    },
     "addButton": "புதிய குறிப்பு",
     "empty": {
       "title": "இன்னும் குறிப்புகள் இல்லை",
@@ -1943,7 +2213,10 @@
       "questions": "மருத்துவர் கேள்விகள்",
       "symptoms": "அறிகுறிகள்",
       "medications": "மருந்து குறிப்புகள்",
-      "daily": "தினசரி பரிசோதனை"
+      "daily": "தினசரி பரிசோதனை",
+      "kicker": "வேகமாகத் தொடங்கு",
+      "prompts_one": "{{count}} கேள்வி",
+      "prompts_other": "{{count}} கேள்விகள்"
     },
     "emptySearch": {
       "title": "பொருந்தும் குறிப்புகள் இல்லை",
@@ -1978,7 +2251,24 @@
       "titleOptional": "Optional",
       "titlePlaceholder": "e.g., Follow-up questions",
       "bodyLabel": "Note",
-      "bodyPlaceholder": "Write your note..."
+      "bodyPlaceholder": "Write your note...",
+      "discardTitle": "மாற்றங்களை நிராகரிக்கவா?",
+      "discardBody": "இந்தக் குறிப்பில் உங்கள் திருத்தங்கள் இழக்கப்படும்.",
+      "keepEditing": "தொடர்ந்து திருத்து",
+      "discard": "நிராகரி",
+      "unsaved": "சேமிக்கப்படாத மாற்றங்கள்",
+      "editing": "திருத்துகிறது",
+      "titlePlaceholderShort": "தலைப்பு (விருப்பம்)",
+      "bodyPlaceholderLong": "எப்படி உணர்கிறீர்கள்? அறிகுறிகள், மருத்துவரிடம் கேட்க வேண்டிய கேள்விகள், நினைவில் வைக்க வேண்டியவை…",
+      "words_one": "{{count}} சொல்",
+      "words_other": "{{count}} சொற்கள்",
+      "pinHelp": "பின் செய்யப்பட்ட குறிப்புகள் உங்கள் நாட்குறிப்பின் மேலே இருக்கும்",
+      "tools": {
+        "bullet": "புள்ளி",
+        "time": "நேரம்",
+        "severity": "தீவிரம்",
+        "question": "கேள்வி"
+      }
     },
     "list": {
       "untitled": "Untitled",
@@ -1986,7 +2276,9 @@
       "pinLabel": "Pin",
       "unpinLabel": "Unpin",
       "editLabel": "Edit",
-      "deleteLabel": "Delete"
+      "deleteLabel": "Delete",
+      "kicker": "உங்கள் பதிவுகள்",
+      "recent": "சமீபத்தியவை"
     },
     "validation": {
       "bodyRequired": "Note body cannot be empty"
@@ -2462,6 +2754,22 @@
     "subtitle": "நேர-வரம்பு. ஒவ்வொரு ஸ்கேனும் பதிவு செய்யப்படும்."
   },
   "doctorPatientDetail": {
+    "bornOn": "பிறப்பு {{date}}",
+    "factAge": "வயது",
+    "ageYears_one": "{{count}} வயது",
+    "ageYears_other": "{{count}} வயது",
+    "visitHint": "குறிப்புகள், மருந்துச்சீட்டு, பின்தொடர்தல் ஒரே ஓட்டத்தில்",
+    "noneRecorded": "இன்னும் எதுவும் பதிவு செய்யப்படவில்லை",
+    "accessFull": "முழு அணுகல்",
+    "accessRecent": "சமீபத்தியவை மட்டும்",
+    "accessExpiring": "விரைவில் காலாவதி",
+    "recordsSearch": "நோயாளர் அல்லது நோக்கத்தைத் தேடு",
+    "showAll": "அனைத்தையும் காட்டு",
+    "noMatch": "இந்தக் காட்சிக்கு பொருந்தும் நோயாளர்கள் இல்லை",
+    "expired": "காலாவதியானது",
+    "expiresInDays_one": "{{count}} நாள் உள்ளது",
+    "expiresInDays_other": "{{count}} நாட்கள் உள்ளன",
+    "until": "{{date}} வரை",
     "kicker": "நோயாளர் பதிவு",
     "factBlood": "இரத்தம்",
     "factSex": "பாலினம்",
@@ -2602,6 +2910,9 @@
     "openA11y": "{{url}} இல் மருத்துவமனை போர்ட்டலைத் திற"
   },
   "careTeam": {
+    "resultCount_one": "{{count}} நோயாளர்",
+    "resultCount_other": "{{count}} நோயாளர்கள்",
+    "call": "அழை",
     "title": "பராமரிப்பு குழு",
     "subtitle": "உங்கள் பதிவுகளைப் பார்க்கக்கூடிய மருத்துவர்கள்.",
     "add": "மருத்துவரைச் சேர்",
@@ -2891,6 +3202,75 @@
       "invoice": "Invoice"
     }
   },
+  "shareSheet": {
+    "title": "Share records",
+    "intro": "Choose how you want to share. Each option has its own audience and expiry.",
+    "introPack_one": "How would you like to share the {{count}} selected record?",
+    "introPack_other": "How would you like to share the {{count}} selected records?",
+    "recommended": "Recommended",
+    "footer": "Every share is logged. You can revoke access anytime from the Sharing tab.",
+    "back": "All options",
+    "expiresIn": "Expires in",
+    "expiresOn": "Access ends {{date}}",
+    "label": "Label",
+    "labelHelper": "Optional — helps you recognise it later",
+    "failed": "Something went wrong. Please try again.",
+    "done": "Done",
+    "duration": {
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years"
+    },
+    "visit": {
+      "title": "Share for a visit",
+      "packTitle": "Share pack for a visit",
+      "subtitle": "A secure link for one appointment.",
+      "meta": "1 hour – 30 days",
+      "meta2": "Link",
+      "intro": "Send a secure link to your doctor. It stops working automatically when it expires.",
+      "packIntro_one": "Bundling {{count}} record into one secure link.",
+      "packIntro_other": "Bundling {{count}} records into one secure link.",
+      "placeholder": "e.g. Dr Smith follow-up",
+      "packPlaceholder": "e.g. Pre-cardiology visit",
+      "create": "Create link",
+      "createPack": "Create share pack",
+      "linkCreated": "Share link created",
+      "packCreated": "Share pack created"
+    },
+    "ongoing": {
+      "title": "Ongoing access",
+      "subtitle": "Long-term access for family, insurance or referrals.",
+      "meta": "Purpose-bound",
+      "meta2": "Revocable",
+      "intro": "The recipient gets access only for the purpose you pick, until it expires.",
+      "purpose": "Purpose",
+      "duration": "Duration",
+      "placeholder": "e.g. Insurance review",
+      "issue": "Grant access",
+      "issued": "Access granted"
+    },
+    "inPerson": {
+      "title": "Show in person",
+      "subtitle": "Show a QR code at the clinic for them to scan.",
+      "meta": "2 hours",
+      "meta2": "5 scans",
+      "intro": "Useful at reception when you can't send a link.",
+      "step1": "Generate a one-time QR code",
+      "step2": "Staff scan it to open your records",
+      "step3": "It expires after 2 hours or 5 scans",
+      "generate": "Generate QR code",
+      "ready": "Ask staff to scan this code",
+      "scans_one": "{{count}} scan",
+      "scans_other": "{{count}} scans",
+      "until": "Valid until {{time}}",
+      "regenerate": "New code"
+    }
+  },
   "addRecord": {
     "title": "Add record",
     "attachOptional": "Attach file (optional)",
@@ -2912,6 +3292,20 @@
     },
     "optionalHelper": "Optional",
     "save": "Save record",
+    "sections": {
+      "attachment": "Attachment",
+      "type": "Record type",
+      "details": "Details"
+    },
+    "takePhoto": "Take photo",
+    "takePhotoHelper": "Scan a report or prescription",
+    "chooseFileHelper": "PDF or image from your files",
+    "fileReady": "Ready to upload",
+    "removeFile": "Remove file",
+    "summary": {
+      "untitled": "Untitled record",
+      "withFile": "1 file attached"
+    },
     "ocrSheet": {
       "title": "Extracted from prescription",
       "readMedicines_one": "We read {{count}} medicine from your prescription.",
@@ -3157,6 +3551,16 @@
     "decline": "Decline"
   },
   "aiChat": {
+    "assistantName": "சுகாதார உதவியாளர்",
+    "copy": "நகலெடு",
+    "copied": "நகலெடுக்கப்பட்டது",
+    "notAdvice": "இது நோயறிதல் அல்ல — உங்கள் மருத்துவரிடம் சரிபார்க்கவும்",
+    "groundedNote": "பதில்கள் உங்கள் இணைக்கப்பட்ட சுகாதாரப் பதிவுகளின் அடிப்படையில் அமைந்தவை",
+    "status": {
+      "reading": "உங்கள் பதிவுகளைப் படிக்கிறது…",
+      "checking": "முடிவுகள் மற்றும் போக்குகளைச் சரிபார்க்கிறது…",
+      "writing": "உங்கள் பதிலை எழுதுகிறது…"
+    },
     "title": "Health Q&A",
     "subtitle": "AI chat with patient context",
     "listTitle": "Health chat",
@@ -3203,6 +3607,21 @@
     "whenDays_other": "{{count}}d ago"
   },
   "aiSummary": {
+    "v2": {
+      "working": "Reading your health record…",
+      "workingBody": "This usually takes a few seconds",
+      "generatedAt": "Generated at {{time}}",
+      "idleTitle": "Your health, in one page",
+      "sourcesTitle": "What we'll read",
+      "srcRecords": "Records",
+      "srcMedicines": "Medicines",
+      "srcLabs": "Lab results",
+      "srcVitals": "Vitals",
+      "getTitle": "You'll get",
+      "get1": "A short overview in everyday language",
+      "get2": "Your diagnoses, medicines and recent tests",
+      "get3": "Risks worth raising with your doctor"
+    },
     "title": "AI summary",
     "subtitle": "Plain-language overview of your record",
     "aiPill": "AI",
@@ -3227,6 +3646,20 @@
     "generateError": "Could not generate summary"
   },
   "aiClinicalNote": {
+    "v2": {
+      "intro": "Paste a free-text note and we'll structure it into a one-line summary, SOAP sections and key terms.",
+      "inputPlaceholder": "Type or paste the doctor's note here…",
+      "paste": "Paste",
+      "example": "Example",
+      "clipboardEmpty": "Clipboard is empty",
+      "chars_one": "{{count}} character",
+      "chars_other": "{{count}} characters",
+      "working": "Structuring your note…",
+      "copy": "Copy",
+      "copied": "SOAP note copied",
+      "notMentioned": "Not mentioned in the note",
+      "addNoteFirst": "Add a note to generate"
+    },
     "title": "AI clinical notes",
     "subtitle": "Notes → SOAP",
     "aiPill": "AI",
@@ -3253,6 +3686,21 @@
     "generateError": "Could not generate SOAP summary"
   },
   "aiLabExplain": {
+    "reading": "Reading {{name}}…",
+    "empty": {
+      "title": "Understand your lab results",
+      "body": "Add a lab report and we'll explain each value in plain language — what's normal, what to watch, and what to ask your doctor.",
+      "exampleLabel": "Example",
+      "exampleValue": "Haemoglobin · 11.2 g/dL",
+      "exampleFlag": "Slightly below range",
+      "exampleText": "This carries oxygen in your blood. A little low can cause tiredness — worth asking about iron levels.",
+      "howTitle": "How it works",
+      "step1": "Upload a PDF or photo of your report",
+      "step2": "We read each test value and its range",
+      "step3": "Get a plain-language explanation",
+      "upload": "Upload a lab report",
+      "browse": "Browse my records"
+    },
     "title": "Lab explainer",
     "subtitle": "Plain-language explanation of your lab report",
     "aiPill": "AI",
@@ -3269,6 +3717,27 @@
     "explainError": "Could not explain report"
   },
   "aiLabTrend": {
+    "v2": {
+      "pickTitle": "Which test?",
+      "otherPlaceholder": "Or type another test, e.g. Vitamin D",
+      "monthsShort_one": "{{count}} mo",
+      "monthsShort_other": "{{count}} mo",
+      "yearsShort_one": "{{count}} yr",
+      "yearsShort_other": "{{count}} yrs",
+      "onTrack": "On track",
+      "nextLabel": "Suggested next",
+      "pickFirst": "Pick a test to check",
+      "rerun": "Re-run check",
+      "runFor": "Check {{name}}",
+      "testHint": {
+        "hba1c": "Diabetes",
+        "lipid": "Cholesterol",
+        "cbc": "Blood count",
+        "tsh": "Thyroid",
+        "creatinine": "Kidneys",
+        "lft": "Liver"
+      }
+    },
     "title": "Lab cadence",
     "subtitle": "Track testing frequency for a specific test",
     "aiPill": "AI",
@@ -3345,6 +3814,28 @@
     "requested": "Requested · Doctor notified"
   },
   "aiDrugCheck": {
+    "v2": {
+      "listTitle": "Medicines to check",
+      "addPlaceholder": "Type a medicine name…",
+      "emptyList": "Add at least 2 medicines to check how they interact",
+      "remove": "Remove {{name}}",
+      "loadActiveTitle": "Add my active medicines",
+      "loadActiveCount_one": "{{count}} on your list",
+      "loadActiveCount_other": "{{count}} on your list",
+      "foundN_one": "{{count}} interaction found",
+      "foundN_other": "{{count}} interactions found",
+      "severeN_one": "{{count}} severe — talk to your doctor before taking these together",
+      "severeN_other": "{{count}} severe — talk to your doctor before taking these together",
+      "reviewBody": "Review the notes below with your pharmacist",
+      "addMore_one": "Add {{count}} more to check",
+      "addMore_other": "Add {{count}} more to check",
+      "disclaimer": "Not a substitute for advice from your doctor or pharmacist.",
+      "severity": {
+        "severe": "Severe",
+        "moderate": "Moderate",
+        "minor": "Minor"
+      }
+    },
     "title": "Drug interaction check",
     "subtitle": "Check medicines for conflicts",
     "aiPill": "AI",
@@ -3372,6 +3863,35 @@
     "checkError": "Check failed"
   },
   "aiOcr": {
+    "v2": {
+      "captureTitle": "Scan a prescription",
+      "captureBody": "Tap to open the camera. We'll pick out each medicine and its dose.",
+      "fromGallery": "Choose from gallery",
+      "tipLight": "Good light",
+      "tipFlat": "Lay it flat",
+      "tipFrame": "Fill the frame",
+      "retake": "Retake",
+      "statusUploading": "Uploading photo…",
+      "statusReading": "Reading medicines…",
+      "hintTitle": "Help us read it (optional)",
+      "hintPlaceholder": "Anything else? e.g. doctor's name",
+      "preset": {
+        "handwritten": "Handwritten",
+        "blurry": "Blurry photo",
+        "brandNames": "Brand names"
+      },
+      "foundN_one": "Found {{count}} medicine",
+      "foundN_other": "Found {{count}} medicines",
+      "noDose": "Dose not detected",
+      "doctor": "Doctor",
+      "date": "Date",
+      "diagnosis": "Diagnosis",
+      "addAll_one": "Add {{count}} to my medicines",
+      "addAll_other": "Add all {{count}} to my medicines",
+      "addedN_one": "Added {{count}} medicine",
+      "addedN_other": "Added {{count}} medicines",
+      "addError": "Could not add medicines"
+    },
     "title": "Prescription OCR",
     "subtitle": "Scan or pick a photo — extract medicines",
     "aiPill": "AI",
@@ -3441,6 +3961,12 @@
     "heroChipPatients": "{{count}} நோயாளிகள்",
     "heroChipAlerts": "{{count}} எச்சரிக்கைகள்",
     "heroChipNoAlerts": "அனைத்தும் சரி",
+    "heroApptLabel_one": "இன்றைய சந்திப்பு",
+    "heroApptLabel_other": "இன்றைய சந்திப்புகள்",
+    "heroWaiting_one": "{{count}} நோயாளர் காத்திருக்கிறார்",
+    "heroWaiting_other": "{{count}} நோயாளர்கள் காத்திருக்கின்றனர்",
+    "heroQueueClear": "தற்போது யாரும் காத்திருக்கவில்லை",
+    "openQueue": "வரிசையைத் திற",
     "sectionQuickActions": "விரைவு செயல்கள்",
     "kicker": {
       "today": "Live",
@@ -3508,7 +4034,9 @@
       "inboxSubtitleEmpty": "புதிய செய்திகள் இல்லை",
       "labSubtitleCount_one": "{{count}} செயலில் உள்ள ஆர்டர்",
       "labSubtitleCount_other": "{{count}} செயலில் உள்ள ஆர்டர்கள்",
-      "labSubtitleEmpty": "சோதனைகளை மதிப்பாய்வு செய்"
+      "labSubtitleEmpty": "சோதனைகளை மதிப்பாய்வு செய்",
+      "prescribeShort": "மருந்து எழுது",
+      "labShort": "ஆய்வகம்"
     }
   },
   "doctorProfile": {
@@ -3713,7 +4241,12 @@
   "doctorFollowUps": {
     "title": "பின்தொடர்தல்கள்",
     "subtitle": "நிலுவையில், முடிந்தவை மற்றும் ரத்து செய்யப்பட்டவை",
+    "subtitlePending_one": "{{count}} நிலுவையில்",
+    "subtitlePending_other": "{{count}} நிலுவையில்",
+    "subtitleOverdue_one": "{{count}} காலாவதி",
+    "subtitleOverdue_other": "{{count}} காலாவதி",
     "tabs": {
+      "pending": "நிலுவையில்",
       "upcoming": "வரவிருக்கும்",
       "completed": "முடிந்தவை",
       "all": "அனைத்தும்"
@@ -3727,7 +4260,10 @@
       "upcomingTitle": "பின்தொடர்தல்கள் இல்லை",
       "upcomingBody": "அட்டவணையில் நிலுவையில் எதுவும் இல்லை.",
       "completedBody": "இங்கே பார்க்க ஒரு பின்தொடர்தலை முடிந்ததாகக் குறிக்கவும்.",
-      "allBody": "எந்த நோயாளி விவரத் திரையிலிருந்தும் பின்தொடர்தலை திட்டமிடுங்கள்."
+      "allBody": "எந்த நோயாளி விவரத் திரையிலிருந்தும் பின்தொடர்தலை திட்டமிடுங்கள்.",
+      "completedTitle": "இன்னும் எதுவும் முடிக்கப்படவில்லை",
+      "allTitle": "இன்னும் பின்தொடர்தல்கள் இல்லை",
+      "cta": "என் நோயாளிகளைத் திற"
     },
     "markedComplete": "பின்தொடர்தல் முடிந்ததாகக் குறிக்கப்பட்டது",
     "cancelledToast": "பின்தொடர்தல் ரத்து செய்யப்பட்டது",
@@ -3745,7 +4281,36 @@
     "completeA11y": "{{title}} முடிந்ததாகக் குறி",
     "cancelA11y": "{{title}} ரத்து செய்",
     "reopenA11y": "{{title}} மீண்டும் திற",
-    "openPatientA11y": "நோயாளியைத் திற"
+    "openPatientA11y": "நோயாளியைத் திற",
+    "metrics": {
+      "overdue": "காலாவதி",
+      "today": "இன்று",
+      "week": "இந்த வாரம்",
+      "done": "முடிந்தது"
+    },
+    "groups": {
+      "overdue": "காலாவதி",
+      "today": "இன்று உரியவை",
+      "week": "இந்த வாரம்",
+      "later": "பின்னர்"
+    },
+    "relative": {
+      "today": "இன்று",
+      "tomorrow": "நாளை",
+      "yesterday": "நேற்று",
+      "inDays_one": "{{count}} நாளில்",
+      "inDays_other": "{{count}} நாட்களில்",
+      "daysAgo_one": "{{count}} நாள் முன்பு",
+      "daysAgo_other": "{{count}} நாட்கள் முன்பு",
+      "overdue_one": "{{count}} நாள் காலாவதி",
+      "overdue_other": "{{count}} நாட்கள் காலாவதி"
+    },
+    "hint": {
+      "title": "பின்தொடர்தலை எவ்வாறு திட்டமிடுவது",
+      "step1": "உங்கள் பராமரிப்புக் குழுவிலிருந்து ஒரு நோயாளியைத் திறக்கவும்",
+      "step2": "அவர்களின் சுயவிவரத்தில் “பின்தொடர்தல்” என்பதைத் தட்டவும்",
+      "step3": "ஒரு தேதியைத் தேர்ந்தெடுக்கவும் — அது இங்கே தோன்றும்"
+    }
   },
   "doctorClinicalNotes": {
     "title": "மருத்துவக் குறிப்புகள்",
@@ -3764,6 +4329,15 @@
     "itemA11y": "{{name}} க்கான குறிப்பு: {{title}}"
   },
   "clinicalNote": {
+    "forPatient": "குறிப்பு",
+    "modeSoap": "SOAP",
+    "modeFree": "இலவச உரை",
+    "soapHint": "பொருந்தும் பகுதிகளை நிரப்பவும் — வெற்றுப் பகுதிகள் விடப்படும்.",
+    "freeHint": "உங்கள் சொந்த வடிவத்தில் குறிப்பை எழுதுங்கள்.",
+    "discardTitle": "இந்தக் குறிப்பை நிராகரிக்கவா?",
+    "discardBody": "நீங்கள் எழுதியது இழக்கப்படும்.",
+    "titlePresets": { "initial": "ஆரம்ப மதிப்பீடு", "followUp": "பின்தொடர் வருகை", "review": "முடிவுகள் மதிப்பாய்வு", "procedure": "செயல்முறை குறிப்பு" },
+    "soap": { "subjective": "அகநிலை", "subjectiveHint": "நோயாளரின் வார்த்தைகளில் புகார், வரலாறு, அறிகுறிகள்", "objective": "புறநிலை", "objectiveHint": "பரிசோதனை கண்டுபிடிப்புகள், உயிர் அறிகுறிகள், சோதனை முடிவுகள்", "plan": "திட்டம்", "planHint": "சிகிச்சை, ஆலோசனை, பரிந்துரைகள், பின்தொடர்தல்" },
     "title": "மருத்துவக் குறிப்பு",
     "subtitle": "வருகையை பதிவு செய்யுங்கள்",
     "titleLabel": "தலைப்பு",
@@ -3838,6 +4412,15 @@
     "attachmentCount_other": "{{count}} இணைப்புகள்"
   },
   "doctorAvailability": {
+    "unsaved": "சேமிக்கப்படாத மாற்றங்கள்",
+    "statDays": "திறந்த நாட்கள்",
+    "statHours": "வாரத்திற்கு",
+    "statSlot": "நேர இடைவெளி",
+    "copyToAll": "அனைத்து திறந்த நாட்களுக்கும் நகலெடு",
+    "copiedToast": "நேரங்கள் அனைத்து திறந்த நாட்களுக்கும் நகலெடுக்கப்பட்டன",
+    "errFormat": "24 மணி நேர வடிவம், எ.கா. 09:30",
+    "errOrder": "முடிவு நேரம் தொடக்கத்திற்குப் பின் இருக்க வேண்டும்",
+    "fixErrors": "சேமிக்கும் முன் குறிக்கப்பட்ட பணிநேரங்களைச் சரிசெய்யவும்.",
     "kicker": "நேரங்கள்",
     "closed": "மூடப்பட்டது",
     "timeOffKicker": "விடுப்பு",
@@ -3888,6 +4471,10 @@
     },
     "title": "ஆய்வக ஆர்டர்கள்",
     "subtitle": "முன்னேற்றம் மற்றும் முடிவுகளைக் கண்காணி",
+    "subtitleOpen_one": "{{count}} திறந்தவை",
+    "subtitleOpen_other": "{{count}} திறந்தவை",
+    "subtitleUrgent_one": "{{count}} அவசரம்",
+    "subtitleUrgent_other": "{{count}} அவசரம்",
     "tabs": {
       "all": "அனைத்தும்",
       "ordered": "ஆர்டர் செய்யப்பட்டது",
@@ -3902,9 +4489,54 @@
     "marked": "{{status}} எனக் குறிக்கப்பட்டது",
     "updateError": "புதுப்பிப்பு தோல்வி",
     "result": "முடிவு: {{value}}",
-    "fallbackName": "ஆய்வக ஆர்டர்"
+    "fallbackName": "ஆய்வக ஆர்டர்",
+    "metrics": {
+      "toCollect": "சேகரிக்க",
+      "processing": "செயலாக்கத்தில்",
+      "urgent": "அவசரம்",
+      "done": "முடிந்தது"
+    },
+    "next": {
+      "ordered": "மாதிரி சேகரிக்கப்பட்டது எனக் குறி",
+      "sample_collected": "செயலாக்கத்தைத் தொடங்கு",
+      "in_progress": "முடிந்தது எனக் குறி"
+    },
+    "priority": {
+      "stat": "STAT",
+      "urgent": "அவசரம்"
+    },
+    "emptyFilteredTitle": "இந்த நிலையில் எதுவும் இல்லை",
+    "emptyFilteredBody": "தற்போது “{{stage}}” நிலையில் ஆர்டர்கள் இல்லை.",
+    "showAll": "அனைத்து ஆர்டர்களையும் காட்டு",
+    "cta": "என் நோயாளிகளைத் திற",
+    "hint": {
+      "title": "ஆய்வக பரிசோதனையை எவ்வாறு ஆர்டர் செய்வது",
+      "step1": "உங்கள் பராமரிப்புக் குழுவிலிருந்து ஒரு நோயாளியைத் திறக்கவும்",
+      "step2": "அவர்களின் சுயவிவரத்தில் “ஆய்வகங்களை ஆர்டர் செய்” என்பதைத் தட்டவும்",
+      "step3": "மாதிரி முதல் முடிவுகள் வரை இங்கே கண்காணிக்கவும்"
+    }
   },
   "visitSummary": {
+    "stepsHint": "பொருந்துவதை நிரப்பவும் — அனைத்தும் ஒரே முறையில் சேமிக்கப்படும்.",
+    "statusNoDiagnosis": "இன்னும் நோயறிதல் இல்லை",
+    "statusSoap_one": "4 பகுதிகளில் {{count}}",
+    "statusSoap_other": "4 பகுதிகளில் {{count}}",
+    "statusEmpty": "தொடங்கவில்லை",
+    "statusNone": "எதுவும் சேர்க்கப்படவில்லை",
+    "statusOff": "திட்டமிடப்படவில்லை",
+    "commonTests": "பொதுவான சோதனைகள் — சேர்க்க தட்டவும்",
+    "inWeeks_one": "{{count}} வாரம்",
+    "inWeeks_other": "{{count}} வாரங்கள்",
+    "inMonths_one": "{{count}} மாதம்",
+    "inMonths_other": "{{count}} மாதங்கள்",
+    "reviewHeading": "சேமிக்கப்படுவது",
+    "reviewNote": "வருகைக் குறிப்பு",
+    "reviewRx_one": "{{count}} மருந்து",
+    "reviewRx_other": "{{count}} மருந்துகள்",
+    "reviewLabs_one": "{{count}} ஆய்வகச் சோதனை",
+    "reviewLabs_other": "{{count}} ஆய்வகச் சோதனைகள்",
+    "reviewFollowUp": "பின்தொடர்தல் {{date}}",
+    "reviewEmpty": "இந்த வருகையைச் சேமிக்க நோயறிதல், குறிப்புகள், மருந்துகள் அல்லது சோதனைகளைச் சேர்க்கவும்.",
     "title": "வருகையை நிறைவு செய்",
     "subtitleFor": "{{name}} க்காக",
     "subtitleFallback": "நோயாளி வருகை",
@@ -3980,6 +4612,12 @@
     "emptyInitialTitle": "நோயாளியைக் கண்டுபிடிக்க தட்டச்சு செய்யத் தொடங்குங்கள்",
     "emptyInitialBody": "பெயர், NIC, அல்லது தொலைபேசி எண் மூலம் தேடுங்கள்",
     "changePill": "மாற்று",
+    "prescribingFor": "மருந்து எழுதப்படுவது",
+    "quickStart": "வார்ப்புருவிலிருந்து தொடங்கு",
+    "reviewSummary_one": "{{count}} மருந்து தயார்",
+    "reviewSummary_other": "{{count}} மருந்துகள் தயார்",
+    "reviewNoDiagnosis": "தொடர நோயறிதலைச் சேர்க்கவும்",
+    "ongoingShort": "தொடர்ச்சி",
     "patientFallback": "நோயாளி",
     "assessment": "மதிப்பீடு",
     "diagnosis": "நோய் கண்டறிதல்",
@@ -4463,6 +5101,36 @@
     "alreadyRated": "You rated this visit on {{date}}."
   },
   "verify": {
+    "subtitle": "மருந்துச்சீட்டு நம்பகத்தன்மை சரிபார்ப்பு",
+    "validHeadline": "நம்பகமான மருந்துச்சீட்டு",
+    "fingerprint": "கைரேகை",
+    "copyHash": "கைரேகையை நகலெடு",
+    "shareHelp": "மருந்தாளர் இதை ஸ்கேன் செய்து மருந்துச்சீட்டைத் தானே உறுதிப்படுத்தலாம்.",
+    "copyLink": "இணைப்பை நகலெடு",
+    "copied": "நகலெடுக்கப்பட்டது",
+    "shareShort": "பகிர்",
+    "check": {
+      "signature": "டிஜிட்டல் கையொப்பம் செல்லுபடியானது",
+      "unchanged": "கையொப்பமிட்ட பிறகு உள்ளடக்கம் மாறவில்லை",
+      "registered": "SLMC பதிவு பெற்ற மருத்துவரால் கையொப்பமிடப்பட்டது"
+    },
+    "dir": {
+      "once_daily": "தினமும் ஒருமுறை",
+      "twice_daily": "தினமும் இருமுறை",
+      "three_times_daily": "தினமும் மூன்று முறை",
+      "four_times_daily": "தினமும் நான்கு முறை",
+      "every_morning": "ஒவ்வொரு காலையும்",
+      "every_night": "ஒவ்வொரு இரவும்",
+      "as_needed": "தேவைப்படும்போது",
+      "every_other_day": "ஒரு நாள் விட்டு ஒரு நாள்",
+      "weekly": "வாரத்திற்கு ஒருமுறை",
+      "before_food": "உணவுக்கு முன்",
+      "after_food": "உணவுக்குப் பின்",
+      "with_food": "உணவுடன்",
+      "empty_stomach": "வெறும் வயிற்றில்",
+      "bedtime": "படுக்கைக்கு முன்",
+      "morning": "காலையில்"
+    },
     "title": "Verify prescription",
     "validTitle": "Verified",
     "validBody": "This prescription matches a digital signature on file.",
@@ -4519,6 +5187,28 @@
     "wrongRole": "This invite is for hospital staff, but you're signed in as {{role}}.",
     "signOutSwitch": "Sign in as a different user",
     "dismiss": "Dismiss"
+  },
+  "patientInbox": {
+    "kicker": "Care team",
+    "unreadKicker": "{{count}} unread",
+    "subtitle": "Direct messages from your doctors",
+    "careTeam": "View your care team",
+    "searchPlaceholder": "Search doctors or messages",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "yourDoctor": "Your Doctor",
+    "you": "You",
+    "allCaughtUp": "You're all caught up",
+    "noResults": "No matching conversations",
+    "privateTitle": "Private & encrypted",
+    "privateBody": "Only you and your care team can read these messages.",
+    "needHelp": "Need something else?",
+    "bookTitle": "Book an Appointment",
+    "bookBody": "In-person or video consultation",
+    "aiTitle": "Ask AI Health Assistant",
+    "aiBody": "Instant 24/7 health guidance",
+    "instant": "Instant",
+    "emptyBody": "When your doctor or care team sends a consultation message or follow-up, it will appear here."
   },
   "inbox": {
     "pathwaysKicker": "குறுக்குவழிகள்",
@@ -4673,6 +5363,10 @@
     },
     "totalThisPeriod": "இந்தக் காலத்தின் மொத்தம்",
     "vsPrevious": "முந்தைய காலத்துடன் ஒப்பிடுகையில்",
+    "noChange": "மாற்றம் இல்லை",
+    "feeShort": "உங்கள் கட்டணம்",
+    "pendingSub": "தீர்வுக்காக காத்திருக்கிறது",
+    "nothingPending": "அனைத்தும் தீர்க்கப்பட்டது",
     "visits": "வருகைகள்",
     "avgPerVisit": "வருகைக்கு சராசரி",
     "chart": "வருவாய் போக்கு",
@@ -4720,6 +5414,21 @@
     "medsShort_one": "{{count}} மருந்து",
     "medsShort_other": "{{count}} மருந்துகள்",
     "viewEdit": "பார்வை & திருத்து",
+    "sectionDetails": "விவரங்கள்",
+    "fieldDose": "அளவு",
+    "fieldFrequency": "அடிக்கடி",
+    "fieldDuration": "காலம்",
+    "fieldInstructions": "அறிவுறுத்தல்கள்",
+    "notesLabel": "நோயாளருக்கான ஆலோசனை",
+    "unsaved": "சேமிக்கப்படாத மாற்றங்கள்",
+    "discardTitle": "மாற்றங்களை நிராகரிக்கவா?",
+    "discardBody": "இந்த வார்ப்புருவில் செய்த மாற்றங்கள் சேமிக்கப்படவில்லை.",
+    "keepEditing": "தொடர்ந்து திருத்து",
+    "discard": "நிராகரி",
+    "moreMeds": "+{{count}} மேலும்",
+    "longPressHint": "நீக்க நீண்ட நேரம் அழுத்தவும்",
+    "listHint_one": "{{count}} வார்ப்புரு · நீக்க நீண்ட அழுத்தம்",
+    "listHint_other": "{{count}} வார்ப்புருக்கள் · நீக்க நீண்ட அழுத்தம்",
     "searchPlaceholder": "டெம்ப்ளேட்கள், மருந்துகள் அல்லது நோய் கண்டறிதலைத் தேடு...",
     "categoryAll": "அனைத்தும்",
     "noMatchingTitle": "பொருந்தும் டெம்ப்ளேட்கள் இல்லை",
@@ -4777,6 +5486,10 @@
     "emptyTitle": "இன்னும் பராமரிப்பாளர்கள் இல்லை",
     "emptyBody": "உங்கள் பதிவுகள், மருந்துகள் மற்றும் சந்திப்புகளை நிர்வகிக்க குடும்ப உறுப்பினரை அழைக்கவும்.",
     "inviteSheetTitle": "பராமரிப்பாளரை அழைக்கவும்",
+    "inviteIntro": "They can help manage your records, medicines and appointments. Pause or revoke anytime.",
+    "namePlaceholder": "e.g., Nimal Perera",
+    "mobilePlaceholder": "+94 77 123 4567",
+    "emailPlaceholder": "name@example.com",
     "nameField": "அவர்களின் பெயர்",
     "nameHelper": "அழைப்பை அடையாளம் காண.",
     "roleLabel": "அவர்கள் உங்களுக்கு எப்படி தொடர்புடையவர்கள்?",
@@ -5002,6 +5715,19 @@
     "flipCamera": "கேமராவை மாற்று"
   },
   "testCatalog": {
+    "v2": {
+      "home": "Home visit",
+      "labs_one": "{{count}} lab",
+      "labs_other": "{{count}} labs",
+      "from": "from {{price}}",
+      "packagesKicker": "Health packages",
+      "packagesTitle": "Bundle tests & save",
+      "packagesBody": "Curated panels for full check-ups",
+      "count_one": "{{count}} test",
+      "count_other": "{{count}} tests",
+      "loadError": "Failed to load tests",
+      "loadErrorBody": "Please check your connection and try again."
+    },
     "title": "சோதனை முன்பதிவு",
     "subtitle": "வீட்டு மாதிரி சேகரிப்பு",
     "searchPlaceholder": "சோதனைகளைத் தேடு...",
@@ -5430,6 +6156,26 @@
       "notActive": "கொள்கை செயலில் இருக்கும்போது மட்டுமே E-கார்டு கிடைக்கும்"
     },
     "claim": {
+      "newSubtitle": "நீங்கள் செலுத்திய சிகிச்சைக்கு திருப்பிச் செலுத்தப் பெறுங்கள்.",
+      "pickDate": "தேதியைத் தேர்ந்தெடுக்கவும்",
+      "amountHint": "உங்கள் இறுதி ரசீதின் மொத்தத் தொகையை உள்ளிடவும்.",
+      "required": "மதிப்பாய்வுக்குத் தேவை",
+      "docKindHint": "சேர்ப்பதற்கு முன் ஆவண வகையைத் தேர்ந்தெடுக்கவும்.",
+      "uploadDocSub": "PDF அல்லது படம்",
+      "takePhoto": "புகைப்படம் எடு",
+      "takePhotoSub": "காகித ரசீதை ஸ்கேன் செய்யவும்",
+      "remarksPlaceholder": "விருப்பத்தேர்வு — மதிப்பாய்வாளர் அறிய வேண்டியவை",
+      "claiming": "கோரும் தொகை",
+      "listSubtitle": "சமர்ப்பிப்புகள் மற்றும் கொடுப்பனவுகளைக் கண்காணிக்கவும்",
+      "totalClaimed": "கோரியது",
+      "totalApproved": "அங்கீகரிக்கப்பட்டது",
+      "inProgress": "நடைபெறுகிறது",
+      "emptyBody": "சிகிச்சைக்கு நீங்களே செலுத்தினீர்களா? உரிமைகோரலைச் சமர்ப்பித்து உங்கள் காப்பீட்டாளரிடமிருந்து திருப்பிப் பெறுங்கள்.",
+      "howKicker": "3 எளிய படிகள்",
+      "howTitle": "உரிமைகோரல்கள் எவ்வாறு செயல்படுகின்றன",
+      "howUpload": "உங்கள் இறுதி ரசீது மற்றும் வெளியேற்றச் சுருக்கத்தைப் பதிவேற்றவும்",
+      "howReview": "உங்கள் காப்பீட்டாளர் உரிமைகோரலை மதிப்பாய்வு செய்து கேள்விகள் கேட்கலாம்",
+      "howPaid": "அங்கீகரிக்கப்பட்ட தொகைகள் உங்களுக்குச் செலுத்தப்படும்",
       "kicker": "Claims",
       "new": "Submit a claim",
       "list": "My claims",
@@ -5521,6 +6267,10 @@
       "outOfPocket": "Estimated out-of-pocket",
       "requiresPreAuth": "Pre-authorization required",
       "procedures": {
+        "hospitalization": "மருத்துவமனை அனுமதி",
+        "day_care": "பகல் சிகிச்சை",
+        "opd": "OPD",
+        "diagnostic": "நோயறிதல்",
         "consultation": "Consultation",
         "lab_test": "Lab test",
         "diagnostic_imaging": "Diagnostic imaging",
@@ -5536,7 +6286,18 @@
       "estimatedOop": "மதிப்பிடப்பட்ட சொந்தப் பங்கு",
       "deductible": "கழிவு",
       "copay": "கூட்டு-செலுத்துதல்",
-      "noPolicy": "இந்த கருவியை பயன்படுத்த செயலில் உள்ள கொள்கை தேவை."
+      "noPolicy": "இந்த கருவியை பயன்படுத்த செயலில் உள்ள கொள்கை தேவை.",
+      "step": "படி {{n}}",
+      "noPolicyTitle": "செயலில் உள்ள பாலிசி இல்லை",
+      "browsePlans": "திட்டங்களைப் பார்க்க",
+      "details": "சிகிச்சை விவரங்கள்",
+      "enterAmountHint": "உங்கள் பங்கைக் காண மதிப்பிடப்பட்ட ரசீதை உள்ளிடவும்.",
+      "resultKicker": "மதிப்பீடு",
+      "resultTitle": "உங்கள் காப்பீடு",
+      "ofBill": "மதிப்பிடப்பட்ட LKR {{amount}} ரசீதில்",
+      "insurerPays": "காப்பீட்டாளர் செலுத்துவது",
+      "youPay": "நீங்கள் செலுத்துவது",
+      "disclaimer": "மதிப்பீடு மட்டுமே — இறுதித் தொகை உரிமைகோரல் மதிப்பாய்வின்போது உறுதிசெய்யப்படும்."
     },
     "status": {
       "payment_pending": "Payment pending",
@@ -5552,6 +6313,8 @@
     "marketplaceTitle": "Find your perfect plan",
     "marketplaceSubtitle": "{{providers}} providers · {{plans}} plans",
     "getQuoteCta": "Get a personalised quote in 60s",
+    "quoteBanner": { "title": "Get a personalised quote", "body": "A few quick questions · takes about 60 seconds" },
+    "card": { "cover": "Cover", "hospitals": "Hospitals", "copay": "Co-pay", "save": "Save {{pct}}%", "off": "{{pct}}% off", "expertPick": "Expert pick", "view": "View", "orYearly": "or LKR {{amount}}/yr", "hospitalsCount": "{{count}}+ hospitals" },
     "browseByType": "Browse by plan type",
     "showingPlans_one": "{{count}} plan",
     "showingPlans_other": "{{count}} plans",

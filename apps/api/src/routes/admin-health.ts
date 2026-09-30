@@ -17,11 +17,12 @@ import {
   notifications,
 } from "@healthcare/db";
 import { requireAdmin, recordAdminAction } from "../middleware/admin";
+import { authMiddleware } from "../middleware/auth";
 import type { AppEnvironment } from "../types";
 
 const healthRouter = new Hono<AppEnvironment>();
 
-healthRouter.use("*", requireAdmin);
+healthRouter.use("*", authMiddleware, requireAdmin);
 
 healthRouter.get("/overview", async (c) => {
   const db = c.get("db");

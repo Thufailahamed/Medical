@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   Activity,
   BarChart2,
-  Clock,
   Droplets,
   HeartPulse,
   Plus,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 import { TrendArea } from "@/patient/components/charts/TrendArea";
 import {
   DASHBOARD_VITALS,
@@ -32,7 +32,7 @@ const OVERVIEW = [
     label: "Heart rate",
     unit: "bpm",
     icon: HeartPulse,
-    accent: "bg-danger-soft text-danger",
+    accent: "bg-rose-50 text-rose-500",
     href: "/patient/vitals?type=heart_rate",
   },
   {
@@ -87,8 +87,23 @@ export function VitalsTrend({ className }: { className?: string }) {
       className={cn("anim-rise relative overflow-hidden", className)}
       accent="sky"
     >
-      {/* ── Top 4 Overview Metric Cards ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+      <CardHeader
+        title="Vitals"
+        caption="Readings and trends from the last 7 days"
+        icon={<HeartPulse size={16} aria-hidden />}
+        action={
+          <Link
+            href={`/patient/vitals?type=${type}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-strong"
+          >
+            <Plus size={13} strokeWidth={2.5} aria-hidden />
+            Log reading
+          </Link>
+        }
+      />
+
+      {/* ── Overview cells ─────────────────────────────────────────────── */}
+      <div className="mt-5 grid grid-cols-2 gap-2.5 xl:grid-cols-4">
         {OVERVIEW.map((cell) => (
           <OverviewCell
             key={cell.vitalKey}
@@ -103,125 +118,92 @@ export function VitalsTrend({ className }: { className?: string }) {
         ))}
       </div>
 
-      {/* ── Segmented Vital Selection Tabs & Action ──────────────────────── */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-        <div
-          className="inline-flex items-center gap-1 rounded-full bg-ink/5 p-1"
-          role="tablist"
-          aria-label="Vital type"
-        >
-          {DASHBOARD_VITALS.map((v) => {
-            const isSelected = v === type;
-            return (
-              <button
-                key={v}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                onClick={() => setType(v)}
-                className={cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer",
-                  isSelected
-                    ? "bg-ink text-white shadow-sm"
-                    : "text-text-soft hover:text-text",
-                )}
-              >
-                {VITAL_REGISTRY[v].shortLabel}
-              </button>
-            );
-          })}
-        </div>
-
-        <Link
-          href={`/patient/vitals?type=${type}`}
-          className="pt-btn pt-btn-primary h-9 px-3.5 text-xs"
-        >
-          <Plus size={14} strokeWidth={2.5} aria-hidden />
-          Log reading
-        </Link>
-      </div>
-
-      {/* ── Chart Header Details ────────────────────────────────────────── */}
-      <div className="mt-5 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            {meta.label}
-          </p>
-          <p className="mt-0.5 text-sm font-bold text-text">
-            This week&apos;s readings &amp; trends
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-text-soft shadow-2xs">
-          <Clock size={12} className="text-text-muted" aria-hidden />
-          7 days
-        </span>
-      </div>
-
-      {/* ── Chart Area or High-End Empty State ───────────────────────────── */}
-      {isLoading ? (
-        <div className="mt-4 h-[210px] animate-pulse rounded-xl border border-border bg-surface-2" />
-      ) : hasPoints ? (
-        <TrendArea
-          points={points}
-          height={210}
-          showSecondary={type === "blood_pressure"}
-          className="mt-2"
-        />
-      ) : (
-        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/60 px-6 py-10 text-center shadow-2xs">
+      {/* ── Chart ──────────────────────────────────────────────────────── */}
+      <div className="mt-5 rounded-xl border border-border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div
-            className="mb-3 grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
-            aria-hidden
+            className="inline-flex items-center gap-0.5 rounded-lg bg-surface-2 p-1"
+            role="tablist"
+            aria-label="Vital type"
           >
-            <Activity size={20} />
+            {DASHBOARD_VITALS.map((v) => {
+              const isSelected = v === type;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => setType(v)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
+                    isSelected
+                      ? "bg-surface text-text shadow-sm"
+                      : "text-text-muted hover:text-text",
+                  )}
+                >
+                  {VITAL_REGISTRY[v].shortLabel}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-sm font-bold text-text">
-            No {meta.label.toLowerCase()} yet
-          </p>
-          <p className="mt-1 max-w-sm text-xs leading-relaxed text-text-soft">
-            Log a reading to start your {meta.shortLabel.toLowerCase()} trend for this week.
-          </p>
-          <Link
-            href={`/patient/vitals?type=${type}`}
-            className="pt-btn pt-btn-primary mt-4 h-9 px-4 text-xs"
-          >
-            <Plus size={14} strokeWidth={2.5} aria-hidden />
-            Add first reading
-          </Link>
-        </div>
-      )}
 
-      {/* ── Bottom Summary Stat Cards ───────────────────────────────────── */}
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
-        <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            <BarChart2 size={12} className="text-brand" />
-            <span>Average</span>
-          </div>
-          <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="pt-metric text-2xl text-text">
-              {hasPoints && stats?.avg != null
-                ? stats.avg.toFixed(meta.decimals)
-                : "—"}
-            </span>
-            <span className="text-xs font-semibold text-text-soft">{meta.unit}</span>
-          </p>
-          <p className="mt-0.5 text-[11px] text-text-muted">Weekly mean</p>
+          <dl className="flex items-center gap-5 text-xs">
+            <div className="flex items-baseline gap-1.5">
+              <dt className="inline-flex items-center gap-1 text-text-muted">
+                <BarChart2 size={12} className="text-brand" aria-hidden />
+                Avg
+              </dt>
+              <dd className="font-semibold text-text">
+                {hasPoints && stats?.avg != null ? stats.avg.toFixed(meta.decimals) : "—"}
+                <span className="ml-0.5 font-normal text-text-muted">{meta.unit}</span>
+              </dd>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <dt className="inline-flex items-center gap-1 text-text-muted">
+                <TrendingUp size={12} className="text-success" aria-hidden />
+                Peak
+              </dt>
+              <dd className="font-semibold text-text">
+                {peak != null ? Number(peak).toFixed(meta.decimals) : "—"}
+                <span className="ml-0.5 font-normal text-text-muted">{meta.unit}</span>
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-          <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            <TrendingUp size={12} className="text-success" />
-            <span>Max</span>
+        {isLoading ? (
+          <div className="mt-4 h-[200px] rounded-lg patient-shimmer" />
+        ) : hasPoints ? (
+          <TrendArea
+            points={points}
+            height={200}
+            showSecondary={type === "blood_pressure"}
+            className="mt-3"
+          />
+        ) : (
+          <div className="mt-4 flex flex-col items-center justify-center rounded-lg bg-surface-2 px-6 py-9 text-center">
+            <div
+              className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface text-brand shadow-card"
+              aria-hidden
+            >
+              <Activity size={19} />
+            </div>
+            <p className="text-sm font-semibold text-text">
+              No {meta.label.toLowerCase()} yet
+            </p>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-text-muted">
+              Log a reading to start your {meta.shortLabel.toLowerCase()} trend for this week.
+            </p>
+            <Link
+              href={`/patient/vitals?type=${type}`}
+              className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-lg bg-surface px-3 text-xs font-semibold text-text shadow-card transition-colors hover:text-brand"
+            >
+              <Plus size={13} strokeWidth={2.5} aria-hidden />
+              Add first reading
+            </Link>
           </div>
-          <p className="mt-1.5 flex items-baseline gap-1">
-            <span className="pt-metric text-2xl text-text">
-              {peak != null ? Number(peak).toFixed(meta.decimals) : "—"}
-            </span>
-            <span className="text-xs font-semibold text-text-soft">{meta.unit}</span>
-          </p>
-          <p className="mt-0.5 text-[11px] text-text-muted">Weekly peak</p>
-        </div>
+        )}
       </div>
     </Card>
   );
@@ -263,10 +245,10 @@ function OverviewCell({
       }}
       aria-label={`${label} details`}
       className={cn(
-        "group flex flex-col rounded-xl border p-3.5 transition-all focus-visible:outline-2 focus-visible:outline-brand",
+        "group flex flex-col rounded-xl p-3.5 transition-all focus-visible:outline-2 focus-visible:outline-brand",
         isSelected
-          ? "border-brand bg-brand-soft/40 shadow-xs"
-          : "border-border bg-surface hover:border-border-strong hover:bg-surface-2/40 hover:-translate-y-0.5 shadow-2xs",
+          ? "bg-surface shadow-[inset_0_0_0_1.5px_var(--color-brand)]"
+          : "bg-surface-2 hover:-translate-y-0.5 hover:bg-surface hover:shadow-md",
       )}
     >
       <div className="flex items-center justify-between gap-1.5">
@@ -279,7 +261,7 @@ function OverviewCell({
           >
             <Icon size={14} aria-hidden />
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+          <span className="text-xs font-medium text-text-soft">
             {label}
           </span>
         </div>
@@ -289,14 +271,14 @@ function OverviewCell({
       </div>
 
       <div className="mt-2.5 flex items-baseline gap-1">
-        <span className="pt-metric text-xl text-text">
+        <span className="font-display text-[22px] font-semibold leading-none tracking-[-0.02em] text-text">
           {last != null ? Number(last).toFixed(decimals) : "—"}
         </span>
         <span className="text-xs font-semibold text-text-muted">{unit}</span>
         {delta !== 0 ? (
           <span
             className={cn(
-              "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
+              "ml-auto rounded px-1.5 py-0.5 text-[10.5px] font-semibold",
               delta > 0
                 ? "text-success bg-success-soft"
                 : "text-danger bg-danger-soft",
@@ -310,17 +292,17 @@ function OverviewCell({
 
       <div className="mt-2 text-brand">
         {series.length >= 2 ? (
-          <MiniSparkline points={series} width={120} height={26} stroke="currentColor" />
+          <MiniSparkline points={series} width={140} height={28} stroke="currentColor" />
         ) : (
           <svg
-            width={120}
-            height={26}
-            viewBox="0 0 120 26"
+            width={140}
+            height={28}
+            viewBox="0 0 140 28"
             aria-hidden="true"
             className="text-border-strong"
           >
             <polyline
-              points="0,13 120,13"
+              points="0,14 140,14"
               fill="none"
               stroke="currentColor"
               strokeWidth={1.5}

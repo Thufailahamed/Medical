@@ -34,27 +34,36 @@ import {
   X,
   ExternalLink,
   AlertTriangle,
-  Hash,
   Clock,
   Video,
-  Users,
   Plus,
   CalendarPlus,
   Stethoscope,
   CheckCircle2,
+  Droplet,
+  Building2,
 } from "lucide-react";
 import { format } from "date-fns";
 
 import { api, qk, teleconsultApi } from "@/portal/lib/api";
-import { Pill } from "@/portal/components/ui/Pill";
 import { Button } from "@/portal/components/ui/Button";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
+import { type FilterOption } from "@/portal/components/chart";
+import { Avatar } from "@/portal/components/ui/Avatar";
 import {
-  ChartList,
-  ChartRow,
-  type FilterOption,
-} from "@/portal/components/chart";
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PrimaryLink,
+  SecondaryLink,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { useT } from "@/portal/i18n";
 import { formatTime, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -302,206 +311,115 @@ export default function QueuePage() {
   ];
 
   const activeCount = counts.waiting + counts.inProgress;
+  const pending =
+    apptMutation.isPending || walkinMutation.isPending || startVideoVisit.isPending;
+
+  // Group rows by stage so the doctor reads the room top-down.
+  const groups = useMemo(() => {
+    const order: Array<{ key: Stage; label: string }> = [
+      { key: "room", label: "In the room" },
+      { key: "waiting", label: "Waiting & upcoming" },
+      { key: "done", label: "Finished" },
+    ];
+    return order
+      .map((g) => ({ ...g, items: filteredItems.filter((i) => stageOf(i.status) === g.key) }))
+      .filter((g) => g.items.length > 0);
+  }, [filteredItems]);
+
+  const nextPatient = items.find((i) => i.status === "waiting" || i.status === "confirmed" || i.status === "scheduled");
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* ── 1. Signature Oceanic Doctor Queue Hero ─────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <ListOrdered size={12} className="text-sky-300" />
-                Live Encounter Stream
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Today&apos;s Clinical Queue
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                {dataUpdatedAt
-                  ? `Updated ${relativeTime(new Date(dataUpdatedAt).toISOString())} · `
-                  : ""}
-                Real-time patient flow combining scheduled clinic appointments, walk-in arrivals, and video teleconsultations.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <button
-                type="button"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02] cursor-pointer"
-              >
-                <RefreshCw size={12} className={cn(isFetching && "animate-spin")} />
-                <span>Refresh Stream</span>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-10">
+      {/* ── Hero + stat strip ─────────────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<ListOrdered size={13} aria-hidden />}
+          kicker="Live queue"
+          kickerMeta={format(new Date(), "EEEE, MMMM d")}
+          title="Today's queue"
+          description={
+            isLoading
+              ? "Loading today's patient flow…"
+              : counts.inProgress > 0
+                ? `${counts.inProgress} in consultation · ${counts.waiting} waiting${nextPatient ? ` · next: ${nextPatient.patientName}` : ""}.`
+                : activeCount > 0 || nextPatient
+                  ? `${counts.waiting} waiting${nextPatient ? ` — ${nextPatient.patientName} is next` : ""}. Start a consultation when you're ready.`
+                  : "No one is waiting right now. Patients appear here as they check in or their appointment time arrives."
+          }
+          chips={
+            <span className={HERO_CHIP}>
+              <span className={cn("h-2 w-2 rounded-full bg-emerald-400", isFetching ? "animate-ping" : "animate-pulse")} aria-hidden />
+              Live · refreshes every 30s
+              {dataUpdatedAt ? (
+                <span className="text-white/50">· updated {relativeTime(new Date(dataUpdatedAt).toISOString())}</span>
+              ) : null}
+            </span>
+          }
+          actions={
+            <>
+              <button type="button" onClick={() => refetch()} disabled={isFetching} className={HERO_GHOST}>
+                <RefreshCw size={15} className={cn(isFetching && "animate-spin")} aria-hidden />
+                Refresh
               </button>
-              <Link
-                href="/portal/walk-ins"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <DoorOpen size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>+ Check-In Walk-In</span>
+              <Link href="/portal/walk-ins" className={HERO_PRIMARY}>
+                <DoorOpen size={15} className="text-sky-600" aria-hidden />
+                Check in walk-in
               </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Users size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active Patients
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {activeCount} In Stream
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Clock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Waiting Lounge
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {counts.waiting} Waiting
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <Play size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-emerald-200 truncate">
-                  In Consultation
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {counts.inProgress} In Room
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <CheckCircle2 size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Completed Today
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {counts.completed} Discharged
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Four High-Contrast Telemetry Tiles ──────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <StatMini
-          icon={<Clock size={18} />}
-          label="Waiting Room"
-          value={counts.waiting}
-          tone="warn"
-          sub="Patients queued in reception"
+            </>
+          }
         />
-        <StatMini
-          icon={<Play size={18} />}
-          label="In Consultation"
-          value={counts.inProgress}
-          tone="brand"
-          sub="Encounter currently in room"
-        />
-        <StatMini
-          icon={<Check size={18} />}
-          label="Discharged / Done"
-          value={counts.completed}
-          tone="success"
-          sub="Completed clinical visits"
-        />
-        <StatMini
-          icon={<X size={18} />}
-          label="No-Show / Cancelled"
-          value={counts.noShow}
-          tone="danger"
-          sub="Absences & cancellations"
-        />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Waiting"
+            icon={<Clock size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(counts.waiting)}
+            unit={counts.waiting === 1 ? "patient" : "patients"}
+            sub={counts.waiting > 0 ? "Checked in at reception" : "Reception is clear"}
+            pulse={counts.waiting > 0}
+            onClick={() => setFilter("active")}
+          />
+          <StatTile
+            label="In consultation"
+            icon={<Play size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(counts.inProgress)}
+            sub={counts.inProgress > 0 ? "Encounter in progress" : "Room is free"}
+            onClick={() => setFilter("active")}
+          />
+          <StatTile
+            label="Completed"
+            icon={<Check size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(counts.completed)}
+            unit={items.length > 0 ? `of ${items.length}` : undefined}
+            sub="Discharged today"
+            progress={items.length > 0 ? Math.round((counts.completed / items.length) * 100) : null}
+            onClick={() => setFilter("completed")}
+          />
+          <StatTile
+            label="No-shows"
+            icon={<X size={16} />}
+            tone="bg-rose-50 text-rose-500"
+            value={String(counts.noShow)}
+            sub="Missed or absent"
+            onClick={() => setFilter("completed")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 3. Unified Queue Stage with Categorized Filter Controls ────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
-        {/* Filter Controls Header */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {filterOptions.map((opt) => {
-              const active = filter === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setFilter(opt.value)}
-                  style={{
-                    backgroundColor: active ? "#0284c7" : "#ffffff",
-                    borderColor: active ? "#0284c7" : "#cbd5e1",
-                    color: active ? "#ffffff" : "#475569",
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs"
-                >
-                  <span>{opt.label}</span>
-                  <span
-                    style={{
-                      backgroundColor: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                      color: active ? "#ffffff" : "#64748b",
-                    }}
-                    className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold"
-                  >
-                    {opt.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Mode Filter: All / Video / In-person */}
-          <ModeFilterChips
+      {/* ── Queue ─────────────────────────────────────────────────────── */}
+      <section className={cn(PANEL, "p-0 sm:p-0")} aria-label="Patient queue">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <Segmented
+            ariaLabel="Queue filter"
+            value={filter}
+            onChange={(v) => setFilter(v)}
+            options={filterOptions.map((o) => ({ value: o.value, label: o.label, count: o.count }))}
+          />
+          <Segmented<string | null>
+            ariaLabel="Encounter mode"
             value={modeFilter}
             onChange={(m) => {
               const params = new URLSearchParams(searchParams.toString());
@@ -510,195 +428,101 @@ export default function QueuePage() {
               const qs = params.toString();
               router.replace(qs ? `?${qs}` : "?", { scroll: false });
             }}
-            t={t}
+            options={[
+              { value: null, label: "All modes" },
+              { value: "video", label: "Video", icon: <Video size={12} aria-hidden /> },
+              { value: "in_person", label: "In-person", icon: <Stethoscope size={12} aria-hidden /> },
+            ]}
           />
         </div>
 
-        {/* Content Body */}
         {isLoading ? (
-          <div className="p-6 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 p-6">
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-3/4" />
           </div>
         ) : filteredItems.length === 0 ? (
-          /* Rich Clinical Empty State */
-          <div className="p-10 sm:p-14 flex flex-col items-center justify-center text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
-              <ListOrdered size={26} />
-            </div>
-            <div className="max-w-md">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                Nothing in the Queue for Current Filter
-              </h3>
-              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                No patients match the selected queue filter. As patients check in at reception, scan their Health ID QR at clinic kiosks, or start scheduled video appointments, they will appear here.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 pt-2 flex-wrap justify-center">
-              <Link
-                href="/portal/walk-ins"
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
-              >
-                <Plus size={14} strokeWidth={3} />
-                <span>+ Check-In Walk-In</span>
-              </Link>
-              <Link
-                href="/portal/schedule"
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <CalendarPlus size={14} />
-                <span>Schedule Appointment</span>
-              </Link>
-            </div>
+          <div className="p-5 sm:p-6">
+            <EmptyBlock
+              className="mt-0 py-12"
+              icon={<ListOrdered size={20} />}
+              title={items.length === 0 ? "The queue is empty" : "Nothing matches this filter"}
+              body={
+                items.length === 0
+                  ? "As patients check in at reception, scan their Health ID, or reach their appointment time, they'll appear here."
+                  : "Try another filter to see the rest of today's patients."
+              }
+              actions={
+                <>
+                  <PrimaryLink href="/portal/walk-ins" icon={<Plus size={13} strokeWidth={2.5} />}>
+                    Check in walk-in
+                  </PrimaryLink>
+                  <SecondaryLink href="/portal/schedule" icon={<CalendarPlus size={13} />}>
+                    Schedule appointment
+                  </SecondaryLink>
+                </>
+              }
+            />
           </div>
         ) : (
-          <ChartList
-            items={filteredItems}
-            isLoading={false}
-            isEmpty={false}
-            emptyState={<div />}
-            renderRow={(item) => (
-              <QueueRow
-                key={`${item.kind}-${item.appointmentId ?? item.walkInId}`}
-                item={item}
-                isPending={
-                  apptMutation.isPending ||
-                  walkinMutation.isPending ||
-                  startVideoVisit.isPending
-                }
-                onApptStatus={(id, status) =>
-                  apptMutation.mutate({ id, status })
-                }
-                onWalkInStatus={(id, status) =>
-                  walkinMutation.mutate({ id, status })
-                }
-                onStartVideoVisit={(appointmentId) =>
-                  startVideoVisit.mutate(appointmentId)
-                }
-              />
-            )}
-            skeletonCount={3}
-          />
+          <div className="pb-2">
+            {groups.map((g) => (
+              <div key={g.key}>
+                <div className="flex items-center gap-2 px-4 pb-1 pt-4 sm:px-6">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      g.key === "room" ? "bg-sky-500" : g.key === "waiting" ? "bg-amber-500" : "bg-slate-300",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="text-xs font-semibold text-slate-500">{g.label}</span>
+                  <span className="text-xs text-slate-400">{g.items.length}</span>
+                </div>
+                <ul className="divide-y divide-slate-100">
+                  {g.items.map((item) => (
+                    <QueueRow
+                      key={`${item.kind}-${item.appointmentId ?? item.walkInId}`}
+                      item={item}
+                      isPending={pending}
+                      onApptStatus={(id, status) => apptMutation.mutate({ id, status })}
+                      onWalkInStatus={(id, status) => walkinMutation.mutate({ id, status })}
+                      onStartVideoVisit={(appointmentId) => startVideoVisit.mutate(appointmentId)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
     </div>
   );
 }
 
-// ─── Mode filter chips (server-driven ?mode=) ─────────────────────────
-function ModeFilterChips({
-  value,
-  onChange,
-  t,
-}: {
-  value: string | null;
-  onChange: (next: string | null) => void;
-  t: (k: string) => string;
-}) {
-  const opts: Array<{ key: string | null; label: string; icon?: React.ReactNode }> = [
-    { key: null, label: "All Modes" },
-    { key: "video", label: "Video", icon: <Video size={11} className="mr-1 inline" /> },
-    { key: "in_person", label: "In-person", icon: <Stethoscope size={11} className="mr-1 inline" /> },
-  ];
-  return (
-    <div
-      className="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 self-start shadow-2xs"
-      role="group"
-      aria-label="Encounter mode"
-    >
-      {opts.map((o) => {
-        const active = (o.key ?? null) === (value ?? null);
-        return (
-          <button
-            key={o.key ?? "all"}
-            type="button"
-            onClick={() => onChange(o.key)}
-            aria-pressed={active}
-            style={{
-              backgroundColor: active ? "#0c4a6e" : "transparent",
-              color: active ? "#ffffff" : "#64748b",
-            }}
-            className="px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center"
-          >
-            {o.icon}
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+// ─── Stages ─────────────────────────────────────────────────────────────
+type Stage = "room" | "waiting" | "done";
+
+function stageOf(status: AnyStatus): Stage {
+  if (status === "in_progress" || status === "in_consultation") return "room";
+  if (status === "waiting" || status === "scheduled" || status === "confirmed") return "waiting";
+  return "done";
 }
 
-// ─── Stat mini (count tile) ─────────────────────────────────────────────
-function StatMini({
-  icon,
-  label,
-  value,
-  tone,
-  sub,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: "brand" | "warn" | "success" | "danger";
-  sub: string;
-}) {
-  const cfg = {
-    brand: {
-      border: "border-sky-200 bg-sky-50/50",
-      iconBg: "bg-sky-100 text-sky-700 border-sky-200",
-      accent: "text-sky-700",
-    },
-    warn: {
-      border: "border-amber-200 bg-amber-50/50",
-      iconBg: "bg-amber-100 text-amber-700 border-amber-200",
-      accent: "text-amber-700",
-    },
-    success: {
-      border: "border-emerald-200 bg-emerald-50/50",
-      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      accent: "text-emerald-700",
-    },
-    danger: {
-      border: "border-rose-200 bg-rose-50/50",
-      iconBg: "bg-rose-100 text-rose-700 border-rose-200",
-      accent: "text-rose-700",
-    },
-  }[tone];
+const STAGE_BAR: Record<Stage, string> = {
+  room: "bg-sky-500",
+  waiting: "bg-amber-400",
+  done: "bg-slate-200",
+};
 
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3.5 rounded-2xl border p-3.5 sm:p-4 shadow-2xs bg-white",
-        cfg.border,
-      )}
-    >
-      <div
-        className={cn(
-          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs",
-          cfg.iconBg,
-        )}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="text-2xl font-black tabular-nums leading-none text-slate-900">
-          {value}
-        </div>
-        <div className="text-[11px] font-bold text-slate-700 mt-1 uppercase tracking-wide truncate">
-          {label}
-        </div>
-        <div className="text-[10px] text-slate-400 mt-0.5 truncate hidden sm:block">
-          {sub}
-        </div>
-      </div>
-    </div>
-  );
-}
+const TONE_CLASS: Record<StatusTone, string> = {
+  neutral: "bg-slate-100 text-slate-600",
+  brand: "bg-sky-50 text-sky-700",
+  success: "bg-emerald-50 text-emerald-700",
+  warn: "bg-amber-50 text-amber-700",
+  danger: "bg-rose-50 text-rose-600",
+};
 
 // ─── Single queue row ───────────────────────────────────────────────────
 function QueueRow({
@@ -715,10 +539,11 @@ function QueueRow({
   onStartVideoVisit: (appointmentId: string) => void;
 }) {
   const t = useT();
-  const router = useRouter();
 
   const isWalkIn = item.kind === "walkin";
   const id = item.appointmentId ?? item.walkInId ?? "";
+  const stage = stageOf(item.status);
+  const chartHref = `/portal/patients/${item.patientId}/overview`;
 
   const canStart =
     item.status === "waiting" || item.status === "scheduled" || item.status === "confirmed";
@@ -731,7 +556,7 @@ function QueueRow({
 
   const timeLabel =
     item.kind === "walkin" && item.arrivedAt
-      ? `${t("queue.row.arrived")} ${relativeTime(item.arrivedAt)}`
+      ? relativeTime(item.arrivedAt)
       : item.time
       ? formatTime(item.time)
       : "—";
@@ -759,7 +584,7 @@ function QueueRow({
       );
     return {
       label: t(STATUS_LABEL_KEY[next] ?? next),
-      variant: isDanger ? "danger" : isPrimary || isComplete ? "primary" : "secondary",
+      variant: isDanger ? "ghost" : isPrimary || isComplete ? "primary" : "secondary",
       icon,
       fn: () => {
         if (isWalkIn) onWalkInStatus(id, next as WalkInStatus);
@@ -772,9 +597,6 @@ function QueueRow({
   let secondary: ReturnType<typeof transitionAction> | null = null;
   if (canStart) {
     primary = transitionAction(isWalkIn ? "in_consultation" : "in_progress");
-    if (item.status === "scheduled" && !isWalkIn) {
-      primary = transitionAction("in_progress");
-    }
   } else if (canComplete) {
     primary = transitionAction("completed");
   }
@@ -786,139 +608,148 @@ function QueueRow({
   }
 
   return (
-    <ChartRow
-      icon={
-        <div className="relative">
-          {isWalkIn ? (
-            <DoorOpen size={15} className="text-violet-700" />
-          ) : (
-            <CalendarCheck size={15} className="text-sky-700" />
-          )}
-          {item.priority === "urgent" ? (
-            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
-          ) : null}
-        </div>
-      }
-      iconTone={isWalkIn ? "violet" : "brand"}
-      title={
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate font-bold text-slate-900 text-sm">{item.patientName}</span>
-          {item.kind === "walkin" ? (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
-              Walk-In
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-              Booked
-            </span>
-          )}
-          {item.queueNumber != null ? (
-            <span className="inline-flex items-center gap-0.5 text-xs font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-              <Hash size={10} />
-              {item.queueNumber}
-            </span>
-          ) : null}
-        </div>
-      }
-      subtitle={
-        <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500">
-          {item.reason ? (
-            <span className="truncate">{item.reason}</span>
-          ) : (
-            <span className="text-slate-400 italic">—</span>
-          )}
-        </div>
-      }
-      pills={[
-        <Pill key="status" tone={STATUS_TONE[item.status]}>
-          {statusLabel}
-        </Pill>,
-        item.mode === "video" ? (
-          <Pill key="mode" tone="brand">
-            <Video size={11} className="mr-1" />
-            Video Consultation
-          </Pill>
-        ) : item.mode === "in_person" ? (
-          <Pill key="mode" tone="neutral">
-            In-Person Visit
-          </Pill>
-        ) : null,
-        item.bloodGroup ? (
-          <Pill key="bg" tone="info">
-            {item.bloodGroup}
-          </Pill>
-        ) : null,
-        item.hospitalName ? (
-          <Pill key="hospital" tone="neutral">
-            {item.hospitalName}
-          </Pill>
-        ) : null,
-      ].filter(Boolean)}
-      meta={
-        <div className="text-right">
-          <div className="text-sm font-bold tabular-nums text-slate-900">
-            {timeLabel}
-          </div>
-          {item.priority === "urgent" ? (
-            <div className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-rose-600 uppercase">
-              <AlertTriangle size={10} />
-              Urgent
+    <li
+      className={cn(
+        "group relative flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 transition-colors hover:bg-slate-50/80 sm:flex-nowrap sm:px-6",
+        stage === "room" && "bg-sky-50/40",
+      )}
+    >
+      <span className={cn("absolute inset-y-2 left-0 w-1 rounded-r-full", STAGE_BAR[stage])} aria-hidden />
+
+      {/* Token / time */}
+      <div className="w-14 shrink-0 text-center">
+        {item.queueNumber != null ? (
+          <>
+            <div className="font-mono text-lg font-semibold leading-none tabular-nums text-slate-900">
+              {String(item.queueNumber).padStart(2, "0")}
             </div>
-          ) : null}
+            <div className="mt-1 text-[10.5px] text-slate-400">token</div>
+          </>
+        ) : (
+          <>
+            <div className="text-sm font-semibold leading-none tabular-nums text-slate-900">
+              {timeLabel}
+            </div>
+            <div className="mt-1 text-[10.5px] text-slate-400">{isWalkIn ? "arrived" : "booked"}</div>
+          </>
+        )}
+      </div>
+
+      {/* Patient */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="relative shrink-0">
+          <Avatar name={item.patientName} src={item.patientPhoto ?? null} size="sm" />
+          <span
+            className={cn(
+              "absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-white",
+              isWalkIn ? "bg-violet-500 text-white" : "bg-sky-500 text-white",
+            )}
+            aria-hidden
+          >
+            {isWalkIn ? <DoorOpen size={9} /> : <CalendarCheck size={9} />}
+          </span>
+        </span>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href={chartHref}
+              className="truncate text-sm font-semibold text-slate-900 hover:text-sky-700"
+            >
+              {item.patientName}
+            </Link>
+            {item.priority === "urgent" ? (
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-rose-600">
+                <AlertTriangle size={10} aria-hidden />
+                Urgent
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+            <span className="truncate">{item.reason ?? (isWalkIn ? "Walk-in consultation" : "Scheduled consultation")}</span>
+            {item.mode === "video" ? (
+              <span className="inline-flex items-center gap-1 text-sky-600">
+                <Video size={11} aria-hidden />
+                Video
+              </span>
+            ) : null}
+            {item.bloodGroup ? (
+              <span className="inline-flex items-center gap-1 text-slate-400">
+                <Droplet size={11} className="text-rose-400" aria-hidden />
+                {item.bloodGroup}
+              </span>
+            ) : null}
+            {item.hospitalName ? (
+              <span className="hidden items-center gap-1 text-slate-400 md:inline-flex">
+                <Building2 size={11} aria-hidden />
+                {item.hospitalName}
+              </span>
+            ) : null}
+          </div>
         </div>
-      }
-      actions={
-        <div className="flex items-center gap-1.5">
-          {primary ? (
-            <Button
-              size="sm"
-              variant={primary.variant}
-              leftIcon={primary.icon}
-              onClick={primary.fn}
-              loading={isPending}
-            >
-              {primary.label}
-            </Button>
-          ) : null}
-          {secondary ? (
-            <Button
-              size="sm"
-              variant={secondary.variant}
-              leftIcon={secondary.icon}
-              onClick={secondary.fn}
-              disabled={isPending}
-            >
-              {secondary.label}
-            </Button>
-          ) : null}
-          {!isWalkIn &&
-          item.appointmentId &&
-          (item.status === "confirmed" || item.status === "in_progress") ? (
-            <button
-              type="button"
-              onClick={() => onStartVideoVisit(item.appointmentId!)}
-              disabled={isPending}
-              title="Start Video Teleconsultation"
-              className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              <Video size={13} />
-            </button>
-          ) : null}
+      </div>
+
+      {/* Status */}
+      <div className="hidden shrink-0 flex-col items-end gap-1 md:flex">
+        <span className={cn("rounded-md px-2 py-1 text-[11px] font-semibold", TONE_CLASS[STATUS_TONE[item.status]])}>
+          {statusLabel}
+        </span>
+        {item.queueNumber != null ? (
+          <span className="text-[11px] text-slate-400 tabular-nums">{timeLabel}</span>
+        ) : null}
+      </div>
+
+      {/* Actions */}
+      <div className="flex w-full shrink-0 items-center justify-end gap-1.5 sm:w-auto">
+        {secondary ? (
+          <Button
+            size="sm"
+            variant={secondary.variant}
+            leftIcon={secondary.icon}
+            onClick={secondary.fn}
+            disabled={isPending}
+          >
+            {secondary.label}
+          </Button>
+        ) : null}
+        {!isWalkIn &&
+        item.appointmentId &&
+        (item.status === "confirmed" || item.status === "in_progress") ? (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/portal/patients/${item.patientId}/overview`);
-            }}
-            className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-            title="Open Patient Chart"
+            onClick={() => onStartVideoVisit(item.appointmentId!)}
+            disabled={isPending}
+            title="Start video consultation"
+            aria-label="Start video consultation"
+            className="grid h-8 w-8 place-items-center rounded-lg bg-sky-50 text-sky-700 transition-colors hover:bg-sky-100 disabled:opacity-50"
           >
-            <ExternalLink size={13} />
+            <Video size={14} />
           </button>
-        </div>
-      }
-      href={`/portal/patients/${item.patientId}/overview`}
-      hideChevron
-    />
+        ) : null}
+        {primary ? (
+          <Button
+            size="sm"
+            variant={primary.variant}
+            leftIcon={primary.icon}
+            onClick={primary.fn}
+            loading={isPending}
+          >
+            {primary.label}
+          </Button>
+        ) : stage === "done" ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-400">
+            <CheckCircle2 size={13} aria-hidden />
+            Closed
+          </span>
+        ) : null}
+        <Link
+          href={chartHref}
+          title="Open patient chart"
+          aria-label={`Open ${item.patientName}'s chart`}
+          className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        >
+          <ExternalLink size={14} />
+        </Link>
+      </div>
+    </li>
   );
 }

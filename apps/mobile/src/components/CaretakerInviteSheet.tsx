@@ -6,16 +6,29 @@
 // receives on their phone/email before a user row is provisioned.
 
 import { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { UserPlus } from "lucide-react-native";
+import {
+  UserPlus,
+  User,
+  Phone,
+  Mail,
+  ShieldCheck,
+  KeyRound,
+  HeartHandshake,
+  Heart,
+  Users,
+  UserRound,
+  Shield,
+  Check,
+  type LucideIcon,
+} from "lucide-react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import * as Clipboard from "expo-clipboard";
 import {
   BottomSheet,
   Button,
   FormField,
-  Chip,
   TextField,
   useToast,
 } from "@/components/ui";
@@ -33,6 +46,17 @@ const CARE_ROLES: CareRole[] = [
   "other",
 ];
 
+const ROLE_ICONS: Record<string, LucideIcon> = {
+  child_caregiver: HeartHandshake,
+  spouse_caregiver: Heart,
+  sibling_caregiver: Users,
+  guardian: Shield,
+  parent: UserRound,
+  other: UserPlus,
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 type Props = {
   visible: boolean;
   onDismiss: () => void;
@@ -40,7 +64,7 @@ type Props = {
 
 export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
   const { t } = useTranslation();
-  const { spacing, colors, typography } = useTheme();
+  const { spacing, colors, typography, shadow } = useTheme();
   const toast = useToast();
   const createInvite = useCreateCaretakerInvite();
 
@@ -64,7 +88,7 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !contact.trim()) return;
+    if (!name.trim() || !contact.trim() || submitting) return;
     setSubmitting(true);
     try {
       const res = await createInvite.mutateAsync({
@@ -76,12 +100,10 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
       if (res?.url) {
         await Clipboard.setStringAsync(res.url);
       }
-      toast.show({
-        title: t("caretaker.invite.linkCopied", {
-          defaultValue: "Invite sent",
-        }),
-        tone: "success",
-      });
+      toast.show(
+        t("caretaker.invite.linkCopied", { defaultValue: "Invite sent" }),
+        "success"
+      );
       handleDismiss();
     } catch (err: any) {
       const status = err?.status;
@@ -91,11 +113,18 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
           : t("caretaker.inviteFailed", {
               action: t("caretaker.sendInvite").toLowerCase(),
             });
-      toast.show({ title: msg, tone: "danger" });
+      toast.show(msg, "danger");
     } finally {
       setSubmitting(false);
     }
   }
+
+  const trimmedContact = contact.trim();
+  const contactValid =
+    channel === "email"
+      ? EMAIL_RE.test(trimmedContact)
+      : trimmedContact.replace(/[^\d]/g, "").length >= 7;
+  const canSubmit = !!name.trim() && contactValid && !submitting;
 
   return (
     <BottomSheet
@@ -104,90 +133,205 @@ export function CaretakerInviteSheet({ visible, onDismiss }: Props) {
       title={t("caretaker.inviteSheetTitle")}
     >
       <ScrollView
-        contentContainerStyle={{ paddingBottom: spacing.lg }}
+        contentContainerStyle={{ paddingBottom: spacing.md }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={{ gap: spacing.md }}>
+        <View style={{ gap: spacing.lg }}>
+          {/* What a caretaker can do */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              padding: spacing.md,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                borderCurve: "continuous",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.primary,
+              }}
+            >
+              <ShieldCheck size={18} color={colors.onPrimary} strokeWidth={2.25} />
+            </View>
+            <Text style={[typography.body.sm, { color: colors.text, flex: 1 }]}>
+              {t(
+                "caretaker.inviteIntro",
+                "They can help manage your records, medicines and appointments. Pause or revoke anytime."
+              )}
+            </Text>
+          </View>
+
           <FormField label={t("caretaker.nameField")} helper={t("caretaker.nameHelper")}>
             <TextField
               value={name}
               onChangeText={setName}
-              placeholder={t("caretaker.nameField")}
+              placeholder={t("caretaker.namePlaceholder", "e.g., Nimal Perera")}
               autoCapitalize="words"
+              textContentType="name"
               returnKeyType="next"
+              leadingIcon={User}
+              tone="soft"
             />
           </FormField>
 
-          <View>
-            <Text
-              style={{
-                ...typography.body.sm,
-                color: colors.textSecondary,
-                marginBottom: spacing.xs,
-              }}
-            >
-              {t("caretaker.roleLabel")}
-            </Text>
+          <FormField label={t("caretaker.roleLabel")}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+              {CARE_ROLES.map((r) => {
+                const selected = role === r;
+                const Icon = ROLE_ICONS[r] ?? UserPlus;
+                return (
+                  <Pressable
+                    key={r}
+                    onPress={() => setRole(r)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={({ pressed }) => ({
+                      flexBasis: "46%",
+                      flexGrow: 1,
+                      minHeight: 52,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 16,
+                      borderCurve: "continuous",
+                      borderWidth: 1.5,
+                      borderColor: selected ? colors.primary : "transparent",
+                      backgroundColor: selected ? colors.primarySoft : colors.fill,
+                      opacity: pressed ? 0.75 : 1,
+                    })}
+                  >
+                    <View
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: selected ? colors.primary : colors.surface,
+                      }}
+                    >
+                      {selected ? (
+                        <Check size={15} color={colors.onPrimary} strokeWidth={3} />
+                      ) : (
+                        <Icon size={15} color={colors.textMuted} strokeWidth={2.25} />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        typography.label.md,
+                        { color: selected ? colors.primary : colors.text, flex: 1 },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {t(`caretaker.role.${r}`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </FormField>
+
+          <FormField label={t("caretaker.channelLabel")}>
+            {/* Segmented channel switch */}
             <View
               style={{
                 flexDirection: "row",
-                flexWrap: "wrap",
-                gap: spacing.xs,
+                padding: 4,
+                gap: 4,
+                borderRadius: 16,
+                borderCurve: "continuous",
+                backgroundColor: colors.fill,
               }}
             >
-              {CARE_ROLES.map((r) => (
-                <Chip
-                  key={r}
-                  label={t(`caretaker.role.${r}`)}
-                  selected={role === r}
-                  onPress={() => setRole(r)}
-                />
-              ))}
+              {(["mobile", "email"] as const).map((c) => {
+                const selected = channel === c;
+                const Icon = c === "mobile" ? Phone : Mail;
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => {
+                      if (channel !== c) setContact("");
+                      setChannel(c);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={[
+                      {
+                        flex: 1,
+                        height: 40,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: selected ? colors.surface : "transparent",
+                      },
+                      selected ? shadow.xs : null,
+                    ]}
+                  >
+                    <Icon
+                      size={15}
+                      color={selected ? colors.primary : colors.textMuted}
+                      strokeWidth={2.25}
+                    />
+                    <Text
+                      style={[
+                        typography.label.lg,
+                        { color: selected ? colors.primary : colors.textMuted },
+                      ]}
+                    >
+                      {t(`caretaker.channel.${c}`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          </View>
-
-          <View>
-            <Text
-              style={{
-                ...typography.body.sm,
-                color: colors.textSecondary,
-                marginBottom: spacing.xs,
-              }}
-            >
-              {t("caretaker.channelLabel")}
-            </Text>
-            <View style={{ flexDirection: "row", gap: spacing.xs }}>
-              <Chip
-                label={t("caretaker.channel.mobile")}
-                selected={channel === "mobile"}
-                onPress={() => setChannel("mobile")}
-              />
-              <Chip
-                label={t("caretaker.channel.email")}
-                selected={channel === "email"}
-                onPress={() => setChannel("email")}
-              />
-            </View>
-          </View>
-
-          <FormField helper={t("caretaker.contactHelper")}>
             <TextField
               value={contact}
               onChangeText={setContact}
-              placeholder={t("caretaker.contactPlaceholder")}
+              placeholder={
+                channel === "mobile"
+                  ? t("caretaker.mobilePlaceholder", "+94 77 123 4567")
+                  : t("caretaker.emailPlaceholder", "name@example.com")
+              }
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType={channel === "mobile" ? "phone-pad" : "email-address"}
+              textContentType={channel === "mobile" ? "telephoneNumber" : "emailAddress"}
               returnKeyType="send"
-              onSubmitEditing={handleSubmit}
+              onSubmitEditing={() => canSubmit && handleSubmit()}
+              leadingIcon={channel === "mobile" ? Phone : Mail}
+              tone="soft"
+              containerStyle={{ marginTop: spacing.xs }}
             />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 2 }}>
+              <KeyRound size={13} color={colors.textSubtle} strokeWidth={2.25} />
+              <Text style={[typography.caption, { color: colors.textSubtle, flex: 1 }]}>
+                {t("caretaker.contactHelper")}
+              </Text>
+            </View>
           </FormField>
 
           <Button
-            label={submitting ? t("caretaker.sending") : t("caretaker.sendInvite")}
+            title={submitting ? t("caretaker.sending") : t("caretaker.sendInvite")}
             onPress={handleSubmit}
-            disabled={submitting || !name.trim() || !contact.trim()}
-            icon={<UserPlus color={colors.onPrimary} size={18} />}
+            loading={submitting}
+            disabled={!canSubmit}
+            icon={UserPlus}
+            size="lg"
           />
         </View>
       </ScrollView>

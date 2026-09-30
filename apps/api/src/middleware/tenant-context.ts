@@ -200,6 +200,13 @@ async function validateHospitalMembership(
 ): Promise<boolean> {
   if (!role) return false;
 
+  // Platform admins are cross-org by design (mirrors requireOperator):
+  // they hold no membership rows anywhere, so a tenant header must
+  // never reject them — otherwise any stale tenant selection (e.g.
+  // leaked across account switches on a shared device) 403s every
+  // admin request including login.
+  if (role === "super_admin") return true;
+
   if (role === "hospital_admin") {
     const [h] = await db
       .select({ id: hospitals.id })
@@ -268,6 +275,9 @@ async function validateClinicMembership(
   clinicId: string
 ): Promise<boolean> {
   if (!role) return false;
+
+  // Same cross-org bypass as hospitals (see above).
+  if (role === "super_admin") return true;
 
   if (role === "doctor") {
     const [doc] = await db

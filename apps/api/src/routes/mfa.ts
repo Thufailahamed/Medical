@@ -182,11 +182,33 @@ mfaRouter.post(
       details: { enrolledAt },
     });
 
+    // Enrollment completes the login: mint the full session JWT now so
+    // the mobile client can swap its short-lived mfaToken for a real
+    // session without forcing a second TOTP round-trip. Same shape as
+    // /mfa/challenge below.
+    const jwtSecret = getJwtSecret(c.env);
+    const [enrolledUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const sessionToken = await generateToken(userId, jwtSecret, {
+      role: "doctor",
+      mfaPassed: true,
+      doctorId: d.id,
+    });
+
     // Codes returned ONCE — never again. Mobile must display + persist.
     return c.json({
       enabled: true,
       enrolledAt,
       recoveryCodes: codes,
+      token: sessionToken,
+      user: enrolledUser
+        ? {
+            id: enrolledUser.id,
+            email: enrolledUser.email,
+            firstName: enrolledUser.firstName,
+            lastName: enrolledUser.lastName,
+            role: enrolledUser.role,
+          }
+        : null,
     });
   }
 );

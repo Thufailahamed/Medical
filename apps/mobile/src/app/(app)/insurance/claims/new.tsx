@@ -3,16 +3,20 @@
 // upload via expo-document-picker / expo-image-picker → /files/upload.
 
 import { useState } from "react";
-import { View, Text, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput, Alert, StyleSheet, ActivityIndicator } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import {
-  Upload,
-  FilePlus,
+  Building2,
   Camera,
+  CheckCircle2,
+  Circle,
   FileText,
+  Send,
+  Upload,
   X,
 } from "lucide-react-native";
 import {
@@ -22,9 +26,16 @@ import {
   Button,
   SectionHeader,
   Chip,
-  ChipGroup,
-  Pill,
+  DateField,
+  IconTile,
+  Pressable,
 } from "@/components/ui";
+import {
+  PolicyPicker,
+  TreatmentGrid,
+  formatLkr,
+  type TreatmentType,
+} from "@/components/insurance/ClaimFormParts";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   useMyInsuranceEnrollments,
@@ -32,15 +43,6 @@ import {
   useSubmitInsuranceClaim,
   useUploadFile,
 } from "@/hooks/useApi";
-
-const TREATMENTS = [
-  "hospitalization",
-  "day_care",
-  "opd",
-  "dental",
-  "diagnostic",
-  "maternity",
-] as const;
 
 const DOC_KINDS = [
   "bill",
@@ -59,42 +61,68 @@ type AttachedDoc = {
   contentType: string;
 };
 
+// Treatments with an overnight stay: ask for a discharge date + summary.
+const INPATIENT: TreatmentType[] = ["hospitalization", "maternity"];
+
+const toIsoDate = (d?: Date) =>
+  d
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    : undefined;
+
 export default function NewClaim() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors, typography, radius } = useTheme();
-  const fieldStyle = {
+  const { colors, typography, radius, spacing } = useTheme();
+  const insets = useSafeAreaInsets();
+  const fieldShell = {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
     backgroundColor: colors.fill,
     borderRadius: radius.field,
     borderCurve: "continuous" as const,
     paddingHorizontal: 14,
-    minHeight: 48,
+    minHeight: 52,
+  };
+  const multilineStyle = {
+    backgroundColor: colors.fill,
+    borderRadius: radius.field,
+    borderCurve: "continuous" as const,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
+    minHeight: 92,
+    textAlignVertical: "top" as const,
     color: colors.text,
     ...typography.body.md,
   };
-  const { data: enrollmentsData } = useMyInsuranceEnrollments();
+
+  const enrollmentsQ = useMyInsuranceEnrollments();
   const createMut = useCreateInsuranceClaim();
   const submitMut = useSubmitInsuranceClaim();
   const uploadMut = useUploadFile();
 
-  const activeEnrollments = (enrollmentsData?.enrollments ?? []).filter(
+  const activeEnrollments = (enrollmentsQ.data?.enrollments ?? []).filter(
     (e: any) => e.status === "active",
   );
 
-  const [enrollmentId, setEnrollmentId] = useState<string | undefined>(
-    activeEnrollments[0]?.id,
-  );
-  const [treatmentType, setTreatmentType] = useState<typeof TREATMENTS[number]>(
-    "hospitalization",
-  );
+  const [enrollmentId, setEnrollmentId] = useState("");
+  const effectiveEnrollmentId = enrollmentId || activeEnrollments[0]?.id || "";
+  const [treatmentType, setTreatmentType] = useState<TreatmentType>("hospitalization");
   const [facility, setFacility] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
-  const [admissionDate, setAdmissionDate] = useState("");
-  const [dischargeDate, setDischargeDate] = useState("");
+  const [admissionDate, setAdmissionDate] = useState<Date | undefined>();
+  const [dischargeDate, setDischargeDate] = useState<Date | undefined>();
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
   const [docs, setDocs] = useState<AttachedDoc[]>([]);
   const [pendingDocKind, setPendingDocKind] = useState<DocKind>("bill");
+  const [uploadingVia, setUploadingVia] = useState<"file" | "camera" | null>(null);
+
+  const inpatient = INPATIENT.includes(treatmentType);
+  const amountNum = Number(amount) || 0;
+  const canSubmit = !!effectiveEnrollmentId && amountNum > 0;
+  const requiredDocs: DocKind[] = inpatient ? ["bill", "discharge_summary"] : ["bill"];
 
   const uploadOne = async (
     file: { uri: string; name: string; mimeType: string | null },
@@ -137,6 +165,7 @@ export default function NewClaim() {
       });
       if (pick.canceled || !pick.assets?.[0]) return;
       const a = pick.assets[0];
+      setUploadingVia("file");
       const uploaded = await uploadOne({
         uri: a.uri,
         name: a.name ?? `document-${Date.now()}.pdf`,
@@ -148,6 +177,8 @@ export default function NewClaim() {
         t("common.error") || "Error",
         err?.message || "Pick failed",
       );
+    } finally {
+      setUploadingVia(null);
     }
   };
 
@@ -168,6 +199,7 @@ export default function NewClaim() {
       });
       if (shot.canceled || !shot.assets?.[0]) return;
       const a = shot.assets[0];
+      setUploadingVia("camera");
       const uploaded = await uploadOne({
         uri: a.uri,
         name: `claim-photo-${Date.now()}.jpg`,
@@ -179,6 +211,8 @@ export default function NewClaim() {
         t("common.error") || "Error",
         err?.message || "Camera failed",
       );
+    } finally {
+      setUploadingVia(null);
     }
   };
 
@@ -187,15 +221,15 @@ export default function NewClaim() {
   };
 
   const onSubmit = async () => {
-    if (!enrollmentId || !amount) return;
+    if (!canSubmit) return;
     const created = await createMut.mutateAsync({
-      enrollmentId,
+      enrollmentId: effectiveEnrollmentId,
       treatmentType,
       incurringFacility: facility || undefined,
       diagnosis: diagnosis || undefined,
-      admissionDate: admissionDate || undefined,
-      dischargeDate: dischargeDate || undefined,
-      amountRequestedLkr: Number(amount),
+      admissionDate: toIsoDate(admissionDate),
+      dischargeDate: inpatient ? toIsoDate(dischargeDate) : undefined,
+      amountRequestedLkr: amountNum,
       patientRemarks: remarks || undefined,
       documents: docs.map((d) => ({
         kind: d.kind,
@@ -208,255 +242,317 @@ export default function NewClaim() {
     router.replace(`/insurance/claims/${created.claim.id}`);
   };
 
+  const step = (n: number) => t("insurance.coverage.step", { n, defaultValue: "Step {{n}}" });
+
   return (
     <Screen>
       <ScreenHeader
         title={t("insurance.claim.new")}
-        subtitle=""
+        subtitle={t("insurance.claim.newSubtitle", "Get reimbursed for treatment you've paid for.")}
         kicker={t("insurance.claim.kicker")}
       />
 
       <ScrollView
-        contentContainerStyle={{ paddingVertical: 12, gap: 14, paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <SectionHeader title={t("insurance.claim.policy")} />
-        <Card style={{ padding: 16, gap: 8 }}>
-          {activeEnrollments.length === 0 ? (
-            <AppText size="sm" color="muted">
-              {t("insurance.claim.noActivePolicy")}
-            </AppText>
-          ) : (
-            <ChipGroup>
-              {activeEnrollments.map((e: any) => (
-                <Chip
-                  key={e.id}
-                  label={
-                    e.policyNumber ??
-                    t("insurance.policy.policyNumber")
-                  }
-                  selected={enrollmentId === e.id}
-                  onPress={() => setEnrollmentId(e.id)}
-                />
-              ))}
-            </ChipGroup>
-          )}
-        </Card>
+        {/* ── Policy ─────────────────────────────────────────── */}
+        <SectionHeader kicker={step(1)} title={t("insurance.claim.policy")} />
+        <PolicyPicker
+          enrollments={activeEnrollments}
+          selectedId={effectiveEnrollmentId}
+          onSelect={setEnrollmentId}
+          loading={enrollmentsQ.isLoading}
+          emptyMessage={t("insurance.claim.noActivePolicy")}
+        />
 
-        <SectionHeader title={t("insurance.claim.treatment")} />
-        <Card style={{ padding: 20, gap: 18 }}>
-          <View style={{ gap: 8 }}>
-            <AppText size="sm" weight="600" color="muted">
-              {t("insurance.claim.treatmentType")}
-            </AppText>
-            <ChipGroup>
-              {TREATMENTS.map((tt) => (
-                <Chip
-                  key={tt}
-                  label={t(`insurance.claim.treatments.${tt}`)}
-                  selected={treatmentType === tt}
-                  onPress={() => setTreatmentType(tt)}
-                />
-              ))}
-            </ChipGroup>
-          </View>
+        {/* ── Treatment ──────────────────────────────────────── */}
+        <SectionHeader kicker={step(2)} title={t("insurance.claim.treatmentType")} />
+        <TreatmentGrid
+          value={treatmentType}
+          onChange={setTreatmentType}
+          labelFor={(k) => t(`insurance.claim.treatments.${k}`)}
+        />
 
-          <View style={{ gap: 8 }}>
-            <AppText size="sm" weight="600" color="muted">
-              {t("insurance.claim.facility")}
-            </AppText>
-            <TextInput
-              value={facility}
-              onChangeText={setFacility}
-              placeholder={t("insurance.claim.facilityPlaceholder")}
-              placeholderTextColor={colors.textSubtle}
-              style={{
-                ...fieldStyle,
-              }}
+        {/* ── Details ────────────────────────────────────────── */}
+        <SectionHeader kicker={step(3)} title={t("insurance.claim.treatment")} />
+        <Card style={{ padding: 18, gap: 18 }}>
+          <Field label={t("insurance.claim.facility")}>
+            <View style={fieldShell}>
+              <Building2 size={18} color={colors.textSubtle} strokeWidth={2} />
+              <TextInput
+                value={facility}
+                onChangeText={setFacility}
+                placeholder={t("insurance.claim.facilityPlaceholder")}
+                placeholderTextColor={colors.textSubtle}
+                style={{ flex: 1, ...typography.body.md, color: colors.text, paddingVertical: 0 }}
+              />
+            </View>
+          </Field>
+
+          <Field label={t("insurance.claim.admissionDate")}>
+            <DateField
+              value={admissionDate}
+              onChange={setAdmissionDate}
+              maximumDate={new Date()}
+              placeholder={t("insurance.claim.pickDate", "Select date")}
             />
-          </View>
+          </Field>
 
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1, gap: 8 }}>
-              <AppText size="sm" weight="600" color="muted">
-                {t("insurance.claim.admissionDate")}
-              </AppText>
-              <TextInput
-                value={admissionDate}
-                onChangeText={setAdmissionDate}
-                placeholder="YYYY-MM-DD"
-                autoCapitalize="none"
-                placeholderTextColor={colors.textSubtle}
-                style={{
-                  ...fieldStyle,
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, gap: 8 }}>
-              <AppText size="sm" weight="600" color="muted">
-                {t("insurance.claim.dischargeDate")}
-              </AppText>
-              <TextInput
+          {inpatient ? (
+            <Field label={t("insurance.claim.dischargeDate")}>
+              <DateField
                 value={dischargeDate}
-                onChangeText={setDischargeDate}
-                placeholder="YYYY-MM-DD"
-                autoCapitalize="none"
-                placeholderTextColor={colors.textSubtle}
-                style={{
-                  ...fieldStyle,
-                }}
+                onChange={setDischargeDate}
+                minimumDate={admissionDate}
+                maximumDate={new Date()}
+                placeholder={t("insurance.claim.pickDate", "Select date")}
               />
-            </View>
-          </View>
+            </Field>
+          ) : null}
 
-          <View style={{ gap: 8 }}>
-            <AppText size="sm" weight="600" color="muted">
-              {t("insurance.claim.diagnosis")}
-            </AppText>
+          <Field label={t("insurance.claim.diagnosis")}>
             <TextInput
               value={diagnosis}
               onChangeText={setDiagnosis}
               placeholder={t("insurance.claim.diagnosisPlaceholder")}
               multiline
               placeholderTextColor={colors.textSubtle}
-              style={{
-                ...fieldStyle,
-                minHeight: 88,
-                paddingTop: 12,
-                textAlignVertical: "top",
-              }}
+              style={multilineStyle}
             />
-          </View>
+          </Field>
+        </Card>
 
-          <View style={{ gap: 8 }}>
-            <AppText size="sm" weight="600" color="muted">
-              {t("insurance.claim.amount")}
+        {/* ── Amount ─────────────────────────────────────────── */}
+        <SectionHeader kicker={step(4)} title={t("insurance.claim.amount")} />
+        <Card style={{ padding: 18, gap: 8 }}>
+          <View style={[fieldShell, { minHeight: 64 }]}>
+            <AppText weight="700" size="md" color="subtle">
+              LKR
             </AppText>
             <TextInput
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
+              value={amount ? formatLkr(amountNum) : ""}
+              onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, "").slice(0, 10))}
+              keyboardType="number-pad"
               placeholder="0"
               placeholderTextColor={colors.textSubtle}
-              style={{
-                ...fieldStyle,
-              }}
+              style={{ flex: 1, ...typography.display.sm, color: colors.text, paddingVertical: 0 }}
             />
           </View>
-
-          <View style={{ gap: 8 }}>
-            <AppText size="sm" weight="600" color="muted">
-              {t("insurance.claim.remarks")}
-            </AppText>
-            <TextInput
-              value={remarks}
-              onChangeText={setRemarks}
-              multiline
-              placeholderTextColor={colors.textSubtle}
-              style={{
-                ...fieldStyle,
-                minHeight: 88,
-                paddingTop: 12,
-                textAlignVertical: "top",
-              }}
-            />
-          </View>
+          <AppText size="xs" color="subtle">
+            {t("insurance.claim.amountHint", "Enter the total on your final bill.")}
+          </AppText>
         </Card>
 
-        <SectionHeader title={t("insurance.claim.documents")} />
-        <Card style={{ padding: 20, gap: 14 }}>
-          <AppText size="xs" color="muted">
-            {t("insurance.claim.docKindHint") ||
-              "Pick the document type before adding."}
-          </AppText>
-          <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-            {DOC_KINDS.map((d) => (
-              <Chip
-                key={d}
-                label={t(`insurance.claim.docKinds.${d}`)}
-                selected={pendingDocKind === d}
-                onPress={() => setPendingDocKind(d)}
-              />
-            ))}
-          </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Button
-              variant="secondary"
-              label={t("insurance.claim.uploadDoc") || "Upload file"}
-              icon={Upload}
-              onPress={onPickDocument}
-              loading={uploadMut.isPending}
-              style={{ flex: 1 }}
-            />
-            <Button
-              variant="secondary"
-              label={t("insurance.claim.takePhoto") || "Photo"}
-              icon={Camera}
-              onPress={onTakePhoto}
-              loading={uploadMut.isPending}
-              style={{ flex: 1 }}
-            />
-          </View>
-          {docs.length === 0 ? (
-            <AppText size="xs" color="muted">
-              {t("insurance.claim.noDocs") || "No documents attached yet."}
+        {/* ── Documents ──────────────────────────────────────── */}
+        <SectionHeader
+          kicker={step(5)}
+          title={t("insurance.claim.documents")}
+          count={docs.length || undefined}
+        />
+        <Card style={{ padding: 18, gap: 16 }}>
+          <View style={{ gap: 8 }}>
+            <AppText size="xs" weight="600" color="muted">
+              {t("insurance.claim.required", "Required for review")}
             </AppText>
-          ) : (
-            docs.map((d, i) => (
-              <View
-                key={i}
+            {requiredDocs.map((k) => {
+              const done = docs.some((d) => d.kind === k);
+              const Icon = done ? CheckCircle2 : Circle;
+              return (
+                <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Icon size={18} color={done ? colors.accent : colors.textSubtle} strokeWidth={2.2} />
+                  <AppText
+                    size="sm"
+                    weight={done ? "600" : undefined}
+                    color={done ? "text" : "muted"}
+                  >
+                    {t(`insurance.claim.docKinds.${k}`)}
+                  </AppText>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.separator }} />
+
+          <View style={{ gap: 10 }}>
+            <AppText size="xs" weight="600" color="muted">
+              {t("insurance.claim.docKindHint", "Pick the document type before adding.")}
+            </AppText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -18 }}
+              contentContainerStyle={{ paddingHorizontal: 18, gap: 8 }}
+            >
+              {DOC_KINDS.map((d) => (
+                <Chip
+                  key={d}
+                  label={t(`insurance.claim.docKinds.${d}`)}
+                  selected={pendingDocKind === d}
+                  onPress={() => setPendingDocKind(d)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <UploadTile
+              icon={Upload}
+              label={t("insurance.claim.uploadDoc", "Upload file")}
+              sub={t("insurance.claim.uploadDocSub", "PDF or image")}
+              busy={uploadingVia === "file"}
+              disabled={!!uploadingVia}
+              onPress={onPickDocument}
+            />
+            <UploadTile
+              icon={Camera}
+              label={t("insurance.claim.takePhoto", "Take photo")}
+              sub={t("insurance.claim.takePhotoSub", "Scan a paper bill")}
+              busy={uploadingVia === "camera"}
+              disabled={!!uploadingVia}
+              onPress={onTakePhoto}
+            />
+          </View>
+
+          {docs.map((d, i) => (
+            <View
+              key={`${d.fileKey}-${i}`}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                padding: 10,
+                backgroundColor: colors.well,
+                borderRadius: radius.field,
+                borderCurve: "continuous",
+              }}
+            >
+              <IconTile icon={FileText} tone="primary" size={36} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <AppText size="sm" weight="600">
+                  {t(`insurance.claim.docKinds.${d.kind}`)}
+                </AppText>
+                <AppText size="xs" color="muted" numberOfLines={1}>
+                  {d.fileName}
+                </AppText>
+              </View>
+              <Pressable
+                haptic="light"
+                onPress={() => removeDoc(i)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.remove", "Remove")}
+                hitSlop={8}
                 style={{
-                  flexDirection: "row",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
                   alignItems: "center",
-                  gap: 12,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: colors.surfaceMuted,
-                  borderRadius: 14,
-                  borderCurve: "continuous",
+                  justifyContent: "center",
+                  backgroundColor: colors.surface,
                 }}
               >
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    borderCurve: "continuous",
-                    backgroundColor: colors.primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <FileText size={15} color={colors.primary} strokeWidth={2.3} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText size="sm" weight="600">
-                    {t(`insurance.claim.docKinds.${d.kind}`)}
-                  </AppText>
-                  <AppText size="xs" color="muted" numberOfLines={1}>
-                    {d.fileName}
-                  </AppText>
-                </View>
-                <Pill
-                  tone="neutral"
-                  onPress={() => removeDoc(i)}
-                  style={{ paddingHorizontal: 6 }}
-                >
-                  <X size={12} color={colors.textMuted} />
-                </Pill>
-              </View>
-            ))
-          )}
+                <X size={14} color={colors.textMuted} strokeWidth={2.4} />
+              </Pressable>
+            </View>
+          ))}
         </Card>
 
-        <Button
-          label={t("insurance.claim.submit")}
-          size="lg"
-          onPress={onSubmit}
-          disabled={!enrollmentId || !amount}
-          loading={createMut.isPending || submitMut.isPending}
+        {/* ── Notes ──────────────────────────────────────────── */}
+        <SectionHeader title={t("insurance.claim.remarks")} />
+        <TextInput
+          value={remarks}
+          onChangeText={setRemarks}
+          multiline
+          placeholder={t("insurance.claim.remarksPlaceholder", "Optional — anything the reviewer should know")}
+          placeholderTextColor={colors.textSubtle}
+          style={{ ...multilineStyle, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.hairline }}
         />
       </ScrollView>
+
+      {/* ── Sticky submit ────────────────────────────────────── */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, spacing.lg),
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
+        }}
+      >
+        <View style={{ minWidth: 0, flexShrink: 1 }}>
+          <AppText size="xs" color="subtle">
+            {t("insurance.claim.claiming", "Claiming")}
+          </AppText>
+          <AppText weight="700" size="md" numberOfLines={1}>
+            LKR {formatLkr(amountNum)}
+          </AppText>
+        </View>
+        <Button
+          title={t("insurance.claim.submit")}
+          icon={Send}
+          onPress={onSubmit}
+          disabled={!canSubmit}
+          loading={createMut.isPending || submitMut.isPending}
+          style={{ flex: 1 }}
+        />
+      </View>
     </Screen>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <AppText size="sm" weight="600" color="muted">
+        {label}
+      </AppText>
+      {children}
+    </View>
+  );
+}
+
+function UploadTile({ icon, label, sub, busy, disabled, onPress }) {
+  const { colors, radius } = useTheme();
+  return (
+    <Pressable
+      haptic="light"
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      wrapperStyle={{ flex: 1 }}
+      style={{
+        alignItems: "center",
+        gap: 8,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        borderWidth: 1.5,
+        borderStyle: "dashed",
+        borderColor: colors.primary,
+        backgroundColor: colors.primarySoft,
+        opacity: disabled && !busy ? 0.5 : 1,
+      }}
+    >
+      {busy ? (
+        <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : (
+        <IconTile icon={icon} tone="primary" appearance="solid" size={40} />
+      )}
+      <AppText size="sm" weight="600" color="primary" numberOfLines={1}>
+        {label}
+      </AppText>
+      <AppText size="xs" color="muted" numberOfLines={1}>
+        {sub}
+      </AppText>
+    </Pressable>
   );
 }
 

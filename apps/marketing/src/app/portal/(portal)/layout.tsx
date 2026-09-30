@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { X } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
+import { useUiStore } from "@/portal/stores/ui";
 import { Sidebar } from "@/portal/components/shell/Sidebar";
 import { Topbar } from "@/portal/components/shell/Topbar";
 import { useRealtime } from "@/portal/hooks/useRealtime";
@@ -54,6 +56,14 @@ export default function PortalLayout({
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
+  const pathname = usePathname();
+  const mobileNavOpen = useUiStore((s) => s.mobileNavOpen);
+  const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
+
+  // Drawer closes after every navigation.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname, setMobileNavOpen]);
 
   // Live update: server pushes new notifications → React Query refresh.
   // Called before any early return so the hook order is stable.
@@ -100,7 +110,34 @@ export default function PortalLayout({
 
   return (
     <div className="h-screen flex bg-bg overflow-hidden">
-      <Sidebar />
+      {/* Desktop rail */}
+      <div className="hidden h-full lg:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile drawer */}
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 w-[272px] max-w-[85vw] shadow-2xl">
+            <Sidebar forceExpanded />
+          </div>
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileNavOpen(false)}
+            className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+          >
+            <X size={17} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
         <Topbar />
         <div className="flex-1 min-w-0 overflow-y-auto">

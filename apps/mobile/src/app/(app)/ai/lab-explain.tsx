@@ -12,6 +12,12 @@ import {
   AlertCircle,
   ListChecks,
   Lightbulb,
+  Upload,
+  FolderOpen,
+  ScanText,
+  MessageSquareText,
+  ShieldCheck,
+  TrendingDown,
 } from "lucide-react-native";
 import {
   useAiLabExplain,
@@ -23,7 +29,6 @@ import {
   ScreenHeader,
   Card,
   Button,
-  EmptyState,
   Skeleton,
   Pill as PillCmp,
   SectionHeader,
@@ -251,17 +256,180 @@ export default function LabExplainScreen() {
           ))}
         </View>
       ) : (reports?.reports || []).length === 0 ? (
-        <View style={{ padding: spacing.lg }}>
-          <EmptyState
-            icon={FlaskConical}
-            title={t("aiLabExplain.emptyReportsTitle")}
-            message={t("aiLabExplain.emptyReportsBody")}
-            tone="neutral"
-          />
-        </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.xl }}
+        >
+          {/* Intro + example of what the explainer produces */}
+          <Card padded={false} style={{ overflow: "hidden" }}>
+            <View style={{ padding: spacing.xl, gap: spacing.md, alignItems: "center" }}>
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 22,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.accentSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FlaskConical size={30} color={colors.accent} strokeWidth={2} />
+                <View
+                  style={{
+                    position: "absolute",
+                    right: -6,
+                    top: -6,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: colors.accent,
+                    borderWidth: 3,
+                    borderColor: colors.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Sparkles size={12} color={colors.onAccent} strokeWidth={2.6} />
+                </View>
+              </View>
+              <Text style={[typography.title.lg, { color: colors.text, textAlign: "center" }]}>
+                {t("aiLabExplain.empty.title", "Understand your lab results")}
+              </Text>
+              <Text style={[typography.body.md, { color: colors.textMuted, textAlign: "center" }]}>
+                {t(
+                  "aiLabExplain.empty.body",
+                  "Add a lab report and we'll explain each value in plain language — what's normal, what to watch, and what to ask your doctor."
+                )}
+              </Text>
+            </View>
+
+            {/* Example output */}
+            <View
+              style={{
+                marginHorizontal: spacing.lg,
+                marginBottom: spacing.lg,
+                padding: spacing.md,
+                borderRadius: 18,
+                borderCurve: "continuous",
+                backgroundColor: colors.fill,
+                gap: spacing.sm,
+              }}
+            >
+              <Text style={[typography.overline, { color: colors.textSubtle, fontSize: 10 }]}>
+                {t("aiLabExplain.empty.exampleLabel", "Example")}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 10,
+                    backgroundColor: colors.warningSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <TrendingDown size={15} color={colors.warning} strokeWidth={2.4} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[typography.title.xs, { color: colors.text }]}>
+                    {t("aiLabExplain.empty.exampleValue", "Haemoglobin · 11.2 g/dL")}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.warning }]}>
+                    {t("aiLabExplain.empty.exampleFlag", "Slightly below range")}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[typography.body.sm, { color: colors.textMuted }]}>
+                {t(
+                  "aiLabExplain.empty.exampleText",
+                  "This carries oxygen in your blood. A little low can cause tiredness — worth asking about iron levels."
+                )}
+              </Text>
+            </View>
+          </Card>
+
+          {/* Steps */}
+          <View style={{ gap: spacing.md }}>
+            <Text style={[typography.overline, { color: colors.textMuted, marginLeft: 4 }]}>
+              {t("aiLabExplain.empty.howTitle", "How it works")}
+            </Text>
+            <Card padded={false}>
+              {[
+                { icon: Upload, text: t("aiLabExplain.empty.step1", "Upload a PDF or photo of your report") },
+                { icon: ScanText, text: t("aiLabExplain.empty.step2", "We read each test value and its range") },
+                { icon: MessageSquareText, text: t("aiLabExplain.empty.step3", "Get a plain-language explanation") },
+              ].map((step, i, all) => (
+                <View key={i}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        backgroundColor: colors.primarySoft,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <step.icon size={17} color={colors.primary} strokeWidth={2.3} />
+                    </View>
+                    <Text style={[typography.body.md, { color: colors.text, flex: 1 }]}>
+                      {step.text}
+                    </Text>
+                    <Text style={[typography.label.md, { color: colors.textSubtle }]}>{i + 1}</Text>
+                  </View>
+                  {i < all.length - 1 ? <Divider inset={spacing.lg + 36 + spacing.md} /> : null}
+                </View>
+              ))}
+            </Card>
+          </View>
+
+          <View style={{ gap: spacing.sm }}>
+            <Button
+              title={t("aiLabExplain.empty.upload", "Upload a lab report")}
+              icon={Upload}
+              size="lg"
+              onPress={() => router.push("/(app)/add-record")}
+            />
+            <Button
+              title={t("aiLabExplain.empty.browse", "Browse my records")}
+              icon={FolderOpen}
+              variant="ghost"
+              onPress={() => router.push("/(app)/records")}
+            />
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, paddingHorizontal: spacing.md }}>
+            <ShieldCheck size={13} color={colors.textSubtle} strokeWidth={2.3} style={{ marginTop: 1 }} />
+            <Text style={[typography.caption, { color: colors.textSubtle, flex: 1 }]}>
+              {t("aiLabExplain.disclaimer")}
+            </Text>
+          </View>
+        </ScrollView>
       ) : aiExplain.isPending ? (
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.xs }}>
+            <Sparkles size={16} color={colors.accent} strokeWidth={2.4} />
+            <Text style={[typography.title.sm, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+              {t("aiLabExplain.reading", {
+                name: selectedReport?.reportType ?? "",
+                defaultValue: "Reading {{name}}…",
+              })}
+            </Text>
+          </View>
           <Skeleton height={120} radius={20} />
+          <Skeleton height={80} radius={16} />
           <Skeleton height={80} radius={16} />
         </View>
       ) : (

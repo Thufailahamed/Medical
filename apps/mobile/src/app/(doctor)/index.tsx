@@ -57,7 +57,6 @@ import {
   Pill,
   EmptyState,
   ErrorState,
-  DoseRing,
   IconButton,
   IconTile,
   SectionHeader,
@@ -221,8 +220,8 @@ export default function DoctorHub() {
           style={{
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.xs,
-            paddingBottom: spacing.sm,
-            gap: spacing.sm,
+            paddingBottom: spacing.md,
+            gap: spacing.md,
           }}
         >
           <View
@@ -241,7 +240,7 @@ export default function DoctorHub() {
                 flex: 1,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.sm,
+                gap: spacing.md,
                 opacity: pressed ? 0.75 : 1,
               })}
             >
@@ -250,15 +249,15 @@ export default function DoctorHub() {
                   colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={{ width: 46, height: 46, borderRadius: 23, padding: 2 }}
+                  style={{ width: 48, height: 48, borderRadius: 24, padding: 2 }}
                 >
                   {userPhoto ? (
                     <Image
                       source={{ uri: userPhoto }}
                       style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 21,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
                         backgroundColor: colors.surfaceMuted,
                         borderWidth: 2,
                         borderColor: colors.bg,
@@ -267,9 +266,9 @@ export default function DoctorHub() {
                   ) : (
                     <View
                       style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 21,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
                         backgroundColor: colors.primarySoft,
                         borderWidth: 2,
                         borderColor: colors.bg,
@@ -307,33 +306,29 @@ export default function DoctorHub() {
                 ) : null}
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text
-                    numberOfLines={1}
-                    style={[typography.title.md, { color: colors.text }]}
-                  >
-                    {t("doctor.brand", "Healers")}
-                  </Text>
-                  <View
-                    style={{
-                      paddingHorizontal: 7,
-                      paddingVertical: 2,
-                      borderRadius: 999,
-                      backgroundColor: colors.primarySoft,
-                      borderWidth: StyleSheet.hairlineWidth * 2,
-                      borderColor: "rgba(2,132,199,0.18)",
-                    }}
-                  >
-                    <Text style={[typography.overline, { fontSize: 9, lineHeight: 12, color: colors.primary }]}>
-                      MD
-                    </Text>
-                  </View>
-                </View>
                 <Text
-                  style={[typography.caption, { color: colors.textMuted, marginTop: 1 }]}
                   numberOfLines={1}
+                  style={[typography.caption, { color: colors.textMuted }]}
                 >
-                  {specialization || t("doctor.welcomeFallback", "General Practice")}
+                  {greeting}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontFamily: fontFamily.displayBold,
+                    fontSize: 22,
+                    lineHeight: 27,
+                    letterSpacing: -0.5,
+                    color: colors.text,
+                  }}
+                >
+                  {heroName}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[typography.caption, { color: colors.textSubtle }]}
+                >
+                  {specialization || t("doctorProfile.generalPractice", "General Practice")}
                 </Text>
               </View>
             </Pressable>
@@ -349,14 +344,13 @@ export default function DoctorHub() {
           </View>
 
           {/* Workspace — renders nothing when the doctor has no memberships */}
-          <TenantSwitcher variant="row" caption={t("doctor.workspaceLabel", "Workspace")} />
+          <TenantSwitcher variant="chip" />
         </View>
 
         {/* ─── Hero Card ──────────────────────────────────────────── */}
         <View
           style={{
             marginHorizontal: spacing.lg,
-            marginTop: spacing.xs,
             borderRadius: 28,
             borderCurve: "continuous",
             overflow: "hidden",
@@ -383,152 +377,112 @@ export default function DoctorHub() {
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-
-          {/* Ambient Lighting Orbs */}
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
-              top: -50,
-              right: -30,
-              width: 160,
-              height: 160,
-              borderRadius: 80,
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              bottom: -60,
-              left: -40,
-              width: 170,
-              height: 170,
-              borderRadius: 85,
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              top: -70,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: 100,
+              borderWidth: 28,
+              borderColor: "rgba(255,255,255,0.05)",
             }}
           />
 
+          {/* Date + duty status */}
           <View
             style={{
               flexDirection: "row",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "space-between",
+              gap: spacing.sm,
             }}
           >
-            <View style={{ flex: 1, marginRight: spacing.md }}>
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: "rgba(255,255,255,0.78)",
-                  fontSize: 11,
-                  fontWeight: "800",
-                  letterSpacing: 1.1,
-                  fontFamily: fontFamily.displayBold,
-                  textTransform: "uppercase",
-                }}
-              >
-                {headerDate}
-              </Text>
-
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 32,
-                  lineHeight: 38,
-                  letterSpacing: -0.6,
-                  fontWeight: "800",
-                  marginTop: 4,
-                  fontFamily: fontFamily.displayBold,
-                }}
-              >
-                {heroName}
-              </Text>
-
-              {/* Status Badge */}
+            <Text
+              numberOfLines={1}
+              style={{
+                flexShrink: 1,
+                color: "rgba(255,255,255,0.72)",
+                fontSize: 11,
+                letterSpacing: 1.2,
+                fontFamily: fontFamily.displayBold,
+                textTransform: "uppercase",
+              }}
+            >
+              {headerDate}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                backgroundColor: "rgba(52,211,153,0.16)",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: "rgba(52,211,153,0.45)",
+              }}
+            >
               <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  alignSelf: "flex-start",
-                  gap: 6,
-                  marginTop: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 999,
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: "rgba(255,255,255,0.28)",
-                }}
-              >
-                <View
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 3.5,
-                    backgroundColor: "#34D399",
-                  }}
-                />
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 12,
-                    fontWeight: "700",
-                    fontFamily: fontFamily.bodyBold,
-                  }}
-                >
-                  {t("doctor.onDuty", "On duty")}
-                </Text>
-                {verified ? (
-                  <BadgeCheck size={14} color="#34D399" strokeWidth={2.4} />
-                ) : null}
-              </View>
-
-            </View>
-
-            {/* Circular Gauge */}
-            <View style={{ width: 88, height: 88, alignItems: "center", justifyContent: "center" }}>
-              <DoseRing
-                value={todayCount > 0 ? Math.min(todayCount / 10, 1) : 0}
-                size={88}
-                trackColor="rgba(255,255,255,0.16)"
-                progressColor="#5EEAD4"
-                centerColor="rgba(255,255,255,0.06)"
-                accessibilityLabel={t("doctor.todayAppointmentsA11y", {
-                  count: todayCount,
-                })}
+                style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#34D399" }}
               />
-              <View
-                pointerEvents="none"
-                style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}
+              <Text
+                style={{ color: "#D1FAE5", fontSize: 11.5, fontFamily: fontFamily.bodyBold }}
               >
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 26,
-                    lineHeight: 30,
-                    fontWeight: "800",
-                    fontFamily: fontFamily.displayBold,
-                    letterSpacing: -0.5,
-                  }}
-                >
-                  {todayCount}
-                </Text>
-                <Text
-                  style={{
-                    color: "rgba(255,255,255,0.72)",
-                    fontSize: 10,
-                    fontWeight: "700",
-                    letterSpacing: 0.6,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("doctor.todayAppointments", "Today")}
-                </Text>
-              </View>
+                {t("doctor.onDuty", "On duty")}
+              </Text>
             </View>
+          </View>
+
+          {/* Headline — today's workload */}
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, marginTop: spacing.md }}>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 52,
+                lineHeight: 56,
+                letterSpacing: -2,
+                fontFamily: fontFamily.heavy ?? fontFamily.displayBold,
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {todayCount}
+            </Text>
+            <View style={{ flex: 1, paddingBottom: 8 }}>
+              <Text
+                numberOfLines={1}
+                style={{ color: "#FFFFFF", fontSize: 16, lineHeight: 20, fontFamily: fontFamily.bodyBold }}
+              >
+                {t("doctor.heroApptLabel", { count: todayCount })}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 17, fontFamily: fontFamily.body }}
+              >
+                {upcoming > 0
+                  ? t("doctor.heroWaiting", { count: upcoming })
+                  : t("doctor.heroQueueClear", "No one waiting right now")}
+              </Text>
+            </View>
+          </View>
+
+          {/* Primary actions */}
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
+            <HeroButton
+              primary
+              icon={Clock4}
+              label={t("doctor.openQueue", "Open queue")}
+              badge={upcoming}
+              onPress={() => router.push("/queue" as any)}
+            />
+            <HeroButton
+              icon={CalendarDays}
+              label={t("schedule.title", "Schedule")}
+              onPress={() => router.push("/schedule" as any)}
+            />
           </View>
 
           {/* Hero Metrics Strip */}
@@ -537,12 +491,9 @@ export default function DoctorHub() {
               flexDirection: "row",
               alignItems: "stretch",
               marginTop: spacing.lg,
-              paddingVertical: spacing.md,
-              borderRadius: 20,
-              borderCurve: "continuous",
-              backgroundColor: "rgba(255,255,255,0.10)",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: "rgba(255,255,255,0.20)",
+              paddingTop: spacing.md,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: "rgba(255,255,255,0.18)",
             }}
           >
             <HeroMetric
@@ -577,15 +528,14 @@ export default function DoctorHub() {
             gap: spacing.xxl,
           }}
         >
-          {/* Today's Pulse */}
+          {/* Quick Actions — 4-up launcher */}
           <View style={{ gap: spacing.md }}>
-            <SectionHeader kicker={t("doctor.kicker.today", "Live")} title={t("doctor.statsStrip.label", "Today's Pulse")} style={{ paddingTop: 0, paddingBottom: 0 }} />
+            <SectionHeader kicker={t("doctor.kicker.workspace", "Workspace")} title={t("doctor.sectionQuickActions", "Quick Actions")} style={{ paddingTop: 0, paddingBottom: 0 }} />
             <View
               style={{
                 flexDirection: "row",
-                alignItems: "stretch",
-                paddingVertical: spacing.sm,
-                paddingHorizontal: 6,
+                paddingVertical: spacing.lg,
+                paddingHorizontal: spacing.xs,
                 borderRadius: radius.card,
                 borderCurve: "continuous",
                 backgroundColor: colors.surface,
@@ -594,84 +544,60 @@ export default function DoctorHub() {
                 ...(isDark ? {} : shadow.card),
               }}
             >
-              <StatTile
-                icon={Clock4}
-                label={t("doctor.stats.inQueue", "In queue")}
-                value={upcoming}
-                sub={t("doctor.statsSub.waiting")}
-                tone="primary"
-                live={upcoming > 0}
-                onPress={() => router.push("/queue" as any)}
-              />
-              <PulseDivider />
-              <StatTile
+              <QuickTile
                 icon={FileText}
-                label={t("doctor.stats.rxWritten", "Rx written")}
-                value={rxCount}
-                sub={t("doctor.statsSub.issued")}
-                tone="accent"
-                onPress={() => router.push("/(doctor)/prescriptions" as any)}
-              />
-              <PulseDivider />
-              <StatTile
-                icon={Edit3}
-                label={t("doctor.stats.notes", "Notes")}
-                value={notesCount}
-                sub={t("doctor.statsSub.recorded")}
-                tone="accent2"
-                onPress={() => router.push("/clinical-notes" as any)}
-              />
-            </View>
-          </View>
-
-          {/* Quick Actions 2x2 Grid */}
-          <View style={{ gap: spacing.md }}>
-            <SectionHeader kicker={t("doctor.kicker.workspace", "Workspace")} title={t("doctor.sectionQuickActions", "Quick Actions")} style={{ paddingTop: 0, paddingBottom: 0 }} />
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <QuickTile
-                icon={CalendarDays}
-                label={t("schedule.title", "Schedule")}
-                subtitle={
-                  todayCount > 0
-                    ? t("doctor.tiles.scheduleSubtitleCount", { count: todayCount })
-                    : t("doctor.tiles.scheduleSubtitleEmpty")
-                }
+                label={t("doctor.tiles.prescribeShort", "Prescribe")}
                 tone="primary"
-                badge={todayCount}
-                onPress={() => router.push("/schedule" as any)}
+                onPress={() => router.push("/prescription" as any)}
               />
-              <QuickTile
-                icon={Wallet}
-                label={t("earnings.title", "Earnings")}
-                subtitle={t("doctor.tiles.earningsSubtitle")}
-                tone="warning"
-                onPress={() => router.push("/earnings" as any)}
-              />
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <QuickTile
                 icon={Inbox}
                 label={t("inbox.title", "Messages")}
-                subtitle={
-                  unreadN > 0
-                    ? t("doctor.tiles.inboxSubtitleCount", { count: unreadN })
-                    : t("doctor.tiles.inboxSubtitleEmpty")
-                }
                 tone="accent"
                 badge={unreadN}
                 onPress={() => router.push("/inbox" as any)}
               />
               <QuickTile
                 icon={FlaskConical}
-                label={t("doctor.tiles.labTitle", "Lab Orders")}
-                subtitle={
-                  labCount > 0
-                    ? t("doctor.tiles.labSubtitleCount", { count: labCount })
-                    : t("doctor.tiles.labSubtitleEmpty")
-                }
+                label={t("doctor.tiles.labShort", "Labs")}
                 tone="info"
                 badge={labCount}
                 onPress={() => router.push("/lab-orders" as any)}
+              />
+              <QuickTile
+                icon={Wallet}
+                label={t("earnings.title", "Earnings")}
+                tone="warning"
+                onPress={() => router.push("/earnings" as any)}
+              />
+            </View>
+          </View>
+
+          {/* Today's Pulse */}
+          <View style={{ gap: spacing.md }}>
+            <SectionHeader kicker={t("doctor.kicker.today", "Live")} title={t("doctor.statsStrip.label", "Today's Pulse")} style={{ paddingTop: 0, paddingBottom: 0 }} />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <StatTile
+                icon={Clock4}
+                label={t("doctor.stats.inQueue", "In queue")}
+                value={upcoming}
+                tone="primary"
+                live={upcoming > 0}
+                onPress={() => router.push("/queue" as any)}
+              />
+              <StatTile
+                icon={FileText}
+                label={t("doctor.stats.rxWritten", "Rx written")}
+                value={rxCount}
+                tone="accent"
+                onPress={() => router.push("/(doctor)/prescriptions" as any)}
+              />
+              <StatTile
+                icon={Edit3}
+                label={t("doctor.stats.notes", "Notes")}
+                value={notesCount}
+                tone="accent2"
+                onPress={() => router.push("/clinical-notes" as any)}
               />
             </View>
           </View>
@@ -943,126 +869,126 @@ function HeroDivider() {
   );
 }
 
+function HeroButton({
+  icon: Icon,
+  label,
+  primary,
+  badge,
+  onPress,
+}: {
+  icon: any;
+  label: string;
+  primary?: boolean;
+  badge?: number;
+  onPress: () => void;
+}) {
+  const { fontFamily } = useTheme();
+  const fg = primary ? "#0A4874" : "#FFFFFF";
+  return (
+    <Touchable
+      onPress={onPress}
+      haptic="light"
+      pressedScale={0.97}
+      accessibilityRole="button"
+      accessibilityLabel={badge ? `${label}, ${badge}` : label}
+      wrapperStyle={{ flex: 1 }}
+      style={{
+        height: 46,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 999,
+        borderCurve: "continuous",
+        backgroundColor: primary ? "#FFFFFF" : "rgba(255,255,255,0.14)",
+        borderWidth: primary ? 0 : StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.3)",
+      }}
+    >
+      <Icon size={17} color={fg} strokeWidth={2.4} />
+      <Text numberOfLines={1} style={{ color: fg, fontSize: 14.5, fontFamily: fontFamily.bodyBold }}>
+        {label}
+      </Text>
+      {badge ? (
+        <View
+          style={{
+            minWidth: 20,
+            height: 20,
+            paddingHorizontal: 6,
+            borderRadius: 10,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#0A4874",
+          }}
+        >
+          <Text style={{ color: "#FFFFFF", fontSize: 11, fontFamily: fontFamily.bodyBold }}>
+            {badge > 99 ? "99+" : badge}
+          </Text>
+        </View>
+      ) : null}
+    </Touchable>
+  );
+}
+
 function QuickTile({
   icon: Icon,
   label,
-  subtitle,
   tone,
   badge,
   onPress,
 }: {
   icon: any;
   label: string;
-  subtitle?: string;
   tone: Tone;
   badge?: number;
   onPress: () => void;
 }) {
-  const { colors, spacing, radius, typography, shadow, scheme, fontFamily } = useTheme();
-  const palette = useTone(tone);
-  const isDark = scheme === "dark";
+  const { colors, typography } = useTheme();
 
   return (
     <Touchable
       onPress={onPress}
       haptic="light"
-      pressedScale={0.97}
-      pressedOpacity={0.96}
+      pressedScale={0.94}
       accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
-      wrapperStyle={isDark ? null : [shadow.card, { borderRadius: radius.card }]}
-      style={{
-        flex: 1,
-        padding: spacing.lg,
-        borderRadius: radius.card,
-        borderCurve: "continuous",
-        backgroundColor: colors.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: isDark ? colors.borderStrong : colors.hairline,
-        minHeight: 140,
-        justifyContent: "space-between",
-        overflow: "hidden",
-      }}
+      accessibilityLabel={badge ? `${label}, ${badge}` : label}
+      wrapperStyle={{ flex: 1 }}
+      style={{ alignItems: "center", gap: 8 }}
     >
-      {/* Soft tone wash — lit from the icon corner, fading into the card */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[palette.bg, isDark ? "rgba(0,0,0,0)" : "rgba(255,255,255,0)"]}
-        locations={[0, 0.75]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-        }}
-      >
-        <IconTile icon={Icon} tone={tone} appearance="solid" size={44} />
+      <View>
+        <IconTile icon={Icon} tone={tone} appearance="solid" size={52} />
         {badge !== undefined && badge > 0 ? (
           <View
             style={{
-              minWidth: 24,
-              height: 24,
-              paddingHorizontal: 7,
-              borderRadius: 12,
+              position: "absolute",
+              top: -5,
+              right: -7,
+              minWidth: 20,
+              height: 20,
+              paddingHorizontal: 5,
+              borderRadius: 10,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: palette.bgStrong,
+              backgroundColor: colors.danger,
+              borderWidth: 2,
+              borderColor: colors.surface,
             }}
           >
-            <Text style={[typography.label.xs, { color: palette.onBgStrong }]}>
+            <Text style={[typography.label.xs, { fontSize: 10, color: "#FFFFFF" }]}>
               {badge > 99 ? "99+" : badge}
             </Text>
           </View>
-        ) : (
-          <View
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.well,
-            }}
-          >
-            <ArrowUpRight size={14} color={colors.textMuted} strokeWidth={2.4} />
-          </View>
-        )}
-      </View>
-
-      <View style={{ marginTop: spacing.lg, gap: 3 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontFamily: fontFamily.bodySemibold, fontSize: 16.5, lineHeight: 21, letterSpacing: -0.3, color: colors.text }}
-        >
-          {label}
-        </Text>
-        {subtitle ? (
-          <Text
-            numberOfLines={1}
-            style={[typography.caption, { color: colors.textMuted }]}
-          >
-            {subtitle}
-          </Text>
         ) : null}
       </View>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[typography.label.md, { color: colors.text, textAlign: "center" }]}
+      >
+        {label}
+      </Text>
     </Touchable>
-  );
-}
-
-function PulseDivider() {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={{
-        width: StyleSheet.hairlineWidth,
-        marginVertical: 14,
-        backgroundColor: colors.separator,
-      }}
-    />
   );
 }
 
@@ -1070,7 +996,6 @@ function StatTile({
   icon: Icon,
   label,
   value,
-  sub,
   tone = "primary",
   live,
   onPress,
@@ -1078,86 +1003,96 @@ function StatTile({
   icon: any;
   label: string;
   value: number | string;
-  sub?: string;
   tone?: Tone;
-  /** Shows a pulsing-style dot beside the value (e.g. patients waiting). */
+  /** Shows a live dot beside the value (e.g. patients waiting). */
   live?: boolean;
   onPress?: () => void;
 }) {
-  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily, radius, shadow, scheme } = useTheme();
   const palette = useTone(tone);
+  const isDark = scheme === "dark";
 
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
       disabled={!onPress}
+      haptic="light"
+      pressedScale={0.97}
       accessibilityRole="button"
-      accessibilityLabel={sub ? `${label}: ${value}. ${sub}` : `${label}: ${value}`}
-      style={({ pressed }) => ({
-        flex: 1,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.md - 2,
-        borderRadius: 18,
+      accessibilityLabel={`${label}: ${value}`}
+      wrapperStyle={[{ flex: 1 }, isDark ? null : [shadow.card, { borderRadius: radius.xl }]]}
+      style={{
+        padding: spacing.md,
+        borderRadius: radius.xl,
         borderCurve: "continuous",
-        backgroundColor: pressed ? colors.fill : "transparent",
-      })}
+        backgroundColor: colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        overflow: "hidden",
+      }}
     >
+      {/* Tone accent bar */}
       <View
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          borderCurve: "continuous",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: palette.bg,
+          position: "absolute",
+          top: 0,
+          left: spacing.md,
+          width: 22,
+          height: 3,
+          borderBottomLeftRadius: 2,
+          borderBottomRightRadius: 2,
+          backgroundColor: palette.fg,
         }}
-      >
-        <Icon size={16} color={palette.fg} strokeWidth={2.3} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.md }}>
-        <Text
+      />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
           style={{
-            fontFamily: fontFamily.heavy,
-            fontSize: 30,
-            lineHeight: 34,
-            letterSpacing: -1.1,
-            color: colors.text,
-            fontVariant: ["tabular-nums"],
+            width: 28,
+            height: 28,
+            borderRadius: 9,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: palette.bg,
           }}
         >
-          {value}
-        </Text>
+          <Icon size={14} color={palette.fg} strokeWidth={2.4} />
+        </View>
         {live ? (
           <View
             style={{
               width: 8,
               height: 8,
               borderRadius: 4,
-              backgroundColor: palette.fg,
+              backgroundColor: colors.success,
               borderWidth: 2,
-              borderColor: palette.bg,
+              borderColor: colors.successSoft,
             }}
           />
         ) : null}
       </View>
       <Text
+        style={{
+          fontFamily: fontFamily.heavy,
+          fontSize: 26,
+          lineHeight: 30,
+          letterSpacing: -1,
+          color: colors.text,
+          marginTop: spacing.sm,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {value}
+      </Text>
+      <Text
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.8}
-        style={[typography.label.md, { color: colors.text, marginTop: 2 }]}
+        style={[typography.caption, { color: colors.textMuted }]}
       >
         {label}
       </Text>
-      {sub ? (
-        <Text
-          numberOfLines={1}
-          style={[typography.caption, { fontSize: 11.5, color: colors.textSubtle, marginTop: 1 }]}
-        >
-          {sub}
-        </Text>
-      ) : null}
-    </Pressable>
+    </Touchable>
   );
 }
 

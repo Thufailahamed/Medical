@@ -125,7 +125,11 @@ export default function LoginScreen() {
       // Round 2 P0: doctors may be redirected to MFA flow.
       if (verifyRes.mfaRequired && verifyRes.mfaToken) {
         await SecureStore.setItemAsync("auth_token", verifyRes.mfaToken);
-        setUser(verifyRes.user);
+        // NOTE: do NOT call setUser here — the mfaToken is not a full
+        // session. Marking the store authenticated would race the route
+        // guard (authed + in (auth) group → bounce to /(doctor)) and
+        // skip the MFA screens entirely. The MFA screens mint the real
+        // session via /mfa/verify-setup or /mfa/challenge.
         router.replace(
           verifyRes.mfaRequired === "enroll"
             ? ("/(auth)/mfa-setup" as any)
@@ -240,7 +244,8 @@ export default function LoginScreen() {
 
       if (res.mfaRequired && res.mfaToken) {
         await SecureStore.setItemAsync("auth_token", res.mfaToken);
-        setUser(res.user);
+        // NOTE: do NOT call setUser here — see above. The MFA screens
+        // mint the real session.
         router.replace(
           res.mfaRequired === "enroll"
             ? ("/(auth)/mfa-setup" as any)

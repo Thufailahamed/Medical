@@ -9,14 +9,20 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
-  ChevronLeft,
   Plus,
   Trash2,
-  Save,
+  Check,
+  Pill,
+  X,
+  Stethoscope,
+  StickyNote,
 } from "lucide-react-native";
 import {
   useDoctorRxTemplate,
@@ -26,6 +32,7 @@ import {
 } from "@/hooks/useApi";
 import { Screen, ScreenHeader } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
+import { withOpacity } from "@/constants/theme";
 
 type Draft = {
   name: string;
@@ -47,25 +54,30 @@ export default function EditTemplateScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
-  const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
 
   const { data, isLoading } = useDoctorRxTemplate(id);
   const updateMutation = useUpdateRxTemplate();
   const deleteMutation = useDeleteRxTemplate();
 
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Serialized server copy — lets Save stay disabled until something changes.
+  const [baseline, setBaseline] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data?.template) return;
     const tpl = data.template;
-    setDraft({
+    const initial: Draft = {
       name: tpl.name || "",
       diagnosis: tpl.diagnosis || "",
       notes: tpl.notes || "",
       medicines: Array.isArray(tpl.medicines) && tpl.medicines.length
         ? tpl.medicines
         : [{ ...emptyMed }],
-    });
+    };
+    setDraft(initial);
+    setBaseline(JSON.stringify(initial));
   }, [data?.template]);
 
   const setMed = useCallback((idx: number, patch: Partial<MedicineEntry>) => {
@@ -136,6 +148,23 @@ export default function EditTemplateScreen() {
     );
   }, [id, draft?.name, deleteMutation, router, t]);
 
+  const dirty = !!draft && !!baseline && JSON.stringify(draft) !== baseline;
+
+  const goBack = useCallback(() => {
+    if (!dirty) {
+      router.back();
+      return;
+    }
+    Alert.alert(
+      t("rxTemplates.discardTitle", "Discard changes?"),
+      t("rxTemplates.discardBody", "Your edits to this template haven't been saved."),
+      [
+        { text: t("rxTemplates.keepEditing", "Keep editing"), style: "cancel" },
+        { text: t("rxTemplates.discard", "Discard"), style: "destructive", onPress: () => router.back() },
+      ]
+    );
+  }, [dirty, router, t]);
+
   if (isLoading || !draft) {
     return (
       <Screen padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
@@ -146,37 +175,55 @@ export default function EditTemplateScreen() {
     );
   }
 
+  const saving = updateMutation.isPending;
+  const canSave = dirty && !saving;
+  const filledMeds = draft.medicines.filter((m) => m.name.trim()).length;
+
   return (
-    <Screen padded={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
-      {/* Header */}
+    <Screen padded={false} scroll={false} edges={["top"]} style={{ backgroundColor: colors.bg }}>
       <ScreenHeader
         back
-        onBack={() => router.back()}
-        title={draft.name || t("rxTemplates.editTitle")}
-        subtitle={t("rxTemplates.editSubtitle")}
+        onBack={goBack}
+        title={t("rxTemplates.editTitle")}
+        subtitle={
+          dirty
+            ? t("rxTemplates.unsaved", "Unsaved changes")
+            : draft.name || t("rxTemplates.editSubtitle")
+        }
         right={
           <Pressable
             onPress={save}
-            disabled={updateMutation.isPending}
+            disabled={!canSave}
             accessibilityRole="button"
+            accessibilityState={{ disabled: !canSave }}
             style={({ pressed }) => ({
               height: 38,
               paddingHorizontal: 16,
               borderRadius: 19,
-              backgroundColor: colors.primary,
+              borderCurve: "continuous",
+              backgroundColor: canSave || saving ? colors.primary : colors.fill,
               flexDirection: "row",
               alignItems: "center",
               gap: 6,
               opacity: pressed ? 0.85 : 1,
-              ...(scheme === "dark" ? {} : shadow.primary),
+              ...(canSave && !isDark ? shadow.primary : {}),
             })}
           >
-            {updateMutation.isPending ? (
+            {saving ? (
               <ActivityIndicator color={colors.onPrimary} size="small" />
             ) : (
               <>
-                <Save size={14} color={colors.onPrimary} strokeWidth={2.4} />
-                <Text style={[typography.label.md, { color: colors.onPrimary }]}>
+                <Check
+                  size={15}
+                  color={canSave ? colors.onPrimary : colors.textSubtle}
+                  strokeWidth={2.6}
+                />
+                <Text
+                  style={[
+                    typography.label.md,
+                    { color: canSave ? colors.onPrimary : colors.textSubtle },
+                  ]}
+                >
                   {t("common.save")}
                 </Text>
               </>
@@ -185,236 +232,447 @@ export default function EditTemplateScreen() {
         }
       />
 
-      <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Field
-          label={t("rxTemplates.fieldName")}
-          value={draft.name}
-          onChangeText={(text) => setDraft((d) => (d ? { ...d, name: text } : d))}
-          placeholder={t("rxTemplates.fieldNamePlaceholder")}
-        />
-        <Field
-          label={t("rxTemplates.fieldDiagnosis")}
-          value={draft.diagnosis}
-          onChangeText={(text) => setDraft((d) => (d ? { ...d, diagnosis: text } : d))}
-          placeholder={t("rxTemplates.fieldDiagnosisPlaceholder")}
-        />
-
-        <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "800",
-            color: colors.textSubtle,
-            fontFamily: fontFamily.displayBold,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            marginTop: spacing.lg,
-            marginBottom: spacing.sm,
-          }}
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: 120 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
         >
-          {t("rxTemplates.medicinesLabel")}
-        </Text>
-        {draft.medicines.map((m, idx) => (
+          {/* ─── Details ─── */}
+          <SectionLabel>{t("rxTemplates.sectionDetails", "Details")}</SectionLabel>
+          <GroupCard>
+            <LabeledInput
+              label={t("rxTemplates.fieldName")}
+              value={draft.name}
+              onChangeText={(text) => setDraft((d) => (d ? { ...d, name: text } : d))}
+              placeholder={t("rxTemplates.fieldNamePlaceholder")}
+              emphasis
+            />
+            <LabeledInput
+              icon={Stethoscope}
+              label={t("rxTemplates.fieldDiagnosis")}
+              value={draft.diagnosis}
+              onChangeText={(text) => setDraft((d) => (d ? { ...d, diagnosis: text } : d))}
+              placeholder={t("rxTemplates.fieldDiagnosisPlaceholder")}
+            />
+          </GroupCard>
+
+          {/* ─── Medicines ─── */}
           <View
-            key={idx}
             style={{
-              padding: spacing.md,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              marginBottom: spacing.sm,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: spacing.xl,
             }}
+          >
+            <SectionLabel style={{ marginTop: 0 }}>
+              {t("rxTemplates.medicinesLabel")}
+            </SectionLabel>
+            <Text style={[typography.caption, { color: colors.textSubtle, marginBottom: spacing.sm }]}>
+              {t("rxTemplates.medsShort", { count: filledMeds })}
+            </Text>
+          </View>
+
+          <View style={{ gap: spacing.md }}>
+            {draft.medicines.map((m, idx) => (
+              <MedicineCard
+                key={idx}
+                index={idx}
+                med={m}
+                canRemove={draft.medicines.length > 1}
+                onChange={(patch) => setMed(idx, patch)}
+                onRemove={() => removeMed(idx)}
+              />
+            ))}
+          </View>
+
+          <Pressable
+            onPress={addMed}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              marginTop: spacing.md,
+              height: 50,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              borderWidth: 1.5,
+              borderStyle: "dashed",
+              borderColor: withOpacity(colors.primary, 0.45),
+              backgroundColor: pressed ? colors.primarySoft : "transparent",
+            })}
           >
             <View
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
+                width: 22,
+                height: 22,
+                borderRadius: 11,
                 alignItems: "center",
-                marginBottom: 8,
+                justifyContent: "center",
+                backgroundColor: colors.primary,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: colors.text,
-                  fontFamily: fontFamily.bodyBold,
-                }}
-              >
-                {t("rxTemplates.medN", { n: idx + 1 })}
-              </Text>
-              {draft.medicines.length > 1 && (
-                <Pressable
-                  onPress={() => removeMed(idx)}
-                  hitSlop={6}
-                  style={({ pressed }) => ({
-                    padding: 6,
-                    borderRadius: 8,
-                    backgroundColor: pressed ? colors.dangerSoft : "transparent",
-                  })}
-                >
-                  <Trash2 size={16} color={colors.danger} />
-                </Pressable>
-              )}
+              <Plus size={14} color={colors.onPrimary} strokeWidth={2.8} />
             </View>
-            <Field
-              compact
-              value={m.name}
-              onChangeText={(text) => setMed(idx, { name: text })}
-              placeholder={t("rxTemplates.medNamePlaceholder")}
-            />
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Field
-                  compact
-                  value={m.dosage || ""}
-                  onChangeText={(text) => setMed(idx, { dosage: text })}
-                  placeholder={t("rxTemplates.dosagePlaceholder")}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Field
-                  compact
-                  value={m.frequency || ""}
-                  onChangeText={(text) => setMed(idx, { frequency: text })}
-                  placeholder={t("rxTemplates.frequencyPlaceholder")}
-                />
-              </View>
-            </View>
-            <Field
-              compact
-              value={m.duration || ""}
-              onChangeText={(text) => setMed(idx, { duration: text })}
-              placeholder={t("rxTemplates.durationPlaceholder")}
-            />
-            <Field
-              compact
-              value={m.instructions || ""}
-              onChangeText={(text) => setMed(idx, { instructions: text })}
-              placeholder={t("rxTemplates.instructionsPlaceholder")}
+            <Text style={[typography.label.md, { color: colors.primary }]}>
+              {t("rxTemplates.addMed")}
+            </Text>
+          </Pressable>
+
+          {/* ─── Notes ─── */}
+          <SectionLabel style={{ marginTop: spacing.xl }}>{t("rxTemplates.fieldNotes")}</SectionLabel>
+          <GroupCard>
+            <LabeledInput
+              icon={StickyNote}
+              label={t("rxTemplates.notesLabel", "Advice for the patient")}
+              value={draft.notes}
+              onChangeText={(text) => setDraft((d) => (d ? { ...d, notes: text } : d))}
+              placeholder={t("rxTemplates.fieldNotesPlaceholder")}
               multiline
             />
-          </View>
-        ))}
+          </GroupCard>
 
-        <Pressable
-          onPress={addMed}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: spacing.md,
-            borderRadius: radius.md,
-            borderWidth: 1.5,
-            borderStyle: "dashed",
-            borderColor: colors.primary,
-            backgroundColor: pressed ? colors.primarySoft : "transparent",
-            gap: 6,
-          })}
-        >
-          <Plus size={16} color={colors.primary} strokeWidth={2.4} />
-          <Text
-            style={{
-              color: colors.primary,
-              fontWeight: "700",
-              fontFamily: fontFamily.bodyBold,
-            }}
+          {/* ─── Danger zone ─── */}
+          <Pressable
+            onPress={handleDelete}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              marginTop: spacing.xxl,
+              alignSelf: "center",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              height: 40,
+              paddingHorizontal: 16,
+              borderRadius: 20,
+              backgroundColor: pressed ? colors.dangerSoft : "transparent",
+            })}
           >
-            {t("rxTemplates.addMed")}
-          </Text>
-        </Pressable>
-
-        <Field
-          label={t("rxTemplates.fieldNotes")}
-          value={draft.notes}
-          onChangeText={(text) => setDraft((d) => (d ? { ...d, notes: text } : d))}
-          placeholder={t("rxTemplates.fieldNotesPlaceholder")}
-          multiline
-          containerStyle={{ marginTop: spacing.lg }}
-        />
-
-        <Pressable
-          onPress={handleDelete}
-          style={({ pressed }) => ({
-            marginTop: spacing.xl,
-            paddingVertical: 14,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: colors.danger,
-            alignItems: "center",
-            backgroundColor: pressed ? colors.dangerSoft : "transparent",
-          })}
-        >
-          <Text
-            style={{
-              color: colors.danger,
-              fontWeight: "700",
-              fontFamily: fontFamily.bodyBold,
-            }}
-          >
-            {t("rxTemplates.deleteCta")}
-          </Text>
-        </Pressable>
-      </ScrollView>
+            <Trash2 size={15} color={colors.danger} strokeWidth={2.2} />
+            <Text style={[typography.label.md, { color: colors.danger }]}>
+              {t("rxTemplates.deleteCta")}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
-function Field({
+const FREQUENCY_PRESETS = [
+  { short: "OD", value: "Once daily" },
+  { short: "BD", value: "Twice daily" },
+  { short: "TDS", value: "Three times daily" },
+  { short: "QID", value: "Four times daily" },
+  { short: "Nocte", value: "At night" },
+  { short: "PRN", value: "When needed" },
+];
+
+function MedicineCard({
+  index,
+  med,
+  canRemove,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  med: MedicineEntry;
+  canRemove: boolean;
+  onChange: (patch: Partial<MedicineEntry>) => void;
+  onRemove: () => void;
+}) {
+  const { t } = useTranslation();
+  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const freq = (med.frequency || "").trim().toLowerCase();
+
+  return (
+    <GroupCard>
+      {/* Name row */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+          paddingLeft: spacing.md,
+          paddingRight: spacing.sm,
+          paddingVertical: spacing.sm,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.separator,
+        }}
+      >
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 10,
+            borderCurve: "continuous",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.primarySoft,
+          }}
+        >
+          <Pill size={15} color={colors.primary} strokeWidth={2.3} />
+        </View>
+        <TextInput
+          value={med.name}
+          onChangeText={(text) => onChange({ name: text })}
+          placeholder={t("rxTemplates.medN", { n: index + 1 })}
+          placeholderTextColor={colors.textSubtle}
+          accessibilityLabel={t("rxTemplates.medNamePlaceholder")}
+          style={{
+            flex: 1,
+            height: 44,
+            fontSize: 16.5,
+            letterSpacing: -0.2,
+            color: colors.text,
+            fontFamily: fontFamily.bodyBold,
+          }}
+        />
+        {canRemove ? (
+          <Pressable
+            onPress={onRemove}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.delete")}
+            style={({ pressed }) => ({
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: pressed ? colors.dangerSoft : colors.well,
+            })}
+          >
+            {({ pressed }) => (
+              <X size={15} color={pressed ? colors.danger : colors.textMuted} strokeWidth={2.5} />
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+
+      <View style={{ padding: spacing.md, gap: spacing.sm }}>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <MiniField
+            label={t("rxTemplates.fieldDose", "Dose")}
+            value={med.dosage || ""}
+            onChangeText={(text) => onChange({ dosage: text })}
+            placeholder={t("rxTemplates.dosagePlaceholder")}
+          />
+          <MiniField
+            label={t("rxTemplates.fieldDuration", "Duration")}
+            value={med.duration || ""}
+            onChangeText={(text) => onChange({ duration: text })}
+            placeholder={t("rxTemplates.durationPlaceholder")}
+          />
+        </View>
+
+        <MiniField
+          label={t("rxTemplates.fieldFrequency", "Frequency")}
+          value={med.frequency || ""}
+          onChangeText={(text) => onChange({ frequency: text })}
+          placeholder={t("rxTemplates.frequencyPlaceholder")}
+        />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {FREQUENCY_PRESETS.map((p) => {
+            const active = freq === p.value.toLowerCase();
+            return (
+              <Pressable
+                key={p.short}
+                onPress={() => onChange({ frequency: p.value })}
+                accessibilityRole="button"
+                accessibilityLabel={p.value}
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => ({
+                  height: 28,
+                  paddingHorizontal: 11,
+                  justifyContent: "center",
+                  borderRadius: 14,
+                  borderCurve: "continuous",
+                  backgroundColor: active ? colors.primary : pressed ? colors.primarySoft : colors.fill,
+                })}
+              >
+                <Text
+                  style={[
+                    typography.label.xs,
+                    { color: active ? colors.onPrimary : colors.textMuted, letterSpacing: 0.3 },
+                  ]}
+                >
+                  {p.short}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <MiniField
+          label={t("rxTemplates.fieldInstructions", "Instructions")}
+          value={med.instructions || ""}
+          onChangeText={(text) => onChange({ instructions: text })}
+          placeholder={t("rxTemplates.instructionsPlaceholder")}
+          multiline
+        />
+      </View>
+    </GroupCard>
+  );
+}
+
+function SectionLabel({ children, style }: { children: any; style?: any }) {
+  const { colors, typography, spacing } = useTheme();
+  return (
+    <Text
+      style={[
+        typography.kicker,
+        {
+          color: colors.textSubtle,
+          textTransform: "uppercase",
+          marginTop: spacing.md,
+          marginBottom: spacing.sm,
+          marginLeft: 4,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Text>
+  );
+}
+
+function GroupCard({ children }: { children: any }) {
+  const { colors, radius, shadow, scheme } = useTheme();
+  const isDark = scheme === "dark";
+  return (
+    <View
+      style={{
+        borderRadius: radius.card,
+        borderCurve: "continuous",
+        backgroundColor: colors.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: isDark ? colors.borderStrong : colors.hairline,
+        overflow: "hidden",
+        ...(isDark ? {} : shadow.card),
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Full-width row inside a GroupCard: small label above a borderless input. */
+function LabeledInput({
+  icon: Icon,
   label,
   value,
   onChangeText,
   placeholder,
   multiline,
-  compact,
-  containerStyle,
+  emphasis,
 }: {
-  label?: string;
+  icon?: any;
+  label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   multiline?: boolean;
-  compact?: boolean;
-  containerStyle?: any;
+  emphasis?: boolean;
 }) {
-  const { colors, spacing, typography, radius, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily } = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={[{ marginBottom: compact ? 6 : spacing.md }, containerStyle]}>
-      {label && (
-        <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "800",
-            color: colors.textSubtle,
-            fontFamily: fontFamily.displayBold,
-            letterSpacing: 0.8,
-            textTransform: "uppercase",
-            marginBottom: 6,
-          }}
-        >
+    <View
+      style={{
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        paddingBottom: multiline ? spacing.md : 6,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.separator,
+        backgroundColor: focused ? withOpacity(colors.primary, 0.04) : "transparent",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+        {Icon ? <Icon size={12} color={focused ? colors.primary : colors.textSubtle} strokeWidth={2.3} /> : null}
+        <Text style={[typography.caption, { color: focused ? colors.primary : colors.textSubtle }]}>
           {label}
         </Text>
-      )}
+      </View>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textSubtle}
         multiline={multiline}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        accessibilityLabel={label}
         style={{
-          borderRadius: radius.md,
-          paddingHorizontal: 12,
-          paddingVertical: multiline ? 12 : 10,
+          paddingVertical: 6,
+          paddingHorizontal: 0,
+          fontSize: emphasis ? 17 : 15.5,
+          color: colors.text,
+          fontFamily: emphasis ? fontFamily.bodySemibold : fontFamily.body,
+          minHeight: multiline ? 64 : undefined,
+          textAlignVertical: multiline ? "top" : "center",
+        }}
+      />
+    </View>
+  );
+}
+
+/** Compact filled field used inside a medicine card. */
+function MiniField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  multiline?: boolean;
+}) {
+  const { colors, typography, fontFamily } = useTheme();
+  const [focused, setFocused] = useState(false);
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: 4,
+        borderRadius: 14,
+        borderCurve: "continuous",
+        backgroundColor: focused ? colors.surface : colors.surfaceMuted,
+        borderWidth: 1,
+        borderColor: focused ? colors.primary : "transparent",
+      }}
+    >
+      <Text style={[typography.caption, { fontSize: 11, color: focused ? colors.primary : colors.textSubtle }]}>
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textSubtle}
+        multiline={multiline}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        accessibilityLabel={label}
+        style={{
+          paddingVertical: 4,
+          paddingHorizontal: 0,
           fontSize: 15,
           color: colors.text,
-          fontFamily: fontFamily.body,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          minHeight: multiline ? 80 : undefined,
+          fontFamily: fontFamily.bodyMedium ?? fontFamily.body,
+          minHeight: multiline ? 44 : undefined,
           textAlignVertical: multiline ? "top" : "center",
         }}
       />

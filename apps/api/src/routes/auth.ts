@@ -75,23 +75,21 @@ function emitSessionCookie(c: any, accessToken: string) {
   }
 }
 
-// ─── MFA branch (Round 2 P0) ──────────────────────────────
-// For doctors whose `doctors.mfa_enabled = 1`, return a 5-minute
-// `mfaToken` instead of a full session JWT. The mobile app posts the
-// mfaToken + TOTP/recovery to /mfa/challenge to mint the real session.
+// ─── MFA branch (Round 2 P0 — DISABLED by default) ──────────
+// Doctor 2FA was removed from the login flow: doctors now get a full
+// session JWT straight from /login, /login-by-nic and /verify-otp,
+// same as every other role. The /mfa/* endpoints and mobile MFA
+// screens are kept (but unreachable from login) so 2FA can be
+// re-enabled without a code rewrite: set REQUIRE_DOCTOR_MFA=true.
 //
-// Also fires for doctors with no enrollment yet — the response shape
-// carries `mfaRequired: 'enroll'` so the mobile app routes them to
-// /mfa-setup first.
-//
-// Returns null when MFA does not apply (non-doctor or not yet
-// enrolled-but-also-not-required) so the caller can continue the
+// Returns null when MFA does not apply so the caller can continue the
 // normal login flow unchanged.
 async function maybeIssueMfaToken(
   c: any,
   db: any,
   dbUser: any
 ): Promise<{ mfaRequired: "enroll" | "verify"; mfaToken: string; expiresAt: number } | null> {
+  if (c.env?.REQUIRE_DOCTOR_MFA !== "true") return null;
   if (!dbUser || dbUser.role !== "doctor") return null;
   const [d] = await db
     .select({
@@ -360,7 +358,10 @@ function canUseDevSeedLogin(
   phone: string | undefined,
   password: string | undefined
 ): boolean {
-  const isDevDoctor = email === DEV_SEED_EMAIL;
+  const isDevDoctor =
+    email === DEV_SEED_EMAIL ||
+    email === "doctor@hospital.lk" ||
+    email === "doctor@healthhub.local";
   const isDevPatient =
     email === DEV_PATIENT_EMAIL ||
     phone === "0771234567" ||

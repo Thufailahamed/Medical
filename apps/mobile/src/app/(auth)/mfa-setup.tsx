@@ -63,6 +63,11 @@ export default function MfaSetupScreen() {
     }
   }
 
+  const [pendingSession, setPendingSession] = useState<{
+    token: string;
+    user: any;
+  } | null>(null);
+
   async function verify() {
     if (!/^\d{6}$/.test(code)) {
       toast.show(t("mfa.code.invalid"), "warning");
@@ -74,11 +79,16 @@ export default function MfaSetupScreen() {
         enabled: boolean;
         enrolledAt: string;
         recoveryCodes: string[];
+        token?: string;
+        user?: any;
       }>("/mfa/verify-setup", {
         method: "POST",
         body: { token: code },
       });
       setRecoveryCodes(res.recoveryCodes);
+      if (res.token) {
+        setPendingSession({ token: res.token, user: res.user ?? null });
+      }
       setPhase("recovery");
     } catch (err: any) {
       toast.show(err?.message || t("mfa.verify.error"), "danger");
@@ -96,17 +106,26 @@ export default function MfaSetupScreen() {
     }
   }
 
-  function finish() {
-    queryClient.clear();
-    setUser(useAuthStore.getState().user);
-    (async () => {
-      // Replace the mfaToken bearer with a confirmed session — mobile has
-      // no helper to swap token without re-login, so we mark the user
-      // unlocked and let the next API call authenticate via refresh.
-      // In practice the doctor receives the session JWT in /mfa/challenge;
-      // here the mfaToken has been validated by /mfa/verify-setup already.
-      router.replace("/(app)" as any);
-    })();
+  async function finish() {
+    try {
+      queryClient.clear();
+      if (pendingSession?.token) {
+        // Enrollment minted a full session — swap the short-lived
+        // mfaToken for it so cold starts survive past the 5-min TTL.
+        await SecureStore.setItemAsync("auth_token", pendingSession.token);
+        if (pendingSession.user) setUser(pendingSession.user);
+        else setUser(useAuthStore.getState().user);
+        router.replace("/(doctor)" as any);
+        return;
+      }
+      // Back-compat: older API builds return no token here. Fall through
+      // to the challenge screen so the doctor enters a fresh TOTP code
+      // and mints a real session via /mfa/challenge.
+      setUser(useAuthStore.getState().user);
+      router.replace("/(auth)/mfa-challenge" as any);
+    } catch {
+      router.replace("/(auth)/mfa-challenge" as any);
+    }
   }
 
   return (

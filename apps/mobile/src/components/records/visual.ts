@@ -134,10 +134,13 @@ export function fmtRelative(iso: string | null | undefined, locale = "en"): stri
   if (typeof Intl === "undefined" || !Intl.RelativeTimeFormat) {
     if (diffDays <= 0) return "today";
     if (diffDays === 1) return "yesterday";
+    // Hermes ships without RelativeTimeFormat, so this path is the common one.
+    const ago = (n: number, unit: string, last: string) =>
+      n === 1 ? last : `${n} ${unit}s ago`;
     if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
+    if (diffDays < 30) return ago(Math.floor(diffDays / 7), "week", "last week");
+    if (diffDays < 365) return ago(Math.floor(diffDays / 30), "month", "last month");
+    return ago(Math.floor(diffDays / 365), "year", "last year");
   }
 
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });

@@ -9,16 +9,16 @@ export interface SegmentedTabItem {
 }
 
 const TRACK =
-  "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-ink/5 p-1";
+  "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-surface-2 p-1";
 
 const TAB_BASE =
-  "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all";
+  "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all";
 
-const TAB_ACTIVE = "bg-ink text-white shadow-sm";
-const TAB_IDLE = "text-text-soft hover:text-text";
+const TAB_ACTIVE = "bg-surface text-text shadow-sm";
+const TAB_IDLE = "text-text-muted hover:text-text";
 
 /**
- * VYRO segmented pill tab bar — light rounded-full track, dark active pill.
+ * Segmented tab bar — soft track, raised white active tab.
  * Page keeps its state/handlers; only the bar chrome is shared so every
  * filter row looks identical. Labels (incl. counts) pass through verbatim.
  */

@@ -8,7 +8,10 @@ import {
   Receipt,
   CheckCircle2,
   XCircle,
+  Users,
+  Inbox,
 } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import {
   Screen,
   ListItem,
@@ -16,7 +19,6 @@ import {
   Button,
   BottomSheet,
   TextInput,
-  EmptyState,
   useToast,
 } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -31,6 +33,8 @@ import {
   AdminHero,
   AdminCard,
   AdminSection,
+  AdminSegmented,
+  AdminEmpty,
   IconTile,
   FilterChips,
   ListSkeleton,
@@ -153,8 +157,9 @@ export default function AdminOperatorsScreen() {
           subtitle="Ambulance & insurance operator desks"
           icon={role === "ambulance" ? Ambulance : ShieldCheck}
           stats={[
-            { value: String(users.data?.total ?? 0), label: "Accounts" },
+            { icon: Users, value: String(users.data?.total ?? 0), label: "Accounts" },
             {
+              icon: role === "ambulance" ? Truck : Receipt,
               value: String(
                 role === "ambulance"
                   ? (dispatches.data?.total ?? 0)
@@ -166,8 +171,8 @@ export default function AdminOperatorsScreen() {
         />
       </View>
 
-      <View style={{ marginTop: spacing.md }}>
-        <FilterChips
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+        <AdminSegmented
           options={ROLE_TABS}
           value={role}
           onChange={(v) => setRole(v as any)}
@@ -177,8 +182,8 @@ export default function AdminOperatorsScreen() {
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          gap: spacing.xl,
-          marginTop: spacing.sm,
+          gap: spacing.xxl,
+          marginTop: spacing.xl,
           paddingBottom: spacing.xxl,
         }}
       >
@@ -189,29 +194,34 @@ export default function AdminOperatorsScreen() {
               title="Dispatch queue"
               count={dispatches.data?.total ?? 0}
             />
-            <FilterChips
-              options={DISPATCH_FILTERS}
-              value={dispatchStatus}
-              onChange={setDispatchStatus}
-              size="sm"
-              flush
-            />
-            <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <View style={{ marginHorizontal: -spacing.lg, marginTop: -spacing.xs }}>
+              <FilterChips
+                options={DISPATCH_FILTERS}
+                value={dispatchStatus}
+                onChange={setDispatchStatus}
+                size="sm"
+              />
+            </View>
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
               {dispatches.isError ? (
                 <AdminError message="Couldn't load dispatches." />
               ) : dispatches.isLoading ? (
                 <ListSkeleton rows={3} />
               ) : dispatchItems.length === 0 ? (
-                <AdminCard>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textSubtle, textAlign: "center" },
-                    ]}
-                  >
-                    No {dispatchStatus} dispatches
-                  </Text>
-                </AdminCard>
+                <QueueEmpty
+                  icon={dispatchStatus === "queued" ? CheckCircle2 : Inbox}
+                  positive={dispatchStatus === "queued"}
+                  title={
+                    dispatchStatus === "queued"
+                      ? "All caught up"
+                      : `No ${dispatchStatus === "all" ? "" : dispatchStatus + " "}dispatches`
+                  }
+                  message={
+                    dispatchStatus === "queued"
+                      ? "No ambulance requests waiting for a crew."
+                      : "Try another status filter."
+                  }
+                />
               ) : (
                 dispatchItems.map((d: any) => (
                   <AdminCard key={d.id}>
@@ -282,41 +292,40 @@ export default function AdminOperatorsScreen() {
               title="Claims queue"
               count={claims.data?.total ?? 0}
             />
-            <FilterChips
-              options={CLAIM_FILTERS}
-              value={claimStatus}
-              onChange={setClaimStatus}
-              size="sm"
-              flush
-            />
-            <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <View style={{ marginHorizontal: -spacing.lg, marginTop: -spacing.xs }}>
+              <FilterChips
+                options={CLAIM_FILTERS}
+                value={claimStatus}
+                onChange={setClaimStatus}
+                size="sm"
+              />
+            </View>
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
               {claims.isError ? (
                 <AdminError message="Couldn't load claims." />
               ) : claims.isLoading ? (
                 <ListSkeleton rows={3} />
               ) : claims.data?.hint === "no_org" ? (
-                <AdminCard>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textSubtle, textAlign: "center" },
-                    ]}
-                  >
-                    No operator organization linked — claims are scoped to an
-                    org once assigned.
-                  </Text>
-                </AdminCard>
+                <QueueEmpty
+                  icon={ShieldCheck}
+                  title="No organization linked"
+                  message="Claims are scoped to an operator org once assigned."
+                />
               ) : claimItems.length === 0 ? (
-                <AdminCard>
-                  <Text
-                    style={[
-                      typography.body.sm,
-                      { color: colors.textSubtle, textAlign: "center" },
-                    ]}
-                  >
-                    No {claimStatus.replace(/_/g, " ")} claims
-                  </Text>
-                </AdminCard>
+                <QueueEmpty
+                  icon={claimStatus === "submitted" ? CheckCircle2 : Inbox}
+                  positive={claimStatus === "submitted"}
+                  title={
+                    claimStatus === "submitted"
+                      ? "All caught up"
+                      : `No ${claimStatus === "all" ? "" : claimStatus.replace(/_/g, " ") + " "}claims`
+                  }
+                  message={
+                    claimStatus === "submitted"
+                      ? "No new claims waiting for review."
+                      : "Try another status filter."
+                  }
+                />
               ) : (
                 claimItems.map((c: any) => (
                   <AdminCard key={c.id}>
@@ -409,10 +418,10 @@ export default function AdminOperatorsScreen() {
           ) : users.isLoading ? (
             <ListSkeleton rows={5} />
           ) : items.length === 0 ? (
-            <EmptyState
+            <AdminEmpty
               icon={role === "ambulance" ? Ambulance : ShieldCheck}
-              title="No operators"
-              message={`No ${role} operator accounts found.`}
+              title="No operators yet"
+              message={`${role === "ambulance" ? "Ambulance" : "Insurance"} operator accounts will appear here once they're invited.`}
             />
           ) : (
             <View style={{ gap: spacing.sm }}>
@@ -475,5 +484,42 @@ export default function AdminOperatorsScreen() {
         </View>
       </BottomSheet>
     </Screen>
+  );
+}
+
+function QueueEmpty({
+  icon,
+  title,
+  message,
+  positive = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  message: string;
+  positive?: boolean;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <AdminCard>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
+      >
+        <IconTile icon={icon} tone={positive ? "success" : "neutral"} size={42} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={[typography.title.sm, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Text
+            style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}
+            numberOfLines={2}
+          >
+            {message}
+          </Text>
+        </View>
+      </View>
+    </AdminCard>
   );
 }

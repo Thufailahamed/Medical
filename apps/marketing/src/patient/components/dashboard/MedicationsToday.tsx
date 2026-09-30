@@ -53,12 +53,25 @@ export function MedicationsToday({ className }: { className?: string }) {
     return map;
   }, [doses.data?.doses]);
 
+  const todayTaken = stats.data?.todayTaken ?? 0;
+  const todayCount = stats.data?.todayCount ?? 0;
+  const streak = stats.data?.streakDays ?? 0;
+
+  async function run(action: () => Promise<unknown>, fallback: string) {
+    setActionError(null);
+    try {
+      await action();
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : fallback);
+    }
+  }
+
   return (
     <Card accent="sky" className={cn("anim-rise anim-rise-delay-2", className)}>
       <CardHeader
         title="Today's plan"
-        caption="Prescription schedule & doses"
-        icon={<PillIcon size={16} className="text-brand" aria-hidden />}
+        caption="Your doses and schedule for today"
+        icon={<PillIcon size={16} aria-hidden />}
         href="/patient/medications"
         linkLabel="View all"
       />
@@ -84,137 +97,117 @@ export function MedicationsToday({ className }: { className?: string }) {
           ).length;
 
           return (
-            <div className="mt-4 flex flex-col gap-4">
-              {/* ── Medicine Selection Tabs ──────────────────────────────── */}
-              {meds.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {meds.map((m) => {
-                    const on = m.id === (selected?.id ?? activeId);
-                    const mDoses = doseByMedicine.get(m.id) ?? [];
-                    const pendingCount = mDoses.filter(
-                      (d) => !d.takenAt && !d.skipped,
-                    ).length;
-
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setSelectedId(m.id)}
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all border",
-                          on
-                            ? "bg-ink text-white border-ink shadow-xs"
-                            : "bg-surface-2 hover:bg-surface-2 text-text-soft hover:text-text border-border",
-                        )}
-                      >
-                        <span>{m.name}</span>
-                        {m.dosage ? (
-                          <span className={cn("text-[11px]", on ? "text-white/70" : "text-text-muted")}>
-                            {m.dosage}
-                          </span>
-                        ) : null}
-                        {pendingCount > 0 ? (
-                          <span
-                            className={cn(
-                              "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-bold",
-                              on ? "bg-white/20 text-white" : "bg-warn-soft text-warn",
-                            )}
-                          >
-                            {pendingCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* ── Active Medicine Hero Spotlight ────────────────────────── */}
+            <div className="mt-5 flex flex-col gap-5">
               {selected ? (
-                <div className="rounded-xl border border-border bg-surface p-4 md:p-5 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-5">
-                    {/* Adherence Radial Gauge */}
-                    <div className="shrink-0 flex items-center justify-center sm:justify-start">
-                      <RadialGauge
-                        value={stats.data?.todayTaken ?? 0}
-                        max={Math.max(1, stats.data?.todayCount ?? 1)}
-                        size={100}
-                        tone="brand"
-                        display={`${stats.data?.todayTaken ?? 0}/${stats.data?.todayCount ?? 0}`}
-                        label="doses today"
-                      />
-                    </div>
-
-                    {/* Info & Medicine metadata */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base md:text-lg font-bold text-text tracking-tight">
-                            {selected.name}
-                          </h3>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {selected.dosage ? (
-                              <span className="inline-flex items-center rounded-md bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand">
-                                {selected.dosage}
-                              </span>
-                            ) : null}
-                            {selected.timing ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-text-soft shadow-2xs">
-                                <Utensils size={10} className="text-text-muted" />
-                                {selected.timing}
-                              </span>
-                            ) : null}
-                            {selected.frequency ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-text-soft shadow-2xs">
-                                <Clock size={10} className="text-text-muted" />
-                                {selected.frequency}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Frequency Tag or PRN badge */}
-                        <span className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-soft shadow-2xs">
-                          {totalForMed === 0 ? "As Needed" : "Scheduled"}
-                        </span>
-                      </div>
-
-                      {/* Streak & Adherence strip */}
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <div className="inline-flex items-center gap-1 rounded-full border border-warn/30 bg-warn-soft px-2.5 py-0.5 text-[11px] font-semibold text-warn">
-                          <Flame size={12} className="fill-amber-500 text-amber-500" />
-                          <span>{stats.data?.streakDays ?? 0}d streak</span>
-                        </div>
-                        {takenForMed > 0 ? (
-                          <div className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold text-success">
-                            <CheckCircle2 size={12} className="text-success" aria-hidden />
-                            <span>{takenForMed} taken today</span>
-                          </div>
-                        ) : null}
-                      </div>
+                <div className="grid gap-3 md:grid-cols-[200px_1fr]">
+                  {/* ── Day summary ─────────────────────────────────────── */}
+                  <div className="flex items-center gap-4 rounded-xl bg-surface-2 p-4 md:flex-col md:justify-center md:text-center">
+                    <RadialGauge
+                      value={todayTaken}
+                      max={Math.max(1, todayCount)}
+                      size={96}
+                      tone={todayCount > 0 && todayTaken >= todayCount ? "success" : "brand"}
+                      display={`${todayTaken}/${todayCount}`}
+                      label="doses"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text">
+                        {todayCount === 0
+                          ? "No fixed doses today"
+                          : todayTaken >= todayCount
+                            ? "All doses taken"
+                            : `${todayCount - todayTaken} dose${todayCount - todayTaken === 1 ? "" : "s"} left`}
+                      </p>
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                        <Flame size={12} className="fill-amber-400 text-amber-500" aria-hidden />
+                        {streak}-day streak
+                      </p>
                     </div>
                   </div>
 
-                  {/* ── Sub Action Buttons / Status Area ─────────────────── */}
-                  <div className="mt-4 pt-3.5 border-t border-border">
+                  {/* ── Selected medicine ───────────────────────────────── */}
+                  <div className="flex flex-col justify-between gap-4 rounded-xl border border-border p-4">
+                    <div>
+                      {meds.length > 1 && (
+                        <div className="-mx-1 mb-3 flex items-center gap-1 overflow-x-auto px-1 pb-1">
+                          {meds.map((m) => {
+                            const on = m.id === selected.id;
+                            const pendingCount = (doseByMedicine.get(m.id) ?? []).filter(
+                              (d) => !d.takenAt && !d.skipped,
+                            ).length;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setSelectedId(m.id)}
+                                className={cn(
+                                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
+                                  on
+                                    ? "bg-ink text-white"
+                                    : "bg-surface-2 text-text-soft hover:bg-surface-3 hover:text-text",
+                                )}
+                              >
+                                {m.name}
+                                {pendingCount > 0 ? (
+                                  <span
+                                    className={cn(
+                                      "rounded px-1 text-[10px] font-bold",
+                                      on ? "bg-white/20 text-white" : "bg-warn-soft text-warn",
+                                    )}
+                                  >
+                                    {pendingCount}
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-display text-lg font-semibold tracking-[-0.02em] text-text">
+                          {selected.name}
+                        </h3>
+                        <span className="shrink-0 rounded-md bg-surface-2 px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-text-soft">
+                          {totalForMed === 0 ? "As needed" : "Scheduled"}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {selected.dosage ? (
+                          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
+                            {selected.dosage}
+                          </span>
+                        ) : null}
+                        {selected.timing ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-soft">
+                            <Utensils size={11} aria-hidden />
+                            {selected.timing}
+                          </span>
+                        ) : null}
+                        {selected.frequency ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-soft">
+                            <Clock size={11} aria-hidden />
+                            {selected.frequency}
+                          </span>
+                        ) : null}
+                        {takenForMed > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
+                            <CheckCircle2 size={11} aria-hidden />
+                            {takenForMed} taken today
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
                     {pending ? (
-                      <div className="flex flex-wrap items-center gap-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           disabled={markTaken.isPending}
-                          onClick={async () => {
-                            setActionError(null);
-                            try {
-                              await markTaken.mutateAsync({ id: pending.id });
-                            } catch (cause) {
-                              setActionError(
-                                cause instanceof Error
-                                  ? cause.message
-                                  : "Could not mark dose taken.",
-                              );
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] px-4 py-2.5 text-xs font-semibold text-white shadow-xs shadow-emerald-600/20 border border-emerald-600 transition-all cursor-pointer disabled:opacity-50"
+                          onClick={() =>
+                            run(() => markTaken.mutateAsync({ id: pending.id }), "Could not mark dose taken.")
+                          }
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
                         >
                           <Check size={14} strokeWidth={2.5} aria-hidden />
                           {markTaken.isPending ? "Saving…" : "Take dose"}
@@ -222,69 +215,49 @@ export function MedicationsToday({ className }: { className?: string }) {
                         <button
                           type="button"
                           disabled={skip.isPending}
-                          onClick={async () => {
-                            setActionError(null);
-                            try {
-                              await skip.mutateAsync({ id: pending.id });
-                            } catch (cause) {
-                              setActionError(
-                                cause instanceof Error
-                                  ? cause.message
-                                  : "Could not skip dose.",
-                              );
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface hover:bg-surface-2 active:scale-[0.98] px-3.5 py-2.5 text-xs font-semibold text-text shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                          onClick={() =>
+                            run(() => skip.mutateAsync({ id: pending.id }), "Could not skip dose.")
+                          }
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-surface-2 px-3.5 text-xs font-semibold text-text transition-colors hover:bg-surface-3 disabled:opacity-50"
                         >
                           <SkipForward size={14} className="text-text-muted" aria-hidden />
                           Skip
                         </button>
-                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-text-soft font-medium">
-                          <Clock size={12} className="text-amber-500" />
-                          Pending dose scheduled
+                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-text-muted">
+                          <Clock size={12} className="text-amber-500" aria-hidden />
+                          Dose due
                         </span>
                       </div>
                     ) : totalForMed > 0 && pendingForMed === 0 ? (
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-success-soft/60 border border-success/25 px-3.5 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 size={15} className="text-success shrink-0" aria-hidden />
-                          <span className="text-xs font-semibold text-emerald-900">
-                            All doses logged for this medicine today
-                          </span>
-                        </div>
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                          Complete
-                        </span>
-                      </div>
+                      <p className="flex items-center gap-2 rounded-lg bg-success-soft px-3 py-2 text-xs font-medium text-emerald-800">
+                        <CheckCircle2 size={14} className="shrink-0 text-success" aria-hidden />
+                        All doses logged for this medicine today
+                      </p>
                     ) : (
-                      <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-soft/40 border border-brand/20 px-3.5 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <Info size={14} className="text-brand shrink-0" aria-hidden />
-                          <span className="text-xs text-text font-medium">
-                            No pending doses scheduled for today · Take as needed
-                          </span>
-                        </div>
+                      <p className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 text-xs text-text-soft">
+                        <span className="inline-flex items-center gap-2">
+                          <Info size={14} className="shrink-0 text-brand" aria-hidden />
+                          No doses due today · take as needed
+                        </span>
                         <Link
                           href="/patient/medications"
-                          className="shrink-0 text-xs font-semibold text-brand hover:underline"
+                          className="shrink-0 font-semibold text-brand hover:underline"
                         >
                           Manage
                         </Link>
-                      </div>
+                      </p>
                     )}
                   </div>
                 </div>
               ) : null}
 
-              {/* ── Compact All-Medications Dose List ─────────────────────── */}
+              {/* ── Schedule list ──────────────────────────────────────── */}
               {meds.length > 0 ? (
-                <div className="mt-1 flex flex-col gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted px-1">
-                    Medication Schedule
-                  </p>
-                  <ul className="grid gap-2" data-testid="med-dose-list">
+                <div>
+                  <p className="mb-1 text-xs font-medium text-text-muted">Medication schedule</p>
+                  <ul className="divide-y divide-border" data-testid="med-dose-list">
                     {meds.map((m) => {
-                      const isRowSelected = m.id === (selected?.id ?? activeId);
+                      const isRowSelected = m.id === selected?.id;
                       const list = doseByMedicine.get(m.id) ?? [];
                       const taken = list.filter((d) => d.takenAt).length;
                       const skipped = list.filter((d) => d.skipped).length;
@@ -295,75 +268,70 @@ export function MedicationsToday({ className }: { className?: string }) {
 
                       const tone =
                         total === 0
-                          ? "text-text-soft bg-surface-2 border-border"
+                          ? "text-text-soft bg-surface-2"
                           : pendingCount === 0
                             ? "text-success bg-success-soft"
                             : "text-warn bg-warn-soft";
 
                       return (
-                        <li
-                          key={m.id}
-                          onClick={() => setSelectedId(m.id)}
-                          className={cn(
-                            "flex items-center justify-between gap-3 rounded-xl border p-3 text-xs transition-all cursor-pointer",
-                            isRowSelected
-                              ? "border-blue-300/90 bg-blue-50/30 shadow-2xs ring-1 ring-blue-400/20"
-                              : "border-border bg-surface hover:border-border-strong hover:bg-surface-2/60 shadow-2xs",
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              className={cn(
-                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-                                isRowSelected
-                                  ? "bg-blue-100/70 border-blue-200 text-blue-700"
-                                  : "bg-surface-2 border-border text-text-soft",
-                              )}
-                            >
-                              <PillIcon size={14} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="truncate font-bold text-text">
-                                  {m.name}
-                                </span>
-                                {m.dosage ? (
-                                  <span className="shrink-0 text-text-soft font-normal">
-                                    {m.dosage}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <p className="mt-0.5 truncate text-[11px] text-text-soft">
-                                {m.timing ?? "Standard timing"}
-                                {m.frequency ? ` · ${m.frequency}` : ""}
-                              </p>
-                            </div>
-                          </div>
-
-                          <span
+                        <li key={m.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedId(m.id)}
+                            aria-pressed={isRowSelected}
                             className={cn(
-                              "shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold",
-                              tone,
+                              "-mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
+                              isRowSelected ? "bg-brand-soft/50" : "hover:bg-surface-2",
                             )}
                           >
-                            {total === 0 ? (
-                              <>
-                                <Info size={11} />
-                                As needed
-                              </>
-                            ) : pendingCount === 0 ? (
-                              <>
-                                <Check size={11} strokeWidth={2.5} />
-                                {taken} taken
-                              </>
-                            ) : (
-                              <>
-                                <Clock size={11} />
-                                {pendingCount} pending
-                              </>
-                            )}
-                            {skipped > 0 ? ` · ${skipped} skipped` : ""}
-                          </span>
+                            <span className="flex min-w-0 items-center gap-3">
+                              <span
+                                className={cn(
+                                  "grid h-8 w-8 shrink-0 place-items-center rounded-[10px]",
+                                  isRowSelected ? "bg-brand text-white" : "bg-surface-2 text-text-soft",
+                                )}
+                              >
+                                <PillIcon size={14} aria-hidden />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="flex items-baseline gap-1.5 text-sm">
+                                  <span className="truncate font-semibold text-text">{m.name}</span>
+                                  {m.dosage ? (
+                                    <span className="shrink-0 text-xs text-text-muted">{m.dosage}</span>
+                                  ) : null}
+                                </span>
+                                <span className="mt-0.5 block truncate text-xs text-text-muted">
+                                  {m.timing ?? "Standard timing"}
+                                  {m.frequency ? ` · ${m.frequency}` : ""}
+                                </span>
+                              </span>
+                            </span>
+
+                            <span
+                              className={cn(
+                                "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold",
+                                tone,
+                              )}
+                            >
+                              {total === 0 ? (
+                                <>
+                                  <Info size={11} aria-hidden />
+                                  As needed
+                                </>
+                              ) : pendingCount === 0 ? (
+                                <>
+                                  <Check size={11} strokeWidth={2.5} aria-hidden />
+                                  {taken} taken
+                                </>
+                              ) : (
+                                <>
+                                  <Clock size={11} aria-hidden />
+                                  {pendingCount} pending
+                                </>
+                              )}
+                              {skipped > 0 ? ` · ${skipped} skipped` : ""}
+                            </span>
+                          </button>
                         </li>
                       );
                     })}
@@ -374,9 +342,9 @@ export function MedicationsToday({ className }: { className?: string }) {
               {actionError ? (
                 <div
                   role="alert"
-                  className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
+                  className="flex items-center gap-2 rounded-lg bg-danger-soft p-3 text-xs text-danger"
                 >
-                  <AlertCircle size={14} className="shrink-0" />
+                  <AlertCircle size={14} className="shrink-0" aria-hidden />
                   <span>{actionError}</span>
                 </div>
               ) : null}

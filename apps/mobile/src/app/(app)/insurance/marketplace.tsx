@@ -183,6 +183,29 @@ function ProviderAvatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
+// Price stack laid out as a baseline row — nesting <Text> with different
+// line heights clips the display digits on iOS.
+function PriceTag({ amount, size = "md" }: { amount: number; size?: "md" | "lg" }) {
+  const { colors, typography } = useTheme();
+  const big = size === "lg" ? 24 : 21;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+      <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR</Text>
+      <Text
+        style={{
+          ...typography.title.lg,
+          fontSize: big,
+          lineHeight: big + 8,
+          color: colors.text,
+        }}
+      >
+        {amount.toLocaleString()}
+      </Text>
+      <Text style={{ ...typography.label.sm, color: colors.textMuted }}>/mo</Text>
+    </View>
+  );
+}
+
 function CategoryTile({
   planType,
   icon,
@@ -280,6 +303,7 @@ function PlanRichCard({
   comparing?: boolean;
   compareSelected?: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const hasDiscount = plan.annualDiscountPct > 0;
   const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
@@ -287,9 +311,9 @@ function PlanRichCard({
   const planImage = planImageFor(plan.planType);
 
   const stats = [
-    { icon: ShieldCheck, label: "Cover", value: `LKR ${formatLkr(plan.coverageSummaryLkr)}` },
-    { icon: Hospital, label: "Hospitals", value: `${plan.networkHospitalCount}+` },
-    { icon: Wallet, label: "Co-pay", value: `${plan.copayPct}%` },
+    { icon: ShieldCheck, label: t("insurance.card.cover", "Cover"), value: `LKR ${formatLkr(plan.coverageSummaryLkr)}` },
+    { icon: Hospital, label: t("insurance.card.hospitals", "Hospitals"), value: `${plan.networkHospitalCount}+` },
+    { icon: Wallet, label: t("insurance.card.copay", "Co-pay"), value: `${plan.copayPct}%` },
   ];
 
   return (
@@ -316,11 +340,10 @@ function PlanRichCard({
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
               <PlanIcon size={11} color={meta.fg} strokeWidth={2.5} />
-              <Text
-                style={{ ...typography.caption, color: meta.fg, textTransform: "capitalize" }}
-                numberOfLines={1}
-              >
-                {plan.planType.replace(/_/g, " ")}
+              <Text style={{ ...typography.caption, color: meta.fg }} numberOfLines={1}>
+                {t(`insurance.planTypes.${plan.planType}`, {
+                  defaultValue: plan.planType.replace(/_/g, " "),
+                })}
               </Text>
             </View>
           </View>
@@ -341,7 +364,10 @@ function PlanRichCard({
             </View>
           ) : hasDiscount ? (
             <Pill tone="success" size="sm" icon={<TrendingDown size={10} />}>
-              Save {plan.annualDiscountPct.toFixed(0)}%
+              {t("insurance.card.save", {
+                pct: plan.annualDiscountPct.toFixed(0),
+                defaultValue: "Save {{pct}}%",
+              })}
             </Pill>
           ) : null}
         </View>
@@ -355,7 +381,9 @@ function PlanRichCard({
             {plan.isFeatured ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Sparkles size={11} color={colors.primary} strokeWidth={2.4} />
-                <Text style={{ ...typography.label.xs, color: colors.primary }}>Expert pick</Text>
+                <Text style={{ ...typography.label.xs, color: colors.primary }}>
+                  {t("insurance.card.expertPick", "Expert pick")}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -409,13 +437,12 @@ function PlanRichCard({
         {/* Premium footer */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>
-            <Text style={{ ...typography.title.lg, color: colors.text }}>
-              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR </Text>
-              {plan.monthlyPremiumLkr.toLocaleString()}
-              <Text style={{ ...typography.label.sm, color: colors.textMuted }}> /mo</Text>
-            </Text>
-            <Text style={{ ...typography.caption, color: colors.textSubtle, marginTop: 1 }}>
-              or LKR {plan.annualPremiumLkr.toLocaleString()}/yr
+            <PriceTag amount={plan.monthlyPremiumLkr} />
+            <Text style={{ ...typography.caption, color: colors.textSubtle }}>
+              {t("insurance.card.orYearly", {
+                amount: plan.annualPremiumLkr.toLocaleString(),
+                defaultValue: "or LKR {{amount}}/yr",
+              })}
             </Text>
           </View>
           <View
@@ -430,7 +457,9 @@ function PlanRichCard({
               backgroundColor: colors.primarySoft,
             }}
           >
-            <Text style={{ ...typography.label.md, color: colors.primary }}>View</Text>
+            <Text style={{ ...typography.label.md, color: colors.primary }}>
+              {t("insurance.card.view", "View")}
+            </Text>
             <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
           </View>
         </View>
@@ -439,7 +468,7 @@ function PlanRichCard({
   );
 }
 
-// Featured carousel card — taller, single-row prominent variant.
+// Featured carousel card — photo banner, plan-type tag, key facts, price.
 function FeaturedPlanCard({
   plan,
   providerName,
@@ -449,43 +478,56 @@ function FeaturedPlanCard({
   providerName: string;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const planImage = planImageFor(plan.planType);
   const meta = PLAN_TYPE_META[plan.planType] ?? PLAN_TYPE_META.individual;
+  const TypeIcon = meta.icon;
   return (
     <Pressable onPress={onPress} haptic="light">
       <Card
         variant="elevated"
-        style={{
-          width: FEATURED_CARD_W,
-          padding: 0,
-          overflow: "hidden",
-        }}
+        style={{ width: FEATURED_CARD_W, padding: 0, overflow: "hidden" }}
       >
         {/* Photo banner */}
-        <View style={{ height: 118, backgroundColor: meta.bg }}>
+        <View style={{ height: 124, backgroundColor: meta.bg }}>
           {planImage ? (
             <Image source={planImage} resizeMode="cover" style={StyleSheet.absoluteFill} />
           ) : null}
           <LinearGradient
-            colors={["rgba(4,18,32,0.30)", "rgba(4,18,32,0)", "rgba(4,18,32,0.40)"]}
+            colors={["rgba(4,18,32,0.28)", "rgba(4,18,32,0)", "rgba(4,18,32,0.35)"]}
             locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
           />
-          <View style={{ position: "absolute", top: 10, left: 10, right: 10, flexDirection: "row", justifyContent: "space-between" }}>
+          <View
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              right: 10,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 6,
+            }}
+          >
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4,
-                backgroundColor: "rgba(255,255,255,0.94)",
+                gap: 5,
+                backgroundColor: "rgba(255,255,255,0.95)",
                 paddingHorizontal: 9,
-                height: 24,
-                borderRadius: 12,
+                height: 26,
+                borderRadius: 13,
+                flexShrink: 1,
               }}
             >
-              <Sparkles size={11} color={colors.primary} strokeWidth={2.5} />
-              <Text style={{ ...typography.label.xs, color: colors.primary }}>Top pick</Text>
+              <TypeIcon size={12} color={meta.fg} strokeWidth={2.5} />
+              <Text style={{ ...typography.label.xs, color: meta.fg }} numberOfLines={1}>
+                {t(`insurance.planTypes.${plan.planType}`, {
+                  defaultValue: plan.planType.replace(/_/g, " "),
+                })}
+              </Text>
             </View>
             {plan.annualDiscountPct > 0 ? (
               <View
@@ -493,47 +535,68 @@ function FeaturedPlanCard({
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 4,
-                  backgroundColor: "rgba(5,150,105,0.94)",
+                  backgroundColor: "rgba(5,150,105,0.95)",
                   paddingHorizontal: 9,
-                  height: 24,
-                  borderRadius: 12,
+                  height: 26,
+                  borderRadius: 13,
                 }}
               >
-                <TrendingDown size={11} color="#FFFFFF" strokeWidth={2.6} />
+                <TrendingDown size={12} color="#FFFFFF" strokeWidth={2.6} />
                 <Text style={{ ...typography.label.xs, color: "#FFFFFF" }}>
-                  {plan.annualDiscountPct.toFixed(0)}% off
+                  {t("insurance.card.off", {
+                    pct: plan.annualDiscountPct.toFixed(0),
+                    defaultValue: "{{pct}}% off",
+                  })}
                 </Text>
               </View>
             ) : null}
           </View>
-          {/* Provider avatar straddles the banner edge */}
-          <View
-            style={{
-              position: "absolute",
-              left: spacing.lg,
-              bottom: -18,
-              borderRadius: 13,
-              borderWidth: 3,
-              borderColor: colors.surface,
-              backgroundColor: colors.surface,
-            }}
-          >
-            <ProviderAvatar name={providerName} size={36} />
-          </View>
         </View>
 
-        <View style={{ padding: spacing.lg, paddingTop: 26, gap: 6 }}>
-          <Text style={{ ...typography.caption, color: colors.textMuted }} numberOfLines={1}>
-            {providerName}
-          </Text>
-          <Text style={{ ...typography.title.md, color: colors.text }} numberOfLines={1}>
-            {plan.name}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-            <ShieldCheck size={13} color={colors.accent} strokeWidth={2.3} />
-            <Text style={{ ...typography.label.sm, color: colors.textMuted }}>
-              LKR {formatLkr(plan.coverageSummaryLkr)} cover · {plan.networkHospitalCount}+ hospitals
-            </Text>
+        <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <ProviderAvatar name={providerName} size={36} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ ...typography.title.md, color: colors.text }} numberOfLines={1}>
+                {plan.name}
+              </Text>
+              <Text style={{ ...typography.caption, color: colors.textMuted }} numberOfLines={1}>
+                {providerName}
+              </Text>
+            </View>
+          </View>
+
+          {/* Key facts */}
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {[
+              { icon: ShieldCheck, text: `LKR ${formatLkr(plan.coverageSummaryLkr)}` },
+              {
+                icon: Hospital,
+                text: t("insurance.card.hospitalsCount", {
+                  count: plan.networkHospitalCount,
+                  defaultValue: "{{count}}+ hospitals",
+                }),
+              },
+            ].map((f) => (
+              <View
+                key={f.text}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  paddingHorizontal: 8,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: colors.fill,
+                  flexShrink: 1,
+                }}
+              >
+                <f.icon size={12} color={colors.accent} strokeWidth={2.4} />
+                <Text style={{ ...typography.label.xs, color: colors.textMuted }} numberOfLines={1}>
+                  {f.text}
+                </Text>
+              </View>
+            ))}
           </View>
 
           <View
@@ -541,28 +604,23 @@ function FeaturedPlanCard({
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              marginTop: 8,
-              paddingTop: 12,
+              paddingTop: spacing.md,
               borderTopWidth: StyleSheet.hairlineWidth,
               borderTopColor: colors.separator,
             }}
           >
-            <Text style={{ ...typography.title.lg, color: colors.text }}>
-              <Text style={{ ...typography.label.sm, color: colors.textMuted }}>LKR </Text>
-              {plan.monthlyPremiumLkr.toLocaleString()}
-              <Text style={{ ...typography.label.sm, color: colors.textMuted }}> /mo</Text>
-            </Text>
+            <PriceTag amount={plan.monthlyPremiumLkr} />
             <View
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
                 backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <ArrowUpRight size={16} color={colors.onPrimary} strokeWidth={2.5} />
+              <ArrowUpRight size={17} color={colors.onPrimary} strokeWidth={2.5} />
             </View>
           </View>
         </View>
@@ -579,6 +637,7 @@ function ProviderTile({
   provider: any;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors, radius, spacing, typography } = useTheme();
   return (
     <Pressable onPress={onPress} haptic="light">
@@ -619,7 +678,7 @@ function ProviderTile({
           </Text>
         </View>
         <Text style={{ ...typography.caption, color: colors.textSubtle }}>
-          {provider.planCount ?? 0} plans
+          {t("insurance.showingPlans", { count: provider.planCount ?? 0 })}
         </Text>
       </Card>
     </Pressable>
@@ -767,116 +826,126 @@ export default function Marketplace() {
         subtitle={marketplaceStats}
       />
 
-      {/* Compact search + quote strip */}
-      <LinearGradient
-        colors={["#0B4F6C", "#0D9488"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      {/* Search */}
+      <View
         style={{
           marginHorizontal: spacing.lg,
           marginTop: spacing.xs,
-          borderRadius: radius.xl,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          backgroundColor: colors.surface,
+          borderRadius: 16,
           borderCurve: "continuous",
-          padding: 12,
-          gap: 8,
-          ...(scheme === "dark" ? {} : shadow.sm),
+          paddingHorizontal: 14,
+          minHeight: 50,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.hairline,
+          ...(scheme === "dark" ? {} : shadow.xs),
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            backgroundColor: colors.surface,
-            borderRadius: 13,
-            borderCurve: "continuous",
-            paddingHorizontal: 12,
-            minHeight: 44,
-          }}
-        >
-          <Search size={17} color={colors.textSubtle} strokeWidth={2.4} />
-          <TextInput
-            value={q}
-            onChangeText={setQ}
-            placeholder={t("insurance.searchMarketplace", "Search insurers, plans, features")}
-            placeholderTextColor={colors.textSubtle}
-            returnKeyType="search"
+        <Search size={18} color={colors.textSubtle} strokeWidth={2.4} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder={t("insurance.searchMarketplace", "Search insurers, plans, features")}
+          placeholderTextColor={colors.textSubtle}
+          returnKeyType="search"
+          selectionColor={colors.primary}
+          style={{ flex: 1, paddingVertical: 12, color: colors.text, ...typography.body.md }}
+        />
+        {q.length > 0 ? (
+          <Pressable
+            onPress={() => setQ("")}
+            hitSlop={8}
+            haptic="light"
+            accessibilityLabel={t("common.clear", "Clear")}
             style={{
-              flex: 1,
-              paddingVertical: 10,
-              color: colors.text,
-              ...typography.body.md,
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: colors.fill,
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
-          {q.length > 0 ? (
-            <Pressable
-              onPress={() => setQ("")}
-              hitSlop={8}
-              haptic="light"
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                backgroundColor: colors.fill,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={12} color={colors.textMuted} strokeWidth={2.6} />
-            </Pressable>
-          ) : null}
-        </View>
+          >
+            <X size={12} color={colors.textMuted} strokeWidth={2.6} />
+          </Pressable>
+        ) : null}
+      </View>
 
-        <Pressable
-          onPress={() => router.push("/insurance/quote")}
-          haptic="light"
+      {/* Personalised quote banner */}
+      <Pressable
+        onPress={() => router.push("/insurance/quote")}
+        haptic="light"
+        accessibilityRole="button"
+        style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}
+      >
+        <LinearGradient
+          colors={["#0B4F6C", "#0D9488"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
+            borderRadius: radius.xl,
+            borderCurve: "continuous",
+            padding: spacing.lg,
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
-            backgroundColor: "rgba(255,255,255,0.16)",
-            paddingVertical: 7,
-            paddingLeft: 7,
-            paddingRight: 12,
-            borderRadius: 13,
-            borderCurve: "continuous",
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: "rgba(255,255,255,0.30)",
+            gap: spacing.md,
+            overflow: "hidden",
+            ...(scheme === "dark" ? {} : shadow.sm),
           }}
         >
           <View
+            pointerEvents="none"
             style={{
-              width: 30,
-              height: 30,
-              borderRadius: 10,
+              position: "absolute",
+              right: -40,
+              top: -50,
+              width: 160,
+              height: 160,
+              borderRadius: 80,
+              backgroundColor: "rgba(255,255,255,0.10)",
+            }}
+          />
+          <View
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 15,
               borderCurve: "continuous",
               backgroundColor: "#FFFFFF",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Sparkles size={15} color="#0D9488" strokeWidth={2.4} />
+            <Sparkles size={22} color="#0D9488" strokeWidth={2.3} />
           </View>
-          <Text style={{ ...typography.label.md, color: "#FFFFFF", flex: 1 }} numberOfLines={1}>
-            {t("insurance.getQuoteCta", "Get a personalised quote in 60s")}
-          </Text>
-          <ArrowUpRight size={16} color="#FFFFFF" strokeWidth={2.5} />
-        </Pressable>
-      </LinearGradient>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ ...typography.title.md, color: "#FFFFFF" }} numberOfLines={1}>
+              {t("insurance.quoteBanner.title", "Get a personalised quote")}
+            </Text>
+            <Text style={{ ...typography.body.sm, color: "rgba(255,255,255,0.82)" }} numberOfLines={2}>
+              {t("insurance.quoteBanner.body", "A few quick questions · takes about 60 seconds")}
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: "rgba(255,255,255,0.20)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ArrowUpRight size={17} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+        </LinearGradient>
+      </Pressable>
 
       {/* ─── Categories: horizontal scroller ─── */}
       <View style={{ marginTop: spacing.xl }}>
-        <Text
-          style={{
-            ...typography.kicker,
-            color: colors.primary,
-            textTransform: "uppercase",
-            paddingHorizontal: spacing.lg,
-            marginBottom: 3,
-          }}
-        >
-          {t("insurance.categoriesKicker", "Categories")}
-        </Text>
         <Text
           style={{
             ...typography.title.lg,
@@ -928,11 +997,17 @@ export default function Marketplace() {
       {/* ─── Featured carousel ─── */}
       {!isInitialLoad && featuredPlans.length > 0 ? (
         <View style={{ marginTop: spacing.sm }}>
-          <SectionHeader
-            kicker={t("insurance.featuredSubtitle", "Hand-picked by coverage experts")}
-            title={t("insurance.featuredTitle", "Top picks this week")}
-            style={{ paddingHorizontal: spacing.lg }}
-          />
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.md, gap: 2 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Sparkles size={16} color={colors.primary} strokeWidth={2.4} />
+              <Text style={{ ...typography.title.lg, color: colors.text }}>
+                {t("insurance.featuredTitle", "Top picks this week")}
+              </Text>
+            </View>
+            <Text style={{ ...typography.body.sm, color: colors.textMuted }}>
+              {t("insurance.featuredSubtitle", "Hand-picked by coverage experts")}
+            </Text>
+          </View>
           <FlatList
             data={featuredPlans}
             keyExtractor={(p: any) => `feat-${p.id}`}
@@ -970,17 +1045,17 @@ export default function Marketplace() {
           marginBottom: spacing.md,
         }}
       >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ ...typography.kicker, color: colors.primary, textTransform: "uppercase", marginBottom: 3 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text style={{ ...typography.title.lg, color: colors.text }} numberOfLines={1}>
+            {t("insurance.allPlans", "All available plans")}
+          </Text>
+          <Text style={{ ...typography.body.sm, color: colors.textMuted }} numberOfLines={1}>
             {isLoading
               ? " "
               : t("insurance.showingPlans", {
                   count: totalPlans,
                   defaultValue: `${totalPlans} plan${totalPlans === 1 ? "" : "s"}`,
                 })}
-          </Text>
-          <Text style={{ ...typography.title.lg, color: colors.text }} numberOfLines={1}>
-            {t("insurance.allPlans", "All available plans")}
           </Text>
         </View>
         <Pressable
@@ -1008,17 +1083,25 @@ export default function Marketplace() {
         </Pressable>
       </View>
       {!isInitialLoad && totalPlans > 0 ? (
-        <Text
+        <View
           style={{
-            ...typography.caption,
-            color: colors.textSubtle,
-            paddingHorizontal: spacing.lg,
-            marginTop: -6,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            marginHorizontal: spacing.lg,
             marginBottom: spacing.md,
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+            borderRadius: 12,
+            borderCurve: "continuous",
+            backgroundColor: colors.primarySoft,
           }}
         >
-          {t("insurance.compare.hint", "Tip: long-press plans to compare up to 3")}
-        </Text>
+          <Scale size={14} color={colors.primary} strokeWidth={2.4} />
+          <Text style={{ ...typography.caption, color: colors.primary, flex: 1 }}>
+            {t("insurance.compare.hint", "Tip: long-press plans to compare up to 3")}
+          </Text>
+        </View>
       ) : null}
 
       {isInitialLoad ? (

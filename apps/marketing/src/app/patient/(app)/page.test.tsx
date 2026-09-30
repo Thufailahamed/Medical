@@ -90,6 +90,11 @@ vi.mock("@/patient/hooks", () => ({
     isLoading: false,
     isError: false,
   }),
+  useRefillDue: () => ({
+    data: { count: 0 },
+    isLoading: false,
+    isError: false,
+  }),
 }));
 
 vi.mock("next/navigation", () => ({

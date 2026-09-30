@@ -8,7 +8,7 @@ import { buildTestApp, postJson, getJson, patchJson, putJson, deleteJson } from 
 import { MockD1 } from "./_mockDb";
 import adminDiagnosticsRouter from "../src/routes/admin-diagnostics";
 
-const ADMIN_USER = { id: "admin-1", role: "super_admin" };
+const ADMIN_USER = { id: "admin-1", role: "super_admin", aud: "admin" as const };
 const LAB_USER = { id: "lab-101", role: "laboratory" };
 
 describe("Admin Diagnostics — Packages + Image (Task 5)", () => {

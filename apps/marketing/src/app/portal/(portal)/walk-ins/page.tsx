@@ -18,6 +18,9 @@ import {
   Play,
   Phone,
   Plus,
+  Stethoscope,
+  Timer,
+  RefreshCw,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
@@ -29,6 +32,18 @@ import { toast } from "@/portal/components/ui/Toast";
 import { useAuthStore } from "@/portal/stores/auth";
 import { relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  SecondaryLink,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 
 interface WalkIn {
   id: string;
@@ -70,165 +85,184 @@ const STATUS_META: Record<
 
 const FILTER_TABS: Array<{ value: StatusFilter; label: string }> = [
   { value: "waiting", label: "Waiting" },
-  { value: "in_consultation", label: "In Consult" },
+  { value: "in_consultation", label: "In consult" },
   { value: "completed", label: "Completed" },
-  { value: "no_show", label: "No Show" },
-  { value: "all", label: "All Walk-Ins" },
+  { value: "no_show", label: "No-show" },
+  { value: "all", label: "All" },
 ];
+
+const STATUS_CHIP: Record<string, string> = {
+  waiting: "bg-amber-50 text-amber-700",
+  in_consultation: "bg-sky-50 text-sky-700",
+  completed: "bg-emerald-50 text-emerald-700",
+  no_show: "bg-slate-100 text-slate-600",
+};
+
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+/** Minutes since arrival, for wait-time emphasis. */
+function minutesSince(iso: string) {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+}
+
+function formatWait(mins: number) {
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  return `${h}h ${mins % 60}m`;
+}
 
 function WalkInCard({
   walkIn,
+  position,
   onStatusChange,
   isPending,
 }: {
   walkIn: WalkIn;
+  position: number | null;
   onStatusChange: (id: string, status: string) => void;
   isPending: boolean;
 }) {
   const meta = STATUS_META[walkIn.status] ?? STATUS_META.waiting;
   const StatusIcon = meta.icon;
   const isUrgent = walkIn.priority === "urgent";
+  const active = walkIn.status === "waiting" || walkIn.status === "in_consultation";
+  const wait = minutesSince(walkIn.arrivedAt);
+  const longWait = walkIn.status === "waiting" && wait >= 30;
+  const chartHref = `/portal/patients/${walkIn.patientId}/overview`;
 
   return (
-    <div
+    <article
       className={cn(
-        "relative rounded-2xl border p-4 sm:p-5 transition-all bg-white shadow-2xs hover:shadow-xs",
-        isUrgent ? "border-rose-300" : "border-slate-200/90 hover:border-sky-300",
+        "relative flex h-full flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-shadow hover:shadow-[0_12px_32px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(15,23,42,0.07)] sm:p-5",
+        walkIn.status === "in_consultation" && "shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_0_0_1.5px_#38bdf8]",
       )}
     >
-      {isUrgent && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-amber-500 rounded-t-2xl" />
-      )}
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-1",
+          isUrgent ? "bg-rose-500" : walkIn.status === "in_consultation" ? "bg-sky-500" : walkIn.status === "waiting" ? "bg-amber-400" : "bg-slate-200",
+        )}
+        aria-hidden
+      />
 
-      <div className="flex flex-col gap-3.5">
-        <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative shrink-0">
-              <Avatar name={walkIn.patientName} size="md" />
-              {isUrgent && (
-                <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-rose-500 border-2 border-white animate-pulse" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <Link
-                href={`/portal/patients/${walkIn.patientId}/overview`}
-                className="text-base font-bold text-slate-900 hover:text-sky-700 transition-colors truncate block"
-              >
-                {walkIn.patientName ?? "Walk-In Patient"}
-              </Link>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                {walkIn.patientPhone && (
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Phone size={11} className="text-slate-400" />
-                    {walkIn.patientPhone}
-                  </span>
-                )}
-                <span className="text-xs text-slate-400">·</span>
-                <span className="text-xs text-slate-500 flex items-center gap-1">
-                  <Clock size={11} className="text-slate-400" />
-                  Arrived {relativeTime(walkIn.arrivedAt)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {isUrgent && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                <AlertTriangle size={11} />
-                Urgent Triage
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative shrink-0">
+            <Avatar name={walkIn.patientName} size="md" />
+            {position != null ? (
+              <span className="absolute -bottom-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#07233a] px-1 font-mono text-[10px] font-semibold text-white ring-2 ring-white">
+                {position}
               </span>
-            )}
-            <span
-              className={cn(
-                "px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border flex items-center gap-1",
-                walkIn.status === "waiting"
-                  ? "bg-amber-50 text-amber-800 border-amber-200"
-                  : walkIn.status === "in_consultation"
-                  ? "bg-sky-50 text-sky-800 border-sky-200"
-                  : walkIn.status === "completed"
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                  : "bg-slate-50 text-slate-700 border-slate-200",
-              )}
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <Link
+              href={chartHref}
+              className="block truncate text-[15px] font-semibold text-slate-900 transition-colors hover:text-sky-700"
             >
-              <StatusIcon size={11} />
-              <span>{meta.label}</span>
-            </span>
+              {walkIn.patientName ?? "Walk-in patient"}
+            </Link>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+              {walkIn.patientPhone ? (
+                <span className="inline-flex items-center gap-1">
+                  <Phone size={11} className="text-slate-400" aria-hidden />
+                  {walkIn.patientPhone}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1">
+                <Clock size={11} className="text-slate-400" aria-hidden />
+                Arrived {relativeTime(walkIn.arrivedAt)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {(walkIn.reason || walkIn.doctorName) && (
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-center justify-between gap-2 flex-wrap">
-            <span className="font-semibold text-slate-800">
-              Reason: {walkIn.reason ?? "General clinical encounter"}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold", STATUS_CHIP[walkIn.status] ?? STATUS_CHIP.no_show)}>
+            <StatusIcon size={11} aria-hidden />
+            {meta.label}
+          </span>
+          {isUrgent ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-[10.5px] font-semibold text-rose-600">
+              <AlertTriangle size={10} aria-hidden />
+              Urgent
             </span>
-            {walkIn.doctorName && (
-              <span className="text-slate-500">Clinician: {walkIn.doctorName}</span>
-            )}
-          </div>
-        )}
-
-        {walkIn.notes && (
-          <div className="text-xs text-slate-600 bg-amber-50/50 rounded-xl px-3 py-2 border border-amber-200/70">
-            {walkIn.notes}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap">
-          <div className="flex items-center gap-2">
-            {walkIn.status === "waiting" && (
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => onStatusChange(walkIn.id, "in_consultation")}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                }}
-              >
-                <Play size={13} fill="currentColor" />
-                <span>Call to Consultation Room</span>
-              </button>
-            )}
-
-            {walkIn.status === "in_consultation" && (
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => onStatusChange(walkIn.id, "completed")}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                }}
-              >
-                <Check size={14} strokeWidth={3} />
-                <span>Complete Consultation</span>
-              </button>
-            )}
-
-            {(walkIn.status === "waiting" || walkIn.status === "in_consultation") && (
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => onStatusChange(walkIn.id, "no_show")}
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <X size={13} />
-                <span>Mark No-Show</span>
-              </button>
-            )}
-          </div>
-
-          <Link
-            href={`/portal/patients/${walkIn.patientId}/overview`}
-            className="text-xs font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1"
-          >
-            <span>Open Medical Chart</span>
-            <ChevronRight size={13} />
-          </Link>
+          ) : null}
         </div>
       </div>
-    </div>
+
+      <div className="mt-4 flex flex-col gap-2 rounded-xl bg-slate-50 p-3 text-xs">
+        <p className="font-medium text-slate-800">{walkIn.reason ?? "General consultation"}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+          {walkIn.status === "waiting" ? (
+            <span className={cn("inline-flex items-center gap-1 font-semibold", longWait ? "text-rose-600" : "text-slate-600")}>
+              <Timer size={12} aria-hidden />
+              Waiting {formatWait(wait)}
+            </span>
+          ) : null}
+          {walkIn.doctorName ? (
+            <span className="inline-flex items-center gap-1">
+              <Stethoscope size={12} aria-hidden />
+              {walkIn.doctorName}
+            </span>
+          ) : null}
+          {walkIn.hospitalName ? <span>{walkIn.hospitalName}</span> : null}
+        </div>
+        {walkIn.notes ? (
+          <p className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-amber-900">{walkIn.notes}</p>
+        ) : null}
+      </div>
+
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
+        <div className="flex items-center gap-1.5">
+          {walkIn.status === "waiting" ? (
+            <Button
+              size="sm"
+              variant="primary"
+              leftIcon={<Play size={12} fill="currentColor" />}
+              disabled={isPending}
+              onClick={() => onStatusChange(walkIn.id, "in_consultation")}
+            >
+              Call to room
+            </Button>
+          ) : null}
+          {walkIn.status === "in_consultation" ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onStatusChange(walkIn.id, "completed")}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Check size={13} strokeWidth={3} aria-hidden />
+              Complete
+            </button>
+          ) : null}
+          {active ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onStatusChange(walkIn.id, "no_show")}
+              className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+            >
+              <X size={13} aria-hidden />
+              No-show
+            </button>
+          ) : null}
+        </div>
+
+        <Link
+          href={chartHref}
+          className="group/chart inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-800"
+        >
+          Open chart
+          <ChevronRight size={13} className="transition-transform group-hover/chart:translate-x-0.5" aria-hidden />
+        </Link>
+      </div>
+    </article>
   );
 }
 
@@ -462,9 +496,16 @@ export default function WalkInsPage() {
   const [status, setStatus] = useState<StatusFilter>("waiting");
   const [showForm, setShowForm] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["walk-ins", "queue", status],
     queryFn: () => api<{ walkIns: WalkIn[] }>(`/walk-ins?status=${status}&limit=200`),
+    refetchInterval: 30_000,
+  });
+
+  // Same request the "All" tab makes — reused for real per-status counts.
+  const { data: allData } = useQuery({
+    queryKey: ["walk-ins", "queue", "all"],
+    queryFn: () => api<{ walkIns: WalkIn[] }>(`/walk-ins?status=all&limit=200`),
     refetchInterval: 30_000,
   });
 
@@ -479,229 +520,199 @@ export default function WalkInsPage() {
   });
 
   const rows = data?.walkIns ?? [];
-  const waitingCount = status === "waiting" ? rows.length : null;
+
+  const counts = (() => {
+    const all = allData?.walkIns ?? [];
+    let waiting = 0;
+    let inConsult = 0;
+    let completed = 0;
+    let noShow = 0;
+    let urgent = 0;
+    let longestWait = 0;
+    for (const w of all) {
+      if (w.status === "waiting") {
+        waiting++;
+        if (w.priority === "urgent") urgent++;
+        longestWait = Math.max(longestWait, minutesSince(w.arrivedAt));
+      } else if (w.status === "in_consultation") inConsult++;
+      else if (w.status === "completed" && isToday(w.arrivedAt)) completed++;
+      else if (w.status === "no_show" && isToday(w.arrivedAt)) noShow++;
+    }
+    return { waiting, inConsult, completed, noShow, urgent, longestWait, ready: !!allData };
+  })();
+
+  const countFor: Record<StatusFilter, number | undefined> = {
+    waiting: counts.ready ? counts.waiting : undefined,
+    in_consultation: counts.ready ? counts.inConsult : undefined,
+    completed: counts.ready ? counts.completed : undefined,
+    no_show: counts.ready ? counts.noShow : undefined,
+    all: undefined,
+  };
+
+  // Urgent first, then earliest arrival — the order reception calls people in.
+  const ordered = [...rows].sort((a, b) => {
+    const ua = a.priority === "urgent" ? 0 : 1;
+    const ub = b.priority === "urgent" ? 0 : 1;
+    if (ua !== ub) return ua - ub;
+    return new Date(a.arrivedAt).getTime() - new Date(b.arrivedAt).getTime();
+  });
+
+  const waitingPos = new Map<string, number>();
+  ordered.filter((w) => w.status === "waiting").forEach((w, i) => waitingPos.set(w.id, i + 1));
+
+  const emptyCopy: Record<StatusFilter, { title: string; body: string }> = {
+    waiting: {
+      title: "The waiting room is clear",
+      body: "When a patient arrives without an appointment or scans their Health ID at the desk, their card appears here.",
+    },
+    in_consultation: { title: "No one is in the room", body: "Call the next waiting patient to start a consultation." },
+    completed: { title: "No completed walk-ins yet", body: "Patients you discharge today will be listed here." },
+    no_show: { title: "No no-shows", body: "Patients marked as no-show will be listed here." },
+    all: { title: "No walk-ins yet", body: "Check in an arriving patient to start today's walk-in queue." },
+  };
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* ── 1. Signature Oceanic Walk-In Triage Hero ────────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <DoorOpen size={12} className="text-sky-300" />
-                Live Reception &amp; Triage
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Walk-In Triage Queue
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Admit unscheduled patients, assign clinical triage priorities, monitor reception wait times, and call patients into consultation rooms.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <Link
-                href="/portal/queue"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <ListOrdered size={13} />
-                <span>Combined Queue</span>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-10">
+      <div>
+        <DoctorHero
+          kickerIcon={<DoorOpen size={13} aria-hidden />}
+          kicker="Reception & triage"
+          kickerMeta={new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          title="Walk-ins"
+          description={
+            !counts.ready
+              ? "Loading the waiting room…"
+              : counts.waiting > 0
+                ? `${counts.waiting} waiting${counts.urgent > 0 ? `, ${counts.urgent} urgent` : ""} — longest wait ${formatWait(counts.longestWait)}.`
+                : "The waiting room is clear. Check in patients as they arrive at the desk."
+          }
+          chips={
+            <span className={HERO_CHIP}>
+              <span className={cn("h-2 w-2 rounded-full bg-emerald-400", isFetching ? "animate-ping" : "animate-pulse")} aria-hidden />
+              Live · desk & kiosk synced
+            </span>
+          }
+          actions={
+            <>
+              <Link href="/portal/queue" className={HERO_GHOST}>
+                <ListOrdered size={15} aria-hidden />
+                Combined queue
               </Link>
-              <button
-                type="button"
-                onClick={() => setShowForm(true)}
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02] cursor-pointer"
-                style={{ color: "#0c4a6e" }}
-              >
-                <UserPlus size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>+ Check In Walk-In</span>
+              <button type="button" onClick={() => setShowForm(true)} className={HERO_PRIMARY}>
+                <UserPlus size={15} className="text-sky-600" aria-hidden />
+                Check in walk-in
               </button>
-            </div>
-          </div>
+            </>
+          }
+        />
 
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Clock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Waiting Lounge
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {status === "waiting" ? rows.length : "Live Active"} Waiting
-                </p>
-              </div>
-            </div>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Waiting"
+            icon={<Clock size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={counts.ready ? String(counts.waiting) : "…"}
+            unit={counts.waiting === 1 ? "patient" : "patients"}
+            sub={counts.waiting > 0 ? `Longest wait ${formatWait(counts.longestWait)}` : "No one waiting"}
+            badge={counts.urgent > 0 ? { text: `${counts.urgent} urgent`, tone: "bg-rose-50 text-rose-600" } : undefined}
+            pulse={counts.waiting > 0}
+            active={status === "waiting"}
+            onClick={() => setStatus("waiting")}
+          />
+          <StatTile
+            label="In consultation"
+            icon={<Play size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={counts.ready ? String(counts.inConsult) : "…"}
+            sub={counts.inConsult > 0 ? "Currently in the room" : "Room is free"}
+            active={status === "in_consultation"}
+            onClick={() => setStatus("in_consultation")}
+          />
+          <StatTile
+            label="Completed today"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={counts.ready ? String(counts.completed) : "…"}
+            sub="Discharged walk-ins"
+            active={status === "completed"}
+            onClick={() => setStatus("completed")}
+          />
+          <StatTile
+            label="No-shows today"
+            icon={<X size={16} />}
+            tone="bg-rose-50 text-rose-500"
+            value={counts.ready ? String(counts.noShow) : "…"}
+            sub="Left before being seen"
+            active={status === "no_show"}
+            onClick={() => setStatus("no_show")}
+          />
+        </HeroOverlap>
+      </div>
 
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Play size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  In Consultation
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {status === "in_consultation" ? rows.length : "Room Session"} Active
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <CheckCircle2 size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Discharged
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {status === "completed" ? rows.length : "Completed"} Today
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <DoorOpen size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Triage Mode
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  Kiosk &amp; Desk Sync
-                </p>
-              </div>
-            </div>
+      <section className={cn(PANEL, "p-0 sm:p-0")} aria-label="Walk-in patients">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4 sm:px-6">
+          <Segmented
+            ariaLabel="Walk-in status"
+            value={status}
+            onChange={(v) => setStatus(v)}
+            options={FILTER_TABS.map((tab) => ({ value: tab.value, label: tab.label, count: countFor[tab.value] }))}
+          />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh"
+              className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+            >
+              <RefreshCw size={15} className={cn(isFetching && "animate-spin")} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+            >
+              <Plus size={13} strokeWidth={2.5} aria-hidden />
+              Admit walk-in
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* ── 2. Unified Triage Stage & High-Contrast Filter Pills ───────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
-        {/* Filter Controls Header */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {FILTER_TABS.map((tab) => {
-              const active = status === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setStatus(tab.value)}
-                  style={{
-                    backgroundColor: active ? "#0284c7" : "#ffffff",
-                    borderColor: active ? "#0284c7" : "#cbd5e1",
-                    color: active ? "#ffffff" : "#475569",
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs"
-                >
-                  <span>{tab.label}</span>
-                  {tab.value === "waiting" && waitingCount != null && (
-                    <span
-                      style={{
-                        backgroundColor: active ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                        color: active ? "#ffffff" : "#64748b",
-                      }}
-                      className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold"
-                    >
-                      {waitingCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus size={13} strokeWidth={3} />
-            <span>Admit Walk-In</span>
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div className="p-5">
+        <div className="p-4 sm:p-6">
           {isLoading ? (
-            <div className="flex flex-col gap-3">
-              <Skeleton className="h-32 w-full rounded-2xl" />
-              <Skeleton className="h-32 w-full rounded-2xl" />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Skeleton className="h-44 w-full rounded-2xl" />
+              <Skeleton className="h-44 w-full rounded-2xl" />
             </div>
-          ) : rows.length === 0 ? (
-            /* Rich Clinical Empty State */
-            <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shadow-xs">
-                <DoorOpen size={26} />
-              </div>
-              <div className="max-w-md">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  Waiting Room is Currently Clear
-                </h3>
-                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  No walk-in patients match the current filter. When patients arrive without an appointment or check in at the front desk, their triage cards will appear here.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(true)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                  }}
-                >
-                  <UserPlus size={14} />
-                  <span>+ Check In Arriving Patient</span>
-                </button>
-                <Link
-                  href="/portal/queue"
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ListOrdered size={14} />
-                  <span>View Combined Queue</span>
-                </Link>
-              </div>
-            </div>
+          ) : ordered.length === 0 ? (
+            <EmptyBlock
+              className="mt-0 py-12"
+              icon={<DoorOpen size={20} />}
+              title={emptyCopy[status].title}
+              body={emptyCopy[status].body}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(true)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+                  >
+                    <UserPlus size={13} aria-hidden />
+                    Check in patient
+                  </button>
+                  <SecondaryLink href="/portal/queue" icon={<ListOrdered size={13} />}>
+                    Combined queue
+                  </SecondaryLink>
+                </>
+              }
+            />
           ) : (
-            <div className="flex flex-col gap-3.5">
-              {rows.map((w) => (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+              {ordered.map((w) => (
                 <WalkInCard
                   key={w.id}
                   walkIn={w}
+                  position={waitingPos.get(w.id) ?? null}
                   onStatusChange={(id, s) => transitions.mutate({ id, status: s })}
                   isPending={transitions.isPending && transitions.variables?.id === w.id}
                 />

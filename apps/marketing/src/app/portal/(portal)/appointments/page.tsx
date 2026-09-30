@@ -17,12 +17,19 @@ import {
   CalendarPlus,
   Stethoscope,
   ExternalLink,
+  Play,
+  Check,
+  Sun,
+  Sunrise,
+  Moon,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { addDays, format, parseISO } from "date-fns";
 
 import { api, teleconsultApi, qk } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
+import { Avatar } from "@/portal/components/ui/Avatar";
 import { Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Input } from "@/portal/components/ui/Form";
@@ -31,6 +38,18 @@ import { toast } from "@/portal/components/ui/Toast";
 import { useT } from "@/portal/i18n";
 import { formatTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PrimaryLink,
+  SecondaryLink,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 
 // ─── Types ──────────────────────────────────────────────
 interface QueueRow {
@@ -72,6 +91,50 @@ const STATUS_CONFIG: Record<
   cancelled: { tone: "danger", icon: AlertTriangle, label: "Cancelled" },
   no_show: { tone: "danger", icon: AlertTriangle, label: "No Show" },
 };
+
+/** The one obvious next step for each state; the rest live under "More". */
+const PRIMARY_NEXT: Record<string, { status: string; label: string }> = {
+  scheduled: { status: "confirmed", label: "Confirm" },
+  confirmed: { status: "in_progress", label: "Start" },
+  in_progress: { status: "completed", label: "Complete" },
+};
+
+const STATUS_CHIP: Record<string, string> = {
+  scheduled: "bg-violet-50 text-violet-700",
+  confirmed: "bg-sky-50 text-sky-700",
+  in_progress: "bg-amber-50 text-amber-700",
+  in_consultation: "bg-amber-50 text-amber-700",
+  waiting: "bg-amber-50 text-amber-700",
+  completed: "bg-emerald-50 text-emerald-700",
+  cancelled: "bg-slate-100 text-slate-500",
+  no_show: "bg-rose-50 text-rose-600",
+};
+
+type ModeFilter = "all" | "video" | "in_person";
+
+function localIso(d: Date) {
+  return format(d, "yyyy-MM-dd");
+}
+
+function shiftIso(iso: string, days: number) {
+  return localIso(addDays(parseISO(iso), days));
+}
+
+function periodOf(time: string | null): "morning" | "afternoon" | "evening" | "unset" {
+  if (!time) return "unset";
+  const h = Number(time.split(":")[0]);
+  if (Number.isNaN(h)) return "unset";
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
+}
+
+const PERIODS = [
+  { key: "morning", label: "Morning", icon: Sunrise },
+  { key: "afternoon", label: "Afternoon", icon: Sun },
+  { key: "evening", label: "Evening", icon: Moon },
+  { key: "unset", label: "No time set", icon: Clock },
+] as const;
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   scheduled: ["confirmed", "in_progress", "cancelled", "no_show"],
@@ -169,8 +232,8 @@ function AppointmentDetail({
   return (
     <div className="flex flex-col gap-4">
       {/* Patient info card */}
-      <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80">
-        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-700 text-white flex items-center justify-center text-sm font-extrabold shadow-sm">
+      <div className="flex items-center gap-3.5 rounded-2xl bg-slate-50 p-4">
+        <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#07233a] text-sm font-semibold text-white">
           {(row.patientName ?? "?").slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
@@ -198,29 +261,29 @@ function AppointmentDetail({
 
       {/* Date & Time Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Date</div>
-          <div className="text-sm font-bold text-slate-900 mt-1">
+        <div className="rounded-xl bg-slate-50 p-3.5">
+          <div className="text-xs font-medium text-slate-400">Date</div>
+          <div className="mt-1 text-sm font-semibold text-slate-900">
             {format(parseISO(date), "EEE, MMM d, yyyy")}
           </div>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Scheduled Time</div>
-          <div className="text-sm font-bold text-slate-900 mt-1">
+        <div className="rounded-xl bg-slate-50 p-3.5">
+          <div className="text-xs font-medium text-slate-400">Scheduled Time</div>
+          <div className="mt-1 text-sm font-semibold text-slate-900">
             {row.time ? formatTime(`1970-01-01T${row.time}`) : "Not specified"}
           </div>
         </div>
       </div>
 
       {row.reason && (
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-          <div className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400">Reason for Visit</div>
+        <div className="rounded-xl bg-slate-50 p-3.5">
+          <div className="text-xs font-medium text-slate-400">Reason for Visit</div>
           <div className="text-sm text-slate-800 mt-1">{row.reason}</div>
         </div>
       )}
 
       {/* Pre-visit AI Briefing */}
-      <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50/40 flex flex-col gap-3">
+      <div className="flex flex-col gap-3 rounded-2xl p-4 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.25)]">
         <div className="flex items-center justify-between gap-2">
           <div>
             <div className="text-sm font-bold text-slate-900">Pre-Visit Clinical Briefing</div>
@@ -231,7 +294,7 @@ function AppointmentDetail({
           <button
             type="button"
             onClick={() => setShowPreVisit((s) => !s)}
-            className="px-3 py-1 rounded-xl text-xs font-bold text-sky-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+            className="h-8 rounded-lg bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
           >
             {showPreVisit ? "Hide" : "View"}
           </button>
@@ -284,13 +347,13 @@ function AppointmentDetail({
 
       {/* Reschedule Box */}
       {showReschedule && (
-        <div className="p-4 rounded-2xl border border-sky-300 bg-sky-50/60 flex flex-col gap-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900">Reschedule Consultation</h4>
+        <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4">
+          <h4 className="text-sm font-semibold text-slate-900">Reschedule Consultation</h4>
           <Input
             type="date"
             label="New Date"
             value={newDate}
-            min={new Date().toISOString().slice(0, 10)}
+            min={localIso(new Date())}
             onChange={(e) => setNewDate(e.target.value)}
           />
           <Input
@@ -336,10 +399,7 @@ function AppointmentDetail({
               type="button"
               disabled={startVideoVisit.isPending}
               onClick={() => startVideoVisit.mutate(row.appointmentId!)}
-              className="w-full h-10 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#07233a] text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               <Video size={15} />
               <span>Launch Teleconsultation Session</span>
@@ -350,7 +410,7 @@ function AppointmentDetail({
           <button
             type="button"
             onClick={() => setShowReschedule(true)}
-            className="w-full h-10 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.12)] transition-colors hover:text-sky-700"
           >
             <Clock size={14} />
             <span>Reschedule Appointment</span>
@@ -366,7 +426,7 @@ function AppointmentDetail({
                 updateStatus.mutate("cancelled");
               }
             }}
-            className="w-full h-10 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
           >
             <AlertTriangle size={14} />
             <span>Cancel Appointment</span>
@@ -379,10 +439,12 @@ function AppointmentDetail({
 
 export default function AppointmentsPage() {
   const t = useT();
+  void t;
   const router = useRouter();
   const qc = useQueryClient();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => localIso(new Date()));
   const [selectedRow, setSelectedRow] = useState<QueueRow | null>(null);
+  const [mode, setMode] = useState<ModeFilter>("all");
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-portal", "queue", date],
@@ -405,6 +467,23 @@ export default function AppointmentsPage() {
   const rows = data?.queue ?? [];
   const videoRows = rows.filter((r) => r.mode === "video");
   const inPersonRows = rows.filter((r) => r.mode !== "video");
+  const completed = rows.filter((r) => r.status === "completed").length;
+  const cancelled = rows.filter((r) => r.status === "cancelled" || r.status === "no_show").length;
+  const live = rows.length - cancelled;
+
+  const visible = rows
+    .filter((r) => (mode === "all" ? true : mode === "video" ? r.mode === "video" : r.mode !== "video"))
+    .sort((a, b) => (a.time ?? "99").localeCompare(b.time ?? "99"));
+
+  const grouped = PERIODS.map((p) => ({ ...p, rows: visible.filter((r) => periodOf(r.time) === p.key) })).filter(
+    (g) => g.rows.length > 0,
+  );
+
+  const today = localIso(new Date());
+  const isToday = date === today;
+  const nextUp = isToday
+    ? visible.find((r) => r.status === "scheduled" || r.status === "confirmed" || r.status === "in_progress")
+    : undefined;
 
   const startVideoVisit = useMutation({
     mutationFn: (appointmentId: string) =>
@@ -416,349 +495,337 @@ export default function AppointmentsPage() {
     onError: (err: any) => toast.error("Failed", err?.message),
   });
 
+  const dayLabel = isToday
+    ? "Today"
+    : date === shiftIso(today, 1)
+      ? "Tomorrow"
+      : date === shiftIso(today, -1)
+        ? "Yesterday"
+        : format(parseISO(date), "EEEE");
+
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* ── 1. Signature Oceanic Doctor Appointments Hero ─────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Calendar size={12} className="text-sky-300" />
-                Scheduled Encounters &amp; Telehealth
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Patient Appointments
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                {format(parseISO(date), "EEEE, MMMM d, yyyy")} · Manage booked consultations, launch encrypted video visits, and review AI pre-visit clinical summaries.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              {/* Date Controls */}
-              <div className="flex items-center gap-1 bg-white/15 border border-white/25 rounded-xl p-1 backdrop-blur-md">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-10">
+      <div>
+        <DoctorHero
+          kickerIcon={<Calendar size={13} aria-hidden />}
+          kicker="Appointments"
+          kickerMeta={format(parseISO(date), "EEEE, MMMM d, yyyy")}
+          title={`${dayLabel}'s appointments`}
+          description={
+            isLoading
+              ? "Loading bookings…"
+              : rows.length === 0
+                ? "No bookings for this day. Open slots from your availability, or move to another date."
+                : nextUp
+                  ? `${live} booked · next up ${nextUp.time ? formatTime(`1970-01-01T${nextUp.time}`) : ""} with ${nextUp.patientName ?? "a patient"}.`
+                  : `${live} booked · ${completed} completed.`
+          }
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <Video size={12} className="text-sky-300" aria-hidden />
+                {videoRows.length} video
+              </span>
+              <span className={HERO_CHIP}>
+                <Stethoscope size={12} className="text-emerald-300" aria-hidden />
+                {inPersonRows.length} in-person
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <div className="flex h-10 items-center gap-0.5 rounded-[10px] border border-white/20 bg-white/[0.06] p-1">
                 <button
                   type="button"
-                  onClick={() => setDate((d) => addDays(parseISO(d), -1).toISOString().slice(0, 10))}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
-                  title="Previous Day"
+                  onClick={() => setDate((d) => shiftIso(d, -1))}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-white transition-colors hover:bg-white/15"
+                  aria-label="Previous day"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <input
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="h-8 px-2.5 rounded-lg bg-white/20 text-xs font-bold text-white border-0 focus:outline-none cursor-pointer"
+                  onChange={(e) => e.target.value && setDate(e.target.value)}
+                  aria-label="Choose date"
+                  className="h-8 rounded-lg bg-transparent px-2 text-sm font-semibold text-white [color-scheme:dark] focus:bg-white/10 focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={() => setDate((d) => addDays(parseISO(d), 1).toISOString().slice(0, 10))}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg text-white hover:bg-white/20 transition-all cursor-pointer"
-                  title="Next Day"
+                  onClick={() => setDate((d) => shiftIso(d, 1))}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-white transition-colors hover:bg-white/15"
+                  aria-label="Next day"
                 >
                   <ChevronRight size={16} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDate(new Date().toISOString().slice(0, 10))}
-                  className="px-2.5 py-1 text-xs font-bold text-white hover:bg-white/20 rounded-lg transition-all cursor-pointer ml-0.5"
+                  onClick={() => setDate(today)}
+                  disabled={isToday}
+                  className="h-8 rounded-lg px-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 disabled:opacity-50"
                 >
                   Today
                 </button>
               </div>
-
-              <Link
-                href="/portal/schedule"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <CalendarPlus size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>Manage Slots</span>
+              <Link href="/portal/availability" className={HERO_PRIMARY}>
+                <CalendarPlus size={15} className="text-sky-600" aria-hidden />
+                Manage slots
               </Link>
-            </div>
-          </div>
+            </>
+          }
+        />
 
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <CalendarCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Total Bookings
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {rows.length} Scheduled
-                </p>
-              </div>
-            </div>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Booked"
+            icon={<CalendarCheck size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : String(live)}
+            sub={cancelled > 0 ? `${cancelled} cancelled or no-show` : "Active bookings"}
+            active={mode === "all"}
+            onClick={() => setMode("all")}
+          />
+          <StatTile
+            label="Video visits"
+            icon={<Video size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={isLoading ? "…" : String(videoRows.length)}
+            sub="Telehealth sessions"
+            active={mode === "video"}
+            onClick={() => setMode("video")}
+          />
+          <StatTile
+            label="In-person"
+            icon={<Stethoscope size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={isLoading ? "…" : String(inPersonRows.length)}
+            sub="At the clinic"
+            active={mode === "in_person"}
+            onClick={() => setMode("in_person")}
+          />
+          <StatTile
+            label="Completed"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={isLoading ? "…" : `${completed}`}
+            unit={live > 0 ? `of ${live}` : undefined}
+            sub={live > 0 ? `${Math.max(0, live - completed)} still to see` : "Nothing pending"}
+            progress={live > 0 ? Math.round((completed / live) * 100) : null}
+            href="/portal/queue"
+          />
+        </HeroOverlap>
+      </div>
 
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <Video size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-purple-200 truncate">
-                  Telehealth HD
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {videoRows.length} Video Visit{videoRows.length === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <Stethoscope size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-emerald-200 truncate">
-                  In-Person Clinic
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {inPersonRows.length} At Hospital
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <DoorOpen size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Live Queue
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  Realtime Synced
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Appointments List Stage ─────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">
-              Encounter Roster ({rows.length})
-            </span>
-            <span className="text-xs text-slate-400">·</span>
-            <span className="text-xs text-slate-500">
+      <section className={cn(PANEL, "p-0 sm:p-0")} aria-label="Appointments">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
               {format(parseISO(date), "EEEE, MMMM d")}
-            </span>
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {visible.length} encounter{visible.length === 1 ? "" : "s"}
+              {mode !== "all" ? ` · ${mode === "video" ? "video only" : "in-person only"}` : ""}
+            </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented<ModeFilter>
+              ariaLabel="Visit mode"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "all", label: "All", count: rows.length },
+                { value: "video", label: "Video", count: videoRows.length, icon: <Video size={12} aria-hidden /> },
+                { value: "in_person", label: "In-person", count: inPersonRows.length, icon: <Stethoscope size={12} aria-hidden /> },
+              ]}
+            />
             <Link
               href="/portal/queue"
-              className="text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200/60 transition-colors flex items-center gap-1"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50"
             >
-              <ListOrdered size={13} />
-              <span>Combined Queue</span>
+              <ListOrdered size={14} aria-hidden />
+              Live queue
             </Link>
           </div>
         </div>
 
-        <div>
-          {isLoading ? (
-            <div className="p-5 flex flex-col gap-3">
-              <Skeleton className="h-16 w-full rounded-2xl" />
-              <Skeleton className="h-16 w-full rounded-2xl" />
-              <Skeleton className="h-16 w-full rounded-2xl" />
-            </div>
-          ) : rows.length === 0 ? (
-            /* Rich Clinical Empty State */
-            <div className="py-14 px-4 flex flex-col items-center justify-center text-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
-                <CalendarCheck size={26} />
-              </div>
-              <div className="max-w-md">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  No Appointments for This Date
-                </h3>
-                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  {format(parseISO(date), "EEEE, MMMM d, yyyy")} · Your consultation calendar is clear. You can open booking slots on your schedule, check in arriving walk-in patients, or review the combined queue.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-                <Link
-                  href="/portal/schedule"
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                  }}
-                >
-                  <CalendarPlus size={14} />
-                  <span>Open Schedule Slots</span>
-                </Link>
-                <Link
-                  href="/portal/walk-ins"
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <DoorOpen size={14} />
-                  <span>Check-In Walk-In</span>
-                </Link>
-                <Link
-                  href="/portal/queue"
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ListOrdered size={14} />
-                  <span>Live Queue</span>
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {rows.map((r, i) => {
-                const acting =
-                  update.isPending &&
-                  update.variables?.id === (r.appointmentId ?? r.walkInId);
-                const nextStatuses: string[] = r.appointmentId
-                  ? ALLOWED_TRANSITIONS[r.status] ?? []
-                  : [];
-                const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.scheduled;
-                const isVideoActive =
-                  r.mode === "video" &&
-                  (r.status === "scheduled" ||
-                    r.status === "confirmed" ||
-                    r.status === "in_progress");
+        {isLoading ? (
+          <div className="flex flex-col gap-3 p-6">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="p-4 sm:p-6">
+            <EmptyBlock
+              className="mt-0 py-12"
+              icon={<CalendarCheck size={20} />}
+              title={rows.length === 0 ? `No appointments ${isToday ? "today" : `on ${format(parseISO(date), "MMM d")}`}` : "Nothing matches this filter"}
+              body={
+                rows.length === 0
+                  ? "Your calendar is clear. Open booking slots, check in walk-ins, or jump to another date."
+                  : "Switch the filter to see the rest of the day."
+              }
+              actions={
+                <>
+                  <PrimaryLink href="/portal/availability" icon={<CalendarPlus size={13} />}>
+                    Open slots
+                  </PrimaryLink>
+                  <SecondaryLink href="/portal/walk-ins" icon={<DoorOpen size={13} />}>
+                    Check in walk-in
+                  </SecondaryLink>
+                </>
+              }
+            />
+          </div>
+        ) : (
+          <div className="pb-2">
+            {grouped.map((g) => {
+              const Icon = g.icon;
+              return (
+                <div key={g.key}>
+                  <div className="flex items-center gap-2 px-4 pb-1 pt-4 sm:px-6">
+                    <Icon size={13} className="text-slate-400" aria-hidden />
+                    <span className="text-xs font-semibold text-slate-500">{g.label}</span>
+                    <span className="text-xs text-slate-400">{g.rows.length}</span>
+                  </div>
+                  <ul className="divide-y divide-slate-100">
+                    {g.rows.map((r, i) => {
+                      const acting =
+                        update.isPending && update.variables?.id === (r.appointmentId ?? r.walkInId);
+                      const primary = r.appointmentId ? PRIMARY_NEXT[r.status] : undefined;
+                      const others: string[] = (r.appointmentId ? ALLOWED_TRANSITIONS[r.status] ?? [] : []).filter(
+                        (s) => s !== primary?.status,
+                      );
+                      const isVideoActive =
+                        r.mode === "video" &&
+                        (r.status === "scheduled" || r.status === "confirmed" || r.status === "in_progress");
+                      const done = r.status === "completed" || r.status === "cancelled" || r.status === "no_show";
+                      const isNext = nextUp && (nextUp.appointmentId ?? nextUp.walkInId) === (r.appointmentId ?? r.walkInId);
 
-                return (
-                  <li
-                    key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`}
-                    className="flex items-center gap-4 px-5 py-4 hover:bg-sky-50/30 transition-all group"
-                  >
-                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-700 text-white flex items-center justify-center text-sm font-extrabold shadow-2xs shrink-0">
-                      {(r.patientName ?? "?").slice(0, 2).toUpperCase()}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRow(r)}
-                          className="text-sm font-bold text-slate-900 truncate hover:text-sky-700 hover:underline text-left cursor-pointer"
+                      return (
+                        <li
+                          key={`${r.kind}-${r.appointmentId ?? r.walkInId ?? i}`}
+                          className={cn(
+                            "relative flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 transition-colors hover:bg-slate-50/80 sm:flex-nowrap sm:px-6",
+                            isNext && "bg-sky-50/50",
+                          )}
                         >
-                          {r.patientName ?? "Walk-In Patient"}
-                        </button>
-                        {r.queueNumber != null && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            Token #{r.queueNumber}
+                          {isNext ? (
+                            <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-sky-500" aria-hidden />
+                          ) : null}
+
+                          <div className="w-16 shrink-0">
+                            <div className={cn("text-sm font-semibold tabular-nums", done ? "text-slate-400" : "text-slate-900")}>
+                              {r.time ? formatTime(`1970-01-01T${r.time}`) : "—"}
+                            </div>
+                            <div className="mt-0.5 text-[10.5px] text-slate-400">
+                              {isNext ? <span className="font-semibold uppercase tracking-wider text-sky-600">Next</span> : r.queueNumber != null ? `Token #${r.queueNumber}` : r.kind === "walkin" ? "Walk-in" : " "}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRow(r)}
+                            className="group flex min-w-0 flex-1 items-center gap-3 text-left"
+                          >
+                            <span className="relative shrink-0">
+                              <Avatar name={r.patientName} src={r.patientPhoto ?? null} size="sm" />
+                              {r.mode === "video" ? (
+                                <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-violet-500 text-white ring-2 ring-white" aria-hidden>
+                                  <Video size={9} />
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="min-w-0">
+                              <span className={cn("block truncate text-sm font-semibold group-hover:text-sky-700", done ? "text-slate-500" : "text-slate-900")}>
+                                {r.patientName ?? "Walk-in patient"}
+                              </span>
+                              <span className="mt-0.5 block truncate text-xs text-slate-500">
+                                {r.reason ?? "General consultation"}
+                                {r.hospitalName ? ` · ${r.hospitalName}` : ""}
+                              </span>
+                            </span>
+                          </button>
+
+                          <span className={cn("hidden shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold capitalize md:inline", STATUS_CHIP[r.status] ?? STATUS_CHIP.scheduled)}>
+                            {(STATUS_CONFIG[r.status]?.label ?? r.status.replace(/_/g, " ")).toLowerCase()}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                        <span className="font-mono tabular-nums font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {r.time ? formatTime(`1970-01-01T${r.time}`) : "Time not set"}
-                        </span>
-                        <span>·</span>
-                        <span className="truncate">{r.reason ?? "General clinical encounter"}</span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Pill tone={cfg.tone}>{r.status.replace("_", " ")}</Pill>
+                          <div className="flex w-full shrink-0 items-center justify-end gap-1.5 sm:w-auto">
+                            {isVideoActive && r.appointmentId ? (
+                              <button
+                                type="button"
+                                disabled={startVideoVisit.isPending}
+                                onClick={() => startVideoVisit.mutate(r.appointmentId!)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-50"
+                              >
+                                <Video size={13} aria-hidden />
+                                Join
+                              </button>
+                            ) : null}
 
-                      {r.mode === "video" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-100 text-sky-800 flex items-center gap-1">
-                          <Video size={10} /> Video Telehealth
-                        </span>
-                      ) : r.mode === "in_person" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700">
-                          In-Person
-                        </span>
-                      ) : null}
-                    </div>
+                            {others.length > 0 ? (
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value && r.appointmentId) {
+                                    update.mutate({ id: r.appointmentId, status: e.target.value });
+                                  }
+                                }}
+                                disabled={acting}
+                                aria-label="More status actions"
+                                className="h-8 rounded-lg bg-white px-2 text-xs font-medium text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.12)] focus:outline-none"
+                              >
+                                <option value="">More…</option>
+                                {others.map((st) => (
+                                  <option key={st} value={st}>
+                                    {st.replace(/_/g, " ")}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
 
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      {isVideoActive && r.appointmentId && (
-                        <button
-                          type="button"
-                          disabled={startVideoVisit.isPending}
-                          onClick={() => startVideoVisit.mutate(r.appointmentId!)}
-                          className="h-8 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
-                          style={{
-                            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                          }}
-                        >
-                          <Video size={12} />
-                          <span>Video Visit</span>
-                        </button>
-                      )}
+                            {primary && r.appointmentId ? (
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                leftIcon={primary.status === "completed" ? <Check size={12} /> : primary.status === "in_progress" ? <Play size={11} /> : <CalendarCheck size={12} />}
+                                loading={acting}
+                                onClick={() => update.mutate({ id: r.appointmentId!, status: primary.status })}
+                              >
+                                {primary.label}
+                              </Button>
+                            ) : done ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                                <CheckCircle2 size={13} aria-hidden />
+                                Closed
+                              </span>
+                            ) : null}
 
-                      {r.appointmentId && nextStatuses.length > 0 && (
-                        <select
-                          value=""
-                          onChange={(e) => {
-                            if (e.target.value && r.appointmentId) {
-                              update.mutate({ id: r.appointmentId, status: e.target.value });
-                            }
-                          }}
-                          disabled={acting}
-                          className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-sky-300 cursor-pointer focus:outline-none"
-                        >
-                          <option value="">Actions…</option>
-                          {nextStatuses.map((s) => (
-                            <option key={s} value={s}>
-                              {s.replace("_", " ")}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-
-                      <Link
-                        href={`/portal/patients/${r.patientId}/overview`}
-                        className="h-8 px-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors flex items-center gap-1"
-                        title="Open Patient Chart"
-                      >
-                        <ExternalLink size={13} />
-                      </Link>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                            <Link
+                              href={`/portal/patients/${r.patientId}/overview`}
+                              title="Open patient chart"
+                              aria-label={`Open ${r.patientName ?? "patient"}'s chart`}
+                              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                            >
+                              <ExternalLink size={14} />
+                            </Link>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <Drawer
         open={!!selectedRow}
         onClose={() => setSelectedRow(null)}
-        title="Appointment Details"
+        title="Appointment details"
         subtitle={selectedRow?.patientName ?? undefined}
         size="md"
       >

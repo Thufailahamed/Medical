@@ -138,10 +138,12 @@ export default function VerifyOtpScreen() {
       });
 
       // Round 2 P0: doctors with MFA pending/enrolled get a short-lived
-      // mfaToken instead of a session. Route to the MFA flow.
+      // mfaToken instead of a session. Route to the MFA flow. Do NOT
+      // call setUser — the mfaToken is not a full session and marking
+      // the store authenticated would race the route guard into
+      // bouncing to /(doctor) past the MFA screens.
       if (res.mfaRequired && res.mfaToken) {
         await SecureStore.setItemAsync("auth_token", res.mfaToken);
-        setUser(res.user);
         router.replace(
           res.mfaRequired === "enroll"
             ? ("/(auth)/mfa-setup" as any)

@@ -11,6 +11,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   TestTube2,
@@ -32,6 +33,9 @@ import {
   AlertCircle,
   Home,
   Package,
+  Droplet,
+  Wind,
+  Sparkles,
 } from "lucide-react-native";
 import {
   useTestCatalog,
@@ -76,16 +80,25 @@ function getCategoryIcon(category: string) {
   return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other;
 }
 
+// Sample-type glyph — TestTube2 reads as a pencil at chip size.
+function sampleIcon(sampleType?: string) {
+  const s = (sampleType || "").toLowerCase();
+  if (s.includes("urine")) return FlaskConical;
+  if (s.includes("stool")) return Beaker;
+  if (s.includes("swab") || s.includes("breath")) return Wind;
+  return Droplet;
+}
+
 function formatPrice(price: number) {
   return `Rs. ${price.toLocaleString("en-LK")}`;
 }
 
 export default function TestCatalogScreen() {
-  const { colors, spacing, fontFamily, typography, radius, shadow, scheme } =
-    useTheme();
+  const { t } = useTranslation();
+  const { colors, spacing, typography, radius, shadow, scheme } = useTheme();
   const router = useRouter();
-  const cardBorder = scheme === "dark" ? colors.borderStrong : colors.separator;
-  const cardLift = scheme === "dark" ? null : shadow.sm;
+  const surface = scheme === "dark" ? colors.surfaceElevated : colors.surface;
+  const cardLift = scheme === "dark" ? null : shadow.xs;
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -105,48 +118,57 @@ export default function TestCatalogScreen() {
   const categoryChips = useMemo(() => {
     if (!categoriesData?.categories) return [];
     const counts = new Map<string, number>();
-    for (const t of (testsData?.items as any[]) || []) {
-      const key = (t.categorySlug ?? (t as any).category ?? "") as string;
+    for (const it of (testsData?.items as any[]) || []) {
+      const key = (it.categorySlug ?? (it as any).category ?? "") as string;
       if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return (categoriesData.categories as any[])
-      .map((c: any) => ({
-        value: c.slug ?? c.category,
-        label: CATEGORY_CONFIG[c.slug ?? c.category]?.label || c.name || c.slug,
-        count: typeof c.count === "number" ? c.count : (counts.get(c.slug) ?? 0),
-        color: CATEGORY_CONFIG[c.slug ?? c.category]?.color || colors.primary,
-      }))
+      .map((c: any) => {
+        const slug = c.slug ?? c.category;
+        return {
+          value: slug,
+          label: t(`testCatalog.categories.${slug}`, {
+            defaultValue: CATEGORY_CONFIG[slug]?.label || c.name || slug,
+          }),
+          count: typeof c.count === "number" ? c.count : (counts.get(slug) ?? 0),
+        };
+      })
       .sort((a, b) => b.count - a.count);
-  }, [categoriesData, testsData, colors.primary]);
+  }, [categoriesData, testsData, t]);
+
+  const items: any[] = testsData?.items || [];
 
   const renderTestCard = useCallback(
     ({ item }: { item: DiagnosticTest }) => {
       const slug = (item as any).categorySlug ?? (item as any).category ?? "other";
       const cat = getCategoryIcon(slug);
       const CatIcon = cat.icon;
+      const SampleIcon = sampleIcon(item.sampleType);
       const price = (item as any).minPrice ?? item.discountPrice ?? item.price;
       const labCount = (item as any).laboratoryCount ?? (item as any).availableAt?.length ?? 0;
+      const hasDiscount = !!item.discountPrice && item.discountPrice < item.price;
 
       return (
         <Pressable
           onPress={() => router.push(`/test-detail/${item.slug}`)}
           accessibilityRole="button"
-          accessibilityLabel={item.name}
-          style={({ pressed }) => ({
-            marginHorizontal: spacing.lg,
-            marginBottom: spacing.md,
-            borderRadius: radius.card,
-            borderCurve: "continuous",
-            backgroundColor: colors.surface,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: cardBorder,
-            padding: spacing.lg,
-            opacity: pressed ? 0.94 : 1,
-            transform: [{ scale: pressed ? 0.985 : 1 }],
-            ...cardLift,
-          })}
+          accessibilityLabel={`${item.name}, ${formatPrice(price)}`}
+          style={({ pressed }) => [
+            {
+              marginHorizontal: spacing.lg,
+              marginBottom: spacing.md,
+              borderRadius: radius.card,
+              borderCurve: "continuous",
+              backgroundColor: surface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.hairline,
+              opacity: pressed ? 0.94 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            },
+            cardLift,
+          ]}
         >
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14, padding: spacing.lg }}>
             <View
               style={{
                 width: 46,
@@ -162,35 +184,20 @@ export default function TestCatalogScreen() {
             </View>
 
             <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
-              <Text
-                numberOfLines={2}
-                style={{
-                  ...typography.title.sm,
-                  fontFamily: typography.title.md.fontFamily,
-                  color: colors.text,
-                }}
-              >
+              <Text numberOfLines={2} style={[typography.title.md, { color: colors.text }]}>
                 {item.name}
               </Text>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 6,
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                 <MetaChip
-                  icon={<TestTube2 size={11} color={colors.textMuted} strokeWidth={2.4} />}
+                  icon={<SampleIcon size={11} color={colors.textMuted} strokeWidth={2.4} />}
                   label={item.sampleType}
-                  bg={colors.surfaceMuted}
+                  bg={colors.fill}
                   fg={colors.textMuted}
                 />
                 {item.homeCollectionAvailable ? (
                   <MetaChip
                     icon={<Home size={11} color={colors.success} strokeWidth={2.4} />}
-                    label="Home"
+                    label={t("testCatalog.v2.home", "Home visit")}
                     bg={colors.successSoft}
                     fg={colors.success}
                   />
@@ -198,206 +205,212 @@ export default function TestCatalogScreen() {
                 {item.fastingRequired ? (
                   <MetaChip
                     icon={<Clock size={11} color={colors.warning} strokeWidth={2.4} />}
-                    label={`${item.fastingHours}h fast`}
+                    label={t("testCatalog.fasting", { hours: item.fastingHours })}
                     bg={colors.warningSoft}
                     fg={colors.warning}
                   />
                 ) : null}
               </View>
-
-              <Text
-                style={{
-                  ...typography.caption,
-                  color: colors.textSubtle,
-                }}
-              >
-                Results in {item.turnaroundHours}h{labCount > 0 ? ` · ${labCount} lab${labCount === 1 ? "" : "s"}` : ""}
-              </Text>
             </View>
+          </View>
 
-            <View style={{ alignItems: "flex-end", gap: 2, paddingTop: 1 }}>
-              <Text
-                style={{
-                  ...typography.title.md,
-                  letterSpacing: -0.4,
-                  color: colors.text,
-                }}
-              >
-                {formatPrice(price)}
+          {/* Footer: turnaround · price */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.separator,
+            }}
+          >
+            <Zap size={13} color={colors.textSubtle} strokeWidth={2.4} />
+            <Text style={[typography.caption, { color: colors.textMuted, flex: 1 }]} numberOfLines={1}>
+              {t("testCatalog.resultsIn", { hours: item.turnaroundHours })}
+              {labCount > 0
+                ? ` · ${t("testCatalog.v2.labs", { count: labCount, defaultValue: "{{count}} labs" })}`
+                : ""}
+            </Text>
+            {hasDiscount ? (
+              <Text style={[typography.caption, { color: colors.textSubtle, textDecorationLine: "line-through" }]}>
+                {formatPrice(item.price)}
               </Text>
-              {item.discountPrice ? (
-                <Text
-                  style={{
-                    ...typography.caption,
-                    color: colors.textSubtle,
-                    textDecorationLine: "line-through",
-                  }}
-                >
-                  {formatPrice(item.price)}
-                </Text>
-              ) : null}
-              <View
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  borderCurve: "continuous",
-                  backgroundColor: colors.primarySoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: 6,
-                }}
-              >
-                <ChevronRight size={15} color={colors.primary} strokeWidth={2.5} />
-              </View>
+            ) : null}
+            <Text style={[typography.title.md, { color: colors.text, letterSpacing: -0.3 }]}>
+              {(item as any).minPrice && labCount > 1
+                ? t("testCatalog.v2.from", { price: formatPrice(price), defaultValue: "from {{price}}" })
+                : formatPrice(price)}
+            </Text>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: colors.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ChevronRight size={15} color={colors.onPrimary} strokeWidth={2.6} />
             </View>
           </View>
         </Pressable>
       );
     },
-    [colors, fontFamily, router, spacing, typography, radius, cardBorder, cardLift]
+    [colors, router, spacing, typography, radius, surface, cardLift, t]
   );
 
   const listHeader = (
     <View style={{ gap: spacing.lg, paddingBottom: spacing.md }}>
-      {/* Packages shortcut */}
-      <Pressable
-        onPress={() => router.push("/(app)/test-packages")}
-        style={({ pressed }) => ({
-          marginHorizontal: spacing.lg,
-          borderRadius: radius.card,
-          borderCurve: "continuous",
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: cardBorder,
-          backgroundColor: pressed ? colors.primarySoft : colors.surface,
-          padding: spacing.md,
-          paddingRight: spacing.lg,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 14,
-          ...cardLift,
-        })}
-      >
-        <PackageThumbnail item={{ slug: "full-body-health-checkup" }} size={52} borderRadius={16} />
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              ...typography.title.md,
-              color: colors.text,
-            }}
-          >
-            Test packages
-          </Text>
-          <Text style={{ ...typography.body.sm, color: colors.textMuted, marginTop: 2 }}>
-            Save more with curated panels
-          </Text>
-        </View>
-        <ChevronRight size={18} color={colors.textSubtle} strokeWidth={2.4} />
-      </Pressable>
-
       {/* Search */}
       <View
-        style={{
-          marginHorizontal: spacing.lg,
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: colors.fill,
-          borderRadius: radius.md,
-          borderCurve: "continuous",
-          paddingHorizontal: 12,
-          minHeight: 44,
-          gap: 8,
-        }}
+        style={[
+          {
+            marginHorizontal: spacing.lg,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: surface,
+            borderRadius: 16,
+            borderCurve: "continuous",
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.hairline,
+            paddingHorizontal: 14,
+            minHeight: 50,
+            gap: 10,
+          },
+          cardLift,
+        ]}
       >
-        <Search size={17} color={colors.textSubtle} strokeWidth={2.25} />
+        <Search size={18} color={colors.textSubtle} strokeWidth={2.4} />
         <TextInput
-          placeholder="Search tests..."
+          placeholder={t("testCatalog.searchPlaceholder", "Search tests...")}
           placeholderTextColor={colors.textSubtle}
           value={search}
           onChangeText={setSearch}
-          style={{
-            flex: 1,
-            ...typography.body.md,
-            color: colors.text,
-            paddingVertical: 10,
-          }}
+          returnKeyType="search"
+          selectionColor={colors.primary}
+          style={{ flex: 1, ...typography.body.md, color: colors.text, paddingVertical: 12 }}
         />
         {search.length > 0 ? (
           <Pressable
             onPress={() => setSearch("")}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Clear search"
+            accessibilityLabel={t("common.clear", "Clear")}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: colors.fill,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 10,
-                borderCurve: "continuous",
-                backgroundColor: colors.fillStrong,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={12} color={colors.textMuted} strokeWidth={2.5} />
-            </View>
+            <X size={12} color={colors.textMuted} strokeWidth={2.6} />
           </Pressable>
         ) : null}
       </View>
+
+      {/* Packages promo */}
+      <Pressable
+        onPress={() => router.push("/(app)/test-packages")}
+        accessibilityRole="button"
+        style={({ pressed }) => ({
+          marginHorizontal: spacing.lg,
+          borderRadius: radius.card,
+          borderCurve: "continuous",
+          backgroundColor: colors.primarySoft,
+          padding: spacing.md,
+          paddingRight: spacing.lg,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <PackageThumbnail item={{ slug: "full-body-health-checkup" }} size={56} borderRadius={16} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <Package size={12} color={colors.primary} strokeWidth={2.5} />
+            <Text style={[typography.overline, { color: colors.primary, fontSize: 10 }]}>
+              {t("testCatalog.v2.packagesKicker", "Health packages")}
+            </Text>
+          </View>
+          <Text style={[typography.title.md, { color: colors.text }]}>
+            {t("testCatalog.v2.packagesTitle", "Bundle tests & save")}
+          </Text>
+          <Text style={[typography.body.sm, { color: colors.textMuted }]} numberOfLines={1}>
+            {t("testCatalog.v2.packagesBody", "Curated panels for full check-ups")}
+          </Text>
+        </View>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: surface,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ChevronRight size={16} color={colors.primary} strokeWidth={2.5} />
+        </View>
+      </Pressable>
 
       {/* Categories */}
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={[{ value: null, label: "All", count: 0, color: colors.primary }, ...categoryChips]}
+        data={[{ value: null, label: t("testCatalog.all", "All"), count: 0 }, ...categoryChips]}
         keyExtractor={(item) => item.value || "all"}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.lg,
-          gap: 8,
-        }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 8 }}
         renderItem={({ item }) => {
           const active = selectedCategory === item.value;
+          const cfg = item.value ? getCategoryIcon(item.value) : null;
+          const Icon = cfg?.icon ?? Sparkles;
           return (
             <Pressable
-              onPress={() =>
-                setSelectedCategory(
-                  item.value === selectedCategory ? null : item.value
-                )
-              }
+              onPress={() => setSelectedCategory(item.value === selectedCategory ? null : item.value)}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               style={({ pressed }) => ({
-                paddingHorizontal: 14,
-                borderRadius: 999,
+                paddingLeft: 5,
+                paddingRight: 14,
+                borderRadius: 20,
                 borderCurve: "continuous",
-                backgroundColor: active
-                  ? colors.primary
-                  : pressed
-                    ? colors.fillStrong
-                    : colors.surface,
+                backgroundColor: active ? colors.primary : pressed ? colors.fillStrong : surface,
                 borderWidth: active ? 0 : StyleSheet.hairlineWidth,
-                borderColor: cardBorder,
-                minHeight: 36,
+                borderColor: colors.hairline,
+                height: 40,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: 7,
               })}
             >
-              <Text
+              <View
                 style={{
-                  ...typography.label.md,
-                  color: active ? colors.onPrimary : colors.text,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: active ? "rgba(255,255,255,0.22)" : cfg?.soft ?? colors.primarySoft,
                 }}
               >
+                <Icon
+                  size={14}
+                  color={active ? colors.onPrimary : cfg?.color ?? colors.primary}
+                  strokeWidth={2.4}
+                />
+              </View>
+              <Text style={[typography.label.md, { color: active ? colors.onPrimary : colors.text }]}>
                 {item.label}
               </Text>
               {item.count > 0 ? (
                 <Text
-                  style={{
-                    ...typography.label.xs,
-                    color: active ? "rgba(255,255,255,0.8)" : colors.textSubtle,
-                  }}
+                  style={[typography.label.xs, { color: active ? "rgba(255,255,255,0.8)" : colors.textSubtle }]}
                 >
                   {item.count}
                 </Text>
@@ -406,47 +419,58 @@ export default function TestCatalogScreen() {
           );
         }}
       />
+
+      {!isLoading && !error && items.length > 0 ? (
+        <Text style={[typography.overline, { color: colors.textMuted, marginHorizontal: spacing.lg + 4, marginBottom: -4 }]}>
+          {t("testCatalog.v2.count", { count: items.length, defaultValue: "{{count}} tests" })}
+        </Text>
+      ) : null}
     </View>
   );
 
   return (
     <Screen padded={false} bottomInset={false} edges={["top"]}>
       <ScreenHeader
-        title="Book a Test"
-        subtitle="Home sample collection"
+        title={t("testCatalog.title", "Book a Test")}
+        subtitle={t("testCatalog.subtitle", "Home sample collection")}
         back
       />
 
       {isLoading ? (
-        <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+        <View style={{ paddingTop: spacing.sm }}>
           {listHeader}
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} height={104} radius={radius.card} />
-          ))}
+          <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} height={124} radius={radius.card} />
+            ))}
+          </View>
         </View>
       ) : error ? (
-        <View style={{ padding: spacing.lg }}>
+        <View style={{ paddingTop: spacing.sm }}>
           {listHeader}
-          <EmptyState
-            icon={AlertCircle}
-            title="Failed to load tests"
-            message="Please check your connection and try again."
-          />
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <EmptyState
+              icon={AlertCircle}
+              title={t("testCatalog.v2.loadError", "Failed to load tests")}
+              message={t("testCatalog.v2.loadErrorBody", "Please check your connection and try again.")}
+            />
+          </View>
         </View>
       ) : (
         <FlatList
-          data={testsData?.items || []}
+          data={items}
           keyExtractor={(item) => item.id}
           renderItem={renderTestCard}
           ListHeaderComponent={listHeader}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <EmptyState
               icon={Search}
-              title="No tests found"
+              title={t("testCatalog.noTests", "No tests found")}
               message={
                 search
-                  ? `No results for "${search}"`
-                  : "No tests available in this category."
+                  ? t("testCatalog.noResults", { search })
+                  : t("testCatalog.noTestsDesc", "No tests available in this category.")
               }
             />
           }
@@ -484,15 +508,7 @@ function MetaChip({
       }}
     >
       {icon}
-      <Text
-        style={{
-          ...typography.label.xs,
-          color: fg,
-          textTransform: "capitalize",
-        }}
-      >
-        {label}
-      </Text>
+      <Text style={{ ...typography.label.xs, color: fg, textTransform: "capitalize" }}>{label}</Text>
     </View>
   );
 }

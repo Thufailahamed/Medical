@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   getEmergencyProfile,
   setEmergencyProfile,
@@ -16,7 +16,11 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  Animated,
+  Easing,
 } from "react-native";
+import * as Haptics from "expo-haptics";
+import Svg, { Circle } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import QRCode from "react-native-qrcode-svg";
@@ -33,6 +37,9 @@ import {
   Pill,
   HeartPulse,
   ArrowLeft,
+  Ambulance,
+  Siren,
+  MapPin,
 } from "lucide-react-native";
 import {
   useTriggerSOS,
@@ -57,6 +64,21 @@ type EmergencyContact = {
   relationship: string;
   phone: string;
 };
+
+const SOS_HOLD_MS = 1500;
+const SOS_SIZE = 136;
+const RING_SIZE = 168;
+const RING_STROKE = 6;
+const RING_R = (RING_SIZE - RING_STROKE) / 2;
+const RING_C = 2 * Math.PI * RING_R;
+// Cast: duplicate React type packages make svg components fail ComponentType checks.
+const AnimatedCircle = Animated.createAnimatedComponent(Circle as any) as any;
+
+// Sri Lanka national lines — the same numbers the support screen surfaces.
+const HOTLINES = [
+  { key: "ambulance", number: "1990", icon: Ambulance },
+  { key: "police", number: "119", icon: Siren },
+] as const;
 
 function parseContacts(v?: string | null): EmergencyContact[] {
   if (!v) return [];
@@ -108,6 +130,51 @@ export default function EmergencyScreen() {
   const [showHealthId, setShowHealthId] = useState(true);
   const [showQr, setShowQr] = useState(true);
   const [pressing, setPressing] = useState(false);
+
+  // Hold-to-trigger progress: fills a ring over SOS_HOLD_MS, then opens the
+  // confirm sheet. Releasing early rewinds it.
+  const holdProgress = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 2400,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  function startHold() {
+    setPressing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    holdProgress.stopAnimation();
+    Animated.timing(holdProgress, {
+      toValue: 1,
+      duration: SOS_HOLD_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        setConfirmOpen(true);
+      }
+    });
+  }
+
+  function endHold() {
+    setPressing(false);
+    holdProgress.stopAnimation();
+    Animated.timing(holdProgress, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  }
 
   // V3: offline-cache fallback for emergency profile
   const [cached, setCached] = useState<CachedEmergencyProfile | null>(null);
@@ -286,7 +353,7 @@ export default function EmergencyScreen() {
                 { color: colors.danger },
               ]}
             >
-              {t("emergency.header.brand")}
+              {t("emergency.header.kicker", "Emergency")}
             </Text>
             <Text
               style={[
@@ -333,93 +400,171 @@ export default function EmergencyScreen() {
       </View>
 
       {/* SOS Centerpiece */}
-      <View
-        style={{
-          alignItems: "center",
-          paddingVertical: spacing.xl,
-          justifyContent: "center",
-        }}
-      >
-        <View
-          style={{
-            alignItems: "center",
-            justifyContent: "center",
-            width: 240,
-            height: 240,
-          }}
-        >
-          {[240, 200, 160].map((size, idx) => {
-            const opacities = [0.04, 0.08, 0.15];
-            const fills = [0.015, 0.03, 0.05];
+      <View style={{ alignItems: "center", paddingTop: spacing.lg, paddingBottom: spacing.xl }}>
+        <View style={{ alignItems: "center", justifyContent: "center", width: 250, height: 250 }}>
+          {/* Idle breathing halo */}
+          {[0, 0.5].map((offset) => {
+            const phase = Animated.modulo(Animated.add(pulse, offset), 1);
             return (
-              <View
-                key={size}
+              <Animated.View
+                key={offset}
+                pointerEvents="none"
                 style={{
                   position: "absolute",
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: withOpacity(colors.danger, opacities[idx] * 2),
-                  backgroundColor: withOpacity(colors.danger, fills[idx] * (scheme === "dark" ? 2.4 : 1.6)),
+                  width: 250,
+                  height: 250,
+                  borderRadius: 125,
+                  backgroundColor: withOpacity(colors.danger, scheme === "dark" ? 0.22 : 0.14),
+                  opacity: phase.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0] }),
+                  transform: [
+                    { scale: phase.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) },
+                  ],
                 }}
               />
             );
           })}
 
+          {/* Track + hold-progress ring */}
+          <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: "absolute" }}>
+            <Circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_R}
+              stroke={withOpacity(colors.danger, 0.18)}
+              strokeWidth={RING_STROKE}
+              fill="none"
+            />
+            <AnimatedCircle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_R}
+              stroke={colors.danger}
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              fill="none"
+              strokeDasharray={`${RING_C} ${RING_C}`}
+              strokeDashoffset={holdProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [RING_C, 0],
+              })}
+              transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+            />
+          </Svg>
+
           <Pressable
-            onPressIn={() => setPressing(true)}
-            onPressOut={() => setPressing(false)}
-            onLongPress={() => setConfirmOpen(true)}
-            delayLongPress={1500}
+            onPressIn={startHold}
+            onPressOut={endHold}
             accessibilityRole="button"
             accessibilityLabel={t("emergency.sos.accessibilityLabel")}
-            style={({ pressed }) => ({
-              width: 128,
-              height: 128,
-              borderRadius: 64,
-              backgroundColor: pressed || pressing ? "#B3261E" : "#E5362F",
+            accessibilityHint={t("emergency.sos.hint")}
+            onAccessibilityTap={() => setConfirmOpen(true)}
+            style={{
+              width: SOS_SIZE,
+              height: SOS_SIZE,
+              borderRadius: SOS_SIZE / 2,
+              backgroundColor: pressing ? "#B3261E" : "#E5362F",
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 3,
-              borderColor: "rgba(255,255,255,0.22)",
+              borderWidth: 4,
+              borderColor: "rgba(255,255,255,0.28)",
               shadowColor: "#E5362F",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: scheme === "dark" ? 0 : 0.35,
-              shadowRadius: 20,
-              elevation: 8,
-              zIndex: 10,
-              transform: [{ scale: pressed || pressing ? 0.95 : 1 }],
-            })}
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: scheme === "dark" ? 0 : 0.4,
+              shadowRadius: 22,
+              elevation: 10,
+              transform: [{ scale: pressing ? 0.94 : 1 }],
+            }}
           >
             <Text
               style={[
                 typography.display.md,
-                {
-                  color: "#FFFFFF",
-                  fontSize: 32,
-                  lineHeight: 38,
-                  letterSpacing: 1.5,
-                },
+                { color: "#FFFFFF", fontSize: 34, lineHeight: 40, letterSpacing: 2 },
               ]}
             >
               SOS
             </Text>
+            <Text
+              style={[
+                typography.overline,
+                { color: "rgba(255,255,255,0.85)", fontSize: 10, marginTop: -2 },
+              ]}
+            >
+              {pressing
+                ? t("emergency.sos.keepHolding", "Keep holding")
+                : t("emergency.sos.hold", "Hold")}
+            </Text>
           </Pressable>
         </View>
 
-        <Text
-          style={[
-            typography.label.md,
-            {
-              color: colors.textMuted,
-              textAlign: "center",
-              marginTop: spacing.md,
-            },
-          ]}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            marginTop: spacing.xs,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor: colors.fill,
+          }}
         >
-          {t("emergency.sos.hint")}
-        </Text>
+          <MapPin size={13} color={colors.textMuted} strokeWidth={2.4} />
+          <Text style={[typography.label.sm, { color: colors.textMuted }]}>
+            {t("emergency.sos.subHint", "Hold 1.5s · sends your live location")}
+          </Text>
+        </View>
+      </View>
+
+      {/* Hotlines */}
+      <View style={{ flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+        {HOTLINES.map((h) => (
+          <Pressable
+            key={h.key}
+            onPress={() => dial(h.number)}
+            accessibilityRole="button"
+            accessibilityLabel={t(`emergency.hotline.${h.key}Call`, {
+              number: h.number,
+              defaultValue: `Call ${h.number}`,
+            })}
+            style={({ pressed }) => [
+              {
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                padding: spacing.md,
+                borderRadius: 20,
+                borderCurve: "continuous",
+                backgroundColor: scheme === "dark" ? colors.surfaceElevated : colors.surface,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.hairline,
+                opacity: pressed ? 0.8 : 1,
+              },
+              scheme === "dark" ? null : shadow.xs,
+            ]}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 13,
+                borderCurve: "continuous",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.dangerSoft,
+              }}
+            >
+              <h.icon size={20} color={colors.danger} strokeWidth={2.25} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[typography.title.md, { color: colors.text }]}>{h.number}</Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+                {t(`emergency.hotline.${h.key}`, h.key === "ambulance" ? "Ambulance" : "Police")}
+              </Text>
+            </View>
+            <Phone size={16} color={colors.success} strokeWidth={2.5} />
+          </Pressable>
+        ))}
       </View>
 
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.lg, marginTop: spacing.xs }}>
@@ -460,11 +605,13 @@ export default function EmergencyScreen() {
                 {t("emergency.healthId.subtitle")}
               </Text>
             </View>
-            {showHealthId ? (
-              <ChevronUp size={18} color={colors.textSubtle} strokeWidth={2.2} />
-            ) : (
-              <ChevronDown size={18} color={colors.textSubtle} strokeWidth={2.2} />
-            )}
+            <View style={chevronWell(colors)}>
+              {showHealthId ? (
+                <ChevronUp size={16} color={colors.textMuted} strokeWidth={2.4} />
+              ) : (
+                <ChevronDown size={16} color={colors.textMuted} strokeWidth={2.4} />
+              )}
+            </View>
           </Pressable>
 
           {showHealthId ? (
@@ -536,23 +683,22 @@ export default function EmergencyScreen() {
 
               <DataRow
                 label={t("emergency.healthId.allergies")}
-                value={allergies.length ? allergies.join(", ") : t("emergency.healthId.noneOnFile")}
+                items={allergies}
+                tone="danger"
                 icon={ShieldAlert}
               />
               <DataRow
                 label={t("emergency.healthId.conditions")}
-                value={conditions.length ? conditions.join(", ") : t("emergency.healthId.noneOnFile")}
+                items={conditions}
+                tone="warning"
                 icon={HeartPulse}
               />
               <DataRow
                 label={t("emergency.healthId.medications")}
-                value={
-                  currentMeds.length
-                    ? currentMeds
-                        .map((m: any) => `${m.name}${m.dosage ? ` ${m.dosage}` : ""}`)
-                        .join(", ")
-                    : t("emergency.healthId.noneOnFile")
-                }
+                items={currentMeds.map(
+                  (m: any) => `${m.name}${m.dosage ? ` ${m.dosage}` : ""}`
+                )}
+                tone="primary"
                 icon={Pill}
                 isLast
               />
@@ -597,11 +743,13 @@ export default function EmergencyScreen() {
                 {t("emergency.qr.subtitle")}
               </Text>
             </View>
-            {showQr ? (
-              <ChevronUp size={18} color={colors.textSubtle} strokeWidth={2.2} />
-            ) : (
-              <ChevronDown size={18} color={colors.textSubtle} strokeWidth={2.2} />
-            )}
+            <View style={chevronWell(colors)}>
+              {showQr ? (
+                <ChevronUp size={16} color={colors.textMuted} strokeWidth={2.4} />
+              ) : (
+                <ChevronDown size={16} color={colors.textMuted} strokeWidth={2.4} />
+              )}
+            </View>
           </Pressable>
 
           {showQr ? (
@@ -851,18 +999,36 @@ export default function EmergencyScreen() {
   );
 }
 
+function chevronWell(colors: any) {
+  return {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: colors.well,
+  };
+}
+
 function DataRow({
   label,
-  value,
+  items,
+  tone,
   icon: Icon,
   isLast,
 }: {
   label: string;
-  value: string;
+  items: string[];
+  tone: "danger" | "warning" | "primary";
   icon: any;
   isLast?: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
+  const fg = tone === "danger" ? colors.danger : tone === "warning" ? colors.warning : colors.primary;
+  const bg =
+    tone === "danger" ? colors.dangerSoft : tone === "warning" ? colors.warningSoft : colors.primarySoft;
+  const empty = items.length === 0;
   return (
     <View
       style={{
@@ -879,29 +1045,38 @@ function DataRow({
         style={{
           width: 32,
           height: 32,
-          borderRadius: 9,
+          borderRadius: 10,
           borderCurve: "continuous",
-          backgroundColor: colors.fill,
+          backgroundColor: empty ? colors.fill : bg,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Icon size={16} color={colors.textMuted} strokeWidth={2} />
+        <Icon size={16} color={empty ? colors.textSubtle : fg} strokeWidth={2.2} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={[typography.caption, { color: colors.textSubtle }]}
-        >
-          {label}
-        </Text>
-        <Text
-          style={[
-            typography.title.xs,
-            { color: colors.text, marginTop: 2 },
-          ]}
-        >
-          {value}
-        </Text>
+      <View style={{ flex: 1, gap: 6 }}>
+        <Text style={[typography.caption, { color: colors.textSubtle }]}>{label}</Text>
+        {empty ? (
+          <Text style={[typography.body.sm, { color: colors.textSubtle, marginTop: -2 }]}>
+            {t("emergency.healthId.noneOnFile")}
+          </Text>
+        ) : (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {items.map((item, i) => (
+              <View
+                key={`${item}-${i}`}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
+                  backgroundColor: bg,
+                }}
+              >
+                <Text style={[typography.label.md, { color: fg }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );

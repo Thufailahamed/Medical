@@ -28,6 +28,8 @@ import {
   Shield,
   Baby,
   Globe,
+  Minus,
+  X,
 } from "lucide-react-native";
 import {
   useVaccinations,
@@ -56,6 +58,7 @@ import {
   IconTile,
   SectionHeader,
   Skeleton,
+  DateField,
 } from "@/components/ui";
 import type { Tone } from "@/theme/tone";
 
@@ -67,6 +70,11 @@ const ROUTINE_VACCINES: { name: string; schedule: string; icon: any; tone: Tone;
   { name: "MMR (Measles, Mumps, Rubella)", schedule: "2 doses, childhood or adult catch-up", icon: Baby, tone: "warning", match: ["mmr", "measles"] },
   { name: "HPV", schedule: "2–3 dose series", icon: Globe, tone: "success", match: ["hpv"] },
 ];
+
+/** Local calendar date as YYYY-MM-DD (toISOString would shift to UTC). */
+function localIso(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function formatDate(iso: string | null | undefined, locale: any): string {
   if (!iso) return "—";
@@ -97,7 +105,7 @@ export default function VaccinationsScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [vaccineName, setVaccineName] = useState("");
   const [dose, setDose] = useState("1");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localIso());
   const [provider, setProvider] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null);
@@ -106,7 +114,7 @@ export default function VaccinationsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setVaccineName(prefillName);
     setDose("1");
-    setDate(new Date().toISOString().slice(0, 10));
+    setDate(localIso());
     setProvider("");
     setNotes("");
     setSelectedCatalogId(null);
@@ -154,6 +162,8 @@ export default function VaccinationsScreen() {
     }
   }
 
+  const routineLogged = ROUTINE_VACCINES.filter((v) => isLogged(v.match)).length;
+
   const subtitle =
     administered.length === 0
       ? t("vaccinations.subtitleEmpty", "Digital immunization card")
@@ -168,13 +178,6 @@ export default function VaccinationsScreen() {
         title={t("vaccinations.title", "Vaccinations")}
         subtitle={subtitle}
         onBack={() => router.back()}
-        right={
-          <IconButton
-            icon={Plus}
-            onPress={() => openSheet()}
-            accessibilityLabel={t("vaccinations.logLabel", "Log vaccination")}
-          />
-        }
       />
 
       <ScrollView
@@ -281,6 +284,27 @@ export default function VaccinationsScreen() {
                 <HeroStat value={due.length + upcoming.length} label={t("vaccinations.hero.upcoming", "Coming up")} />
                 <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.3)" }} />
                 <HeroStat value={overdue.length} label={t("vaccinations.hero.overdue", "Overdue")} />
+              </View>
+
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <Text style={[typography.label.sm, { color: "rgba(255,255,255,0.9)" }]}>
+                    {t("vaccinations.hero.coverage", "Recommended coverage")}
+                  </Text>
+                  <Text style={[typography.label.sm, { color: "#FFFFFF", fontVariant: ["tabular-nums"] }]}>
+                    {routineLogged}/{ROUTINE_VACCINES.length}
+                  </Text>
+                </View>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
+                  <View
+                    style={{
+                      width: `${Math.round((routineLogged / ROUTINE_VACCINES.length) * 100)}%`,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: "#FFFFFF",
+                    }}
+                  />
+                </View>
               </View>
             </LinearGradient>
 
@@ -405,6 +429,7 @@ export default function VaccinationsScreen() {
             <SectionHeader
               kicker={t("vaccinations.sectionsV2.routineKicker", "Adult & travel")}
               title={t("vaccinations.sectionsV2.routineTitle", "Recommended vaccines")}
+              count={ROUTINE_VACCINES.length - routineLogged || undefined}
             />
             <Card padded={false}>
               {ROUTINE_VACCINES.map((v, i) => {
@@ -469,13 +494,33 @@ export default function VaccinationsScreen() {
           borderTopColor: colors.separator,
         }}
       >
-        <Button
-          title={t("vaccinations.logButton", "Log vaccination")}
-          icon={Plus}
-          onPress={() => openSheet()}
-          size="lg"
-          fullWidth
-        />
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Pressable
+            onPress={openScan}
+            haptic="light"
+            accessibilityRole="button"
+            accessibilityLabel={t("vaccinations.scanCard", "Scan card with AI")}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.primarySoft,
+            }}
+          >
+            <Camera size={22} color={colors.primary} strokeWidth={2.3} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={t("vaccinations.logButton", "Log vaccination")}
+              icon={Plus}
+              onPress={() => openSheet()}
+              size="lg"
+              fullWidth
+            />
+          </View>
+        </View>
       </View>
 
       {/* ── Log Vaccination Bottom Sheet ── */}
@@ -485,27 +530,34 @@ export default function VaccinationsScreen() {
         title={t("vaccinations.logLabel", "Record Vaccination")}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xl }}>
-          {/* Quick Catalog Shortcuts */}
-          <FormField label={t("vaccinations.field.catalogLabel", "Common Vaccines")}>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-              {catalog.slice(0, 12).map((c: any) => (
-                <Chip
-                  key={c.id}
-                  label={c.shortName || c.name}
-                  selected={selectedCatalogId === c.id}
-                  tone={selectedCatalogId === c.id ? "primary" : "neutral"}
-                  onPress={() =>
-                    selectedCatalogId === c.id
-                      ? setSelectedCatalogId(null)
-                      : pickFromCatalog(c)
-                  }
-                  size="sm"
-                />
-              ))}
-            </View>
-          </FormField>
+          {/* Catalog: one swipeable row instead of a wall of chips */}
+          <View style={{ gap: spacing.sm }}>
+            <Text style={[typography.label.md, { color: colors.textMuted, marginLeft: 2 }]}>
+              {t("vaccinations.field.catalogLabel", "Common Vaccines")}
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -spacing.xl }}
+              contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.sm }}
+            >
+              {catalog.slice(0, 16).map((c: any) => {
+                const on = selectedCatalogId === c.id;
+                return (
+                  <Chip
+                    key={c.id}
+                    label={c.shortName || c.name}
+                    selected={on}
+                    icon={on ? Check : undefined}
+                    tone={on ? "primary" : "neutral"}
+                    onPress={() => (on ? setSelectedCatalogId(null) : pickFromCatalog(c))}
+                    size="sm"
+                  />
+                );
+              })}
+            </ScrollView>
+          </View>
 
-          {/* Vaccine Name */}
           <FormField label={t("vaccinations.field.nameLabel", "Vaccine Name")} required>
             <TextInput
               value={vaccineName}
@@ -514,33 +566,49 @@ export default function VaccinationsScreen() {
                 if (selectedCatalogId) setSelectedCatalogId(null);
               }}
               placeholder={t("vaccinations.field.namePlaceholder", "E.g. COVID-19, Tdap, MMR")}
+              leadingIcon={Syringe}
+              trailingIcon={vaccineName ? X : undefined}
+              onTrailingIconPress={() => {
+                setVaccineName("");
+                setSelectedCatalogId(null);
+              }}
             />
           </FormField>
 
-          {/* Dose and Date Row */}
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <View style={{ flex: 1 }}>
-              <FormField label={t("vaccinations.field.doseLabel", "Dose #")}>
-                <TextInput
-                  value={dose}
-                  onChangeText={setDose}
-                  keyboardType="numeric"
-                  placeholder="1"
-                />
-              </FormField>
-            </View>
-            <View style={{ flex: 2 }}>
-              <FormField label={t("vaccinations.field.dateLabel", "Administered Date")}>
-                <TextInput
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
-                />
-              </FormField>
+          <FormField label={t("vaccinations.field.doseLabel", "Dose #")}>
+            <DoseStepper value={parseInt(dose, 10) || 1} onChange={(n) => setDose(String(n))} />
+          </FormField>
+
+          <View style={{ gap: spacing.sm }}>
+            <DateField
+              label={t("vaccinations.field.dateLabel", "Administered Date")}
+              value={new Date(`${date}T00:00:00`)}
+              onChange={(d) => setDate(localIso(d))}
+              maximumDate={new Date()}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {[
+                { label: t("vaccinations.quickDate.today", "Today"), days: 0 },
+                { label: t("vaccinations.quickDate.yesterday", "Yesterday"), days: 1 },
+                { label: t("vaccinations.quickDate.lastMonth", "A month ago"), days: 30 },
+              ].map((q) => {
+                const d = new Date();
+                d.setDate(d.getDate() - q.days);
+                const iso = localIso(d);
+                return (
+                  <Chip
+                    key={q.days}
+                    label={q.label}
+                    size="sm"
+                    selected={date === iso}
+                    tone={date === iso ? "primary" : "neutral"}
+                    onPress={() => setDate(iso)}
+                  />
+                );
+              })}
             </View>
           </View>
 
-          {/* Provider / Clinic */}
           <FormField label={t("vaccinations.field.providerLabel", "Healthcare Provider / Hospital")}>
             <TextInput
               value={provider}
@@ -550,36 +618,82 @@ export default function VaccinationsScreen() {
             />
           </FormField>
 
-          {/* Notes */}
           <FormField label={t("vaccinations.field.notesLabel", "Batch / Lot Number or Notes")}>
             <TextInput
               value={notes}
               onChangeText={setNotes}
               placeholder={t("vaccinations.field.notesPlaceholder", "E.g. Batch #AB1234, left deltoid")}
               multiline
-              numberOfLines={2}
+              numberOfLines={3}
+              style={{ minHeight: 84, textAlignVertical: "top" }}
             />
           </FormField>
 
-          {/* Action Buttons */}
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs }}>
-            <Button
-              title={t("common.cancel", "Cancel")}
-              variant="outline"
-              onPress={() => setSheetOpen(false)}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title={t("common.save", "Save Record")}
-              icon={Plus}
-              onPress={save}
-              loading={addVaccination.isPending}
-              style={{ flex: 1 }}
-            />
-          </View>
+          <Button
+            title={t("vaccinations.saveRecord", "Save vaccination")}
+            icon={Check}
+            size="lg"
+            onPress={save}
+            loading={addVaccination.isPending}
+            disabled={vaccineName.trim().length < 2}
+            style={{ marginTop: spacing.xs }}
+          />
         </ScrollView>
       </BottomSheet>
     </Screen>
+  );
+}
+
+/** − n + control; doses are small integers so typing is overkill. */
+function DoseStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const { colors, spacing, typography, fontFamily } = useTheme();
+  const { t } = useTranslation();
+  const btn = (icon: any, next: number, disabled: boolean, label: string) => {
+    const Icon = icon;
+    return (
+      <Pressable
+        onPress={() => onChange(next)}
+        disabled={disabled}
+        haptic="soft"
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: disabled ? colors.fill : colors.primarySoft,
+        }}
+      >
+        <Icon size={18} color={disabled ? colors.textSubtle : colors.primary} strokeWidth={2.6} />
+      </Pressable>
+    );
+  };
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+      }}
+    >
+      {btn(Minus, value - 1, value <= 1, t("vaccinations.doseDecrease", "Decrease dose"))}
+      <View style={{ flex: 1, alignItems: "center" }}>
+        <Text style={{ fontFamily: fontFamily.heavy, fontSize: 22, lineHeight: 26, color: colors.text, fontVariant: ["tabular-nums"] }}>
+          {value}
+        </Text>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>
+          {t("vaccinations.doseN", { n: value, defaultValue: `Dose ${value}` })}
+        </Text>
+      </View>
+      {btn(Plus, value + 1, value >= 10, t("vaccinations.doseIncrease", "Increase dose"))}
+    </View>
   );
 }
 

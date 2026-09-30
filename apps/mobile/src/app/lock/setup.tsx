@@ -21,6 +21,8 @@ import { Fingerprint, ChevronLeft } from "lucide-react-native";
 import { Screen, Button } from "@/components/ui";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useAppLockStore } from "@/stores/appLock";
+import { useAuthStore } from "@/stores/auth";
+import { homeForRole } from "@/hooks/useProtectedRoute";
 import {
   getBiometricStatus,
   biometricName,
@@ -129,7 +131,7 @@ export default function LockSetupScreen() {
 
   function finish() {
     setBiometricEnabled(biometricEnabled);
-    router.replace("/(app)" as any);
+    router.replace(homeForRole(useAuthStore.getState().user?.role) as any);
   }
 
   const headerTitle =

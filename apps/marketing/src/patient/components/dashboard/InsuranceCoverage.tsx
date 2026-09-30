@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import {
-  ArrowRight,
   CreditCard,
   FileCheck2,
   Plus,
   Shield,
-  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 
 import { useInsurance, type InsuranceStatus } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import { Card } from "@/patient/components/primitives/Card";
+import { CardHeader } from "@/patient/components/primitives/CardHeader";
 
 const STATUS_TONE: Record<InsuranceStatus, string> = {
   active: "text-success bg-success-soft",
@@ -44,136 +44,102 @@ export function InsuranceCoverage({ className }: { className?: string }) {
         : "text-text-soft bg-surface-2";
 
   return (
-    <section
-      aria-labelledby="ins-heading"
-      className={cn(
-        "anim-rise anim-rise-delay-2 flex h-full flex-col justify-between rounded-xl bg-surface p-5 md:p-6 shadow-card transition-all",
-        className,
-      )}
+    <Card
+      as="section"
+      className={cn("anim-rise anim-rise-delay-2 flex h-full flex-col", className)}
     >
       <div>
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
-              aria-hidden
-            >
-              <Shield size={16} />
-            </div>
-            <div>
-              <h2 id="ins-heading" className="text-sm font-bold text-text tracking-tight">
-                Insurance
-              </h2>
-              <p className="text-[11px] font-medium text-text-muted">
-                Coverage &amp; active policy
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/patient/insurance"
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
-          >
-            <span>Manage</span>
-            <ArrowRight size={12} aria-hidden />
-          </Link>
-        </header>
+        <CardHeader
+          title="Insurance"
+          caption="Coverage & active policy"
+          icon={<Shield size={16} aria-hidden />}
+          href="/patient/insurance"
+          linkLabel="Manage"
+        />
 
-        {/* ── Content States ─────────────────────────────────────────── */}
         {loading ? (
-          <div data-testid="insurance-skeleton" className="space-y-2.5 my-2">
-            <div className="h-16 rounded-xl patient-shimmer rounded-xl" />
-            <div className="h-10 rounded-xl patient-shimmer rounded-xl" />
+          <div data-testid="insurance-skeleton" className="mt-4 space-y-2.5">
+            <div className="h-24 rounded-xl patient-shimmer" />
+            <div className="h-8 rounded-lg patient-shimmer" />
           </div>
         ) : !policy ? (
-          <div className="my-2 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/60 p-5 text-center shadow-2xs">
-            <div
-              className="mb-2.5 grid h-10 w-10 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
+          <div className="mt-4 flex items-start gap-3 rounded-xl bg-surface-2 p-4">
+            <span
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-surface text-brand shadow-card"
               aria-hidden
             >
-              <CreditCard size={18} />
+              <CreditCard size={16} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-text">No policy linked</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-text-muted">
+                Connect your plan to track claims and check benefits.
+              </p>
+              <Link
+                href="/patient/insurance"
+                className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-strong"
+              >
+                <Plus size={13} strokeWidth={2.5} aria-hidden />
+                Link policy
+              </Link>
             </div>
-            <p className="text-xs font-bold text-text">
-              No insurance policy linked
-            </p>
-            <p className="mt-0.5 max-w-xs text-[11px] leading-relaxed text-text-soft">
-              Connect your health policy to track claims, check benefits, and access cashless hospital admissions.
-            </p>
-            <Link
-              href="/patient/insurance"
-              className="pt-btn pt-btn-primary mt-3.5 h-9 px-3.5 text-xs"
-            >
-              <Plus size={13} strokeWidth={2.5} aria-hidden />
-              Link policy
-            </Link>
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-surface p-4 shadow-2xs">
-            {/* Policy Title & Status */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                  Health Plan
+          <div className="mt-4 flex flex-col gap-3">
+            {/* Digital card */}
+            <Link
+              href="/patient/insurance"
+              className="relative block overflow-hidden rounded-xl bg-gradient-to-br from-[#1a3a8f] via-[#2a58d9] to-[#3b82f6] p-4 text-white shadow-brand transition-transform hover:-translate-y-0.5"
+            >
+              <span className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" aria-hidden />
+              <span className="pointer-events-none absolute -bottom-12 right-10 h-28 w-28 rounded-full bg-white/5" aria-hidden />
+              <span className="relative flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block text-[10.5px] font-medium uppercase tracking-wider text-white/60">
+                    Health plan
+                  </span>
+                  <span className="mt-0.5 block truncate text-[15px] font-semibold">
+                    {policy.provider}
+                  </span>
                 </span>
-                <p className="truncate text-sm font-bold text-text">
-                  {policy.provider}
-                </p>
-                <p className="mt-0.5 font-mono text-xs font-semibold text-text-soft">
-                  {policy.number}
-                </p>
-              </div>
-              <span
-                data-testid="status-pill"
-                className={cn(
-                  "shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs",
-                  STATUS_TONE[policy.status] ?? STATUS_TONE.active,
-                )}
-              >
-                {policy.status}
+                <span
+                  data-testid="status-pill"
+                  className={cn(
+                    "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    STATUS_TONE[policy.status] ?? STATUS_TONE.active,
+                  )}
+                >
+                  {policy.status}
+                </span>
               </span>
-            </div>
+              <span className="relative mt-5 block font-mono text-sm tracking-[0.12em] text-white/90">
+                {policy.number}
+              </span>
+            </Link>
 
-            {/* Renewal & Claims Strip */}
-            <div className="mt-3.5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               {days != null ? (
                 <span
                   data-testid="renewal-chip"
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold shadow-2xs",
+                    "inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold",
                     renewalTone,
                   )}
                 >
-                  <ShieldCheck size={11} />
-                  <span>{days <= 0 ? "Renewal due" : `renews in ${days}d`}</span>
+                  <ShieldCheck size={12} aria-hidden />
+                  {days <= 0 ? "Renewal due" : `renews in ${days}d`}
                 </span>
               ) : null}
-
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-soft">
+              <span className="inline-flex items-center gap-1.5 text-text-soft">
                 <FileCheck2 size={13} className="text-brand" aria-hidden />
-                <span>
-                  {claimsOpen === 0
-                    ? "No open claims"
-                    : `${claimsOpen} open claim${claimsOpen === 1 ? "" : "s"}`}
-                </span>
-              </div>
+                {claimsOpen === 0
+                  ? "No open claims"
+                  : `${claimsOpen} open claim${claimsOpen === 1 ? "" : "s"}`}
+              </span>
             </div>
           </div>
         )}
       </div>
-
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck size={13} className="text-success" aria-hidden />
-          <span>Cashless hospitalization eligible</span>
-        </span>
-        <Link
-          href="/patient/insurance"
-          className="text-xs font-semibold text-brand hover:underline"
-        >
-          View digital card →
-        </Link>
-      </div>
-    </section>
+    </Card>
   );
 }

@@ -9,11 +9,12 @@ import { z } from "zod";
 import {
   Activity,
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   Building2,
   Eye,
   EyeOff,
-  Heart,
+  FileText,
   Lock,
   Mail,
   Phone,
@@ -27,7 +28,8 @@ import { login, loginWithPhone, MfaRequiredError } from "@/portal/lib/auth";
 import { useAuthStore } from "@/portal/stores/auth";
 import { friendlyError } from "@/portal/lib/errors";
 import { cn } from "@/portal/lib/utils";
-import "./login.css";
+import { AuthHero, type AuthHeroProps } from "@/app/_shared/AuthHero";
+import "@/app/_shared/auth-studio.css";
 
 type Port = "patient" | "doctor" | "facility" | "operator";
 
@@ -107,55 +109,97 @@ const PORTS: PortSpec[] = [
   },
 ];
 
-const PORT_HERO: Record<
-  Port,
-  {
-    eyebrow: string;
-    headline: string;
-    highlight: string;
-    description: string;
-    photo: string;
-  }
-> = {
+const PORT_HERO: Record<Port, Omit<AuthHeroProps, "animKey">> = {
   patient: {
-    eyebrow: "Private beta · 6°55′N Colombo",
+    kicker: "Private beta · Colombo",
     headline: "Your health has a history.",
     highlight: "Keep it close.",
-    description:
-      "Records, medicines and visits — private, readable, and doctor-ready in English, Sinhala and Tamil.",
+    lede: "Records, medicines and visits — private, readable, and doctor-ready in English, Sinhala and Tamil.",
     photo: "/assets/brand/harbor-hands.png",
+    float: { icon: <FileText size={15} />, title: "Lab report ready", caption: "Lipid panel · just now" },
+    card: {
+      initials: "NF",
+      title: "Nimali Fernando",
+      subtitle: "LK-1994-0821-P · O+",
+      chip: "ENCRYPTED",
+      stats: [
+        { label: "Primary", value: "Dr. K. Perera" },
+        { label: "Prescriptions", value: "2 active" },
+        { label: "Heart rate", value: "72 bpm" },
+      ],
+    },
   },
   doctor: {
-    eyebrow: "Clinical workstation",
+    kicker: "Clinical workstation",
     headline: "The chart, already written.",
     highlight: "Before they sit down.",
-    description:
-      "Longitudinal history, labs and prescriptions in one place — so the visit can start somewhere better.",
+    lede: "Longitudinal history, labs and prescriptions in one place — so the visit can start somewhere better.",
     photo: "/assets/insurance/plan-types/insurance-senior.jpg",
+    float: { icon: <Activity size={15} />, title: "3 priority labs", caption: "Awaiting your sign-off" },
+    card: {
+      initials: "KP",
+      title: "Dr. Kasun Perera, MD",
+      subtitle: "SLMC #48291 · Cardiology",
+      chip: "SLMC",
+      stats: [
+        { label: "Today", value: "14 consults" },
+        { label: "Clinic", value: "Asiri Central" },
+        { label: "Sign-off", value: "Verified" },
+      ],
+    },
   },
   facility: {
-    eyebrow: "Hospital · lab · pharmacy",
+    kicker: "Hospital · lab · pharmacy",
     headline: "Wards, specimens, stock.",
     highlight: "One quiet board.",
-    description:
-      "Beds, lab routing and dispensing coordinated without the WhatsApp scramble.",
+    lede: "Beds, lab routing and dispensing coordinated without the WhatsApp scramble.",
     photo: "/assets/lab/hero.jpg",
+    float: { icon: <Activity size={15} />, title: "Live sync", caption: "All wards reporting" },
+    card: {
+      initials: <Building2 size={17} />,
+      title: "Colombo Central Hospital",
+      subtitle: "FAC-COL-004 · Tertiary care",
+      chip: "MOH",
+      stats: [
+        { label: "Bed occupancy", value: "84%" },
+        { label: "Pharmacy", value: "Stocked" },
+        { label: "Specimens", value: "126 active" },
+      ],
+    },
   },
   operator: {
-    eyebrow: "Insurance & EMS",
+    kicker: "Insurance & EMS",
     headline: "Claims and dispatch,",
     highlight: "in the same breath.",
-    description:
-      "Policy checks, settlement and fleet tracking across the island — live, auditable, unhurried.",
+    lede: "Policy checks, settlement and fleet tracking across the island — live, auditable, unhurried.",
     photo: "/assets/insurance/hero.jpg",
+    float: { icon: <Truck size={15} />, title: "12 units en route", caption: "Western Province" },
+    card: {
+      initials: <Truck size={17} />,
+      title: "National Emergency & Claims",
+      subtitle: "NET-DISPATCH · 24/7",
+      chip: "EMS",
+      stats: [
+        { label: "Adjudication", value: "<120 ms" },
+        { label: "Fleet", value: "Optimal" },
+        { label: "Audits", value: "Compliant" },
+      ],
+    },
   },
 };
 
 const PORT_ACTION_LABEL: Record<Port, string> = {
   patient: "Sign in as Patient",
-  doctor: "Sign in to Clinical Desk",
+  doctor: "Sign in to Doctor Desk",
   facility: "Sign in to Facility Hub",
   operator: "Sign in to Partner Desk",
+};
+
+const PORT_SIGNUP: Record<Port, { prompt: string; label: string; href: string }> = {
+  patient: { prompt: "New to HealthHub?", label: "Create account", href: "/patient/register" },
+  doctor: { prompt: "New clinician?", label: "Request access", href: "/doctor/register" },
+  facility: { prompt: "New facility?", label: "Register", href: "/hospital/register" },
+  operator: { prompt: "New partner?", label: "Register", href: "/insurance-operator/register" },
 };
 
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -167,7 +211,7 @@ function isLikelySlPhone(value: string): boolean {
 
 export default function UnifiedLoginPage() {
   return (
-    <Suspense fallback={<div className="hl-root" />}>
+    <Suspense fallback={<div className="au-root" />}>
       <UnifiedLoginForm />
     </Suspense>
   );
@@ -345,12 +389,12 @@ function UnifiedLoginForm() {
   async function devLoginAsDoctor() {
     setPort("doctor");
     setError(null);
-    setValue("identifier", "doctor@hospital.lk");
+    setValue("identifier", "dev-doctor@healthhub.local");
     setValue("password", "dev");
     setSubmitting(true);
     try {
       const user = await login({
-        email: "doctor@hospital.lk",
+        email: "dev-doctor@healthhub.local",
         password: "dev",
       });
       land(String(user.role));
@@ -366,7 +410,7 @@ function UnifiedLoginForm() {
       }
       try {
         const user = await login({
-          email: "doctor@healthhub.local",
+          email: "doctor@hospital.lk",
           password: "dev",
         });
         land(String(user.role));
@@ -421,229 +465,56 @@ function UnifiedLoginForm() {
     reset({ identifier: "", password: "" });
   }
 
+  const signup = PORT_SIGNUP[port];
+
+  const submitLabel = (busyLabel: string, idleLabel: string) =>
+    submitting ? (
+      <>
+        <span>{busyLabel}</span>
+        <span className="au-spinner" aria-hidden />
+      </>
+    ) : (
+      <>
+        <span>{idleLabel}</span>
+        <span className="au-btn__glyph" aria-hidden>
+          <ArrowRight size={16} />
+        </span>
+      </>
+    );
+
   return (
-    <div className="hl-root">
-      <a className="hl-skip" href="#login-form">
+    <div className="au-root" data-role={port}>
+      <a className="au-skip" href="#login-form">
         Skip to sign in
       </a>
 
-      {/* ── Left Hero Side ───────────────────────────────────────────────── */}
-      <aside className="hl-hero" aria-label="HealthHub Platform">
-        <div className="hl-hero__field" aria-hidden="true">
-          <div className="hl-hero__spot" />
-          <div className="hl-hero__grain" />
-          <svg className="hl-hero__ecg" viewBox="0 0 900 1100" preserveAspectRatio="xMidYMid slice">
-            <defs>
-              <linearGradient id="hl-ecg" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#7eb0ff" stopOpacity="0" />
-                <stop offset=".4" stopColor="#5ec8ff" stopOpacity=".7" />
-                <stop offset="1" stopColor="#7eb0ff" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              className="hl-hero__ecg-path"
-              d="M-20 540 H140 l18-48 12 96 18-140 10 70 22-22 H900"
-              fill="none"
-              stroke="url(#hl-ecg)"
-              strokeWidth="1.25"
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="hl-compass">
-            <span className="hl-compass__ring" />
-            <span className="hl-compass__ring hl-compass__ring--2" />
-            <span className="hl-compass__ring hl-compass__ring--3" />
-            <span className="hl-compass__ticks" />
-            <span className="hl-compass__north">N</span>
-            <div className="hl-compass__photo">
-              <img src={hero.photo} alt="" key={hero.photo} />
-            </div>
+      <AuthHero animKey={port} {...hero} />
+
+      <main className="au-panel">
+        <div className="au-topbar">
+          <Link href="/" className="au-back">
+            <ArrowLeft size={15} />
+            Back to site
+          </Link>
+          <Link href="/" className="au-mobile-brand">
+            <img src="/assets/logo.svg" alt="" width={26} height={26} />
+            HealthHub
+          </Link>
+          <div className="au-topbar__cta">
+            <span>{signup.prompt}</span>
+            <Link href={signup.href}>{signup.label}</Link>
           </div>
         </div>
 
-        <Link href="/" className="hl-brand">
-          <div className="hl-brand__icon-wrap">
-            <img src="/assets/logo.svg" alt="" width={22} height={22} />
-          </div>
-          <div>
-            <div className="hl-brand__name">HealthHub</div>
-            <div className="hl-brand__badge">Beta</div>
-          </div>
-        </Link>
-
-        <div key={port} className="hl-hero__body">
-          <div className="hl-kicker">
-            <span className="hl-kicker__dot" />
-            <span>{hero.eyebrow}</span>
-          </div>
-
-          <div>
-            <h1 className="hl-headline">
-              {hero.headline}
-              <span className="hl-headline-accent">{hero.highlight}</span>
+        <div className="au-form" id="login-form">
+          <div className="au-head">
+            <h1>
+              Welcome back. <em>Sign in quietly.</em>
             </h1>
-            <p className="hl-lede">{hero.description}</p>
-            <div className="hl-langs" aria-label="Languages">
-              <b>EN</b><i /><b>සිංහල</b><i /><b>தமிழ்</b>
-            </div>
-          </div>
-        </div>
-
-        <div className="hl-card-preview" key={`card-${port}`}>
-            <div className="hl-card-preview__top">
-              <div className="hl-card-preview__brand">
-                <ShieldCheck size={16} />
-                <span>
-                  {port === "patient" && "Family record"}
-                  {port === "doctor" && "Clinic session"}
-                  {port === "facility" && "Operations board"}
-                  {port === "operator" && "Dispatch desk"}
-                </span>
-              </div>
-              <span className="hl-card-preview__chip">
-                {port === "patient" && "LK-NHI · ENCRYPTED"}
-                {port === "doctor" && "SLMC · PRACTITIONER"}
-                {port === "facility" && "MOH · REGISTERED"}
-                {port === "operator" && "EMS · DISPATCH 24/7"}
-              </span>
-            </div>
-
-            <div className="hl-card-preview__content">
-              {port === "patient" && (
-                <>
-                  <div className="hl-card-row">
-                    <div className="hl-card-meta">
-                      <div className="hl-card-avatar">NF</div>
-                      <div>
-                        <div className="hl-card-title">Nimali Fernando</div>
-                        <div className="hl-card-subtitle">ID: LK-1994-0821-P · O+</div>
-                      </div>
-                    </div>
-                    <div className="hl-card-tag">
-                      <Heart size={12} className="text-rose-400 animate-pulse" />
-                      <span><strong>72</strong> bpm</span>
-                    </div>
-                  </div>
-                  <div className="hl-card-badges">
-                    <span className="hl-card-tag">Primary: <strong>Dr. K. Perera</strong></span>
-                    <span className="hl-card-tag">Prescriptions: <strong>2 Active</strong></span>
-                    <span className="hl-card-tag">Vault: <strong>Zero-Knowledge</strong></span>
-                  </div>
-                </>
-              )}
-
-              {port === "doctor" && (
-                <>
-                  <div className="hl-card-row">
-                    <div className="hl-card-meta">
-                      <div className="hl-card-avatar">KP</div>
-                      <div>
-                        <div className="hl-card-title">Dr. Kasun Perera, MD</div>
-                        <div className="hl-card-subtitle">SLMC #48291 · Cardiology</div>
-                      </div>
-                    </div>
-                    <div className="hl-card-tag">
-                      <Activity size={12} className="text-emerald-400" />
-                      <span><strong>14</strong> consults</span>
-                    </div>
-                  </div>
-                  <div className="hl-card-badges">
-                    <span className="hl-card-tag">Clinic: <strong>Asiri Central</strong></span>
-                    <span className="hl-card-tag">Pending Labs: <strong>3 Priority</strong></span>
-                    <span className="hl-card-tag">Sign-off: <strong>Crypto Validated</strong></span>
-                  </div>
-                </>
-              )}
-
-              {port === "facility" && (
-                <>
-                  <div className="hl-card-row">
-                    <div className="hl-card-meta">
-                      <div className="hl-card-avatar">
-                        <Building2 size={16} />
-                      </div>
-                      <div>
-                        <div className="hl-card-title">Colombo Central Hospital</div>
-                        <div className="hl-card-subtitle">FAC-COL-004 · Tertiary Care</div>
-                      </div>
-                    </div>
-                    <div className="hl-card-tag">
-                      <span className="hl-live" />
-                      <span>Live Sync</span>
-                    </div>
-                  </div>
-                  <div className="hl-card-badges">
-                    <span className="hl-card-tag">Bed Occupancy: <strong>84%</strong></span>
-                    <span className="hl-card-tag">Pharmacy: <strong>Stocked</strong></span>
-                    <span className="hl-card-tag">Labs: <strong>Specimens Active</strong></span>
-                  </div>
-                </>
-              )}
-
-              {port === "operator" && (
-                <>
-                  <div className="hl-card-row">
-                    <div className="hl-card-meta">
-                      <div className="hl-card-avatar">
-                        <Truck size={16} />
-                      </div>
-                      <div>
-                        <div className="hl-card-title">National Emergency & Claims</div>
-                        <div className="hl-card-subtitle">NET-DISPATCH · 24/7 Response</div>
-                      </div>
-                    </div>
-                    <div className="hl-card-tag">
-                      <span className="hl-live" />
-                      <span>12 En Route</span>
-                    </div>
-                  </div>
-                  <div className="hl-card-badges">
-                    <span className="hl-card-tag">Adjudication: <strong>&lt;120ms</strong></span>
-                    <span className="hl-card-tag">Fleet Status: <strong>Optimal</strong></span>
-                    <span className="hl-card-tag">Audits: <strong>Compliant</strong></span>
-                  </div>
-                </>
-              )}
-            </div>
-        </div>
-
-        <div className="hl-hero__foot">
-          <div className="hl-hero__trust">
-            <span>
-              <ShieldCheck size={13} />
-              256-bit encrypted
-            </span>
-            <span>
-              <Lock size={13} />
-              Never sold
-            </span>
-          </div>
-          <span>© {new Date().getFullYear()} HealthHub</span>
-        </div>
-      </aside>
-
-      {/* ── Right Form Panel ─────────────────────────────────────────────── */}
-      <main className="hl-panel">
-        <div className="hl-mobile-brand">
-          <div className="hl-mobile-brand__left">
-            <img src="/assets/logo.svg" alt="" width={30} height={30} />
-            <strong>HealthHub</strong>
-          </div>
-          <span className="hl-secure">
-            <ShieldCheck size={12} />
-            Secure Portal
-          </span>
-        </div>
-
-        <div className="hl-form-container" id="login-form">
-          <div className="hl-header">
-            <span className="hl-eyebrow">{selected.badge}</span>
-            <h2>Sign in <em>quietly.</em></h2>
-            <p>Choose your workspace, then pick up the story where you left it.</p>
+            <p>Choose your workspace, then pick up where you left off.</p>
           </div>
 
-          {/* Minimalist 4-Role Segmented Control */}
-          <div className="hl-tabs" role="tablist" aria-label="Select portal workspace">
+          <div className="au-roles" role="tablist" aria-label="Select portal workspace">
             {PORTS.map((p) => {
               const active = port === p.value;
               const Icon = p.icon;
@@ -654,71 +525,37 @@ function UnifiedLoginForm() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => switchPort(p.value)}
-                  className={cn(
-                    "hl-tab-btn",
-                    `hl-tab-btn--${p.value}`,
-                    active && "is-active",
-                  )}
+                  className={cn("au-role", `au-role--${p.value}`, active && "is-active")}
                 >
-                  <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                  <span className="au-role__icon">
+                    <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
+                  </span>
                   <span>{p.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <p className="hl-port-note">
-            <strong>{selected.label}.</strong> {selected.description}
+          <p className="au-role-note" key={port}>
+            {selected.description}
           </p>
 
-          {/* Patient Mode Toggle */}
-          {port === "patient" && (
-            <div className="hl-mode" role="tablist" aria-label="Sign-in method">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={patientMode === "password"}
-                onClick={() => {
-                  setPatientMode("password");
-                  setError(null);
-                }}
-                className={cn(patientMode === "password" && "is-active")}
-              >
-                <Mail size={13} />
-                <span>Password</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={patientMode === "phone"}
-                onClick={() => {
-                  setPatientMode("phone");
-                  setError(null);
-                }}
-                className={cn(patientMode === "phone" && "is-active")}
-              >
-                <Phone size={13} />
-                <span>Mobile OTP</span>
-              </button>
-            </div>
-          )}
-
           {error && (
-            <div className="hl-error" role="alert">
-              <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+            <div className="au-alert" role="alert">
+              <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
           {port === "patient" && patientMode === "phone" ? (
-            <form onSubmit={onPhoneSubmit} className="flex flex-col gap-3.5">
-              <div className="hl-field">
-                <label htmlFor="phone" className="hl-label">
-                  Mobile Number
+            <form onSubmit={onPhoneSubmit} className="au-fields">
+              <div className="au-field">
+                <label htmlFor="phone" className="au-label">
+                  Mobile number
                 </label>
-                <div className="hl-input-wrap">
-                  <span className="hl-input-icon">
-                    <Phone size={15} />
+                <div className="au-input-wrap">
+                  <span className="au-input-icon">
+                    <Phone size={16} />
                   </span>
                   <input
                     id="phone"
@@ -728,48 +565,40 @@ function UnifiedLoginForm() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="077 123 4567"
-                    className="hl-input"
+                    className="au-input"
+                    autoFocus
                     required
                   />
                 </div>
               </div>
 
+              <button type="submit" disabled={submitting} className="au-btn" aria-busy={submitting}>
+                {submitLabel("Sending code…", "Send verification code")}
+              </button>
+
+              <div className="au-or">or</div>
+
               <button
-                type="submit"
-                disabled={submitting}
-                className="hl-btn-primary"
-                aria-busy={submitting}
+                type="button"
+                className="au-btn au-btn--ghost"
+                onClick={() => {
+                  setPatientMode("password");
+                  setError(null);
+                }}
               >
-                {submitting ? (
-                  <>
-                    <span>Sending code…</span>
-                    <span className="hl-btn-primary__glyph" aria-hidden>
-                      <span className="hl-spinner" />
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span>Send verification code</span>
-                    <span className="hl-btn-primary__glyph" aria-hidden>
-                      <ArrowRight size={15} />
-                    </span>
-                  </>
-                )}
+                <Mail size={16} />
+                Use email & password
               </button>
             </form>
           ) : (
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              noValidate
-              className="flex flex-col gap-3.5"
-            >
-              <div className="hl-field">
-                <label htmlFor="identifier" className="hl-label">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="au-fields">
+              <div className="au-field">
+                <label htmlFor="identifier" className="au-label">
                   Email or Phone
                 </label>
-                <div className="hl-input-wrap">
-                  <span className="hl-input-icon">
-                    <Mail size={15} />
+                <div className="au-input-wrap">
+                  <span className="au-input-icon">
+                    <Mail size={16} />
                   </span>
                   <input
                     id="identifier"
@@ -777,109 +606,99 @@ function UnifiedLoginForm() {
                     placeholder={selected.placeholder}
                     {...register("identifier")}
                     value={identifierVal}
-                    className="hl-input"
+                    aria-invalid={!!errors.identifier}
+                    className="au-input"
                   />
                 </div>
                 {errors.identifier?.message && (
-                  <p className="hl-field-error">{errors.identifier.message}</p>
+                  <p className="au-hint">{errors.identifier.message}</p>
                 )}
               </div>
 
-              <div className="hl-field">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="hl-label">
+              <div className="au-field">
+                <div className="au-label-row">
+                  <label htmlFor="password" className="au-label">
                     Password
                   </label>
                   <a
                     href="mailto:support@healthhub.app?subject=Password%20Reset%20Request"
-                    className="hl-forgot"
+                    className="au-link"
                   >
-                    Forgot?
+                    Forgot password?
                   </a>
                 </div>
-                <div className="hl-input-wrap">
-                  <span className="hl-input-icon">
-                    <Lock size={15} />
+                <div className="au-input-wrap">
+                  <span className="au-input-icon">
+                    <Lock size={16} />
                   </span>
                   <input
                     id="password"
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
                     {...register("password")}
                     value={passwordVal}
-                    className="hl-input"
-                    style={{ paddingRight: 42 }}
+                    aria-invalid={!!errors.password}
+                    className="au-input au-input--pr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((s) => !s)}
-                    className="hl-reveal"
+                    className="au-adorn"
                     aria-label={showPw ? "Hide password" : "Show password"}
                   >
-                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {errors.password?.message && (
-                  <p className="hl-field-error">{errors.password.message}</p>
+                  <p className="au-hint">{errors.password.message}</p>
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="hl-check">
-                  <input type="checkbox" defaultChecked />
-                  <span>Remember me</span>
-                </label>
-              </div>
+              <label className="au-check">
+                <input type="checkbox" defaultChecked />
+                <span>Keep me signed in on this device</span>
+              </label>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="hl-btn-primary"
-                aria-busy={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <span>Signing in…</span>
-                    <span className="hl-btn-primary__glyph" aria-hidden>
-                      <span className="hl-spinner" />
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span>{PORT_ACTION_LABEL[port]}</span>
-                    <span className="hl-btn-primary__glyph" aria-hidden>
-                      <ArrowRight size={15} />
-                    </span>
-                  </>
-                )}
+              <button type="submit" disabled={submitting} className="au-btn" aria-busy={submitting}>
+                {submitLabel("Signing in…", PORT_ACTION_LABEL[port])}
               </button>
+
+              {port === "patient" && (
+                <>
+                  <div className="au-or">or</div>
+                  <button
+                    type="button"
+                    className="au-btn au-btn--ghost"
+                    onClick={() => {
+                      setPatientMode("phone");
+                      setError(null);
+                    }}
+                  >
+                    <Phone size={16} />
+                    Continue with mobile OTP
+                  </button>
+                </>
+              )}
             </form>
           )}
 
+          <p className="au-assure">
+            <ShieldCheck size={14} />
+            End-to-end encrypted · MFA for clinical accounts
+          </p>
+
           {IS_DEV && (
-            <div className="hl-dev">
-              <span>Quick Dev</span>
-              <div className="hl-dev__btns">
-                <button
-                  type="button"
-                  onClick={devLoginAsPatient}
-                  disabled={submitting}
-                >
+            <div className="au-dev">
+              <span>Quick dev</span>
+              <div className="au-dev__btns">
+                <button type="button" onClick={devLoginAsPatient} disabled={submitting}>
                   As Patient
                 </button>
-                <button
-                  type="button"
-                  onClick={devLoginAsDoctor}
-                  disabled={submitting}
-                >
+                <button type="button" onClick={devLoginAsDoctor} disabled={submitting}>
                   As Doctor
                 </button>
-                <button
-                  type="button"
-                  onClick={devLoginAsAdmin}
-                  disabled={submitting}
-                >
+                <button type="button" onClick={devLoginAsAdmin} disabled={submitting}>
                   As Admin
                 </button>
               </div>
@@ -887,38 +706,14 @@ function UnifiedLoginForm() {
           )}
         </div>
 
-        <div className="hl-foot">
-          <div>
-            {port === "patient" ? (
-              <span>
-                New to HealthHub?{" "}
-                <Link href="/patient/register">Create an account</Link>
-              </span>
-            ) : port === "doctor" ? (
-              <span>
-                New clinician?{" "}
-                <Link href="/doctor/register">Request access</Link>
-              </span>
-            ) : port === "facility" ? (
-              <span>
-                New facility?{" "}
-                <Link href="/hospital/register">Register it here</Link>
-              </span>
-            ) : (
-              <span>
-                New partner?{" "}
-                <Link href="/insurance-operator/register">
-                  Register your organisation
-                </Link>
-              </span>
-            )}
-          </div>
-          <div className="hl-foot__legal">
+        <footer className="au-foot">
+          <span>© {new Date().getFullYear()} HealthHub · Colombo</span>
+          <nav>
             <Link href="/privacy">Privacy</Link>
-            <span aria-hidden>·</span>
             <Link href="/terms">Terms</Link>
-          </div>
-        </div>
+            <a href="mailto:support@healthhub.app">Support</a>
+          </nav>
+        </footer>
       </main>
     </div>
   );
