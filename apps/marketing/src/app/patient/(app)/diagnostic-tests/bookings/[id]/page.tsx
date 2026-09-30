@@ -7,12 +7,11 @@ import {
   AlertCircle,
   Ban,
   Building2,
-  Calendar,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronLeft,
-  Clock,
+  Clock3,
   CreditCard,
   ExternalLink,
   FileText,
@@ -31,15 +30,11 @@ import {
   StickyNote,
   TestTube2,
   Timer,
+  Wallet,
   X,
   XCircle,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
-import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import { StatTile } from "@/patient/components/primitives/StatTile";
 import {
   useTestBooking,
   useCancelTestBooking,
@@ -52,6 +47,28 @@ import {
   formatRelative,
 } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  Badge,
+  EmptyBlock,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_TEXTAREA,
+  GROUP_LABEL,
+  HERO_ATTENTION_CHIP,
+  HERO_CHIP,
+  HERO_DANGER_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  InfoField,
+  PANEL,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  SECONDARY_BTN,
+  type Tone,
+} from "@/patient/components/workspace";
 
 /* ── Pipeline (kept aligned with the list page) ───────────────────── */
 const PIPELINE: {
@@ -112,49 +129,50 @@ const CANCELLABLE = [
 ];
 const RESCHEDULABLE = ["pending", "confirmed", "phlebotomist_assigned"];
 
+type BookingDetail = {
+  id: string;
+  status: string;
+  itemName?: string;
+  packageName?: string;
+  scheduledDate?: string;
+  scheduledTimeSlot?: string;
+  scheduledAt?: string;
+  labName?: string | null;
+  totalPrice?: number;
+  totalAmount?: number;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  resultPdfUrl?: string | null;
+  resultUrl?: string | null;
+  resultSummary?: string | null;
+  notes?: string | null;
+  cancellationReason?: string | null;
+  createdAt?: string;
+  collectionAddress?: { line1?: string; city?: string; contactPhone?: string } | null;
+};
+
 function pipelineIndex(status: string): number {
   if (status === "cancelled") return -1;
   return PIPELINE.findIndex((s) => s.key === status);
 }
 
-function statusTone(
-  status: string
-): "success" | "warn" | "danger" | "neutral" | "info" | "brand" {
-  if (status === "completed") return "success";
+function statusTone(status: string): Tone {
+  if (status === "completed") return "emerald";
   if (
     status === "sample_collected" ||
     status === "processing" ||
     status === "in_progress"
   )
-    return "warn";
-  if (status === "cancelled") return "danger";
-  if (status === "confirmed") return "brand";
-  return "info";
+    return "amber";
+  if (status === "cancelled") return "rose";
+  if (status === "confirmed") return "sky";
+  return "slate";
 }
 
-function paymentTone(
-  p?: string
-): "success" | "warn" | "danger" | "neutral" {
+function paymentTone(p?: string): Tone {
   switch (p) {
     case "paid":
-      return "success";
-    case "cash_on_collection":
-    case "pending":
-      return "warn";
-    case "failed":
-    case "refunded":
-      return "danger";
-    default:
-      return "neutral";
-  }
-}
-
-function paymentAccent(
-  p?: string
-): "brand" | "sky" | "violet" | "amber" | "green" | "rose" | "none" {
-  switch (p) {
-    case "paid":
-      return "green";
+      return "emerald";
     case "cash_on_collection":
     case "pending":
       return "amber";
@@ -162,7 +180,7 @@ function paymentAccent(
     case "refunded":
       return "rose";
     default:
-      return "none";
+      return "slate";
   }
 }
 
@@ -190,7 +208,7 @@ export default function TestBookingDetailPage({
     setMsg(null);
     try {
       const res = await cancel.mutateAsync({ id, reason: reason || undefined });
-      const refunded = (res.booking as any)?.paymentStatus === "refunded";
+      const refunded = (res.booking as { paymentStatus?: string } | undefined)?.paymentStatus === "refunded";
       setMsg({
         tone: "success",
         text: refunded
@@ -248,424 +266,471 @@ export default function TestBookingDetailPage({
     }
   }
 
+  const data = query.data;
+
+  if (!data) {
+    return (
+      <PatientPage>
+        <PatientHero
+          overlap={false}
+          kickerIcon={<FlaskConical size={13} aria-hidden />}
+          kicker="Lab bookings"
+          kickerMeta={`#${id.slice(-6).toUpperCase()}`}
+          title={query.isLoading ? "Loading booking…" : "Booking not found"}
+          description={
+            query.isLoading
+              ? "Fetching the booking details and live status."
+              : "This booking may have been deleted or the link is incorrect."
+          }
+          actions={
+            <Link href="/patient/diagnostic-tests/bookings" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              All bookings
+            </Link>
+          }
+        />
+        <section className={PANEL}>
+          {query.isLoading ? (
+            <PanelSkeleton rows={4} className="mt-0" />
+          ) : query.isError ? (
+            <PanelError onRetry={() => void query.refetch()} />
+          ) : (
+            <EmptyBlock
+              className="mt-0"
+              icon={<FlaskConical size={19} />}
+              title="Booking not found"
+              body="This booking may have been deleted or the link is incorrect."
+              actions={
+                <Link
+                  href="/patient/diagnostic-tests/bookings"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+                >
+                  <ChevronLeft size={13} aria-hidden />
+                  All bookings
+                </Link>
+              }
+            />
+          )}
+        </section>
+      </PatientPage>
+    );
+  }
+
+  const b = data.booking as BookingDetail;
+  const title = b.itemName || b.packageName || "Test booking";
+  const when = b.scheduledDate
+    ? `${formatDayLabel(`${b.scheduledDate}T00:00:00`)} · ${b.scheduledTimeSlot}`
+    : formatDayLabel(b.scheduledAt);
+  const amount = b.totalPrice ?? b.totalAmount ?? 0;
+  const resultUrl = b.resultPdfUrl ?? b.resultUrl ?? null;
+  const showPayRetry =
+    (b.paymentStatus === "pending" || b.paymentStatus === "failed") &&
+    b.paymentMethod !== "cash" &&
+    !["cancelled", "completed", "rescheduled"].includes(b.status);
+  const tone = statusTone(b.status);
+  const shortId = b.id.length > 10 ? b.id.slice(-6).toUpperCase() : b.id;
+  const scheduledIso = b.scheduledDate ? `${b.scheduledDate}T00:00:00` : null;
+
   return (
-    <div className="flex flex-col gap-6 pb-10">
-      {/* ── Back link ─────────────────────────────────────────────── */}
-      <Link
-        href="/patient/diagnostic-tests/bookings"
-        className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-text-soft transition-colors hover:text-brand self-start"
-      >
-        <ChevronLeft size={14} aria-hidden /> Back to bookings
-      </Link>
+    <PatientPage>
+      <PatientHero
+        overlap={false}
+        kickerIcon={<FlaskConical size={13} aria-hidden />}
+        kicker="Lab bookings"
+        kickerMeta={`#${shortId}`}
+        title={title}
+        description={
+          b.scheduledAt || b.scheduledDate
+            ? `${when} · ${b.scheduledAt ? formatRelative(b.scheduledAt) : `booked ${formatRelative(scheduledIso!)}`}`
+            : when
+        }
+        chips={
+          <>
+            {b.status === "cancelled" ? (
+              <span className={HERO_DANGER_CHIP}>
+                <XCircle size={12} aria-hidden />
+                Cancelled
+              </span>
+            ) : b.status === "completed" ? (
+              <span className={HERO_CHIP}>
+                <CheckCircle2 size={12} className="text-emerald-300" aria-hidden />
+                Report ready
+              </span>
+            ) : (
+              <span className={HERO_ATTENTION_CHIP}>
+                {badgeIcon(b.status)}
+                {humanize(b.status)}
+              </span>
+            )}
+            {b.paymentStatus ? (
+              <span className={HERO_CHIP}>
+                <CreditCard size={12} className="text-sky-300" aria-hidden />
+                LKR {Number(amount).toLocaleString()} · {humanize(b.paymentMethod ?? "cash")}
+              </span>
+            ) : null}
+            {b.labName ? (
+              <span className={HERO_CHIP}>
+                <Building2 size={12} className="text-teal-300" aria-hidden />
+                {b.labName}
+              </span>
+            ) : null}
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/diagnostic-tests/bookings" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              All bookings
+            </Link>
+            {RESCHEDULABLE.includes(b.status) ? (
+              <button type="button" onClick={() => setConfirmReschedule(true)} className={HERO_GHOST}>
+                <RefreshCw size={15} aria-hidden />
+                Reschedule
+              </button>
+            ) : null}
+            {CANCELLABLE.includes(b.status) ? (
+              <button type="button" onClick={() => setConfirmCancel(true)} className={HERO_GHOST}>
+                <XCircle size={15} aria-hidden />
+                Cancel
+              </button>
+            ) : null}
+            {b.status === "completed" ? (
+              <Link href={`/patient/diagnostic-tests/bookings/${b.id}/rate`} className={HERO_PRIMARY}>
+                <Star size={15} className="text-amber-500" aria-hidden />
+                Rate experience
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
-      <QueryBoundary
-        query={query}
-        loadingCount={3}
-        emptyTitle="Booking not found"
-        emptyDescription="This booking may have been deleted or the link is incorrect."
-      >
-        {(data) => {
-          const b: any = data.booking;
-          const title = b.itemName || b.packageName || "Test booking";
-          const when = b.scheduledDate
-            ? `${formatDayLabel(`${b.scheduledDate}T00:00:00`)} · ${b.scheduledTimeSlot}`
-            : formatDayLabel(b.scheduledAt);
-          const amount = b.totalPrice ?? b.totalAmount ?? 0;
-          const resultUrl = b.resultPdfUrl ?? b.resultUrl ?? null;
-          const showPayRetry =
-            (b.paymentStatus === "pending" || b.paymentStatus === "failed") &&
-            b.paymentMethod !== "cash" &&
-            !["cancelled", "completed", "rescheduled"].includes(b.status);
+      {/* ── Status banners ───────────────────────────────── */}
+      {msg ? (
+        <div
+          className={cn(
+            "flex items-start gap-2.5 rounded-xl px-4 py-3 text-[13px] font-medium",
+            msg.tone === "success"
+              ? "bg-emerald-50 text-emerald-700 shadow-[inset_0_0_0_1px_rgba(5,150,105,0.2)]"
+              : msg.tone === "danger"
+                ? "bg-rose-50 text-rose-700 shadow-[inset_0_0_0_1px_rgba(225,29,72,0.2)]"
+                : "bg-sky-50 text-sky-700 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.2)]",
+          )}
+          role="status"
+        >
+          {msg.tone === "success" ? (
+            <CheckCircle2 size={15} className="mt-0.5 shrink-0" aria-hidden />
+          ) : (
+            <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden />
+          )}
+          <span className="flex-1">{msg.text}</span>
+          <button
+            type="button"
+            onClick={() => setMsg(null)}
+            className="text-slate-400 transition-colors hover:text-slate-700"
+            aria-label="Dismiss"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      ) : null}
 
-          return (
-            <>
-              {/* ── 1. Premium hero ─────────────────────────────── */}
-              <BookingHero
-                title={title}
-                status={b.status}
-                when={when}
-                amount={amount}
-                paymentStatus={b.paymentStatus}
-                paymentMethod={b.paymentMethod}
-                bookingId={b.id}
-                scheduledDate={b.scheduledDate}
-                scheduledAt={b.scheduledAt}
-                onReschedule={
-                  RESCHEDULABLE.includes(b.status)
-                    ? () => setConfirmReschedule(true)
-                    : null
-                }
-                onCancel={
-                  CANCELLABLE.includes(b.status) ? () => setConfirmCancel(true) : null
+      {b.cancellationReason ? (
+        <div className="flex items-start gap-2.5 rounded-xl bg-rose-50 px-4 py-3 text-[13px] text-rose-700 shadow-[inset_0_0_0_1px_rgba(225,29,72,0.2)]">
+          <Ban size={15} className="mt-0.5 shrink-0" aria-hidden />
+          <div>
+            <span className="font-semibold">Cancellation reason: </span>
+            <span>{b.cancellationReason}</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          {/* Booking overview */}
+          <section className={PANEL} aria-labelledby="bk-overview">
+            <PanelHeader
+              id="bk-overview"
+              icon={<Info size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Booking overview"
+              caption="Schedule, lab and payment at a glance"
+            />
+            <dl className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <InfoField icon={<CalendarDays size={14} />} label="Scheduled">
+                {scheduledIso ? formatDayLabel(scheduledIso) : "TBD"}
+                {b.scheduledTimeSlot ? ` · ${b.scheduledTimeSlot}` : ""}
+              </InfoField>
+              <InfoField icon={<Building2 size={14} />} label="Lab">
+                {b.labName || "Assigned at confirmation"}
+              </InfoField>
+              <InfoField icon={<Wallet size={14} />} label="Total">
+                LKR {Number(amount).toLocaleString()} · {humanize(b.paymentMethod ?? "cash")}
+              </InfoField>
+              <InfoField icon={<Phone size={14} />} label="Contact">
+                {b.collectionAddress?.contactPhone ?? "Lab will reach you before the visit"}
+              </InfoField>
+            </dl>
+          </section>
+
+          {/* Status timeline */}
+          <section className={PANEL} aria-labelledby="bk-timeline">
+            <PanelHeader
+              id="bk-timeline"
+              icon={<Activity size={16} />}
+              tone="bg-teal-50 text-teal-600"
+              title="Status timeline"
+              caption="Live progress from your request to the report"
+              action={<Badge tone={tone}>{badgeIcon(b.status)}{humanize(b.status)}</Badge>}
+            />
+            <div className="mt-5">
+              <VerticalTimeline status={b.status} />
+            </div>
+          </section>
+
+          {/* Report (if completed) */}
+          {b.status === "completed" ? (
+            <section className={PANEL} aria-labelledby="bk-report">
+              <PanelHeader
+                id="bk-report"
+                icon={<FileText size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title="Your report is ready"
+                caption="Signed and uploaded by the lab"
+              />
+              {b.resultSummary ? (
+                <p className="mt-4 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+                  {b.resultSummary}
+                </p>
+              ) : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {resultUrl ? (
+                  <a
+                    href={resultUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+                  >
+                    <ExternalLink size={13} aria-hidden />
+                    Open full report
+                  </a>
+                ) : null}
+                <Link
+                  href={`/patient/diagnostic-tests/bookings/${b.id}/result`}
+                  className={SECONDARY_BTN}
+                >
+                  <Sparkles size={13} className="text-violet-600" aria-hidden />
+                  Explain with AI
+                </Link>
+              </div>
+            </section>
+          ) : null}
+
+          {/* Patient notes */}
+          {b.notes ? (
+            <section className={PANEL} aria-labelledby="bk-notes">
+              <PanelHeader
+                id="bk-notes"
+                icon={<StickyNote size={16} />}
+                tone="bg-amber-50 text-amber-600"
+                title="Notes for the phlebotomist"
+                caption="Shared when you booked"
+              />
+              <p className="mt-4 rounded-xl bg-amber-50/60 p-4 text-sm leading-relaxed text-slate-700 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.15)]">
+                {b.notes}
+              </p>
+            </section>
+          ) : null}
+
+          {/* Manage booking */}
+          {(CANCELLABLE.includes(b.status) ||
+            RESCHEDULABLE.includes(b.status) ||
+            b.status === "completed") && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={GROUP_LABEL}>Manage booking</span>
+              <span className="flex-1" />
+              {RESCHEDULABLE.includes(b.status) ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmReschedule(true)}
+                  className={SECONDARY_BTN}
+                >
+                  <RefreshCw size={13} aria-hidden />
+                  Reschedule
+                </button>
+              ) : null}
+              {CANCELLABLE.includes(b.status) ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmCancel(true)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-50 px-3.5 text-xs font-semibold text-rose-700 shadow-[inset_0_0_0_1px_rgba(225,29,72,0.25)] transition-colors hover:bg-rose-100"
+                >
+                  <XCircle size={13} aria-hidden />
+                  Cancel booking
+                </button>
+              ) : null}
+              {b.status === "completed" ? (
+                <Link
+                  href={`/patient/diagnostic-tests/bookings/${b.id}/rate`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-amber-50 px-3.5 text-xs font-semibold text-amber-700 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.25)] transition-colors hover:bg-amber-100"
+                >
+                  <Star size={13} aria-hidden />
+                  Rate experience
+                </Link>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* ── Right rail ────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Payment & support">
+          <div className="flex flex-col gap-6 xl:sticky xl:top-6">
+            {/* Payment summary */}
+            <section className={PANEL} aria-labelledby="bk-pay">
+              <PanelHeader
+                id="bk-pay"
+                icon={<CreditCard size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title="Payment"
+                caption="Charges for this booking"
+                action={
+                  <Badge tone={paymentTone(b.paymentStatus)}>
+                    {humanize(b.paymentStatus ?? "pending")}
+                  </Badge>
                 }
               />
-
-              {/* ── Status banners ───────────────────────────────── */}
-              {msg ? (
-                <div
-                  className={cn(
-                    "flex items-start gap-2.5 rounded-lg border px-4 py-3 text-[13px] font-medium",
-                    msg.tone === "success"
-                      ? "border-success/25 bg-success-soft text-success"
-                      : msg.tone === "danger"
-                        ? "border-danger/25 bg-danger-soft text-danger"
-                        : "border-brand/25 bg-brand-soft text-brand",
-                  )}
-                  role="status"
-                >
-                  {msg.tone === "success" ? (
-                    <CheckCircle2
-                      size={15}
-                      className="shrink-0 mt-0.5"
-                      aria-hidden
-                    />
-                  ) : (
-                    <AlertCircle
-                      size={15}
-                      className="shrink-0 mt-0.5"
-                      aria-hidden
-                    />
-                  )}
-                  <span className="flex-1">{msg.text}</span>
-                  <button
-                    type="button"
-                    onClick={() => setMsg(null)}
-                    className="text-text-muted hover:text-text"
-                    aria-label="Dismiss"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : null}
-
-              {b.cancellationReason ? (
-                <div className="flex items-start gap-2.5 rounded-lg border border-danger/25 bg-danger-soft px-4 py-3 text-[13px] text-danger">
-                  <Ban size={15} className="shrink-0 mt-0.5" aria-hidden />
-                  <div>
-                    <span className="font-semibold">Cancellation reason: </span>
-                    <span>{b.cancellationReason}</span>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* ── 2. Main grid: left content + sticky right rail ─ */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <div className="flex flex-col gap-5 lg:col-span-8">
-                  {/* Summary tiles */}
-                  <SummaryTiles
-                    when={when}
-                    scheduledDate={b.scheduledDate}
-                    labName={b.labName}
-                    amount={amount}
-                    paymentStatus={b.paymentStatus}
-                    paymentMethod={b.paymentMethod}
-                  />
-
-                  {/* Timeline */}
-                  <Card className="!p-0 overflow-hidden">
-                    <div className="px-5 pt-5 pb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-[14.5px] font-bold text-text">
-                          Status timeline
-                        </h3>
-                        <p className="text-[11.5px] text-text-soft mt-0.5">
-                          Live progress from your request to the report.
-                        </p>
-                      </div>
-                      <StatusPill
-                        tone={statusTone(b.status)}
-                        icon={statusPillIcon(b.status)}
-                      >
-                        {humanize(b.status)}
-                      </StatusPill>
-                    </div>
-                    <div className="px-5 pb-5">
-                      <VerticalTimeline status={b.status} createdAt={b.createdAt} />
-                    </div>
-                  </Card>
-
-                  {/* Report (if completed) */}
-                  {b.status === "completed" ? (
-                    <Card accent="brand" className="!p-0 overflow-hidden">
-                      <div className="p-5 flex flex-col gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="grid h-10 w-10 place-items-center rounded-md bg-ink text-white"
-                            aria-hidden
-                          >
-                            <FileText size={18} />
-                          </span>
-                          <div>
-                            <h3 className="text-[15px] font-bold text-text">
-                              Your report is ready
-                            </h3>
-                            <p className="text-[12px] text-text-soft">
-                              Signed and uploaded by the lab
-                            </p>
-                          </div>
-                        </div>
-                        {b.resultSummary ? (
-                          <div className="rounded-md border border-border bg-surface-1 p-3.5 text-[13px] text-text-soft leading-relaxed">
-                            {b.resultSummary}
-                          </div>
-                        ) : null}
-                        <div className="flex flex-wrap gap-2">
-                          {resultUrl ? (
-                            <a
-                              href={resultUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand px-3.5 text-[12.5px] font-semibold text-white shadow-sm hover:bg-brand/90 transition-colors"
-                            >
-                              <ExternalLink size={13} /> Open full report
-                            </a>
-                          ) : null}
-                          <Link
-                            href={`/patient/diagnostic-tests/bookings/${b.id}/result`}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3.5 text-[12.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-                          >
-                            <Sparkles size={13} className="text-brand" />
-                            Explain with AI
-                          </Link>
-                        </div>
-                      </div>
-                    </Card>
-                  ) : null}
-
-                  {/* Patient notes */}
-                  {b.notes ? (
-                    <Card>
-                      <div className="flex items-start gap-2.5">
-                        <span className="grid h-8 w-8 place-items-center rounded-md bg-warn-soft text-warn shrink-0" aria-hidden>
-                          <StickyNote size={14} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-[12.5px] font-bold text-text">
-                            Notes for the phlebotomist
-                          </h3>
-                          <p className="mt-1 text-[13px] text-text-soft leading-relaxed">
-                            {b.notes}
-                          </p>
-                        </div>
-                      </div>
-                    </Card>
-                  ) : null}
-                </div>
-
-                {/* ── Right rail (sticky) ──────────────────────── */}
-                <aside className="flex flex-col gap-5 lg:col-span-4">
-                  <div className="lg:sticky lg:top-[88px] flex flex-col gap-5">
-                    {/* Payment summary */}
-                    <Card accent={paymentAccent(b.paymentStatus)} className="!p-0 overflow-hidden">
-                      <div className="p-5 flex flex-col gap-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-[12px] font-bold uppercase tracking-wider text-text-muted">
-                            Payment summary
-                          </h3>
-                          <StatusPill tone={paymentTone(b.paymentStatus)}>
-                            {humanize(b.paymentStatus ?? "pending")}
-                          </StatusPill>
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-[10.5px] font-semibold text-text-muted">
-                            LKR
-                          </span>
-                          <span className="text-[28px] tabular-nums tracking-tight text-text pt-metric">
-                            {Number(amount).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="text-[11.5px] text-text-soft flex items-center gap-1.5">
-                          <CreditCard size={12} className="text-text-muted" />
-                          {humanize(b.paymentMethod ?? "cash")}
-                        </div>
-                        {showPayRetry ? (
-                          <button
-                            type="button"
-                            onClick={doPayNow}
-                            disabled={pay.isPending}
-                            className="mt-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-brand text-[12.5px] font-semibold text-white shadow-sm hover:bg-brand/90 disabled:opacity-60 transition-colors"
-                          >
-                            {pay.isPending ? (
-                              <>
-                                <Loader2 size={13} className="animate-spin" />
-                                Starting payment…
-                              </>
-                            ) : (
-                              <>
-                                <CreditCard size={13} />
-                                Pay now
-                              </>
-                            )}
-                          </button>
-                        ) : b.paymentStatus === "paid" ? (
-                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-success font-semibold">
-                            <CheckCircle2 size={13} aria-hidden />
-                            Payment received
-                          </div>
-                        ) : b.paymentStatus === "cash_on_collection" ? (
-                          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-warn font-semibold">
-                            <Timer size={13} aria-hidden />
-                            Pay cash on collection
-                          </div>
-                        ) : null}
-                      </div>
-                    </Card>
-
-                    {/* Lab info */}
-                    {b.labName ? (
-                      <Card>
-                        <div className="flex items-start gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
-                            <Building2 size={16} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-                              Performing lab
-                            </h3>
-                            <p className="text-[14px] font-bold text-text mt-0.5 truncate">
-                              {b.labName}
-                            </p>
-                            {b.collectionAddress ? (
-                              <p className="mt-1 text-[12px] text-text-soft leading-relaxed">
-                                {b.collectionAddress.line1}
-                                {b.collectionAddress.city
-                                  ? `, ${b.collectionAddress.city}`
-                                  : ""}
-                              </p>
-                            ) : null}
-                            {b.collectionAddress?.contactPhone ? (
-                              <a
-                                href={`tel:${b.collectionAddress.contactPhone}`}
-                                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand hover:underline"
-                              >
-                                <Phone size={12} />
-                                {b.collectionAddress.contactPhone}
-                              </a>
-                            ) : null}
-                          </div>
-                        </div>
-                      </Card>
-                    ) : null}
-
-                    {/* Need help */}
-                    <Card>
-                      <div className="flex items-start gap-3">
-                        <span className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
-                          <HelpCircle size={16} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-[13px] font-bold text-text">
-                            Need help with this booking?
-                          </h3>
-                          <p className="mt-1 text-[12px] text-text-soft leading-relaxed">
-                            Our care team can reschedule, debug a payment, or
-                            chase the lab for a delayed report.
-                          </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <a
-                              href="mailto:care@healthhub.lk"
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-[11.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-                            >
-                              <Mail size={12} /> Email
-                            </a>
-                            <a
-                              href="tel:+94112345678"
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-[11.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-                            >
-                              <PhoneCall size={12} /> Call
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Booking ID + meta */}
-                    <div className="rounded-md border border-dashed border-border bg-surface-1/60 p-3.5 text-[11px] text-text-soft">
-                      <div className="flex items-center justify-between gap-2 font-mono">
-                        <span className="text-text-muted">Booking ID</span>
-                        <span className="text-text font-semibold truncate">
-                          {b.id}
-                        </span>
-                      </div>
-                      {b.createdAt ? (
-                        <div className="mt-1.5 flex items-center justify-between gap-2 font-mono">
-                          <span className="text-text-muted">Booked</span>
-                          <span className="text-text font-semibold">
-                            {formatRelative(b.createdAt)}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </aside>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-[10.5px] font-semibold text-slate-400">LKR</span>
+                <span className="text-[28px] font-semibold tabular-nums tracking-tight text-slate-900">
+                  {Number(amount).toLocaleString()}
+                </span>
               </div>
+              <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-slate-500">
+                <CreditCard size={12} className="text-slate-400" aria-hidden />
+                {humanize(b.paymentMethod ?? "cash")}
+              </p>
+              {showPayRetry ? (
+                <button
+                  type="button"
+                  onClick={doPayNow}
+                  disabled={pay.isPending}
+                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#07233a] text-xs font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {pay.isPending ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" aria-hidden />
+                      Starting payment…
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={13} aria-hidden />
+                      Pay now
+                    </>
+                  )}
+                </button>
+              ) : b.paymentStatus === "paid" ? (
+                <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                  <CheckCircle2 size={13} aria-hidden />
+                  Payment received
+                </p>
+              ) : b.paymentStatus === "cash_on_collection" ? (
+                <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+                  <Timer size={13} aria-hidden />
+                  Pay cash on collection
+                </p>
+              ) : null}
+            </section>
 
-              {/* ── 3. Cancel / Reschedule actions row ─────────── */}
-              {(CANCELLABLE.includes(b.status) ||
-                RESCHEDULABLE.includes(b.status) ||
-                b.status === "completed") && (
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-                  <span className="text-[11.5px] font-semibold uppercase tracking-wider text-text-muted mr-2">
-                    Manage booking
+            {/* Lab info */}
+            {b.labName ? (
+              <section className={PANEL} aria-labelledby="bk-lab">
+                <PanelHeader
+                  id="bk-lab"
+                  icon={<Building2 size={16} />}
+                  tone="bg-teal-50 text-teal-600"
+                  title="Performing lab"
+                  caption="Verified partner laboratory"
+                />
+                <p className="mt-3 truncate text-sm font-semibold text-slate-900">
+                  {b.labName}
+                </p>
+                {b.collectionAddress ? (
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    {b.collectionAddress.line1}
+                    {b.collectionAddress.city ? `, ${b.collectionAddress.city}` : ""}
+                  </p>
+                ) : null}
+                {b.collectionAddress?.contactPhone ? (
+                  <a
+                    href={`tel:${b.collectionAddress.contactPhone}`}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 hover:underline"
+                  >
+                    <Phone size={12} aria-hidden />
+                    {b.collectionAddress.contactPhone}
+                  </a>
+                ) : null}
+              </section>
+            ) : null}
+
+            {/* Need help */}
+            <section className={PANEL} aria-labelledby="bk-help">
+              <PanelHeader
+                id="bk-help"
+                icon={<HelpCircle size={16} />}
+                tone="bg-violet-50 text-violet-600"
+                title="Need help?"
+                caption="Reschedule, payment issues, delayed reports"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href="mailto:care@healthhub.lk" className={SECONDARY_BTN}>
+                  <Mail size={12} aria-hidden />
+                  Email care
+                </a>
+                <a href="tel:+94112345678" className={SECONDARY_BTN}>
+                  <PhoneCall size={12} aria-hidden />
+                  Call us
+                </a>
+              </div>
+            </section>
+
+            {/* Booking ID + meta */}
+            <div className="rounded-xl bg-slate-50 p-3.5 font-mono text-[11px] text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">Booking ID</span>
+                <span className="truncate font-semibold text-slate-800">{b.id}</span>
+              </div>
+              {b.createdAt ? (
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-slate-400">Booked</span>
+                  <span className="font-semibold text-slate-800">
+                    {formatRelative(b.createdAt)}
                   </span>
-                  {RESCHEDULABLE.includes(b.status) ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmReschedule(true)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-[12.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-                    >
-                      <RefreshCw size={13} /> Reschedule
-                    </button>
-                  ) : null}
-                  {CANCELLABLE.includes(b.status) ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmCancel(true)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-danger/25 bg-danger-soft px-3 text-[12.5px] font-semibold text-danger hover:brightness-95 transition-colors"
-                    >
-                      <XCircle size={13} /> Cancel booking
-                    </button>
-                  ) : null}
-                  {b.status === "completed" ? (
-                    <Link
-                      href={`/patient/diagnostic-tests/bookings/${b.id}/rate`}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-warn/25 bg-warn-soft px-3 text-[12.5px] font-semibold text-warn hover:brightness-95 transition-colors"
-                    >
-                      <Star size={13} /> Rate experience
-                    </Link>
-                  ) : null}
                 </div>
-              )}
-            </>
-          );
-        }}
-      </QueryBoundary>
+              ) : null}
+            </div>
+          </div>
+        </aside>
+      </div>
 
-      {/* ── Reschedule modal ─────────────────────────────── */}
+      {/* ── Reschedule modal ─────────────────────────── */}
       {confirmReschedule ? (
         <ModalShell
           title="Reschedule booking"
           subtitle="Pick a new date and time slot. The lab will re-confirm."
           onClose={() => setConfirmReschedule(false)}
-          tone="brand"
         >
           <div className="space-y-4">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                New date
-              </label>
+              <label className={FIELD_LABEL}>New date</label>
               <input
                 type="date"
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="mt-1.5 h-10 w-full rounded-md border border-border bg-surface px-3 text-[13px] text-text focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+                className={FIELD_INPUT}
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                Time slot
-              </label>
+              <label className={FIELD_LABEL}>Time slot</label>
               <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {["morning", "afternoon", "evening", "night"].map((s) => (
                   <button
@@ -673,10 +738,10 @@ export default function TestBookingDetailPage({
                     type="button"
                     onClick={() => setNewSlot(s)}
                     className={cn(
-                      "h-10 rounded-md border text-[12px] font-semibold transition-colors",
+                      "h-10 rounded-lg text-xs font-semibold transition-all",
                       newSlot === s
-                        ? "border-brand bg-brand-soft text-brand"
-                        : "border-border bg-surface text-text-soft hover:border-brand/40 hover:text-text",
+                        ? "bg-sky-600 text-white shadow-sm shadow-sky-600/30"
+                        : "bg-slate-50 text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] hover:bg-white",
                     )}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -696,7 +761,7 @@ export default function TestBookingDetailPage({
         </ModalShell>
       ) : null}
 
-      {/* ── Cancel modal ──────────────────────────────────── */}
+      {/* ── Cancel modal ──────────────────────────────── */}
       {confirmCancel ? (
         <ModalShell
           title="Cancel this booking?"
@@ -705,23 +770,21 @@ export default function TestBookingDetailPage({
           tone="danger"
         >
           <div className="space-y-4">
-            <div className="flex items-start gap-2.5 rounded-lg border border-warn/25 bg-warn-soft p-3 text-[12.5px] text-warn">
-              <Info size={14} className="shrink-0 mt-0.5" aria-hidden />
+            <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 p-3 text-[12.5px] text-amber-700 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.2)]">
+              <Info size={14} className="mt-0.5 shrink-0" aria-hidden />
               <span>
                 If you paid online, your refund will be initiated to the
                 original payment method.
               </span>
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                Reason (optional)
-              </label>
+              <label className={FIELD_LABEL}>Reason (optional)</label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
                 placeholder="e.g. Schedule conflict, found another lab, etc."
-                className="mt-1.5 w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-text placeholder:text-text-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 resize-none"
+                className={cn(FIELD_TEXTAREA, "resize-none")}
               />
             </div>
             <ModalFoot
@@ -735,208 +798,21 @@ export default function TestBookingDetailPage({
           </div>
         </ModalShell>
       ) : null}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
- *  Hero
- * ──────────────────────────────────────────────────────────────────── */
-function BookingHero({
-  title,
-  status,
-  when,
-  amount,
-  paymentStatus,
-  paymentMethod,
-  bookingId,
-  scheduledDate,
-  scheduledAt,
-  onReschedule,
-  onCancel,
-}: {
-  title: string;
-  status: string;
-  when: string;
-  amount: number;
-  paymentStatus?: string;
-  paymentMethod?: string;
-  bookingId: string;
-  scheduledDate?: string;
-  scheduledAt?: string;
-  onReschedule: (() => void) | null;
-  onCancel: (() => void) | null;
-}) {
-  const isCompleted = status === "completed";
-  const isActive = !isCompleted && status !== "cancelled";
-  const shortId = bookingId.length > 10 ? bookingId.slice(-6).toUpperCase() : bookingId;
-  return (
-    <section
-      className="relative overflow-hidden rounded-xl bg-ink-card text-white shadow-card"
-    >
-      <div className="relative z-10 p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="pt-hero-kicker">
-            <FlaskConical size={11} aria-hidden />
-            Diagnostics
-          </span>
-          <span className="font-mono text-[10.5px] text-white/70">
-            #{shortId}
-          </span>
-          <StatusPill tone="neutral" className="!bg-white/15 !text-white !border !border-white/20">
-            {humanize(status)}
-          </StatusPill>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-end">
-          <div className="min-w-0">
-            <h1 className="t-display text-2xl sm:text-3xl text-white leading-[1.1] truncate">
-              {title}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-white/85">
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar size={13} className="text-white/70" />
-                {when}
-              </span>
-              {paymentStatus ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CreditCard size={13} className="text-white/70" />
-                  LKR {Number(amount).toLocaleString()} ·{" "}
-                  {humanize(paymentMethod ?? "cash")}
-                </span>
-              ) : null}
-              {scheduledAt || scheduledDate ? (
-                <span className="inline-flex items-center gap-1.5 text-white/70">
-                  <Timer size={13} />
-                  {scheduledAt
-                    ? formatRelative(scheduledAt)
-                    : `Booked ${formatRelative(scheduledDate! + "T00:00:00")}`}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex flex-row lg:flex-col gap-2 lg:items-end shrink-0">
-            {isActive ? (
-              <>
-                {onReschedule ? (
-                  <button
-                    type="button"
-                    onClick={onReschedule}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/20 transition-colors"
-                  >
-                    <RefreshCw size={13} /> Reschedule
-                  </button>
-                ) : null}
-                {onCancel ? (
-                  <button
-                    type="button"
-                    onClick={onCancel}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/20 transition-colors"
-                  >
-                    <XCircle size={13} /> Cancel
-                  </button>
-                ) : null}
-              </>
-            ) : isCompleted ? (
-              <Link
-                href={`/patient/diagnostic-tests/bookings/${bookingId}/rate`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/30 bg-white/15 backdrop-blur-md px-3.5 text-[12.5px] font-bold text-white hover:bg-white/25 transition-colors"
-              >
-                <Star size={13} /> Rate experience
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
- *  Summary tiles row
- * ──────────────────────────────────────────────────────────────────── */
-function SummaryTiles({
-  when,
-  scheduledDate,
-  labName,
-  amount,
-  paymentStatus,
-  paymentMethod,
-}: {
-  when: string;
-  scheduledDate?: string;
-  labName?: string | null;
-  amount: number;
-  paymentStatus?: string;
-  paymentMethod?: string;
-}) {
-  const date = scheduledDate ? `${scheduledDate}T00:00:00` : null;
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div className="rounded-md border border-border bg-surface-1 p-4 flex flex-col gap-1.5">
-        <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-          <Calendar size={11} /> Scheduled
-        </span>
-        <span className="text-[13px] font-bold text-text leading-tight">
-          {date ? formatDayLabel(date) : "TBD"}
-        </span>
-        <span className="text-[11px] text-text-soft truncate">{when}</span>
-      </div>
-      <div className="rounded-md border border-border bg-surface-1 p-4 flex flex-col gap-1.5">
-        <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-          <Building2 size={11} /> Lab
-        </span>
-        <span className="text-[13px] font-bold text-text leading-tight truncate">
-          {labName || "Assigned at confirmation"}
-        </span>
-        <span className="text-[11px] text-text-soft">
-          {labName ? "Verified partner" : "Awaiting assignment"}
-        </span>
-      </div>
-      <div className="rounded-md border border-border bg-surface-1 p-4 flex flex-col gap-1.5">
-        <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-          <CreditCard size={11} /> Total
-        </span>
-        <span className="text-[16px] font-extrabold tabular-nums text-text">
-          LKR {Number(amount).toLocaleString()}
-        </span>
-        <span className="text-[11px] text-text-soft">
-          {humanize(paymentMethod ?? "cash")} · {humanize(paymentStatus ?? "pending")}
-        </span>
-      </div>
-      <div className="rounded-md border border-border bg-surface-1 p-4 flex flex-col gap-1.5">
-        <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-          <Phone size={11} /> Contact
-        </span>
-        <span className="text-[13px] font-bold text-text leading-tight">
-          Lab partner
-        </span>
-        <span className="text-[11px] text-text-soft">
-          Will reach you before visit
-        </span>
-      </div>
-    </div>
+    </PatientPage>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
  *  Vertical timeline
  * ──────────────────────────────────────────────────────────────────── */
-function VerticalTimeline({
-  status,
-  createdAt: _createdAt,
-}: {
-  status: string;
-  createdAt?: string;
-}) {
+function VerticalTimeline({ status }: { status: string }) {
   const stage = pipelineIndex(status);
   const isCancelled = status === "cancelled";
   return (
     <ol className="relative pl-7">
       {/* vertical rail */}
       <span
-        className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-border"
+        className="absolute bottom-2 left-2.5 top-2 w-0.5 bg-slate-200"
         aria-hidden
       />
       {PIPELINE.map((s, i) => {
@@ -954,12 +830,12 @@ function VerticalTimeline({
             {/* Dot */}
             <span
               className={cn(
-                "absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full border-2 transition-colors",
+                "absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full transition-colors",
                 done
-                  ? "bg-success border-success text-white"
+                  ? "bg-emerald-500 text-white"
                   : current
-                    ? "bg-brand border-brand text-white shadow-[0_0_0_4px_rgba(59,111,245,0.15)]"
-                    : "bg-surface-1 border-border text-text-muted",
+                    ? "bg-sky-600 text-white shadow-[0_0_0_4px_rgba(2,132,199,0.15)]"
+                    : "bg-white text-slate-400 shadow-[inset_0_0_0_2px_rgba(148,163,184,0.5)]",
               )}
               aria-hidden
             >
@@ -969,7 +845,7 @@ function VerticalTimeline({
                 <span
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    current ? "bg-white" : "bg-text-muted",
+                    current ? "bg-white" : "bg-slate-400",
                   )}
                 />
               )}
@@ -979,27 +855,28 @@ function VerticalTimeline({
               <div className="min-w-0">
                 <p
                   className={cn(
-                    "text-[13px] font-semibold leading-tight",
+                    "flex items-center gap-1.5 text-[13px] font-semibold leading-tight",
                     done
-                      ? "text-text"
+                      ? "text-slate-900"
                       : current
-                        ? "text-brand"
-                        : "text-text-soft",
+                        ? "text-sky-700"
+                        : "text-slate-500",
                   )}
                 >
+                  <Icon size={12} aria-hidden />
                   {s.label}
                 </p>
-                <p className="text-[11.5px] text-text-muted mt-0.5">
+                <p className="mt-0.5 text-[11.5px] text-slate-400">
                   {s.description}
                 </p>
               </div>
               {current ? (
-                <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-600" />
                   Now
                 </span>
               ) : done ? (
-                <span className="shrink-0 text-[10.5px] font-mono text-success font-semibold">
+                <span className="shrink-0 font-mono text-[10.5px] font-semibold text-emerald-600">
                   Done
                 </span>
               ) : null}
@@ -1010,16 +887,14 @@ function VerticalTimeline({
       {isCancelled ? (
         <li className="relative">
           <span
-            className="absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-danger text-white"
+            className="absolute -left-7 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white"
             aria-hidden
           >
             <X size={11} strokeWidth={3} />
           </span>
           <div>
-            <p className="text-[13px] font-semibold text-danger">
-              Cancelled
-            </p>
-            <p className="text-[11.5px] text-text-muted mt-0.5">
+            <p className="text-[13px] font-semibold text-rose-600">Cancelled</p>
+            <p className="mt-0.5 text-[11.5px] text-slate-400">
               This booking will not proceed. You can book a new test any time.
             </p>
           </div>
@@ -1032,14 +907,13 @@ function VerticalTimeline({
 /* ─────────────────────────────────────────────────────────────────────
  *  Helpers
  * ──────────────────────────────────────────────────────────────────── */
-function statusPillIcon(status: string) {
+function badgeIcon(status: string) {
   switch (status) {
     case "completed":
+    case "confirmed":
       return <CheckCircle2 size={11} />;
     case "cancelled":
       return <XCircle size={11} />;
-    case "confirmed":
-      return <CheckCircle2 size={11} />;
     case "in_progress":
     case "processing":
     case "sample_collected":
@@ -1048,7 +922,7 @@ function statusPillIcon(status: string) {
     case "phlebotomist_assigned":
       return <MapPin size={11} />;
     default:
-      return <Clock size={11} />;
+      return <Clock3 size={11} />;
   }
 }
 
@@ -1075,22 +949,23 @@ function ModalShell({
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
-        <div className="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-xl overflow-hidden anim-rise">
-          <div
-            className={cn(
-              "h-1 w-full",
-              tone === "danger" ? "bg-danger" : "bg-brand",
-            )}
-          />
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div
+          className={cn(
+            "h-1 w-full",
+            tone === "danger" ? "bg-rose-500" : "bg-sky-600",
+          )}
+          aria-hidden
+        />
         <div className="flex items-start justify-between gap-3 px-5 pt-5">
           <div>
-            <h3 className="text-[15px] font-bold text-text">{title}</h3>
+            <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>
             {subtitle ? (
-              <p className="mt-1 text-[12.5px] text-text-soft leading-relaxed">
+              <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500">
                 {subtitle}
               </p>
             ) : null}
@@ -1098,7 +973,7 @@ function ModalShell({
           <button
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-text"
+            className="text-slate-400 transition-colors hover:text-slate-700"
             aria-label="Close"
           >
             <X size={16} />
@@ -1129,11 +1004,7 @@ function ModalFoot({
 }) {
   return (
     <div className="flex items-center justify-end gap-2 pt-2">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3.5 text-[12.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-      >
+      <button type="button" onClick={onCancel} className={SECONDARY_BTN}>
         Close
       </button>
       <button
@@ -1141,10 +1012,10 @@ function ModalFoot({
         onClick={onConfirm}
         disabled={busy || disabled}
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 text-[12.5px] font-semibold text-white shadow-sm disabled:opacity-60 transition-colors",
+          "inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold text-white transition-colors disabled:opacity-50",
           confirmTone === "danger"
-            ? "bg-danger hover:brightness-110"
-            : "bg-brand hover:bg-brand/90",
+            ? "bg-rose-600 hover:bg-rose-700"
+            : "bg-[#07233a] hover:bg-sky-700",
         )}
       >
         {busy ? <Loader2 size={13} className="animate-spin" /> : confirmIcon}

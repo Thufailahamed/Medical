@@ -1,29 +1,42 @@
 "use client";
 
 import { use, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ChevronLeft,
-  Clock,
-  CheckCircle2,
   AlertCircle,
-  Calendar,
-  Sparkles,
-  TrendingDown,
+  Award,
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  Clock3,
+  FlaskConical,
   Home,
-  Star,
+  Layers,
+  Loader2,
   MapPin,
   Phone,
-  Layers,
-  FlaskConical,
-  Award,
-  Loader2,
+  Star,
+  TrendingDown,
 } from "lucide-react";
 
 import { useAuthStore } from "@/portal/stores/auth";
 import { formatLkr } from "@/portal/lib/format";
 import { useBookTestPackage, useTestPackage } from "@/patient/hooks/diagnostic";
+import { cn } from "@/portal/lib/utils";
+import {
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_TEXTAREA,
+  HERO_CHIP,
+  HERO_GHOST,
+  PANEL,
+  PanelHeader,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 interface CuratedPackageInfo {
   id: string;
@@ -200,14 +213,26 @@ export default function TestPackageDetailPage({
 }) {
   const { slug } = use(params);
   const user = useAuthStore((s) => s.user);
-  const router = useRouter();
 
   const query = useTestPackage(slug);
   const book = useBookTestPackage();
 
   // Curated fallback ensures page NEVER crashes with 404
   const fallback = CURATED_PACKAGES[slug] ?? CURATED_PACKAGES["full-body-health-checkup"];
-  const apiPkg = query.data?.package as any;
+  type ApiPackage = {
+    id?: string;
+    slug?: string;
+    name?: string;
+    price?: number;
+    discountPrice?: number | null;
+    testCount?: number;
+    reportTimeHours?: number;
+    fastingHours?: number;
+    description?: string;
+    preparation?: string;
+    tests?: Array<string | { testName?: string; name?: string }>;
+  };
+  const apiPkg = query.data?.package as ApiPackage | undefined;
 
   const pkg: CuratedPackageInfo = {
     id: apiPkg?.id ?? fallback.id,
@@ -223,7 +248,7 @@ export default function TestPackageDetailPage({
     description: apiPkg?.description || fallback.description,
     preparation: apiPkg?.preparation || fallback.preparation,
     tests: Array.isArray(apiPkg?.tests) && apiPkg.tests.length > 0
-      ? apiPkg.tests.map((t: any) => (typeof t === "string" ? t : t.testName || t.name || String(t)))
+      ? apiPkg.tests.map((t) => (typeof t === "string" ? t : t.testName || t.name || String(t)))
       : fallback.tests,
   };
 
@@ -263,361 +288,281 @@ export default function TestPackageDetailPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 px-1 pb-10 pt-1 sm:px-2 max-w-6xl mx-auto">
-      {/* Breadcrumb Navigation */}
-      <Link
-        href="/patient/diagnostic-tests"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-brand transition-colors w-fit group"
-      >
-        <ChevronLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-        <span>Back to Diagnostic Marketplace</span>
-      </Link>
-
-      {/* Hero Package Banner */}
-      <div className="relative patient-card p-5 sm:p-7 overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
-            {/* Crisp Thumbnail Container */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-border shadow-md shrink-0 bg-brand-soft">
-              <img
-                src={img}
-                alt={pkg.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand">
-                  <Sparkles size={10} aria-hidden />
-                  {pkg.tag}
-                </span>
-                {pct > 0 && (
-                  <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
-                    <TrendingDown size={10} aria-hidden />
-                    {pct}% OFF
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-soft bg-surface-2 px-2.5 py-0.5 rounded-full">
-                  <Layers size={11} className="text-text-soft" />
-                  {pkg.testCount} Tests Included
-                </span>
-              </div>
-
-              <h1 className="t-display text-xl sm:text-2xl lg:text-3xl text-text leading-tight">
-                {pkg.name}
-              </h1>
-
-              {/* Verified rating pill */}
-              <div className="flex items-center gap-2 text-xs mt-2">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warn-soft">
-                  <Star size={12} className="fill-warn text-warn" aria-hidden />
-                  <span className="font-extrabold text-warn text-xs">4.9</span>
-                </div>
-                <span className="text-text-muted font-medium text-xs">(184 verified patient reviews)</span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-text-soft mt-2 leading-relaxed max-w-2xl">
-                {pkg.description}
-              </p>
-            </div>
-          </div>
-
-          {/* Pricing Box */}
-          <div className="flex flex-col md:items-end justify-center shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-border">
-            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-              All-Inclusive Total
+    <PatientPage>
+      <PatientHero
+        overlap={false}
+        leading={
+          <span className="relative block h-[76px] w-[76px] overflow-hidden rounded-[20px] ring-1 ring-inset ring-white/25 shadow-[0_12px_32px_-8px_rgba(14,165,233,0.6)]">
+            <Image src={img} alt={pkg.name} fill sizes="76px" className="object-cover" />
+          </span>
+        }
+        kickerIcon={<FlaskConical size={13} aria-hidden />}
+        kicker="Lab packages"
+        kickerMeta={pkg.tag}
+        title={pkg.name}
+        description={pkg.description}
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <Star size={12} className="fill-amber-300 text-amber-300" aria-hidden />
+              4.9 · 184 reviews
             </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="pt-metric text-3xl text-text">
-                {formatLkr(pkg.price)}
-              </span>
-              {pkg.originalPrice > pkg.price && (
-                <span className="text-sm line-through text-text-muted font-medium">
-                  {formatLkr(pkg.originalPrice)}
-                </span>
-              )}
-            </div>
-            {pkg.savings > 0 && (
-              <span className="text-xs font-bold text-success mt-1 flex items-center gap-1">
-                You save {formatLkr(pkg.savings)} with this package
-              </span>
-            )}
-            <span className="text-[11px] text-text-muted mt-1">
-              Includes certified phlebotomist visit
+            <span className={HERO_CHIP}>
+              <Layers size={12} className="text-sky-300" aria-hidden />
+              {pkg.testCount} tests included
             </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid: Left Details & Right Booking Card */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: Test Inclusions, Preparation & Accreditations */}
-        <div className="flex flex-col gap-5 lg:col-span-7">
-          {/* Test Inclusions */}
-          <div className="rounded-xl border-border bg-surface p-5 shadow-card">
-            <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <FlaskConical size={18} className="text-brand" />
-                <h2 className="text-base font-bold text-text">
-                  Included Tests &amp; Markers ({pkg.tests.length})
-                </h2>
-              </div>
-              <span className="text-xs font-medium text-text-muted">
-                100% NABL Accredited
+            <span className={HERO_CHIP}>
+              <Clock3 size={12} className="text-teal-300" aria-hidden />
+              Report in {pkg.reportTimeHours}h
+            </span>
+            {pct > 0 ? (
+              <span className={HERO_CHIP}>
+                <TrendingDown size={12} className="text-emerald-300" aria-hidden />
+                {pct}% off · save {formatLkr(pkg.savings)}
               </span>
-            </div>
+            ) : null}
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/diagnostic-tests/packages" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              All packages
+            </Link>
+            <a href="#book" className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 transition-colors hover:bg-sky-50">
+              <CalendarDays size={15} className="text-sky-600" aria-hidden />
+              Book — {formatLkr(pkg.price)}
+            </a>
+          </>
+        }
+      />
 
-            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          <section className={PANEL} aria-labelledby="pkg-tests">
+            <PanelHeader
+              id="pkg-tests"
+              icon={<FlaskConical size={16} />}
+              tone="bg-teal-50 text-teal-600"
+              title={`Included tests & markers (${pkg.tests.length})`}
+              caption="100% NABL accredited labs"
+            />
+            <ul className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {pkg.tests.map((testName, idx) => (
                 <li
                   key={idx}
-                  className="flex items-start gap-2.5 rounded-xl bg-surface-2 p-3 text-xs font-medium text-text border border-border hover:bg-brand-soft/50 hover:border-border-strong transition-colors"
+                  className="flex items-start gap-2.5 rounded-xl bg-slate-50 p-3 text-xs font-medium text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)] transition-colors hover:bg-teal-50/60"
                 >
-                  <CheckCircle2 size={15} className="text-success shrink-0 mt-0.5" aria-hidden />
+                  <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
                   <span className="leading-snug">{testName}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          {/* How to Prepare Card */}
-          <div className="rounded-xl border border-warn/25 bg-warn-soft p-5 shadow-xs">
-            <div className="flex items-center gap-2 mb-2 text-warn">
-              <Clock size={18} className="shrink-0" aria-hidden />
-              <h3 className="text-sm font-bold">Preparation &amp; Fasting Guidelines</h3>
-            </div>
-            <p className="text-xs text-warn leading-relaxed">
+          <section className={PANEL} aria-labelledby="pkg-prep">
+            <PanelHeader
+              id="pkg-prep"
+              icon={<Clock3 size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title="Preparation & fasting"
+              caption="Follow these for accurate results"
+            />
+            <p className="mt-4 rounded-xl bg-amber-50/70 p-4 text-xs leading-relaxed text-amber-900 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.18)]">
               {pkg.preparation}
             </p>
-            <div className="mt-3 flex items-center gap-4 text-[11px] font-semibold text-warn pt-2 border-t border-warn/25">
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-amber-700">
               <span>Fasting required: {pkg.fastingHours} hours</span>
-              <span>·</span>
+              <span aria-hidden>·</span>
               <span>Water allowed freely</span>
-              <span>·</span>
+              <span aria-hidden>·</span>
               <span>No alcohol 24h prior</span>
             </div>
-          </div>
+          </section>
 
-          {/* Accreditations & Quality Guarantees */}
-          <div className="rounded-xl border-border bg-surface p-5 shadow-card">
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
-              HealthHub Lab Quality Guarantees
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-2 border border-border">
-                <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand flex items-center justify-center shrink-0" aria-hidden>
-                  <Clock size={16} />
+          <section className={PANEL} aria-labelledby="pkg-quality">
+            <PanelHeader
+              id="pkg-quality"
+              icon={<Award size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="Quality guarantees"
+              caption="Every partner lab is verified"
+            />
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {[
+                { icon: Clock3, tone: "bg-sky-50 text-sky-600", title: `${pkg.reportTimeHours}h turnaround`, sub: "Digital PDF in portal" },
+                { icon: Home, tone: "bg-emerald-50 text-emerald-600", title: "Home visit", sub: "Certified phlebotomist" },
+                { icon: Award, tone: "bg-violet-50 text-violet-600", title: "ISO & NABL", sub: "Verified lab testing" },
+              ].map((f) => (
+                <div key={f.title} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]">
+                  <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px]", f.tone)} aria-hidden>
+                    <f.icon size={16} />
+                  </span>
+                  <span>
+                    <span className="block text-xs font-semibold text-slate-900">{f.title}</span>
+                    <span className="block text-[11px] text-slate-400">{f.sub}</span>
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-text">
-                    {pkg.reportTimeHours}h Turnaround
-                  </div>
-                  <div className="text-[11px] text-text-soft">Digital PDF in portal</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-border">
-                <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
-                  <Home size={16} />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-text">Home Visit</div>
-                  <div className="text-[11px] text-text-soft">Certified phlebotomist</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-border">
-                <div className="grid h-9 w-9 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0" aria-hidden>
-                  <Award size={16} />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-text">ISO &amp; NABL</div>
-                  <div className="text-[11px] text-text-soft">Verified lab testing</div>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* Right Column: Home Collection Booking Card */}
-        <div className="flex flex-col gap-5 lg:col-span-5">
-          <div className="rounded-xl border-border bg-surface p-6 shadow-md sticky top-6">
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Book this package">
+          <section id="book" className={cn(PANEL, "scroll-mt-6 xl:sticky xl:top-6")} aria-labelledby="pkg-book">
+            <PanelHeader
+              id="pkg-book"
+              icon={<Home size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Book home collection"
+              caption="A certified phlebotomist visits your doorstep"
+            />
+
             {bookingSuccess ? (
-              <div className="py-6 flex flex-col items-center text-center gap-3">
-                <div className="grid h-14 w-14 place-items-center rounded-full bg-success-soft text-success" aria-hidden>
-                  <CheckCircle2 size={32} />
-                </div>
-                <h4 className="text-lg font-bold text-text">
-                  Home Visit Booked!
-                </h4>
-                <p className="text-xs text-text-soft max-w-sm leading-relaxed">
-                  Your appointment for <strong>{pkg.name}</strong> on{" "}
-                  <strong>{scheduledDate} ({scheduledSlot})</strong> has been scheduled.
-                  A certified phlebotomist will arrive with sterile sample kits.
+              <div className="mt-5 flex flex-col items-center rounded-xl bg-emerald-50/60 px-6 py-8 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-white text-emerald-600 shadow-[0_1px_2px_rgba(15,23,42,0.05),inset_0_0_0_1px_rgba(15,23,42,0.07)]" aria-hidden>
+                  <CheckCircle2 size={24} />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-slate-900">Home visit booked!</p>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
+                  <strong>{pkg.name}</strong> on <strong>{scheduledDate} ({scheduledSlot})</strong> — a certified
+                  phlebotomist will arrive with sterile sample kits.
                 </p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
+                <div className="mt-4 flex w-full flex-col gap-2 sm:flex-row">
                   <Link
                     href="/patient/diagnostic-tests/bookings"
-                    className="pt-btn pt-btn-primary flex-1 h-10 text-xs"
+                    className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
                   >
-                    View All Bookings
+                    View all bookings
                   </Link>
                   <button
                     type="button"
                     onClick={() => setBookingSuccess(false)}
-                    className="pt-btn pt-btn-secondary px-4 h-10 text-xs cursor-pointer"
+                    className={SECONDARY_BTN}
                   >
-                    Book Another Slot
+                    Book another slot
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
-                <div className="pb-3 border-b border-border">
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand uppercase tracking-wider">
-                    <Home size={12} />
-                    Schedule Home Sample Collection
-                  </span>
-                  <h3 className="text-lg font-black text-text mt-1">
-                    Book This Package
-                  </h3>
-                  <p className="text-xs text-text-soft mt-0.5">
-                    Our certified phlebotomist visits your doorstep at the chosen time slot.
-                  </p>
-                </div>
-
-                {/* Date Selection */}
-                <div>
-                  <label className="block text-xs font-bold text-text mb-1">
-                    Preferred Collection Date
-                  </label>
+              <div className="mt-5 flex flex-col gap-4">
+                <label className="block">
+                  <span className={FIELD_LABEL}>Preferred collection date</span>
                   <input
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                    className="w-full h-10 px-3.5 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
+                    className={FIELD_INPUT}
                   />
-                </div>
+                </label>
 
-                {/* Slot Selection */}
-                <div>
-                  <label className="block text-xs font-bold text-text mb-1">
-                    Preferred Time Slot
-                  </label>
+                <label className="block">
+                  <span className={FIELD_LABEL}>Preferred time slot</span>
                   <select
                     value={scheduledSlot}
                     onChange={(e) => setScheduledSlot(e.target.value)}
-                    className="w-full h-10 px-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-medium focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
+                    className={FIELD_INPUT}
                   >
                     <option>07:00 - 09:00 AM (Early Fasting)</option>
                     <option>09:00 - 11:00 AM (Morning Window)</option>
                     <option>11:00 AM - 01:00 PM (Afternoon Window)</option>
                     <option>03:00 - 05:00 PM (Evening Window)</option>
                   </select>
-                </div>
+                </label>
 
-                {/* Address */}
-                <div>
-                  <label className="block text-xs font-bold text-text mb-1">
-                    Collection Address
-                  </label>
-                  <div className="relative">
-                    <MapPin
-                      size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                    />
+                <label className="block">
+                  <span className={FIELD_LABEL}>Collection address</span>
+                  <span className="relative mt-1.5 block">
+                    <MapPin size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
                     <input
                       type="text"
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       placeholder="Street address, City"
-                      className="pt-input pl-9 text-xs"
+                      className="block h-10 w-full rounded-lg bg-white pl-9 pr-3 text-sm text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.12)] outline-none transition-shadow placeholder:text-slate-400 focus:shadow-[inset_0_0_0_2px_#0284c7]"
                     />
-                  </div>
-                </div>
+                  </span>
+                </label>
 
-                {/* Contact Phone */}
-                <div>
-                  <label className="block text-xs font-bold text-text mb-1">
-                    Contact Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone
-                      size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                    />
+                <label className="block">
+                  <span className={FIELD_LABEL}>Contact phone</span>
+                  <span className="relative mt-1.5 block">
+                    <Phone size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
                     <input
                       type="tel"
                       value={contactPhone}
                       onChange={(e) => setContactPhone(e.target.value)}
-                      className="pt-input pl-9 text-xs"
+                      className="block h-10 w-full rounded-lg bg-white pl-9 pr-3 text-sm text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.12)] outline-none transition-shadow placeholder:text-slate-400 focus:shadow-[inset_0_0_0_2px_#0284c7]"
                     />
-                  </div>
-                </div>
+                  </span>
+                </label>
 
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-bold text-text mb-1">
-                    Special Notes <span className="text-text-muted font-normal">(optional)</span>
-                  </label>
+                <label className="block">
+                  <span className={FIELD_LABEL}>
+                    Special notes <span className="font-normal text-slate-400">(optional)</span>
+                  </span>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
-                    placeholder="Gate code, landmarks, special patient instructions..."
-                    className="pt-input h-auto py-3 text-xs resize-none"
+                    placeholder="Gate code, landmarks, special instructions…"
+                    className={FIELD_TEXTAREA}
                   />
-                </div>
+                </label>
 
-                {bookingError && (
-                  <div className="p-2.5 rounded-lg bg-danger-soft border border-danger/25 text-xs text-danger font-medium flex items-center gap-1.5">
+                {bookingError ? (
+                  <p role="alert" className="flex items-center gap-1.5 rounded-lg bg-rose-50 p-2.5 text-xs font-medium text-rose-600 shadow-[inset_0_0_0_1px_rgba(225,29,72,0.15)]">
                     <AlertCircle size={14} className="shrink-0" aria-hidden />
-                    <span>{bookingError}</span>
-                  </div>
-                )}
+                    {bookingError}
+                  </p>
+                ) : null}
 
-                {/* Price Breakdown */}
-                <div className="p-3.5 rounded-xl bg-surface-2 border border-border flex flex-col gap-1.5 text-xs">
-                  <div className="flex items-center justify-between text-text-soft">
-                    <span>Package Fee</span>
+                <div className="flex flex-col gap-1.5 rounded-xl bg-slate-50 p-3.5 text-xs shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span>Package fee</span>
                     <span>{formatLkr(pkg.price)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-text-soft">
-                    <span>Home Sample Collection</span>
-                    <span className="font-bold text-success">FREE</span>
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span>Home sample collection</span>
+                    <span className="font-semibold text-emerald-600">FREE</span>
                   </div>
-                  <div className="pt-2 border-t border-border flex items-center justify-between font-black text-text text-sm">
-                    <span>Total Amount</span>
+                  <div className="mt-1 flex items-center justify-between border-t border-slate-200/80 pt-2 text-sm font-bold text-slate-900">
+                    <span>Total amount</span>
                     <span>{formatLkr(pkg.price)}</span>
                   </div>
                 </div>
 
-                {/* Submit button */}
                 <button
                   type="button"
                   onClick={handleBook}
                   disabled={book.isPending}
-                  className="pt-btn pt-btn-primary h-11 w-full text-xs"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#07233a] text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
                 >
                   {book.isPending ? (
                     <>
                       <Loader2 size={15} className="animate-spin" aria-hidden />
-                      Confirming Reservation...
+                      Confirming reservation…
                     </>
                   ) : (
                     <>
-                      <Calendar size={15} aria-hidden />
-                      Confirm Home Visit — {formatLkr(pkg.price)}
+                      <CalendarDays size={15} aria-hidden />
+                      Confirm home visit — {formatLkr(pkg.price)}
                     </>
                   )}
                 </button>
               </div>
             )}
-          </div>
-        </div>
+          </section>
+
+          <PromoCard
+            href="/patient/diagnostic-tests"
+            kicker="Single tests"
+            icon={<FlaskConical size={21} aria-hidden />}
+            title="Need just one test?"
+            body="Browse the individual test catalogue"
+          />
+        </aside>
       </div>
-    </div>
+    </PatientPage>
   );
 }
-

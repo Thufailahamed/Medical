@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
-  Search,
   FileText,
   Calendar,
   ChevronRight,
@@ -18,13 +17,27 @@ import {
   ShieldCheck,
   Activity,
   Layers,
+  Users,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Skeleton } from "@/portal/components/ui/Empty";
-import { FilterPills } from "@/portal/components/chart/FilterPills";
-import { ChartEmpty } from "@/portal/components/chart/ChartEmpty";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  ROW_LINK,
+  RowAccent,
+  SECONDARY_BTN,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -53,6 +66,27 @@ const TYPE_CONFIG: Record<
   discharge_summary: { label: "Discharge Summary", tone: "violet", icon: FileText },
   consultation: { label: "Consultation", tone: "neutral", icon: Activity },
   other: { label: "Other Record", tone: "neutral", icon: FileText },
+};
+
+/** Icon tile + rail colours per record type. */
+const TYPE_TILE: Record<string, string> = {
+  clinical_note: "bg-amber-50 text-amber-600",
+  prescription: "bg-emerald-50 text-emerald-600",
+  lab_report: "bg-violet-50 text-violet-600",
+  vaccination: "bg-teal-50 text-teal-600",
+  imaging: "bg-indigo-50 text-indigo-600",
+  discharge_summary: "bg-rose-50 text-rose-600",
+  consultation: "bg-sky-50 text-sky-600",
+};
+
+const TYPE_ACCENT: Record<string, string> = {
+  clinical_note: "bg-amber-400",
+  prescription: "bg-emerald-500",
+  lab_report: "bg-violet-500",
+  vaccination: "bg-teal-500",
+  imaging: "bg-indigo-500",
+  discharge_summary: "bg-rose-500",
+  consultation: "bg-sky-500",
 };
 
 function humanizeRecordType(type: string): string {
@@ -121,248 +155,359 @@ export default function RecordsPage() {
     return matchesSearch && matchesType;
   });
 
+  const typeBreakdown = useMemo(
+    () =>
+      uniqueTypes
+        .map((type) => ({ type, count: allRecords.filter((r) => typeOf(r) === type).length }))
+        .sort((a, b) => b.count - a.count),
+    [uniqueTypes, allRecords],
+  );
+  const patientCount = useMemo(
+    () => new Set(allRecords.map((r) => r.patient?.id ?? r.patientId).filter(Boolean)).size,
+    [allRecords],
+  );
+  const filtersOn = search.trim() !== "" || typeFilter !== "all";
+
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Oceanic Hero Header ────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col gap-6"
-        style={{
-          background:
-            "radial-gradient(134.49% 134.49% at 94.63% 0%, #0284C7 0%, #0369A1 42.6%, #075985 100%)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                Unified Longitudinal EMR
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<Layers size={13} aria-hidden />}
+          kicker="Longitudinal EMR"
+          kickerMeta={`${patientCount} chart${patientCount === 1 ? "" : "s"}`}
+          title={
+            <>
+              Health{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                records
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-300/20 text-sky-100 border border-sky-300/30 flex items-center gap-1">
-                <ShieldCheck size={13} />
-                <span>FHIR R4 & HL7 Compliant</span>
+            </>
+          }
+          description="Every note, lab report, prescription, vaccination and imaging study across your patients' charts — in one searchable archive."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                FHIR R4 &amp; HL7
               </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
-              Electronic Health Records Repository
-            </h1>
-            <p className="text-sm text-sky-100/90 max-w-2xl mt-1 leading-relaxed">
-              Search and review clinical progress notes, diagnostic laboratory reports, pharmacotherapy prescriptions, vaccinations, and imaging archives across all patient charts.
-            </p>
-          </div>
-        </div>
-
-        {/* 4 Telemetry Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Total Records</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{totalCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Clinical documents filed</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">Prescriptions</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{rxCount}</span>
-            <span className="text-[10.5px] text-emerald-200/80 mt-0.5">Issued e-prescriptions</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Diagnostic Labs</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{labCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Biomarkers & pathology</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">Clinical Notes</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{notesCount}</span>
-            <span className="text-[10.5px] text-amber-200/80 mt-0.5">SOAP encounter logs</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Filter Controls ───────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all flex-1 max-w-md">
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search records by title, patient, type, or tags…"
-            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="h-5 w-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-
-        <FilterPills<string>
-          value={typeFilter}
-          onChange={setTypeFilter}
-          options={[
-            { value: "all", label: "All Types", count: totalCount },
-            ...uniqueTypes.map((type) => ({
-              value: type,
-              label: humanizeRecordType(type),
-              count: allRecords.filter((r) => typeOf(r) === type).length,
-            })),
-          ]}
+              <span className={HERO_CHIP}>
+                <Layers size={12} className="text-sky-300" aria-hidden />
+                {uniqueTypes.length} record type{uniqueTypes.length === 1 ? "" : "s"}
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/portal/imaging" className={HERO_GHOST}>
+                <ScanLine size={15} aria-hidden />
+                Imaging
+              </Link>
+              <Link href="/portal/patients" className={HERO_PRIMARY}>
+                <Users size={15} className="text-sky-600" aria-hidden />
+                Open a chart
+              </Link>
+            </>
+          }
         />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="All records"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : String(totalCount)}
+            sub={`${patientCount} patient${patientCount === 1 ? "" : "s"}`}
+            active={typeFilter === "all"}
+            onClick={() => setTypeFilter("all")}
+          />
+          <StatTile
+            label="Prescriptions"
+            icon={<PillIcon size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(rxCount)}
+            sub="Issued e-prescriptions"
+            active={typeFilter === "prescription"}
+            onClick={() => setTypeFilter("prescription")}
+          />
+          <StatTile
+            label="Lab reports"
+            icon={<FlaskConical size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(labCount)}
+            sub="Biomarkers & pathology"
+            active={typeFilter === "lab_report"}
+            onClick={() => setTypeFilter("lab_report")}
+          />
+          <StatTile
+            label="Clinical notes"
+            icon={<Stethoscope size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(notesCount)}
+            sub={vaccineCount > 0 ? `+ ${vaccineCount} vaccination${vaccineCount === 1 ? "" : "s"}` : "SOAP encounter logs"}
+            active={typeFilter === "clinical_note"}
+            onClick={() => setTypeFilter("clinical_note")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── Records Listing ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden bg-white">
-        {isLoading ? (
-          <div className="p-5 flex flex-col gap-3">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8">
-            <ChartEmpty
-              icon={<FileText size={24} />}
-              title="No medical records found"
-              description={
-                search || typeFilter !== "all"
-                  ? `No records match "${search || typeFilter}". Try clearing your filters.`
-                  : "No clinical documents have been uploaded to the EMR repository yet."
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Archive ──────────────────────────────────────────────────── */}
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="rec-archive">
+          <PanelHeader
+            id="rec-archive"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title={typeFilter === "all" ? "Record archive" : humanizeRecordType(typeFilter)}
+            caption={
+              isLoading
+                ? "Loading records…"
+                : `${filtered.length} of ${totalCount} shown${search ? ` · matching “${search}”` : ""}`
+            }
+            action={
+              filtersOn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setTypeFilter("all");
+                  }}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <X size={12} />
+                  Reset
+                </button>
+              ) : undefined
+            }
+          />
+
+          <PanelSearch
+            className="mt-5 lg:max-w-none"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search title, patient, type or tags…"
+            ariaLabel="Search records"
+          />
+
+          {isLoading ? (
+            <div className="mt-5 space-y-2.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-[72px] animate-pulse rounded-xl bg-slate-100" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyBlock
+              icon={<FileText size={19} />}
+              title={filtersOn ? "No matching records" : "No records yet"}
+              body={
+                filtersOn
+                  ? "Nothing matches these filters. Try another keyword or record type."
+                  : "Documents appear here as you write notes, issue prescriptions, order labs or receive imaging."
               }
-              action={
-                search || typeFilter !== "all" ? (
+              actions={
+                filtersOn ? (
                   <button
                     type="button"
                     onClick={() => {
                       setSearch("");
                       setTypeFilter("all");
                     }}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all cursor-pointer"
+                    className={SECONDARY_BTN}
                   >
-                    Reset Filters
+                    Reset filters
                   </button>
                 ) : undefined
               }
             />
-          </div>
-        ) : (
-          <ul className="flex flex-col divide-y divide-slate-100">
-            {filtered.map((record) => {
-              const patientId = record.patient?.id ?? record.patientId;
-              const type = typeOf(record);
-              const config = TYPE_CONFIG[type] ?? {
-                label: humanizeRecordType(type),
-                tone: "neutral" as const,
-                icon: FileText,
-              };
-              const TypeIcon = config.icon;
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2">
+              {filtered.map((record) => {
+                const patientId = record.patient?.id ?? record.patientId;
+                const type = typeOf(record);
+                const config = TYPE_CONFIG[type] ?? {
+                  label: humanizeRecordType(type),
+                  tone: "neutral" as const,
+                  icon: FileText,
+                };
+                const TypeIcon = config.icon;
+                const href = patientId ? `/portal/patients/${patientId}/records` : null;
 
-              const href = patientId
-                ? `/portal/patients/${patientId}/records`
-                : null;
-
-              const rowContent = (
-                <div className="group flex items-center justify-between gap-4 px-5 py-4 hover:bg-sky-50/40 transition-colors w-full">
-                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <div
+                const main = (
+                  <>
+                    <span
                       className={cn(
-                        "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border",
-                        type === "prescription"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : type === "clinical_note"
-                          ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                          : type === "lab_report"
-                          ? "bg-sky-50 text-sky-700 border-sky-200"
-                          : type === "vaccination"
-                          ? "bg-teal-50 text-teal-700 border-teal-200"
-                          : type === "imaging"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
+                        "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                        TYPE_TILE[type] ?? "bg-slate-100 text-slate-600",
                       )}
                     >
-                      <TypeIcon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                      <TypeIcon size={17} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
                           {record.title}
                         </span>
                         <Pill tone={config.tone}>{config.label}</Pill>
-                        {record.patient?.name && (
-                          <span className="text-xs text-slate-500 font-semibold">
-                            • {record.patient.name}
+                      </div>
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                        {record.patient?.name ? (
+                          <span className="font-medium text-slate-600">{record.patient.name}</span>
+                        ) : null}
+                        {record.date ? (
+                          <>
+                            {record.patient?.name ? <span className="text-slate-300">·</span> : null}
+                            <span className="inline-flex items-center gap-1 tabular-nums">
+                              <Calendar size={11} />
+                              {formatDate(record.date)}
+                            </span>
+                          </>
+                        ) : null}
+                        {record.tags?.slice(0, 3).map((tag, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-medium text-slate-500"
+                          >
+                            <Tag size={9} />
+                            {tag}
                           </span>
-                        )}
+                        ))}
+                        {record.tags && record.tags.length > 3 ? (
+                          <span className="text-[10.5px] font-semibold text-slate-400">+{record.tags.length - 3}</span>
+                        ) : null}
                       </div>
-
-                      {record.tags && record.tags.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 mt-1">
-                          {record.tags.slice(0, 4).map((tag, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
-                            >
-                              <Tag size={9} className="text-slate-400" />
-                              {tag}
-                            </span>
-                          ))}
-                          {record.tags.length > 4 && (
-                            <span className="text-[10px] text-slate-400 font-bold">
-                              +{record.tags.length - 4} more
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  </>
+                );
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    {type === "imaging" && record.patient?.id ? (
-                      <Link
-                        href={`/portal/imaging?patientId=${record.patient.id}`}
-                        aria-label={t("imaging.openViewer")}
-                        title={t("imaging.openViewer")}
-                        onClick={(e) => e.stopPropagation()}
-                        className="px-2.5 py-1 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1"
-                      >
-                        <ScanLine size={13} className="text-amber-600" />
-                        <span>PACS</span>
+                return (
+                  <li key={record.id} className={LIST_ROW}>
+                    <RowAccent className={TYPE_ACCENT[type]} />
+                    {href ? (
+                      <Link href={href} className="flex min-w-0 flex-1 items-center gap-3.5 pl-1.5">
+                        {main}
                       </Link>
-                    ) : null}
-
-                    {record.date && (
-                      <div className="flex items-center gap-1 text-slate-400">
-                        <Calendar size={13} />
-                        <span className="text-xs font-medium tabular-nums text-slate-500">
-                          {formatDate(record.date)}
-                        </span>
-                      </div>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 items-center gap-3.5 pl-1.5">{main}</div>
                     )}
+                    <div className="flex shrink-0 items-center gap-1.5 pl-1.5 sm:pl-0">
+                      {type === "imaging" && record.patient?.id ? (
+                        <Link
+                          href={`/portal/imaging?patientId=${record.patient.id}`}
+                          aria-label={t("imaging.openViewer")}
+                          title={t("imaging.openViewer")}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg bg-indigo-50 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                        >
+                          <ScanLine size={13} />
+                          PACS
+                        </Link>
+                      ) : null}
+                      {href ? (
+                        <Link href={href} className={ROW_LINK}>
+                          View
+                          <ChevronRight size={13} className="transition-transform group-hover/v:translate-x-0.5" />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-                    <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 border border-slate-200 transition-all flex items-center gap-1">
-                      <span>View Record</span>
-                      <ChevronRight size={13} />
-                    </span>
-                  </div>
-                </div>
-              );
+        {/* ── Record mix ───────────────────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Record breakdown">
+          <section className={PANEL} aria-labelledby="rec-mix">
+            <PanelHeader
+              id="rec-mix"
+              icon={<Layers size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="Record mix"
+              caption="Filter the archive by type"
+            />
 
-              return (
-                <li key={record.id}>
-                  {href ? (
-                    <Link href={href} className="block w-full text-left cursor-pointer">
-                      {rowContent}
-                    </Link>
-                  ) : (
-                    <div>{rowContent}</div>
-                  )}
+            {totalCount > 0 ? (
+              <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                {typeBreakdown.map(({ type, count }) => (
+                  <span
+                    key={type}
+                    className={cn("h-full", TYPE_ACCENT[type] ?? "bg-slate-300")}
+                    style={{ width: `${(count / totalCount) * 100}%` }}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            <ul className="mt-4 flex flex-col gap-0.5">
+              <li>
+                <MixRow
+                  label="All types"
+                  count={totalCount}
+                  pct={100}
+                  dot="bg-slate-900"
+                  active={typeFilter === "all"}
+                  onClick={() => setTypeFilter("all")}
+                />
+              </li>
+              {typeBreakdown.map(({ type, count }) => (
+                <li key={type}>
+                  <MixRow
+                    label={humanizeRecordType(type)}
+                    count={count}
+                    pct={totalCount > 0 ? Math.round((count / totalCount) * 100) : 0}
+                    dot={TYPE_ACCENT[type] ?? "bg-slate-300"}
+                    active={typeFilter === type}
+                    onClick={() => setTypeFilter(type)}
+                  />
                 </li>
-              );
-            })}
-          </ul>
-        )}
+              ))}
+            </ul>
+            {isLoading ? <div className="mt-2 h-24 animate-pulse rounded-xl bg-slate-100" /> : null}
+          </section>
+        </aside>
       </div>
     </div>
+  );
+}
+
+function MixRow({
+  label,
+  count,
+  pct,
+  dot,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  pct: number;
+  dot: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors",
+        active ? "bg-sky-50" : "hover:bg-slate-50",
+      )}
+    >
+      <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dot)} aria-hidden />
+      <span className={cn("min-w-0 flex-1 truncate text-[13px]", active ? "font-semibold text-sky-800" : "font-medium text-slate-700")}>
+        {label}
+      </span>
+      <span className="text-[11px] tabular-nums text-slate-400">{pct}%</span>
+      <span
+        className={cn(
+          "min-w-[28px] rounded-md px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums",
+          active ? "bg-white text-sky-700" : "bg-slate-100 text-slate-600",
+        )}
+      >
+        {count}
+      </span>
+    </button>
   );
 }

@@ -1,6 +1,33 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+/* Register portal colour tokens with Tailwind v4 so utilities like
+   `border-border`, `bg-surface`, `text-text-soft`, `bg-brand` are actually
+   generated. Values are the light defaults; [data-app="portal"] below
+   re-points each --color-* at its raw palette var. */
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-2: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text: #0F172A;
+  --color-text-soft: #475569;
+  --color-text-muted: #94A3B8;
+  --color-brand: #0284C7;
+  --color-brand-soft: #E0F2FE;
+  --color-brand-strong: #0369A1;
+  --color-success: #059669;
+  --color-success-soft: #ECFDF5;
+  --color-warn: #D97706;
+  --color-warn-soft: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  --color-info: #0284C7;
+  --color-info-soft: #F0F9FF;
+  --color-accent: #059669;
+  --color-accent-soft: #ECFDF5;
+}
+
 /* ============================================================
    Portal design tokens — matching mobile app sky-blue theme.
    Scoped under [data-app="portal"] so they never bleed.

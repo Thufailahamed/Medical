@@ -8,22 +8,42 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  ClipboardList,
   FileText,
   Percent,
+  Receipt,
   Search,
   Shield,
   ShieldCheck,
-  Sparkles,
   Star,
   Wallet,
-  Zap,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { useT } from "@/portal/i18n";
 import { formatDate, formatLkr } from "@/portal/lib/format";
-import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_DANGER_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  RailRow,
+  StatTile,
+  TONE_BADGE,
+  TONE_RAIL,
+  TONE_TILE,
+  type Tone,
+} from "@/patient/components/workspace";
 
 interface Enrollment {
   id: string;
@@ -58,54 +78,27 @@ interface Provider {
   planCount?: number;
 }
 
-function statusBadge(status: string) {
+function statusTone(status: string): Tone {
   switch (status) {
     case "active":
-      return {
-        label: "Active",
-        className: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
-      };
-    case "grace_period":
-      return {
-        label: "Grace Period",
-        className: "bg-amber-50 text-amber-800 border-amber-200/80",
-      };
-    case "lapsed":
-      return {
-        label: "Lapsed",
-        className: "bg-rose-50 text-rose-700 border-rose-200/80",
-      };
-    case "submitted":
-      return {
-        label: "Submitted",
-        className: "bg-brand-soft text-brand border-brand/25",
-      };
-    case "under_review":
-      return {
-        label: "Under Review",
-        className: "bg-amber-50 text-amber-800 border-amber-200/80",
-      };
     case "approved":
-      return {
-        label: "Approved",
-        className: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
-      };
+    case "paid":
+      return "emerald";
+    case "grace_period":
+    case "under_review":
+    case "more_info_needed":
+      return "amber";
+    case "lapsed":
     case "rejected":
-      return {
-        label: "Rejected",
-        className: "bg-rose-50 text-rose-700 border-rose-200/80",
-      };
+      return "rose";
+    case "submitted":
+      return "sky";
     default:
-      return {
-        label: status.replace(/_/g, " "),
-        className: "bg-surface-2 text-text border-border",
-      };
+      return "slate";
   }
 }
 
 export default function InsurancePage() {
-  const t = useT();
-
   const catalogQ = useQuery({
     queryKey: ["patient", "insurance", "catalog"],
     queryFn: () =>
@@ -132,351 +125,327 @@ export default function InsurancePage() {
   const providers = catalogQ.data?.providers?.slice(0, 6) ?? [];
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Sparkles size={13} />}
-        kicker="Healthcare Coverage & Insurance Marketplace"
-        title="Health Insurance & Policy Management"
-        description="Compare certified medical plans, track cashless hospital network coverage, and file instant reimbursement claims."
-        actions={
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<Shield size={13} aria-hidden />}
+        kicker="Insurance"
+        kickerMeta="Policies & marketplace"
+        title={
           <>
-            <Link href="/patient/insurance/coverage-check" className={heroSecondaryAction}>
-              <Activity size={13} />
-              <span>Coverage Check</span>
-            </Link>
-            <Link href="/patient/insurance/marketplace" className={heroPrimaryAction}>
-              <Search size={14} />
-              <span>Browse Plans</span>
-            </Link>
+            Health insurance, <HeroAccent>all in one place</HeroAccent>
           </>
         }
-        footer={
+        description="Compare certified medical plans, track cashless hospital network coverage, and file instant reimbursement claims."
+        chips={
           <>
-            <span>{catalogQ.data?.providers?.length ?? 6} partner insurers</span>
-            <span>{activeEnrollments.length} active policies</span>
-            <span>{pendingClaims.length} pending claims</span>
-            <span>Cashless network · 100+ hospitals</span>
+            <span className={HERO_CHIP}>
+              <Building2 size={12} className="text-sky-300" />
+              {catalogQ.data?.providers?.length ?? 0} partner insurers
+            </span>
+            <span className={HERO_CHIP}>
+              <ShieldCheck size={12} className="text-emerald-300" />
+              {activeEnrollments.length} active {activeEnrollments.length === 1 ? "policy" : "policies"}
+            </span>
+            {pendingClaims.length > 0 ? (
+              <span className={HERO_DANGER_CHIP}>
+                <Receipt size={12} />
+                {pendingClaims.length} pending claim{pendingClaims.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            <span className={HERO_CHIP}>Cashless network · 100+ hospitals</span>
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/insurance/coverage-check" className={HERO_GHOST}>
+              <Activity size={13} /> Coverage check
+            </Link>
+            <Link href="/patient/insurance/marketplace" className={HERO_PRIMARY}>
+              <Search size={14} className="text-sky-600" /> Browse plans
+            </Link>
           </>
         }
       />
 
-      {/* ── 2. Active Policies Section ─────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-text flex items-center gap-2">
-            <span>Your Active Policies</span>
-            {activeEnrollments.length > 0 ? (
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {activeEnrollments.length} Covered
-              </span>
-            ) : null}
-          </h2>
-          <Link
-            href="/patient/insurance/marketplace"
-            className="text-xs font-bold text-brand hover:text-brand inline-flex items-center gap-1"
-          >
-            <span>Browse Plans</span>
-            <ArrowRight size={13} />
-          </Link>
-        </div>
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<ShieldCheck size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Active policies"
+          value={String(activeEnrollments.length)}
+          sub={activeEnrollments.length > 0 ? "Coverage in force" : "No cover yet"}
+        />
+        <StatTile
+          icon={<Receipt size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Pending claims"
+          value={String(pendingClaims.length)}
+          sub="Underwriter review"
+          pulse={pendingClaims.length > 0}
+        />
+        <StatTile
+          icon={<Building2 size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Insurers"
+          value={String(catalogQ.data?.providers?.length ?? providers.length)}
+          sub="Accredited partners"
+        />
+        <StatTile
+          icon={<Activity size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Coverage check"
+          value="Instant"
+          sub="Estimate out-of-pocket"
+          href="/patient/insurance/coverage-check"
+        />
+      </HeroOverlap>
 
-        {enrollmentsQ.isLoading ? (
-          <div className="space-y-2.5">
-            <div className="h-20 w-full rounded-2xl bg-surface-2 animate-pulse border border-border" />
-            <div className="h-20 w-full rounded-2xl bg-surface-2 animate-pulse border border-border" />
-          </div>
-        ) : activeEnrollments.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-brand-soft border-border flex items-center justify-center text-brand shrink-0">
-                <Shield size={24} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-text">
-                  No Active Health Insurance Policy Connected
-                </h3>
-                <p className="text-xs sm:text-sm text-text-soft mt-1 max-w-lg leading-relaxed">
-                  Protect yourself and your family against unforeseen hospitalization and medical expenses. Enroll in a certified health plan with cashless hospital admissions in minutes.
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-text-soft font-medium">
-                  <span className="inline-flex items-center gap-1 text-emerald-700">
-                    <CheckCircle2 size={13} className="text-emerald-600" />
-                    Instant Cashless Approval
-                  </span>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1 text-brand">
-                    <CheckCircle2 size={13} className="text-brand" />
-                    Up to LKR 5,000,000 Cover
-                  </span>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1 text-amber-700">
-                    <CheckCircle2 size={13} className="text-amber-600" />
-                    Zero Paperwork
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <Link
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          {/* ── Active policies ────────────────────────────────────────── */}
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<ShieldCheck size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title={`Your policies (${activeEnrollments.length})`}
+              caption="Cashless cover currently in force."
               href="/patient/insurance/marketplace"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 flex items-center gap-1.5"
-              style={{
-                background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-              }}
-            >
-              <span>Explore Marketplace</span>
-              <ArrowRight size={13} />
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {activeEnrollments.map((e) => {
-              const badge = statusBadge(e.status);
-              return (
-                <Link
-                  key={e.id}
-                  href={`/patient/insurance/policy/${e.id}`}
-                  className="group rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="h-11 w-11 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                      <ShieldCheck size={22} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
+              linkLabel="Browse plans"
+            />
+            {enrollmentsQ.isLoading ? (
+              <PanelSkeleton rows={2} />
+            ) : activeEnrollments.length === 0 ? (
+              <EmptyBlock
+                icon={<Shield size={19} />}
+                title="No active health insurance policy"
+                body="Protect yourself and your family against hospitalization and medical expenses — enrol in a certified plan with cashless admissions in minutes."
+                actions={
+                  <Link
+                    href="/patient/insurance/marketplace"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-500"
+                  >
+                    Explore marketplace <ArrowRight size={13} />
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="mt-5 flex flex-col gap-2.5">
+                {activeEnrollments.map((e) => (
+                  <Link
+                    key={e.id}
+                    href={`/patient/insurance/policy/${e.id}`}
+                    className="block"
+                  >
+                    <RailRow
+                      tone="emerald"
+                      icon={<ShieldCheck size={18} />}
+                      title={
+                        <>
                           {e.planName ?? e.policyNumber ?? `Policy ${e.id.slice(0, 8)}`}
-                        </h3>
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-[10.5px] font-bold border",
-                            badge.className,
-                          )}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
-                      <div className="text-xs text-text-soft font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        {e.providerName ? (
-                          <span className="text-text font-semibold">
-                            {e.providerName}
-                          </span>
-                        ) : null}
-                        {e.providerName ? <span>·</span> : null}
-                        <span>{formatLkr(e.coverageAmountLkr)} coverage</span>
-                        <span>·</span>
-                        <span>{formatLkr(e.premiumAmountLkr)} / {e.billingCycle}</span>
-                      </div>
-                      {e.nextPremiumDueAt ? (
-                        <div className="text-[11px] text-amber-700 mt-1 inline-flex items-center gap-1 font-semibold">
-                          <Wallet size={11} />
-                          <span>Next premium due {formatDate(e.nextPremiumDueAt)}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" />
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                          <Badge tone={statusTone(e.status)} className="ml-2 capitalize">
+                            {e.status.replace(/_/g, " ")}
+                          </Badge>
+                        </>
+                      }
+                      meta={
+                        <>
+                          {e.providerName ? `${e.providerName} · ` : ""}
+                          {formatLkr(e.coverageAmountLkr)} cover · {formatLkr(e.premiumAmountLkr)}/{e.billingCycle}
+                          {e.nextPremiumDueAt ? ` · next premium ${formatDate(e.nextPremiumDueAt)}` : ""}
+                        </>
+                      }
+                      trailing={
+                        <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600" />
+                      }
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
 
-      {/* ── 3. Quick Actions Grid ──────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-bold text-text">
-          Insurance Services &amp; Tools
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          <Link
-            href="/patient/insurance/marketplace"
-            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
-          >
-            <div className="h-10 w-10 rounded-xl bg-brand-soft border-border text-brand flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Search size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
-                Browse Insurance Plans
-              </h3>
-              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
-                Compare individual, family floater, and senior citizen plans from certified insurers.
-              </p>
-            </div>
-            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
-          </Link>
-
-          <Link
-            href="/patient/insurance/coverage-check"
-            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
-          >
-            <div className="h-10 w-10 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Activity size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
-                Instant Coverage Check
-              </h3>
-              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
-                Estimate out-of-pocket expenses for surgeries, procedures, or hospital stays.
-              </p>
-            </div>
-            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
-          </Link>
-
-          <Link
-            href="/patient/insurance/claims"
-            className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-start gap-3.5"
-          >
-            <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <FileText size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
-                Claims &amp; Reimbursements
-              </h3>
-              <p className="text-xs text-text-soft mt-0.5 leading-relaxed">
-                Submit bills, upload hospital discharge sheets, and track live payout status.
-              </p>
-            </div>
-            <ChevronRight size={16} className="text-text-muted group-hover:translate-x-0.5 transition-transform mt-0.5" />
-          </Link>
-        </div>
-      </section>
-
-      {/* ── 4. Pending Claims Section ──────────────────────────────────────── */}
-      {pendingClaims.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-text flex items-center gap-2">
-              <span>Active Reimbursement Claims</span>
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                {pendingClaims.length} Pending
-              </span>
-            </h2>
-            <Link
-              href="/patient/insurance/claims"
-              className="text-xs font-bold text-brand hover:text-brand"
-            >
-              View All Claims
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {pendingClaims.slice(0, 3).map((c) => {
-              const badge = statusBadge(c.status);
-              return (
-                <Link
-                  key={c.id}
-                  href={`/patient/insurance/claims`}
-                  className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors truncate">
+          {/* ── Pending claims ─────────────────────────────────────────── */}
+          {pendingClaims.length > 0 ? (
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Receipt size={16} />}
+                tone="bg-amber-50 text-amber-600"
+                title={`Active reimbursement claims (${pendingClaims.length})`}
+                caption="Underwriters typically respond within 48–72 hours."
+                href="/patient/insurance/claims"
+                linkLabel="All claims"
+              />
+              <div className="mt-5 flex flex-col gap-2.5">
+                {pendingClaims.slice(0, 3).map((c) => (
+                  <Link key={c.id} href={`/patient/insurance/claims/${c.id}`} className="block">
+                    <RailRow
+                      tone="amber"
+                      icon={<FileText size={18} />}
+                      title={
+                        <>
                           {c.claimNumber ?? `Claim #${c.id.slice(0, 8)}`}
-                        </h3>
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-[10.5px] font-bold border",
-                            badge.className,
-                          )}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
-                      <div className="text-xs text-text-soft font-medium mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="text-text font-bold">
+                          <Badge tone={statusTone(c.status)} className="ml-2 capitalize">
+                            {c.status.replace(/_/g, " ")}
+                          </Badge>
+                        </>
+                      }
+                      meta={
+                        <>
                           {formatLkr(c.amountRequestedLkr)} requested
-                        </span>
-                        {c.amountApprovedLkr != null ? (
-                          <span className="text-emerald-700 font-semibold">
-                            · {formatLkr(c.amountApprovedLkr)} approved
-                          </span>
-                        ) : null}
-                        {c.providerName ? <span>· {c.providerName}</span> : null}
-                        <span>· {formatDate(c.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all shrink-0" />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
+                          {c.amountApprovedLkr != null ? ` · ${formatLkr(c.amountApprovedLkr)} approved` : ""}
+                          {c.providerName ? ` · ${c.providerName}` : ""} · {formatDate(c.createdAt)}
+                        </>
+                      }
+                      trailing={
+                        <ChevronRight size={16} className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600" />
+                      }
+                    />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-      {/* ── 5. Top Insurers Showcase ───────────────────────────────────────── */}
-      {providers.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-text flex items-center gap-2">
-              <span>Accredited Insurance Partners</span>
-            </h2>
-            <Link
-              href="/patient/insurance/marketplace"
-              className="text-xs font-bold text-brand hover:text-brand inline-flex items-center gap-1"
-            >
-              <span>Compare All</span>
-              <ArrowRight size={12} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-            {providers.map((p) => (
-              <Link
-                key={p.id}
-                href={`/patient/insurance/marketplace`}
-                className="group rounded-2xl border border-border bg-surface p-4 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-brand-soft border-border text-brand flex items-center justify-center font-black text-sm">
-                      <Building2 size={18} />
-                    </div>
-                    {p.claimSettlementRatioPct != null ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                        <Percent size={10} />
-                        {p.claimSettlementRatioPct}% Settlement
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <h3 className="font-bold text-sm text-text group-hover:text-brand transition-colors truncate">
-                    {p.name}
-                  </h3>
-                  {p.tagline ? (
-                    <p className="text-xs text-text-soft mt-0.5 line-clamp-1">
-                      {p.tagline}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="pt-2.5 border-t border-border flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1 font-semibold text-text">
-                    <Star size={12} className="text-amber-500 fill-amber-500" />
-                    <span>{p.ratingAvg.toFixed(1)}</span>
-                    <span className="text-text-muted font-normal">({p.ratingCount})</span>
-                  </div>
-
-                  <span className="font-bold text-brand group-hover:underline flex items-center gap-0.5">
-                    View Plans
-                    <ChevronRight size={13} />
+          {/* ── Services ───────────────────────────────────────────────── */}
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Building2 size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Insurance services"
+              caption="Everything you can do with your cover."
+            />
+            <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
+              {[
+                {
+                  href: "/patient/insurance/marketplace",
+                  icon: Search,
+                  tile: "bg-sky-50 text-sky-600",
+                  title: "Browse plans",
+                  desc: "Compare individual, family & senior plans.",
+                },
+                {
+                  href: "/patient/insurance/coverage-check",
+                  icon: Activity,
+                  tile: "bg-violet-50 text-violet-600",
+                  title: "Coverage check",
+                  desc: "Estimate out-of-pocket costs instantly.",
+                },
+                {
+                  href: "/patient/insurance/claims",
+                  icon: FileText,
+                  tile: "bg-amber-50 text-amber-600",
+                  title: "Claims",
+                  desc: "Submit bills & track payouts live.",
+                },
+              ].map((s) => (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  className="group flex items-start gap-3 rounded-xl border border-slate-100 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-sm"
+                >
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.tile}`}>
+                    <s.icon size={18} />
                   </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </div>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-slate-900 group-hover:text-sky-700">
+                      {s.title}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
+                      {s.desc}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-5 xl:col-span-4">
+          <QuickToolsPanel
+            id="ins-tools"
+            title="Insurance"
+            tools={[
+              {
+                icon: Building2,
+                label: "Marketplace",
+                hint: "Compare plans",
+                href: "/patient/insurance/marketplace",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: ClipboardList,
+                label: "Claims",
+                hint: "Track payouts",
+                href: "/patient/insurance/claims",
+                tone: "from-amber-500 to-orange-500 shadow-amber-500/30",
+              },
+              {
+                icon: Activity,
+                label: "Check",
+                hint: "Coverage",
+                href: "/patient/insurance/coverage-check",
+                tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+            ]}
+          />
+
+          {providers.length > 0 ? (
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Building2 size={16} />}
+                tone="bg-violet-50 text-violet-600"
+                title="Accredited partners"
+                caption="Licensed insurers on the marketplace."
+                href="/patient/insurance/marketplace"
+                linkLabel="Compare all"
+              />
+              <div className="mt-5 flex flex-col gap-2">
+                {providers.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/patient/insurance/marketplace/${p.id}`}
+                    className="group flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 transition-all hover:border-slate-200 hover:shadow-sm"
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-600">
+                      <Building2 size={18} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-slate-900 group-hover:text-sky-700">
+                        {p.name}
+                      </span>
+                      {p.tagline ? (
+                        <span className="block truncate text-[11px] text-slate-500">
+                          {p.tagline}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-0.5 text-[11px]">
+                      <span className="flex items-center gap-1 font-bold text-slate-700">
+                        <Star size={11} className="fill-amber-400 text-amber-400" />
+                        {p.ratingAvg.toFixed(1)}
+                      </span>
+                      {p.claimSettlementRatioPct != null ? (
+                        <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-semibold ${TONE_BADGE.emerald}`}>
+                          <Percent size={9} />
+                          {p.claimSettlementRatioPct}% settled
+                        </span>
+                      ) : null}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <PromoCard
+            icon={<CheckCircle2 size={21} aria-hidden />}
+            kicker="Cashless"
+            title="Instant cashless approvals"
+            body="Get admitted at 100+ network hospitals without paying upfront — your insurer settles directly."
+            href="/patient/insurance/marketplace"
+          />
+        </div>
+      </div>
+    </PatientPage>
   );
 }

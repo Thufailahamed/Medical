@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, CheckCircle2 } from "lucide-react";
+import { Bell, CheckCircle2, ChevronRight } from "lucide-react";
 import { useNotifications } from "@/patient/hooks";
 import type { PatientNotification } from "@/patient/hooks/notifications-feed";
 import { cn } from "@/portal/lib/utils";
-import { Card } from "@/patient/components/primitives/Card";
-import { CardHeader } from "@/patient/components/primitives/CardHeader";
+import { PANEL, PanelHeader } from "@/portal/components/doctor/Workspace";
 
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -20,12 +19,12 @@ function relativeTime(iso: string): string {
 }
 
 const SEVERITY: Record<string, string> = {
-  info: "bg-brand",
-  warn: "bg-warn",
-  warning: "bg-warn",
-  critical: "bg-danger",
-  error: "bg-danger",
-  success: "bg-success",
+  info: "bg-sky-500",
+  warn: "bg-amber-500",
+  warning: "bg-amber-500",
+  critical: "bg-rose-500",
+  error: "bg-rose-500",
+  success: "bg-emerald-500",
 };
 
 function notificationHref(n: PatientNotification): string {
@@ -58,68 +57,72 @@ export function NotificationsPreview({ className }: { className?: string }) {
   const unread = items.filter((n) => !n.read).length;
 
   return (
-    <Card
-      as="section"
-      className={cn("anim-rise anim-rise-delay-1 flex h-full flex-col", className)}
+    <section
+      aria-labelledby="pt-notifs"
+      className={cn(PANEL, "flex h-full flex-col", className)}
     >
       <div>
-        <CardHeader
+        <PanelHeader
+          id="pt-notifs"
+          icon={<Bell size={16} />}
+          tone="bg-violet-50 text-violet-600"
           title="Notifications"
           caption={unread > 0 ? `${unread} unread` : "Recent updates & alerts"}
-          icon={<Bell size={16} aria-hidden />}
           href="/patient/notifications"
           linkLabel="View all"
         />
 
         {loading ? (
-          <ul data-testid="notif-skeleton" className="mt-4 space-y-2.5">
+          <ul data-testid="notif-skeleton" className="mt-4 space-y-2">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="h-11 rounded-lg patient-shimmer" />
+              <li key={i} className="h-12 animate-pulse rounded-xl bg-slate-100" />
             ))}
           </ul>
         ) : items.length === 0 ? (
-          <div className="mt-4 flex items-center gap-3 rounded-xl bg-surface-2 p-3.5 text-sm text-text-soft">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-success-soft text-success">
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3.5 text-sm text-slate-500">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-emerald-50 text-emerald-600">
               <CheckCircle2 size={16} aria-hidden />
             </span>
             <span>You&apos;re all caught up. No unread alerts.</span>
           </div>
         ) : (
-          <ul className="mt-3 divide-y divide-border">
+          <ul className="mt-4 flex flex-col gap-0.5">
             {items.map((n) => (
               <li key={n.id}>
                 <Link
                   href={notificationHref(n)}
                   data-testid="notif-row"
-                  className="group -mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2"
+                  className="group -mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-slate-50"
                 >
                   <span
                     className={cn(
                       "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                      SEVERITY[n.type] ?? "bg-text-muted",
+                      n.read ? "bg-slate-200" : SEVERITY[n.type] ?? "bg-sky-500",
                     )}
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        "block truncate text-[13px] text-text transition-colors group-hover:text-brand",
-                        n.read ? "font-medium" : "font-semibold",
+                        "block truncate text-[13px] transition-colors group-hover:text-sky-700",
+                        n.read ? "font-medium text-slate-600" : "font-semibold text-slate-900",
                       )}
                     >
                       {n.title}
                     </span>
                     {n.body ? (
-                      <span className="mt-0.5 block truncate text-xs text-text-muted">
+                      <span className="mt-0.5 block truncate text-xs text-slate-400">
                         {n.body}
                       </span>
                     ) : null}
                   </span>
-                  <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-[11px] text-text-muted">
+                  <span className="flex shrink-0 items-center gap-1 pt-0.5 text-[11px] tabular-nums text-slate-400">
                     {relativeTime(n.createdAt)}
                     {!n.read ? (
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-label="unread" />
-                    ) : null}
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500" aria-label="unread" />
+                    ) : (
+                      <ChevronRight size={13} className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600" aria-hidden />
+                    )}
                   </span>
                 </Link>
               </li>
@@ -128,14 +131,14 @@ export function NotificationsPreview({ className }: { className?: string }) {
         )}
       </div>
 
-      <div className="mt-auto flex items-center justify-end pt-4">
+      <div className="mt-auto flex items-center justify-end pt-3">
         <Link
-          href="/patient/notifications"
-          className="text-xs font-medium text-text-muted hover:text-brand"
+          href="/patient/notifications/preferences"
+          className="text-[11px] font-medium text-slate-400 hover:text-sky-700"
         >
           Notification settings
         </Link>
       </div>
-    </Card>
+    </section>
   );
 }

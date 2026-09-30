@@ -7,11 +7,15 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  Clock,
   Flame,
-  Loader2,
+  History,
+  Info,
+  Pencil,
   Pill,
   Plus,
   RotateCcw,
+  ScanLine,
   ShieldCheck,
   ShoppingBag,
   SkipForward,
@@ -19,34 +23,53 @@ import {
 } from "lucide-react";
 
 import { Sheet } from "@/patient/components/primitives/Sheet";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import {
-  useAddMedication,
   useMarkDoseTaken,
   useMedications,
   useMedicationStats,
-  usePatientProfile,
   useRefillDue,
   useSkipDose,
   useTodayDoses,
   useUntakeDose,
 } from "@/patient/hooks";
-import { api } from "@/portal/lib/api";
-import { humanize } from "@/patient/lib/format";
+import { formatDayLabel, humanize } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  Badge,
+  EmptyBlock,
+  GROUP_LABEL,
+  HERO_ATTENTION_CHIP,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  LiveDot,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PrimaryLink,
+  ROW_LINK,
+  Segmented,
+  StatTile,
+} from "@/patient/components/workspace";
 
 function cleanScheduleString(val: string | null | undefined): string {
   if (!val) return "";
   const cleaned = val.replace(/_/g, " ").trim();
-  if (cleaned.toLowerCase() === "three times daily") return "3 times daily";
-  if (cleaned.toLowerCase() === "twice daily") return "2 times daily";
-  if (cleaned.toLowerCase() === "once daily") return "Once daily";
-  if (cleaned.toLowerCase() === "as needed") return "As needed (PRN)";
-  if (cleaned.toLowerCase() === "after food") return "After meals";
-  if (cleaned.toLowerCase() === "before food") return "Before meals";
+  const lower = cleaned.toLowerCase();
+  if (lower === "three times daily") return "3 times daily";
+  if (lower === "twice daily") return "2 times daily";
+  if (lower === "once daily") return "Once daily";
+  if (lower === "as needed") return "As needed";
+  if (lower === "after food") return "After meals";
+  if (lower === "before food") return "Before meals";
   return humanize(cleaned);
 }
+
+type Filter = "all" | "active" | "paused";
 
 export default function MedicationsPage() {
   const list = useMedications();
@@ -58,736 +81,459 @@ export default function MedicationsPage() {
   const untakeDose = useUntakeDose();
 
   const [refillOpen, setRefillOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [doseError, setDoseError] = useState<string | null>(null);
-  const [filterActive, setFilterActive] = useState<"all" | "active" | "paused">("all");
-
-  const profile = usePatientProfile();
-  const addMedication = useAddMedication();
+  const [filter, setFilter] = useState<Filter>("all");
 
   const statData = stats.data;
   const medicines = list.data?.medicines ?? [];
   const todayDoses = doses.data?.doses ?? [];
   const refillCandidates = refills.data?.refills ?? [];
   const refillCount = refills.data?.count ?? refillCandidates.length;
+  const activeCount = medicines.filter((m) => m.active).length;
+  const pausedCount = medicines.length - activeCount;
+  const taken = statData?.todayTaken ?? 0;
+  const due = statData?.todayCount ?? 0;
+  const streak = statData?.streakDays ?? 0;
+  const pct = due > 0 ? Math.round((taken / due) * 100) : null;
+  const last7 = statData?.last7Days ?? [];
 
   const busy = markTaken.isPending || skipDose.isPending || untakeDose.isPending;
 
   const filteredMedicines = useMemo(() => {
-    if (filterActive === "active") return medicines.filter((m) => m.active);
-    if (filterActive === "paused") return medicines.filter((m) => !m.active);
-    return medicines;
-  }, [medicines, filterActive]);
+    const sorted = [...medicines].sort((a, b) => Number(b.active) - Number(a.active));
+    if (filter === "active") return sorted.filter((m) => m.active);
+    if (filter === "paused") return sorted.filter((m) => !m.active);
+    return sorted;
+  }, [medicines, filter]);
+
+  const onErr = (fallback: string) => (err: unknown) =>
+    setDoseError(err instanceof Error ? err.message : fallback);
 
   return (
-    <div className="flex flex-col gap-5 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Pill size={13} />}
-        kicker="Medication Adherence & Rx"
-        title="Active Medications & Daily Schedule"
-        description="Log today's dosage adherence, monitor pharmacy refill cycles, and follow your physician's administration instructions."
-        actions={
-          <>
-            <button
-              type="button"
-              onClick={() => setRefillOpen(true)}
-              className={heroSecondaryAction}
-            >
-              <ShoppingBag size={13} />
-              <span>Pharmacy Refills</span>
-              {refillCount > 0 ? (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-amber-950">
-                  {refillCount}
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<Pill size={13} aria-hidden />}
+          kicker="Medications"
+          kickerMeta={`${activeCount} active${streak > 0 ? ` · ${streak}-day streak` : ""}`}
+          title={
+            <>
+              Your daily <HeroAccent>medicines</HeroAccent>
+            </>
+          }
+          description={
+            due > 0
+              ? taken >= due
+                ? "Every dose for today is logged — nice work."
+                : `${due - taken} dose${due - taken === 1 ? "" : "s"} still to take today. Log each one as you go.`
+              : "Track what you take, log doses, and get a heads-up before anything runs out."
+          }
+          chips={
+            <>
+              {due > 0 ? (
+                <span className={HERO_CHIP}>
+                  <LiveDot tone={taken >= due ? "emerald" : "sky"} />
+                  {taken} of {due} doses today
                 </span>
               ) : null}
-            </button>
-            <Link href="/patient/prescriptions" className={heroSecondaryAction}>
-              <ShieldCheck size={13} />
-              <span>Prescriptions</span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className={heroPrimaryAction}
-            >
-              <Plus size={14} />
-              <span>Add Medication</span>
-            </button>
-          </>
-        }
-        footer={
-          <>
-            <span>{statData?.activeCount ?? medicines.length} active medicines</span>
-            <span>{statData?.todayTaken ?? 0} / {statData?.todayCount ?? medicines.length} doses today</span>
-            <span>{statData?.streakDays ?? 0}-day adherence streak</span>
-            <span>{refillCount} refills due</span>
-          </>
-        }
-      />
-
-      {/* ── 2. Refill Warning Alert Banner ─────────────────────────────────── */}
-      {refillCount > 0 ? (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-warn-soft border border-warn/30 shadow-2xs">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-warn text-white shrink-0 mt-0.5" aria-hidden>
-              <AlertTriangle size={18} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="t-card-title text-text">
-                {refillCount} Prescription{refillCount === 1 ? "" : "s"} due for refill
-              </h3>
-              <p className="text-xs text-text-soft mt-0.5">
-                Supply for {refillCandidates.map((r) => r.name).join(", ") || "active medications"} is running low. Request your pharmacy refill to ensure continuous care.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setRefillOpen(true)}
-            className="pt-btn h-9 px-4 text-xs shrink-0 bg-warn text-white hover:brightness-110"
-          >
-            <span>Review &amp; Refill</span>
-            <ArrowRight size={13} aria-hidden />
-          </button>
-        </div>
-      ) : null}
-
-      {/* ── 3. Medications Filter Bar ──────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 bg-surface p-3 rounded-xl border-border shadow-card">
-        <SegmentedTabs
-          ariaLabel="Medication filters"
-          activeId={filterActive}
-          onChange={(id) => setFilterActive(id as "all" | "active" | "paused")}
-          tabs={[
-            { id: "all", label: <>All ({medicines.length})</> },
-            { id: "active", label: <>Active ({medicines.filter((m) => m.active).length})</> },
-            { id: "paused", label: <>Paused ({medicines.filter((m) => !m.active).length})</> },
-          ]}
+              {refillCount > 0 ? (
+                <button type="button" onClick={() => setRefillOpen(true)} className={HERO_ATTENTION_CHIP}>
+                  <ShoppingBag size={12} aria-hidden />
+                  {refillCount} refill{refillCount === 1 ? "" : "s"} due
+                </button>
+              ) : null}
+              {streak > 0 ? (
+                <span className={HERO_CHIP}>
+                  <Flame size={12} className="text-orange-300" aria-hidden />
+                  {streak}-day streak
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/prescriptions" className={HERO_GHOST}>
+                <ShieldCheck size={15} aria-hidden />
+                Prescriptions
+              </Link>
+              <Link href="/patient/medications/new" className={HERO_PRIMARY}>
+                <Plus size={15} className="text-sky-600" aria-hidden />
+                Add medicine
+              </Link>
+            </>
+          }
         />
 
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-semibold text-text-muted hidden sm:inline">
-            {filteredMedicines.length} medications on plan
-          </span>
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-          >
-            <Plus size={13} aria-hidden />
-            Add Medication
-          </button>
-        </div>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Doses today"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={due > 0 ? `${taken}/${due}` : "—"}
+            sub={due === 0 ? "No fixed doses today" : taken >= due ? "All taken" : `${due - taken} still due`}
+            progress={pct}
+            badge={pct != null ? { text: `${pct}%`, tone: pct >= 100 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700" } : undefined}
+          />
+          <StatTile
+            label="Active"
+            icon={<Pill size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(activeCount)}
+            sub={pausedCount > 0 ? `${pausedCount} paused` : "On your plan"}
+            active={filter === "active"}
+            onClick={() => setFilter(filter === "active" ? "all" : "active")}
+          />
+          <StatTile
+            label="Streak"
+            icon={<Flame size={16} />}
+            tone="bg-orange-50 text-orange-500"
+            value={String(streak)}
+            unit={streak === 1 ? "day" : "days"}
+            sub="Days with every dose taken"
+          />
+          <StatTile
+            label="Refills due"
+            icon={<ShoppingBag size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(refillCount)}
+            sub={refillCount > 0 ? "Within 14 days" : "Well stocked"}
+            pulse={refillCount > 0}
+            badge={refillCount > 0 ? { text: "Review", tone: "bg-amber-50 text-amber-700" } : undefined}
+            onClick={() => setRefillOpen(true)}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 4. Medications List ────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        {doseError ? (
-          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger">
-            {doseError}
-          </div>
-        ) : null}
+      {refillCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setRefillOpen(true)}
+          className="group relative flex w-full items-center gap-3.5 rounded-2xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(15,23,42,0.07)]"
+        >
+          <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-amber-400" aria-hidden />
+          <span className="ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-amber-50 text-amber-600" aria-hidden>
+            <AlertTriangle size={17} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">
+              {refillCount} medicine{refillCount === 1 ? "" : "s"} will need refill soon
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-slate-400">
+              {refillCandidates.map((r) => r.name).join(" · ") || "Running low within 14 days"}
+            </span>
+          </span>
+          <span className={ROW_LINK}>
+            Review
+            <ArrowRight size={13} aria-hidden />
+          </span>
+        </button>
+      ) : null}
 
-        {list.isLoading ? (
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-24 rounded-xl bg-surface-2 animate-pulse border border-border"
-              />
-            ))}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Medicine list ──────────────────────────────────────────── */}
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="md-list">
+          <PanelHeader
+            id="md-list"
+            icon={<Pill size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            title="Your medicine list"
+            caption={list.isLoading ? "Loading…" : `${filteredMedicines.length} shown · tap a dose to log it`}
+            href="/patient/medications/history"
+            linkLabel="History"
+          />
+
+          <div className="mt-5">
+            <Segmented<Filter>
+              ariaLabel="Medication filters"
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: "all", label: "All", count: medicines.length },
+                { value: "active", label: "Active", count: activeCount },
+                { value: "paused", label: "Paused", count: pausedCount },
+              ]}
+            />
           </div>
-        ) : filteredMedicines.length === 0 ? (
-          <div className="rounded-xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3 shadow-card">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-              <Pill size={24} />
+
+          {doseError ? (
+            <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+              <AlertTriangle size={14} className="shrink-0" aria-hidden />
+              {doseError}
             </div>
-            <div>
-              <h3 className="font-bold text-text text-sm">
-                No medications on this list
-              </h3>
-              <p className="text-xs text-text-soft max-w-sm mt-0.5">
-                {filterActive === "paused"
-                  ? "You have no paused medications. All prescribed treatments are currently active."
-                  : "When your physician writes an e-prescription, medications will appear here with scheduling guidance."}
-              </p>
-            </div>
-            <Link
-              href="/patient/prescriptions"
-              className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-xs"
-            >
-              <ShieldCheck size={14} aria-hidden />
-              View Prescriptions
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filteredMedicines.map((m) => {
-              const dose = todayDoses.find((item) => item.medicineId === m.id);
-              const formattedFreq = cleanScheduleString(m.frequency);
-              const formattedTiming = cleanScheduleString(m.timing);
+          ) : null}
 
-              return (
-                <article
-                  key={m.id}
-                  className="group patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  {/* Left Column: Icon + Details */}
-                  <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
-                      <Pill size={20} />
-                    </div>
+          {list.isLoading ? (
+            <PanelSkeleton rows={4} />
+          ) : filteredMedicines.length === 0 ? (
+            <EmptyBlock
+              icon={<Pill size={19} />}
+              title="No medicines on this list"
+              body={
+                filter === "paused"
+                  ? "Nothing is paused — every medicine on your plan is active."
+                  : "Add a medicine you take, or it'll appear automatically when your doctor signs a prescription."
+              }
+              actions={
+                <PrimaryLink href="/patient/medications/new" icon={<Plus size={13} />}>
+                  Add medicine
+                </PrimaryLink>
+              }
+            />
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2">
+              {filteredMedicines.map((m) => {
+                const dose = todayDoses.find((item) => item.medicineId === m.id);
+                const freq = cleanScheduleString(m.frequency);
+                const timing = cleanScheduleString(m.timing);
+                const state = !m.active ? "paused" : dose ? (dose.takenAt ? "taken" : dose.skipped ? "skipped" : "due") : "prn";
+                const rail =
+                  state === "due" ? "bg-amber-400" : state === "taken" ? "bg-emerald-500" : state === "skipped" ? "bg-slate-300" : state === "prn" ? "bg-sky-500" : "bg-transparent";
+                const tile =
+                  state === "due"
+                    ? "bg-amber-50 text-amber-600"
+                    : state === "taken"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : state === "paused"
+                        ? "bg-white text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]"
+                        : "bg-sky-50 text-sky-600";
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-bold text-text group-hover:text-brand transition-colors truncate">
-                          {m.name}
-                        </h3>
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
-                            m.active
-                              ? "bg-success-soft text-success"
-                              : "bg-surface-2 text-text-soft",
-                          )}
-                        >
-                          {m.active ? "Active" : "Paused"}
-                        </span>
-                      </div>
-
-                      {/* Dosage, Frequency, Timing pills */}
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-surface-2 text-text">
-                          {m.dosage}
-                        </span>
-                        {formattedFreq ? (
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-brand-soft text-brand">
-                            {formattedFreq}
-                          </span>
-                        ) : null}
-                        {formattedTiming ? (
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-surface-2 text-text border border-border">
-                            {formattedTiming}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {m.notes ? (
-                        <p className="text-xs text-text-soft mt-1.5 italic line-clamp-1">
-                          Note: {m.notes}
+                return (
+                  <li
+                    key={m.id}
+                    className={cn(
+                      "group relative flex flex-col gap-3 rounded-xl p-3.5 transition-all sm:flex-row sm:items-center",
+                      m.active
+                        ? "bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]"
+                        : "bg-slate-50/70",
+                    )}
+                  >
+                    <span className={cn("absolute inset-y-3 left-0 w-[3px] rounded-r-full", rail)} aria-hidden />
+                    <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                      <span className={cn("ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px]", tile)} aria-hidden>
+                        <Pill size={16} />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h3 className={cn("truncate text-sm font-semibold", m.active ? "text-slate-900" : "text-slate-500")}>{m.name}</h3>
+                          <Badge tone="sky">{m.dosage}</Badge>
+                          {!m.active ? <Badge tone="slate">Paused</Badge> : null}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-slate-400">
+                          {[freq, timing].filter(Boolean).join(" · ") || "As prescribed"}
+                          {m.startDate ? ` · since ${formatDayLabel(m.startDate)}` : ""}
                         </p>
-                      ) : null}
+                        {m.notes ? <p className="mt-0.5 truncate text-xs italic text-slate-400">{m.notes}</p> : null}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Right Column: Dose Adherence Action */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-border shrink-0">
-                    {dose ? (
-                      <div className="flex items-center gap-2">
-                        {dose.takenAt ? (
+                    <div className="flex shrink-0 items-center gap-1.5 border-t border-slate-100 pt-3 sm:border-0 sm:pt-0">
+                      {dose ? (
+                        dose.takenAt ? (
                           <button
                             type="button"
                             onClick={() => {
                               setDoseError(null);
-                              untakeDose.mutate(dose.id, {
-                                onError: (err) =>
-                                  setDoseError(
-                                    err instanceof Error
-                                      ? err.message
-                                      : "Could not undo dose.",
-                                  ),
-                              });
+                              untakeDose.mutate(dose.id, { onError: onErr("Could not undo dose.") });
                             }}
                             disabled={busy}
-                            className="pt-btn h-9 px-3.5 text-xs bg-success-soft text-success hover:brightness-95 disabled:opacity-60"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
                           >
-                            <Check size={14} aria-hidden />
-                            Taken Today · Undo
+                            <Check size={13} strokeWidth={2.75} aria-hidden />
+                            Taken · Undo
                           </button>
                         ) : dose.skipped ? (
                           <button
                             type="button"
                             onClick={() => {
                               setDoseError(null);
-                              untakeDose.mutate(dose.id, {
-                                onError: (err) =>
-                                  setDoseError(
-                                    err instanceof Error
-                                      ? err.message
-                                      : "Could not reset dose.",
-                                  ),
-                              });
+                              untakeDose.mutate(dose.id, { onError: onErr("Could not reset dose.") });
                             }}
                             disabled={busy}
-                            className="pt-btn pt-btn-secondary h-9 px-3 text-xs disabled:opacity-60"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-50"
                           >
-                            <RotateCcw size={13} aria-hidden />
+                            <RotateCcw size={12} aria-hidden />
                             Skipped · Reset
                           </button>
                         ) : (
-                          <div className="flex items-center gap-1.5">
+                          <>
                             <button
                               type="button"
                               onClick={() => {
                                 setDoseError(null);
-                                markTaken.mutate(
-                                  { id: dose.id },
-                                  {
-                                    onError: (err) =>
-                                      setDoseError(
-                                        err instanceof Error
-                                          ? err.message
-                                          : "Could not mark dose.",
-                                      ),
-                                  },
-                                );
+                                skipDose.mutate({ id: dose.id }, { onError: onErr("Could not skip dose.") });
                               }}
                               disabled={busy}
-                              className="pt-btn pt-btn-primary h-9 px-4 text-xs disabled:opacity-60"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-slate-900 disabled:opacity-50"
                             >
-                              <Check size={13} aria-hidden />
-                              Take Dose
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDoseError(null);
-                                skipDose.mutate(
-                                  { id: dose.id },
-                                  {
-                                    onError: (err) =>
-                                      setDoseError(
-                                        err instanceof Error
-                                          ? err.message
-                                          : "Could not skip dose.",
-                                      ),
-                                  },
-                                );
-                              }}
-                              disabled={busy}
-                              className="pt-btn pt-btn-secondary h-9 px-3 text-xs disabled:opacity-60"
-                            >
-                              <SkipForward size={13} aria-hidden />
+                              <SkipForward size={12} aria-hidden />
                               Skip
                             </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs font-medium text-text-muted bg-surface-2 px-3 py-1.5 rounded-lg border border-border">
-                        {m.frequency ? cleanScheduleString(m.frequency) : "As prescribed"}
-                      </span>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDoseError(null);
+                                markTaken.mutate({ id: dose.id }, { onError: onErr("Could not mark dose.") });
+                              }}
+                              disabled={busy}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              <Check size={13} strokeWidth={2.75} aria-hidden />
+                              Take dose
+                            </button>
+                          </>
+                        )
+                      ) : m.active ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">
+                          <Info size={11} aria-hidden />
+                          {freq || "As prescribed"}
+                        </span>
+                      ) : null}
+                      <Link
+                        href={`/patient/medications/${m.id}/edit`}
+                        aria-label={`Edit ${m.name}`}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-sky-50 hover:text-sky-600"
+                      >
+                        <Pencil size={14} aria-hidden />
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-      {/* ── 5. Pharmacy Refills Drawer ──────────────────────────────────────── */}
-      <Sheet
-        open={refillOpen}
-        onClose={() => setRefillOpen(false)}
-        ariaLabel="Refills due"
-      >
-        <div className="flex items-center justify-between pb-3 border-b border-border">
-          <div>
-            <span className="pt-kicker">Pharmacy Service</span>
-            <h2 className="t-card-title text-text mt-0.5">
-              Prescription Refills
-            </h2>
+        {/* ── Rail ───────────────────────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Adherence">
+          <section className={PANEL} aria-labelledby="md-week">
+            <PanelHeader
+              id="md-week"
+              icon={<Clock size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Last 7 days"
+              caption={
+                last7.length
+                  ? `${Math.round(last7.reduce((s, d) => s + d.pct, 0) / last7.length)}% average adherence`
+                  : "Adherence builds as you log doses"
+              }
+            />
+            {last7.length === 0 ? (
+              <EmptyBlock icon={<Clock size={19} />} title="No history yet" body="Log today's doses to start your adherence chart." />
+            ) : (
+              <div className="mt-5 flex h-32 items-end gap-2">
+                {last7.map((d, i) => {
+                  const isToday = i === last7.length - 1;
+                  const day = new Date(d.date);
+                  return (
+                    <div key={d.date} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${d.taken}/${d.total} taken`}>
+                      <span className="text-[10px] font-semibold tabular-nums text-slate-400">{d.total > 0 ? `${d.pct}%` : "–"}</span>
+                      <div className="flex h-20 w-full items-end overflow-hidden rounded-md bg-slate-100">
+                        <div
+                          className={cn(
+                            "w-full rounded-md transition-all",
+                            d.total === 0 ? "bg-transparent" : isToday ? "bg-gradient-to-t from-sky-500 to-teal-400" : d.pct >= 100 ? "bg-emerald-400" : d.pct >= 50 ? "bg-amber-300" : "bg-rose-300",
+                          )}
+                          style={{ height: `${Math.max(d.total > 0 ? 8 : 0, d.pct)}%` }}
+                        />
+                      </div>
+                      <span className={cn("text-[10.5px] font-semibold", isToday ? "text-sky-700" : "text-slate-400")}>
+                        {Number.isNaN(day.getTime()) ? "" : day.toLocaleDateString("en-US", { weekday: "narrow" })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className={PANEL} aria-labelledby="md-tools">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="md-tools" className="text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
+                Shortcuts
+              </h2>
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">One click</span>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[
+                { href: "/patient/medications/new", label: "Add", hint: "New medicine", icon: Plus, tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30" },
+                { href: "/patient/ai/ocr", label: "Scan", hint: "Rx or box", icon: ScanLine, tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+                { href: "/patient/medications/history", label: "History", hint: "Past meds", icon: History, tone: "from-slate-600 to-slate-800 shadow-slate-500/30" },
+              ].map((t) => {
+                const Icon = t.icon;
+                return (
+                  <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 rounded-xl px-1.5 py-3 text-center transition-all hover:-translate-y-0.5 hover:bg-slate-50">
+                    <span className={cn("grid h-11 w-11 place-items-center rounded-[14px] bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-105", t.tone)}>
+                      <Icon size={19} aria-hidden />
+                    </span>
+                    <span className="w-full min-w-0">
+                      <span className="block truncate text-[12.5px] font-semibold text-slate-900">{t.label}</span>
+                      <span className="block truncate text-[11px] text-slate-400">{t.hint}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {/* ── Refills drawer ─────────────────────────────────────────── */}
+      <Sheet open={refillOpen} onClose={() => setRefillOpen(false)} ariaLabel="Refills due">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-amber-50 text-amber-600" aria-hidden>
+              <ShoppingBag size={16} />
+            </span>
+            <div>
+              <p className={GROUP_LABEL}>Pharmacy</p>
+              <h2 className="text-[15.5px] font-semibold text-slate-900">Refills due</h2>
+            </div>
           </div>
           <button
+            type="button"
             aria-label="Close"
             onClick={() => setRefillOpen(false)}
-            className="h-8 w-8 rounded-full bg-surface-2 hover:bg-surface-3 flex items-center justify-center text-text-soft transition-colors cursor-pointer"
+            className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          {refillCandidates.length === 0 ? (
-            <div className="py-10 text-center flex flex-col items-center gap-2">
-              <CheckCircle2 size={32} className="text-success" />
-              <p className="font-bold text-text text-sm">
-                All medications are well stocked
-              </p>
-              <p className="text-xs text-text-soft max-w-xs">
-                No active prescriptions are due for refill within the next 14 days.
-              </p>
-            </div>
-          ) : (
-            refillCandidates.map((m) => (
-              <div
-                key={m.id}
-                className="rounded-xl border-border bg-surface p-4 shadow-2xs flex flex-col gap-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-bold text-sm text-text">{m.name}</h3>
-                    <p className="text-xs text-text-soft">{m.dosage}</p>
-                  </div>
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
-                      m.daysRemaining <= 3
-                        ? "bg-danger-soft text-danger"
-                        : "bg-warn-soft text-warn",
-                    )}
-                  >
-                    {m.daysRemaining <= 0
-                      ? "Past due"
-                      : `Empty in ${m.daysRemaining}d`}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className="text-[11px] text-text-muted">
-                    Expected runout: {new Date(m.expectedEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
-
-                  <Link
-                    href="/patient/prescriptions"
-                    onClick={() => setRefillOpen(false)}
-                    className="text-xs font-bold text-brand hover:underline flex items-center gap-1"
-                  >
-                    <span>Order Refill</span>
-                    <ArrowRight size={12} aria-hidden />
-                  </Link>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Sheet>
-
-      {/* ── 6. Add Medication Slide-Over Sheet ──────────────────────────────── */}
-      <AddMedicationSheet
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        patientId={profile.data?.patient?.patients?.id || ""}
-        onSubmit={async (data) => {
-          await addMedication.mutateAsync(data);
-          setAddOpen(false);
-        }}
-      />
-    </div>
-  );
-}
-
-function AddMedicationSheet({
-  open,
-  onClose,
-  patientId,
-  onSubmit,
-}: {
-  open: boolean;
-  onClose: () => void;
-  patientId: string;
-  onSubmit: (input: any) => Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [frequency, setFrequency] = useState("Once daily");
-  const [timing, setTiming] = useState("After food");
-  const [startDate, setStartDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
-  const [endDate, setEndDate] = useState("");
-  const [refillReminder, setRefillReminder] = useState(true);
-  const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const QUICK_SUGGESTIONS = [
-    { name: "Paracetamol", dosage: "500mg", freq: "As needed (PRN)" },
-    { name: "Amoxicillin", dosage: "500mg", freq: "3 times daily" },
-    { name: "Omeprazole", dosage: "20mg", freq: "Once daily" },
-    { name: "Metformin", dosage: "500mg", freq: "Twice daily" },
-    { name: "Cetirizine", dosage: "10mg", freq: "Once daily" },
-    { name: "Ibuprofen", dosage: "400mg", freq: "As needed (PRN)" },
-  ];
-
-  const handleQuickSelect = (item: (typeof QUICK_SUGGESTIONS)[0]) => {
-    setName(item.name);
-    setDosage(item.dosage);
-    setFrequency(item.freq);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError("Please enter the medication name");
-      return;
-    }
-    if (!dosage.trim()) {
-      setError("Please enter the dosage strength (e.g. 500mg or 1 tablet)");
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    try {
-      let resolvedPid = patientId;
-      if (!resolvedPid) {
-        const res = await api<any>("/patients/me").catch(() => null);
-        resolvedPid = res?.patient?.patients?.id || res?.patient?.id || "";
-      }
-
-      await onSubmit({
-        patientId: resolvedPid,
-        name: name.trim(),
-        dosage: dosage.trim(),
-        frequency,
-        timing,
-        startDate,
-        endDate: endDate ? endDate : undefined,
-        refillReminder,
-        notes: notes.trim() || undefined,
-      });
-      setName("");
-      setDosage("");
-      setNotes("");
-      setEndDate("");
-      onClose();
-    } catch (err: any) {
-      setError(
-        err?.message || "Failed to add medication. Please verify the details.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Sheet open={open} onClose={onClose} ariaLabel="Add New Medication">
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
-            <Pill size={18} />
-          </div>
-          <div>
-            <h2 className="t-card-title text-text">
-              Add New Medication
-            </h2>
-            <p className="text-xs text-text-soft">
-              Record a prescribed or over-the-counter medicine
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="h-8 w-8 rounded-full bg-surface-2 hover:bg-surface-3 flex items-center justify-center text-text-soft transition-colors cursor-pointer"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
-        {/* Quick Suggestions as high-contrast pill chips */}
-        <div className="p-3.5 rounded-xl bg-surface-2 border border-border">
-          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider block mb-2">
-            Quick Auto-Fill Prescriptions
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_SUGGESTIONS.map((item) => {
-              const isSelected = name === item.name;
+        {refillCandidates.length === 0 ? (
+          <EmptyBlock icon={<CheckCircle2 size={19} />} title="All well stocked" body="Nothing is due for refill in the next 14 days." />
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {refillCandidates.map((m) => {
+              const urgent = m.daysRemaining <= 3;
               return (
-                <button
-                  key={item.name}
-                  type="button"
-                  onClick={() => handleQuickSelect(item)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:-translate-y-0.5",
-                    isSelected
-                      ? "bg-ink text-white border-ink"
-                      : "bg-surface border-border text-text-soft hover:text-text hover:border-border-strong",
-                  )}
-                >
-                  <Pill size={11} className={isSelected ? "text-white" : "text-brand"} />
-                  <span>
-                    {item.name} <span className={isSelected ? "opacity-90" : "text-text-muted font-normal"}>{item.dosage}</span>
+                <li key={m.id} className="relative flex items-center gap-3.5 rounded-xl bg-white p-3.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+                  <span className={cn("absolute inset-y-3 left-0 w-[3px] rounded-r-full", urgent ? "bg-rose-500" : "bg-amber-400")} aria-hidden />
+                  <span className={cn("ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px]", urgent ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600")} aria-hidden>
+                    <Pill size={16} />
                   </span>
-                </button>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-900">{m.name}</span>
+                    <span className="block truncate text-xs text-slate-400">
+                      {m.dosage} · runs out {new Date(m.expectedEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </span>
+                  <Badge tone={urgent ? "rose" : "amber"}>{m.daysRemaining <= 0 ? "Past due" : `${m.daysRemaining}d left`}</Badge>
+                </li>
               );
             })}
-          </div>
-        </div>
-
-        {/* Medication Name */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-            Medication Name *
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Paracetamol, Amoxicillin, Atorvastatin…"
-            className="pt-input text-xs sm:text-sm"
-          />
-        </div>
-
-        {/* Dosage */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-            Dosage &amp; Strength *
-          </label>
-          <input
-            type="text"
-            required
-            value={dosage}
-            onChange={(e) => setDosage(e.target.value)}
-            placeholder="e.g. 500mg, 10ml, 1 tablet, 2 puffs…"
-            className="pt-input text-xs sm:text-sm"
-          />
-        </div>
-
-        {/* Frequency & Timing */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              Frequency *
-            </label>
-            <select
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="pt-input text-xs sm:text-sm"
-            >
-              <option value="Once daily">Once daily</option>
-              <option value="Twice daily">Twice daily</option>
-              <option value="3 times daily">3 times daily</option>
-              <option value="4 times daily">4 times daily</option>
-              <option value="As needed (PRN)">As needed (PRN)</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Every 8 hours">Every 8 hours</option>
-              <option value="Every 12 hours">Every 12 hours</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              Meal Timing
-            </label>
-            <select
-              value={timing}
-              onChange={(e) => setTiming(e.target.value)}
-              className="pt-input text-xs sm:text-sm"
-            >
-              <option value="After food">After food / meals</option>
-              <option value="Before food">Before food / meals</option>
-              <option value="With food">With food</option>
-              <option value="Any time">Any time</option>
-              <option value="Morning">Morning</option>
-              <option value="Night">Night</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Start Date & End Date */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              Start Date *
-            </label>
-            <input
-              type="date"
-              required
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="pt-input text-xs sm:text-sm"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              End Date (Optional)
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="pt-input text-xs sm:text-sm"
-            />
-          </div>
-        </div>
-
-        {/* Refill Reminder */}
-        <label className="flex items-center gap-2.5 p-3 rounded-lg bg-surface-2 border border-border cursor-pointer">
-          <input
-            type="checkbox"
-            checked={refillReminder}
-            onChange={(e) => setRefillReminder(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-brand focus:ring-brand cursor-pointer"
-          />
-          <div>
-            <span className="text-xs font-bold text-text block">
-              Enable Automated Refill Alerts
-            </span>
-            <span className="text-[11px] text-text-soft block">
-              Notify me 14 days before medication supplies run out
-            </span>
-          </div>
-        </label>
-
-        {/* Notes */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-            Instructions / Notes (Optional)
-          </label>
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Take with water, avoid citrus juices…"
-            className="pt-input h-auto py-3 text-xs sm:text-sm leading-relaxed"
-          />
-        </div>
-
-        {error && (
-          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-            <AlertTriangle size={14} className="shrink-0" />
-            <span>{error}</span>
-          </div>
+          </ul>
         )}
-
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 pb-3 border-t border-border mt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="pt-btn pt-btn-secondary h-10 px-4 text-xs"
+        <div className="mt-5 border-t border-slate-100 pt-4">
+          <Link
+            href="/patient/prescriptions"
+            onClick={() => setRefillOpen(false)}
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#07233a] text-sm font-semibold text-white transition-colors hover:bg-sky-700"
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-50"
-          >
-            {busy ? (
-              <>
-                <Loader2 size={14} className="animate-spin" aria-hidden />
-                Saving Medication…
-              </>
-            ) : (
-              <>
-                <Plus size={14} strokeWidth={3} aria-hidden />
-                Add to Schedule
-              </>
-            )}
-          </button>
+            Order from prescriptions
+            <ArrowRight size={14} aria-hidden />
+          </Link>
         </div>
-      </form>
-    </Sheet>
+      </Sheet>
+    </PatientPage>
   );
 }

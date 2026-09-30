@@ -1,5 +1,7 @@
 "use client";
 
+import { Archive, Pencil, RotateCcw, Sparkles, Trash2, UserRound } from "lucide-react";
+
 import {
   useArchiveRecord,
   useDeleteRecord,
@@ -76,38 +78,31 @@ export function RecordActionsBar({
   }
 
   const btnCls =
-    "rounded-inner border border-border bg-surface-2 px-3 py-1.5 text-sm hover:bg-surface-3 disabled:opacity-50";
+    "inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={onEdit} className={btnCls}>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+      >
+        <Pencil size={13} aria-hidden />
         Edit
       </button>
       {archived ? (
-        <button
-          type="button"
-          onClick={onRestore}
-          className={btnCls}
-          disabled={restore.isPending}
-        >
+        <button type="button" onClick={onRestore} className={btnCls} disabled={restore.isPending}>
+          <RotateCcw size={13} aria-hidden />
           Restore
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={onArchive}
-          className={btnCls}
-          disabled={archive.isPending}
-        >
+        <button type="button" onClick={onArchive} className={btnCls} disabled={archive.isPending}>
+          <Archive size={13} aria-hidden />
           Archive
         </button>
       )}
-      <button
-        type="button"
-        onClick={onReturn}
-        className={btnCls}
-        disabled={move.isPending}
-      >
+      <button type="button" onClick={onReturn} className={btnCls} disabled={move.isPending}>
+        <UserRound size={13} aria-hidden />
         Return to me
       </button>
       <button
@@ -117,14 +112,16 @@ export function RecordActionsBar({
         disabled={!hasAttachments || reextract.isPending}
         title={!hasAttachments ? "Attach a file first" : "Re-run extraction on the first attached file"}
       >
+        <Sparkles size={13} aria-hidden />
         Re-extract
       </button>
       <button
         type="button"
         onClick={onDelete}
-        className={btnCls + " text-red-600"}
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-50 px-3.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50"
         disabled={del.isPending}
       >
+        <Trash2 size={13} aria-hidden />
         Delete
       </button>
     </div>

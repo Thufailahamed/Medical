@@ -8,7 +8,7 @@
  */
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search, X } from "lucide-react";
 
 import { cn } from "@/portal/lib/utils";
 
@@ -19,6 +19,22 @@ export const PANEL =
 /** Soft tile used inside panels (quick tools, walk-in cards). */
 export const SOFT_TILE =
   "rounded-xl bg-slate-50 transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_24px_-10px_rgba(15,23,42,0.2),inset_0_0_0_1px_rgba(15,23,42,0.07)]";
+
+/** Row card used by the clinical ledgers (prescriptions, labs, notes…). */
+export const LIST_ROW =
+  "group relative flex flex-col gap-3 rounded-xl bg-white p-3.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)] sm:flex-row sm:items-center sm:justify-between";
+
+/** Dark primary button for panels (pairs with the ink hero). */
+export const PRIMARY_BTN =
+  "inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50";
+
+/** Hairline secondary button for panels. */
+export const SECONDARY_BTN =
+  "inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700 disabled:opacity-50";
+
+/** Quiet text link with an arrow, used on row trailing edges. */
+export const ROW_LINK =
+  "group/v inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50";
 
 /** Glass button for use on the ink hero. */
 export const HERO_GHOST =
@@ -40,6 +56,8 @@ export function DoctorHero({
   description,
   chips,
   actions,
+  aside,
+  leading,
   /** Reserve room at the bottom for an overlapping strip. */
   overlap = true,
 }: {
@@ -50,6 +68,10 @@ export function DoctorHero({
   description?: React.ReactNode;
   chips?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Optional glass widget shown above the actions on the right. */
+  aside?: React.ReactNode;
+  /** Optional avatar / tile shown left of the title block. */
+  leading?: React.ReactNode;
   overlap?: boolean;
 }) {
   return (
@@ -86,6 +108,8 @@ export function DoctorHero({
         )}
       >
         <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="flex min-w-0 max-w-3xl items-start gap-5">
+          {leading ? <div className="hidden shrink-0 sm:block">{leading}</div> : null}
           <div className="min-w-0 max-w-2xl">
             <div className="inline-flex flex-wrap items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
               {kickerIcon}
@@ -105,7 +129,13 @@ export function DoctorHero({
             ) : null}
             {chips ? <div className="mt-4 flex flex-wrap items-center gap-2">{chips}</div> : null}
           </div>
-          {actions ? (
+          </div>
+          {aside ? (
+            <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
+              {aside}
+              {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+            </div>
+          ) : actions ? (
             <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
           ) : null}
         </div>
@@ -140,6 +170,7 @@ export function StatTile({
   pulse = false,
   active = false,
   onClick,
+  chart,
 }: {
   href?: string;
   label: string;
@@ -154,6 +185,8 @@ export function StatTile({
   /** Highlights the tile when it doubles as a filter. */
   active?: boolean;
   onClick?: () => void;
+  /** Tiny inline visual (e.g. sparkline) shown beside the value. */
+  chart?: React.ReactNode;
 }) {
   const className = cn(
     "group flex min-h-[112px] w-full flex-col justify-between gap-3 rounded-2xl bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5",
@@ -186,14 +219,17 @@ export function StatTile({
           </span>
         ) : null}
       </span>
-      <span className="min-w-0">
-        <span className="flex items-baseline gap-1">
-          <span className="truncate text-[26px] font-semibold leading-none tracking-[-0.03em] text-slate-900 tabular-nums">
-            {value}
+      <span className="flex min-w-0 items-end justify-between gap-3">
+        <span className="min-w-0">
+          <span className="flex items-baseline gap-1">
+            <span className="truncate text-[26px] font-semibold leading-none tracking-[-0.03em] text-slate-900 tabular-nums">
+              {value}
+            </span>
+            {unit ? <span className="text-xs font-medium text-slate-400">{unit}</span> : null}
           </span>
-          {unit ? <span className="text-xs font-medium text-slate-400">{unit}</span> : null}
+          <span className="mt-1.5 block truncate text-xs text-slate-400">{sub}</span>
         </span>
-        <span className="mt-1.5 block truncate text-xs text-slate-400">{sub}</span>
+        {chart ? <span className="shrink-0" aria-hidden>{chart}</span> : null}
       </span>
       {progress != null ? (
         <span className="-mt-1 block h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden>
@@ -212,6 +248,9 @@ export function StatTile({
         {body}
       </Link>
     );
+  }
+  if (!onClick) {
+    return <div className={cn(className, "hover:translate-y-0")}>{body}</div>;
   }
   return (
     <button type="button" onClick={onClick} aria-pressed={active} className={className}>
@@ -306,10 +345,7 @@ export function PrimaryLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
-    >
+    <Link href={href} className={PRIMARY_BTN}>
       {icon}
       {children}
     </Link>
@@ -326,10 +362,7 @@ export function SecondaryLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700"
-    >
+    <Link href={href} className={SECONDARY_BTN}>
       {icon}
       {children}
     </Link>
@@ -383,5 +416,61 @@ export function Segmented<T extends string | null>({
         );
       })}
     </div>
+  );
+}
+
+/** Soft search field for panel toolbars. */
+export function PanelSearch({
+  value,
+  onChange,
+  placeholder,
+  ariaLabel,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("relative w-full lg:max-w-md", className)}>
+      <Search
+        size={15}
+        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+        aria-hidden
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onChange("");
+        }}
+        placeholder={placeholder}
+        aria-label={ariaLabel ?? placeholder}
+        className="h-10 w-full rounded-xl bg-slate-50 pl-10 pr-9 text-sm text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:shadow-[inset_0_0_0_1.5px_#0284c7,0_0_0_4px_rgba(14,165,233,0.12)]"
+      />
+      {value ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700"
+        >
+          <X size={13} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Coloured left rail on a LIST_ROW. */
+export function RowAccent({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn("absolute inset-y-3 left-0 w-[3px] rounded-r-full", className ?? "bg-slate-200")}
+      aria-hidden
+    />
   );
 }

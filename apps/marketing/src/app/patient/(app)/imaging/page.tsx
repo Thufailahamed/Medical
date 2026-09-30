@@ -4,27 +4,45 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Calendar,
+  CalendarDays,
   ChevronRight,
-  Eye,
   FileText,
   FlaskConical,
+  FolderOpen,
   Layers,
-  Maximize2,
   Scan,
   ScanLine,
-  Search,
-  ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
-  X,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { usePatientProfile } from "@/patient/hooks";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  LiveDot,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  RailRow,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+  type Tone,
+} from "@/patient/components/workspace";
 
 interface ImagingInstance {
   sopInstanceUid: string;
@@ -52,38 +70,31 @@ interface ImagingStudy {
 }
 
 const MODALITY_FILTERS = [
-  { id: "all", label: "All Scans" },
+  { id: "all", label: "All scans" },
   { id: "xr", label: "X-Ray", codes: ["XR", "CR", "DX"] },
   { id: "mr", label: "MRI", codes: ["MR"] },
-  { id: "ct", label: "CT Scan", codes: ["CT"] },
+  { id: "ct", label: "CT", codes: ["CT"] },
   { id: "us", label: "Ultrasound", codes: ["US"] },
 ];
 
-function getModalityBadge(modality?: string) {
+function modalityStyle(modality?: string): { label: string; tone: Tone } {
   const m = (modality || "XR").toUpperCase();
-  if (m.includes("MR")) {
-    return {
-      label: "MRI Scan",
-      bg: "bg-violet-50 text-violet-600",
-    };
-  }
-  if (m.includes("CT")) {
-    return {
-      label: "CT Scan",
-      bg: "bg-brand-soft text-brand",
-    };
-  }
-  if (m.includes("US")) {
-    return {
-      label: "Ultrasound",
-      bg: "bg-success-soft text-success",
-    };
-  }
-  return {
-    label: "X-Ray (DICOM)",
-    bg: "bg-warn-soft text-warn",
-  };
+  if (m.includes("MR")) return { label: "MRI", tone: "violet" };
+  if (m.includes("CT")) return { label: "CT scan", tone: "sky" };
+  if (m.includes("US")) return { label: "Ultrasound", tone: "emerald" };
+  return { label: "X-Ray", tone: "amber" };
 }
+
+function studyModality(study: ImagingStudy) {
+  return study.modality || study.series?.[0]?.modality || "XR";
+}
+
+const VIEWER_FEATURES = [
+  { title: "Window & level", body: "Interactive brightness and contrast across soft tissue, lung, and bone presets." },
+  { title: "Stack navigation", body: "Smooth scroll through sequential CT and MRI volumetric slice stacks." },
+  { title: "Measurement tools", body: "Caliper measurements, angles, and region-of-interest density inspection." },
+  { title: "No installation", body: "Runs client-side in your browser — no plugins or desktop software needed." },
+];
 
 export default function PatientImagingPage() {
   const profile = usePatientProfile();
@@ -105,7 +116,19 @@ export default function PatientImagingPage() {
     enabled: Boolean(patientId),
   });
 
-  const rawStudies = studiesQ.data ?? [];
+  const rawStudies = useMemo(() => studiesQ.data ?? [], [studiesQ.data]);
+
+  const modalityCounts = useMemo(() => {
+    const counts: Record<string, number> = { xr: 0, mr: 0, ct: 0, us: 0 };
+    for (const s of rawStudies) {
+      const mod = studyModality(s).toUpperCase();
+      if (mod.includes("MR")) counts.mr++;
+      else if (mod.includes("CT")) counts.ct++;
+      else if (mod.includes("US")) counts.us++;
+      else counts.xr++;
+    }
+    return counts;
+  }, [rawStudies]);
 
   const filteredStudies = useMemo(() => {
     let list = rawStudies;
@@ -114,7 +137,7 @@ export default function PatientImagingPage() {
       const filterDef = MODALITY_FILTERS.find((f) => f.id === activeModality);
       if (filterDef?.codes) {
         list = list.filter((s) => {
-          const mod = (s.modality || s.series?.[0]?.modality || "").toUpperCase();
+          const mod = studyModality(s).toUpperCase();
           return filterDef.codes.some((c) => mod.includes(c));
         });
       }
@@ -127,238 +150,243 @@ export default function PatientImagingPage() {
           s.studyInstanceUid.toLowerCase().includes(q) ||
           (s.studyDescription || "").toLowerCase().includes(q) ||
           (s.bodyPart || s.series?.[0]?.bodyPart || "").toLowerCase().includes(q) ||
-          (s.modality || s.series?.[0]?.modality || "").toLowerCase().includes(q),
+          studyModality(s).toLowerCase().includes(q),
       );
     }
 
     return list;
   }, [rawStudies, activeModality, search]);
 
-  return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<ScanLine size={13} />}
-        kicker="Radiology & PACS Imaging"
-        title="Medical Imaging & DICOM Scans"
-        description="Access high-resolution X-rays, MRI, CT scans, and ultrasound studies in a medical-grade web DICOM viewer."
-        actions={
-          <>
-            <Link href="/patient/records" className={heroSecondaryAction}>
-              <FileText size={13} />
-              <span>All Records</span>
-            </Link>
-            <Link href="/patient/diagnostic-tests" className={heroPrimaryAction}>
-              <FlaskConical size={14} />
-              <span>Book Diagnostic Test</span>
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>{rawStudies.length} studies available</span>
-            <span>Viewer standard · 16-bit lossless</span>
-            <span>Modalities · XR, MR, CT, US</span>
-            <span>Viewer engine · web DICOM ready</span>
-          </>
-        }
-      />
+  const loading = profile.isLoading || studiesQ.isLoading;
 
-      {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl shadow-card">
-        {/* Modality Tabs */}
-        <SegmentedTabs
-          ariaLabel="Modality filters"
-          activeId={activeModality}
-          onChange={(id) => setActiveModality(id)}
-          tabs={MODALITY_FILTERS.map((f) => ({ id: f.id, label: <>{f.label}</> }))}
+  return (
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<ScanLine size={13} aria-hidden />}
+          kicker="Records & Labs"
+          kickerMeta="Radiology & PACS imaging"
+          title={
+            <>
+              Imaging &amp; <HeroAccent>DICOM scans</HeroAccent>
+            </>
+          }
+          description="Access high-resolution X-rays, MRI, CT scans, and ultrasound studies in a medical-grade web DICOM viewer."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <LiveDot tone="sky" />
+                {rawStudies.length} stud{rawStudies.length === 1 ? "y" : "ies"} on file
+              </span>
+              <span className={HERO_CHIP}>
+                <Scan size={12} className="text-sky-300" aria-hidden />
+                16-bit lossless viewer
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/records" className={HERO_GHOST}>
+                <FileText size={15} aria-hidden />
+                All records
+              </Link>
+              <Link href="/patient/diagnostic-tests" className={HERO_PRIMARY}>
+                <FlaskConical size={15} className="text-sky-600" aria-hidden />
+                Book a scan
+              </Link>
+            </>
+          }
         />
 
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="All studies"
+            icon={<ScanLine size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(rawStudies.length)}
+            sub="Every modality"
+            active={activeModality === "all"}
+            onClick={() => setActiveModality("all")}
           />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by study UID, organ, or modality..."
-            className="pt-input pl-9 pr-8 !h-9 text-xs"
+          <StatTile
+            label="X-Ray"
+            icon={<Scan size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(modalityCounts.xr)}
+            sub="XR · CR · DX"
+            active={activeModality === "xr"}
+            onClick={() => setActiveModality("xr")}
           />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
-            >
-              <X size={13} />
-            </button>
-          ) : null}
-        </div>
+          <StatTile
+            label="MRI"
+            icon={<Layers size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(modalityCounts.mr)}
+            sub="Magnetic resonance"
+            active={activeModality === "mr"}
+            onClick={() => setActiveModality("mr")}
+          />
+          <StatTile
+            label="CT & ultrasound"
+            icon={<Sparkles size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(modalityCounts.ct + modalityCounts.us)}
+            sub={`${modalityCounts.ct} CT · ${modalityCounts.us} US`}
+            active={activeModality === "ct" || activeModality === "us"}
+            onClick={() => setActiveModality("ct")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 3. Imaging Studies Feed ────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        {profile.isLoading || studiesQ.isLoading ? (
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-28 rounded-xl bg-surface-2 animate-pulse border border-border"
-              />
-            ))}
-          </div>
-        ) : filteredStudies.length === 0 ? (
-          <div className="rounded-xl border border-border bg-surface p-8 sm:p-10 shadow-card flex flex-col items-center text-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
-              <ScanLine size={28} />
-            </div>
-
-            <div className="max-w-md">
-              <h3 className="t-card-title text-text">
-                {search ? "No scans match your search" : "No Radiology Imaging Studies On File"}
-              </h3>
-              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
-                {search
-                  ? `No DICOM studies found for "${search}". Try clearing search or choosing another modality.`
-                  : "When your hospital or radiology diagnostic center uploads your X-Ray, CT, or MRI scans, they will appear here with an interactive web DICOM viewer."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-1">
-              <Link
-                href="/patient/diagnostic-tests"
-                className="pt-btn pt-btn-primary h-9 px-4 text-xs"
-              >
-                <FlaskConical size={14} aria-hidden />
-                Book Diagnostic Scan
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="im-list">
+          <PanelHeader
+            id="im-list"
+            icon={<ScanLine size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title="Imaging studies"
+            caption={loading ? "Loading…" : `${filteredStudies.length} of ${rawStudies.length} shown`}
+            action={
+              <Link href="/patient/records" className={SECONDARY_BTN}>
+                <FolderOpen size={13} aria-hidden />
+                <span className="hidden sm:inline">All records</span>
               </Link>
-              <Link
-                href="/patient/records"
-                className="pt-btn pt-btn-secondary h-9 px-4 text-xs"
-              >
-                View General Records
-              </Link>
-            </div>
+            }
+          />
+
+          <div className="mt-5 flex flex-col gap-3">
+            <PanelSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by study UID, organ, or modality…"
+              ariaLabel="Search imaging studies"
+            />
+            <Segmented<string>
+              ariaLabel="Modality filters"
+              value={activeModality}
+              onChange={setActiveModality}
+              options={MODALITY_FILTERS.map((f) => ({ value: f.id, label: f.label }))}
+            />
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filteredStudies.map((study) => {
-              const modality = study.modality || study.series?.[0]?.modality || "XR";
-              const badge = getModalityBadge(modality);
-              const totalInstances = (study.series || []).reduce(
-                (acc, s) => acc + (s.instances?.length || 0),
-                0,
-              );
-              const bodyPart = study.bodyPart || study.series?.[0]?.bodyPart || "General Anatomy";
-              const title = study.studyDescription || `${badge.label} · ${bodyPart}`;
 
-              return (
-                <article
-                  key={study.studyInstanceUid}
-                  className="group rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                    <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
-                      <ScanLine size={22} />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
-                          {title}
-                        </h3>
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
-                            badge.bg,
-                          )}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-1 text-xs text-text-soft font-medium">
-                        <span className="font-mono text-[11px] text-text-muted truncate max-w-xs">
-                          UID: {study.studyInstanceUid.slice(0, 28)}…
-                        </span>
-                        <span>·</span>
-                        <span className="text-text-soft">
-                          {study.series?.length || 1} Series
-                        </span>
-                        {totalInstances > 0 ? (
-                          <>
-                            <span>·</span>
-                            <span>{totalInstances} Image Slices</span>
-                          </>
-                        ) : null}
-                        {study.studyDate ? (
-                          <>
-                            <span>·</span>
-                            <span className="inline-flex items-center gap-1 text-text-muted">
-                              <Calendar size={11} />
-                              {formatDate(study.studyDate)}
-                            </span>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Open Viewer CTA Button */}
+          {loading ? (
+            <PanelSkeleton rows={4} />
+          ) : filteredStudies.length === 0 ? (
+            <EmptyBlock
+              icon={<ScanLine size={19} />}
+              title={search ? "No scans match your search" : "No imaging studies on file"}
+              body={
+                search
+                  ? `No DICOM studies found for “${search}”. Try clearing search or another modality.`
+                  : "When your hospital or radiology centre uploads X-Ray, CT, or MRI scans, they appear here with an interactive web DICOM viewer."
+              }
+              actions={
+                <>
+                  {search ? (
+                    <button type="button" onClick={() => setSearch("")} className={SECONDARY_BTN}>
+                      Clear search
+                    </button>
+                  ) : null}
                   <Link
-                    href={`/patient/imaging/${encodeURIComponent(study.studyInstanceUid)}`}
-                    className="pt-btn pt-btn-primary h-9 px-4 text-xs shrink-0 self-start sm:self-auto"
+                    href="/patient/diagnostic-tests"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
                   >
-                    <Eye size={14} aria-hidden />
-                    Open DICOM Viewer
-                    <ChevronRight size={13} aria-hidden />
+                    <FlaskConical size={13} aria-hidden />
+                    Book a diagnostic scan
                   </Link>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                </>
+              }
+            />
+          ) : (
+            <div className="mt-5 space-y-2">
+              {filteredStudies.map((study) => {
+                const badge = modalityStyle(studyModality(study));
+                const totalInstances = (study.series || []).reduce(
+                  (acc, s) => acc + (s.instances?.length || 0),
+                  0,
+                );
+                const bodyPart = study.bodyPart || study.series?.[0]?.bodyPart || "General anatomy";
+                const title = study.studyDescription || `${badge.label} · ${bodyPart}`;
 
-      {/* ── 4. Web DICOM Features & Capability Callout ───────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col gap-3">
-        <h4 className="t-card-title text-text flex items-center gap-2">
-          <Sparkles size={16} className="text-brand" aria-hidden />
-          <span>Diagnostic DICOM Viewer Capabilities</span>
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-text-soft">
-          <div className="p-3 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-            <p className="font-bold text-text">Window &amp; Level</p>
-            <p className="text-[11px] text-text-soft">
-              Interactive brightness and contrast adjustment across soft tissue, lung, and bone presets.
-            </p>
-          </div>
+                return (
+                  <Link
+                    key={study.studyInstanceUid}
+                    href={`/patient/imaging/${encodeURIComponent(study.studyInstanceUid)}`}
+                    className="block"
+                  >
+                    <RailRow
+                      tone={badge.tone}
+                      icon={<ScanLine size={17} />}
+                      title={title}
+                      meta={[
+                        `${study.series?.length || 1} series`,
+                        totalInstances > 0 ? `${totalInstances} slices` : null,
+                        study.studyDate ? formatDate(study.studyDate) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      trailing={
+                        <>
+                          <Badge tone={badge.tone}>{badge.label}</Badge>
+                          <span className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors group-hover:bg-sky-50">
+                            Viewer
+                            <ChevronRight size={13} aria-hidden />
+                          </span>
+                        </>
+                      }
+                    >
+                      <span className="mt-0.5 block truncate font-mono text-[11px] text-slate-400">
+                        UID {study.studyInstanceUid.slice(0, 32)}
+                        {study.studyInstanceUid.length > 32 ? "…" : ""}
+                      </span>
+                    </RailRow>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
-          <div className="p-3 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-            <p className="font-bold text-text">Stack Navigation</p>
-            <p className="text-[11px] text-text-soft">
-              Smooth scroll through sequential CT and MRI volumetric slice stacks.
-            </p>
-          </div>
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Viewer capabilities">
+          <section className={PANEL} aria-labelledby="im-caps">
+            <PanelHeader
+              id="im-caps"
+              icon={<SlidersHorizontal size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="DICOM viewer capabilities"
+              caption="Medical-grade tools, zero install"
+            />
+            <div className="mt-4 flex flex-col gap-2">
+              {VIEWER_FEATURES.map((f) => (
+                <div
+                  key={f.title}
+                  className="rounded-xl bg-slate-50 p-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]"
+                >
+                  <p className="text-xs font-semibold text-slate-800">{f.title}</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{f.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
-          <div className="p-3 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-            <p className="font-bold text-text">Measurement Tools</p>
-            <p className="text-[11px] text-text-soft">
-              Caliper measurements, angle calculations, and region-of-interest density inspection.
-            </p>
-          </div>
+          <QuickToolsPanel
+            id="im-tools"
+            tools={[
+              { href: "/patient/diagnostic-tests", label: "Book a scan", hint: "Diagnostics", icon: FlaskConical, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+              { href: "/patient/records", label: "Records", hint: "Full file", icon: FolderOpen, tone: "from-slate-600 to-slate-800 shadow-slate-500/30" },
+              { href: "/patient/timeline", label: "Timeline", hint: "In context", icon: CalendarDays, tone: "from-teal-500 to-emerald-600 shadow-teal-500/30" },
+            ]}
+          />
 
-          <div className="p-3 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-            <p className="font-bold text-text">No Installation</p>
-            <p className="text-[11px] text-text-soft">
-              Runs client-side in your browser with zero plugins or special desktop software needed.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
+          <PromoCard
+            href="/patient/ai"
+            kicker="AI assistant"
+            icon={<Sparkles size={21} aria-hidden />}
+            title="Understand a scan report"
+            body="Ask questions about findings in plain language"
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

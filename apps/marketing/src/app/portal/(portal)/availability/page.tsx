@@ -2,17 +2,31 @@
 
 import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Plus, Trash2, CalendarOff, CalendarDays, Clock, MoonStar } from "lucide-react";
+import {
+  Save, Plus, Trash2, CalendarOff, CalendarDays, Clock, MoonStar,
+  CalendarCheck, CheckCircle2, AlertTriangle, RotateCcw, BarChart3,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 import { api } from "@/portal/lib/api";
-import { Card, CardHeader } from "@/portal/components/ui/Card";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Skeleton } from "@/portal/components/ui/Empty";
 import { Button } from "@/portal/components/ui/Button";
 import { Input, Select } from "@/portal/components/ui/Form";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  RowAccent,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { useT } from "@/portal/i18n";
 import { cn } from "@/portal/lib/utils";
 
@@ -62,6 +76,12 @@ const normalize = (arr: Slot[]) =>
   );
 
 const NO_SLOTS: Slot[] = [];
+
+function fmtHours(min: number) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
 
 type SlotErr = "order" | "overlap";
 
@@ -140,41 +160,137 @@ export default function AvailabilityPage() {
     mutateSlots((arr) => arr.filter((_, idx) => idx !== i));
   }
 
+  // Weekly totals for the hero strip + glance panel (active, valid blocks only).
+  const week = useMemo(() => {
+    const perDay = new Map<number, { minutes: number; slots: number }>();
+    for (const s of slots) {
+      if (!s.active) continue;
+      const span = toMin(s.endTime) - toMin(s.startTime);
+      if (span <= 0) continue;
+      const cur = perDay.get(s.dayOfWeek) ?? { minutes: 0, slots: 0 };
+      cur.minutes += span;
+      cur.slots += s.slotMinutes > 0 ? Math.floor(span / s.slotMinutes) : 0;
+      perDay.set(s.dayOfWeek, cur);
+    }
+    let minutes = 0;
+    let bookable = 0;
+    for (const v of perDay.values()) {
+      minutes += v.minutes;
+      bookable += v.slots;
+    }
+    return { perDay, minutes, bookable, days: perDay.size };
+  }, [slots]);
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcomingOff = (timeOffData?.timeOff ?? []).filter((x) => x.date >= todayIso);
+  const nextOff = upcomingOff.slice().sort((a, b) => a.date.localeCompare(b.date))[0];
+  const maxDayMin = Math.max(...[...week.perDay.values()].map((v) => v.minutes), 1);
+
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("availability.title")}
-        subtitle={t("availability.subtitle")}
-        icon={<CalendarDays size={18} className="text-teal-600" />}
-        badge={dirty ? (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
-            {t("availability.unsaved")}
-          </span>
-        ) : undefined}
-        actions={
-          <Button
-            leftIcon={<Save size={14} />}
-            disabled={!dirty || errors.size > 0}
-            loading={save.isPending}
-            onClick={() => save.mutate(slots)}
-          >
-            {t("availability.save")}
-          </Button>
-        }
-      />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<CalendarDays size={13} aria-hidden />}
+          kicker="Booking hours"
+          kickerMeta={`${week.days} working day${week.days === 1 ? "" : "s"}`}
+          title={
+            <>
+              Weekly{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                availability
+              </span>
+            </>
+          }
+          description={t("availability.subtitle")}
+          chips={
+            <>
+              {dirty ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-300" aria-hidden />
+                  {t("availability.unsaved")}
+                </span>
+              ) : (
+                <span className={HERO_CHIP}>
+                  <CheckCircle2 size={12} className="text-emerald-300" aria-hidden />
+                  Schedule saved
+                </span>
+              )}
+              {errors.size > 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-red-300/30 bg-red-400/15 px-3 py-1.5 text-xs font-semibold text-red-100">
+                  <AlertTriangle size={12} aria-hidden />
+                  {errors.size} block{errors.size === 1 ? "" : "s"} to fix
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              {dirty ? (
+                <button type="button" onClick={() => setDraft(null)} className={HERO_GHOST}>
+                  <RotateCcw size={15} aria-hidden />
+                  Discard
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={!dirty || errors.size > 0 || save.isPending}
+                onClick={() => save.mutate(slots)}
+                className={cn(HERO_PRIMARY, "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0")}
+              >
+                <Save size={15} className="text-sky-600" aria-hidden />
+                {save.isPending ? "Saving…" : t("availability.save")}
+              </button>
+            </>
+          }
+        />
 
-      <Card padding={false} className="rounded-2xl overflow-hidden">
-        <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-bold text-text">{t("availability.weekly")}</div>
-            <div className="text-[11px] text-text-muted mt-0.5">
-              {t("availability.slotsCount", { count: slots.length })}
-            </div>
-          </div>
-        </div>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Hours per week"
+            icon={<Clock size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : fmtHours(week.minutes)}
+            sub="Active booking blocks"
+            progress={Math.min(100, Math.round((week.minutes / (40 * 60)) * 100))}
+          />
+          <StatTile
+            label="Bookable slots"
+            icon={<CalendarCheck size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(week.bookable)}
+            unit="/ week"
+            sub="Patients can book these"
+          />
+          <StatTile
+            label="Working days"
+            icon={<CalendarDays size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={`${week.days}`}
+            unit="/ 7"
+            sub={week.days === 7 ? "Open every day" : `${7 - week.days} day${7 - week.days === 1 ? "" : "s"} off`}
+          />
+          <StatTile
+            label="Upcoming time off"
+            icon={<MoonStar size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={timeOffLoading ? "…" : String(upcomingOff.length)}
+            sub={nextOff ? `Next: ${format(parseISO(nextOff.date), "EEE, MMM d")}` : "Nothing blocked"}
+          />
+        </HeroOverlap>
+      </div>
 
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+      <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="av-weekly">
+        <PanelHeader
+          id="av-weekly"
+          icon={<CalendarDays size={16} />}
+          tone="bg-teal-50 text-teal-600"
+          title={t("availability.weekly")}
+          caption={t("availability.slotsCount", { count: slots.length })}
+        />
         {isLoading ? (
-          <div className="px-5 pb-5 flex flex-col gap-3">
+          <div className="mt-2 flex flex-col gap-3">
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
@@ -183,7 +299,7 @@ export default function AvailabilityPage() {
             ))}
           </div>
         ) : (
-          <ul className="flex flex-col divide-y divide-border/50">
+          <ul className="-mx-5 flex flex-col divide-y divide-slate-100 sm:-mx-6">
             {DAYS.map((d) => {
               const daySlots = slots
                 .map((s, i) => ({ s, i }))
@@ -191,11 +307,11 @@ export default function AvailabilityPage() {
                 .sort((a, b) => a.s.startTime.localeCompare(b.s.startTime));
 
               return (
-                <li key={d.value} className="px-5 py-3.5">
+                <li key={d.value} className="px-5 py-3.5 sm:px-6">
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "h-8 w-8 rounded-lg flex items-center justify-center text-[11px] font-extrabold uppercase shrink-0",
-                      daySlots.length ? "bg-brand-soft text-brand" : "bg-surface-2 text-text-muted"
+                      daySlots.length ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-400"
                     )}>
                       {t(`availability.day.${d.key}`)}
                     </div>
@@ -222,39 +338,44 @@ export default function AvailabilityPage() {
                           <div
                             key={i}
                             className={cn(
-                              "flex items-center gap-2 flex-wrap px-3 py-2 rounded-xl border transition-colors",
+                              "flex items-center gap-2 flex-wrap px-3 py-2 rounded-xl transition-colors",
                               err
-                                ? "border-red-200 bg-red-50/50"
+                                ? "bg-red-50/60 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.3)]"
                                 : s.active
-                                  ? "border-border/60 bg-surface-2/40 hover:bg-surface-2/60"
-                                  : "border-border/40 bg-surface-2/20 opacity-70"
+                                  ? "bg-slate-50 hover:bg-slate-100/70"
+                                  : "bg-slate-50/60 opacity-70"
                             )}
                           >
-                            <Input
-                              type="time"
-                              aria-label={t("availability.from")}
-                              className={cn("w-28", err === "order" && "border-red-300")}
-                              value={s.startTime}
-                              onChange={(e) => updateSlot(i, { startTime: e.target.value })}
-                            />
+                            <div className="w-28 shrink-0">
+                              <Input
+                                type="time"
+                                aria-label={t("availability.from")}
+                                className={cn(err === "order" && "border-red-300")}
+                                value={s.startTime}
+                                onChange={(e) => updateSlot(i, { startTime: e.target.value })}
+                              />
+                            </div>
                             <span className="text-text-muted text-xs">→</span>
-                            <Input
-                              type="time"
-                              aria-label={t("availability.to")}
-                              className={cn("w-28", err === "order" && "border-red-300")}
-                              value={s.endTime}
-                              onChange={(e) => updateSlot(i, { endTime: e.target.value })}
-                            />
-                            <Select
-                              aria-label={t("availability.slotMinutes")}
-                              className="w-24"
-                              value={String(s.slotMinutes)}
-                              onChange={(e) => updateSlot(i, { slotMinutes: Number(e.target.value) })}
-                              options={SLOT_LENGTHS.map((n) => ({
-                                value: String(n),
-                                label: `${n} ${t("availability.min")}`,
-                              }))}
-                            />
+                            <div className="w-28 shrink-0">
+                              <Input
+                                type="time"
+                                aria-label={t("availability.to")}
+                                className={cn(err === "order" && "border-red-300")}
+                                value={s.endTime}
+                                onChange={(e) => updateSlot(i, { endTime: e.target.value })}
+                              />
+                            </div>
+                            <div className="w-28 shrink-0">
+                              <Select
+                                aria-label={t("availability.slotMinutes")}
+                                value={String(s.slotMinutes)}
+                                onChange={(e) => updateSlot(i, { slotMinutes: Number(e.target.value) })}
+                                options={SLOT_LENGTHS.map((n) => ({
+                                  value: String(n),
+                                  label: `${n} ${t("availability.min")}`,
+                                }))}
+                              />
+                            </div>
                             {approx > 0 && (
                               <span className="text-[11px] text-text-muted tabular-nums flex items-center gap-1">
                                 <Clock size={11} />
@@ -302,7 +423,46 @@ export default function AvailabilityPage() {
             })}
           </ul>
         )}
-      </Card>
+      </section>
+
+      <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Week at a glance">
+        <section className={PANEL} aria-labelledby="av-glance">
+          <PanelHeader
+            id="av-glance"
+            icon={<BarChart3 size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title="Week at a glance"
+            caption={`${fmtHours(week.minutes)} across ${week.days} day${week.days === 1 ? "" : "s"}`}
+          />
+          <ul className="mt-5 flex flex-col gap-2.5">
+            {DAYS.map((d) => {
+              const v = week.perDay.get(d.value);
+              return (
+                <li key={d.value} className="flex items-center gap-3">
+                  <span className="w-9 shrink-0 text-[11px] font-semibold uppercase text-slate-500">
+                    {t(`availability.day.${d.key}`)}
+                  </span>
+                  <span className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    {v ? (
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-500 to-teal-400"
+                        style={{ width: `${(v.minutes / maxDayMin) * 100}%` }}
+                      />
+                    ) : null}
+                  </span>
+                  <span className={cn("w-16 shrink-0 text-right text-[11px] tabular-nums", v ? "font-semibold text-slate-700" : "text-slate-300")}>
+                    {v ? `${fmtHours(v.minutes)} · ${v.slots}` : "Off"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-500">
+            Hours · bookable slots per day. Paused blocks aren&apos;t counted.
+          </p>
+        </section>
+      </aside>
+      </div>
 
       <TimeOffSection
         items={timeOffData?.timeOff ?? []}
@@ -380,13 +540,16 @@ function TimeOffSection({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <Card padding={false} className="rounded-2xl overflow-hidden">
-      <CardHeader
+    <section className={cn(PANEL, "overflow-hidden")} aria-labelledby="av-timeoff">
+      <PanelHeader
+        id="av-timeoff"
+        icon={<MoonStar size={16} />}
+        tone="bg-amber-50 text-amber-600"
         title={t("availability.timeOff")}
-        right={<MoonStar size={15} className="text-text-muted" />}
+        caption="Block a full day or part of a day — bookings are paused automatically"
       />
 
-      <div className="px-4 sm:px-5 py-3.5 border-b border-border/50 bg-surface-2/30 flex items-end gap-2 flex-wrap">
+      <div className="mt-5 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3.5">
         <Input
           type="date"
           label={t("availability.date")}
@@ -445,13 +608,13 @@ function TimeOffSection({
         </Button>
       </div>
       {formErr && (
-        <div className="px-5 py-2 text-[11px] font-semibold text-red-600 bg-red-50/60 border-b border-red-100">
+        <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-600">
           {formErr}
         </div>
       )}
 
       {loading ? (
-        <div className="p-4 sm:p-5 flex flex-col gap-3">
+        <div className="mt-4 flex flex-col gap-3">
           {[0, 1].map((i) => (
             <div key={i} className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
@@ -461,26 +624,24 @@ function TimeOffSection({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <Empty
+        <EmptyBlock
+          icon={<MoonStar size={19} />}
           title={t("availability.emptyTimeOff")}
-          icon={<MoonStar size={20} className="text-text-muted" />}
-          className="py-10"
+          body="Add leave, conferences or half-days above so patients can't book over them."
         />
       ) : (
-        <ul className="flex flex-col divide-y divide-border/50">
+        <ul className="mt-4 flex flex-col gap-2">
           {items.map((it) => {
             const past = it.date < today;
             const partial = it.startTime && it.endTime;
             return (
               <li
                 key={it.id}
-                className={cn(
-                  "group flex items-center gap-3 px-5 py-3 hover:bg-surface-2/40 transition-colors",
-                  past && "opacity-55"
-                )}
+                className={cn(LIST_ROW, "flex-row items-center", past && "opacity-55")}
               >
+                <RowAccent className={partial ? "bg-sky-500" : "bg-amber-400"} />
                 <div className={cn(
-                  "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-inset",
+                  "ml-1.5 h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-inset",
                   partial ? "bg-sky-50 text-sky-600 ring-sky-600/15" : "bg-amber-50 text-amber-600 ring-amber-600/15"
                 )}>
                   <CalendarOff size={16} />
@@ -512,6 +673,6 @@ function TimeOffSection({
           })}
         </ul>
       )}
-    </Card>
+    </section>
   );
 }

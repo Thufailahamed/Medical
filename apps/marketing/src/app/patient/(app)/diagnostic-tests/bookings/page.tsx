@@ -4,36 +4,48 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
-  ArrowRight,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  Clock,
-  CreditCard,
+  Clock3,
   FlaskConical,
-  Home,
   MapPin,
   Microscope,
   Plus,
-  RotateCcw,
-  Sparkles,
   TestTube2,
   Timer,
   Wallet,
-  X,
   XCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
-import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import { StatTile } from "@/patient/components/primitives/StatTile";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import { api } from "@/portal/lib/api";
 import { formatDayLabel, humanize, formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  HeroPulse,
+  LiveDot,
+  PANEL,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+  type Tone,
+} from "@/patient/components/workspace";
 
 const TABS = [
   { key: "", label: "All" },
@@ -97,38 +109,40 @@ function pipelineIndex(status: string): number {
   }
 }
 
-function statusTone(
-  status: string
-): "success" | "warn" | "danger" | "neutral" | "info" | "brand" {
-  if (status === "completed") return "success";
+function statusTone(status: string): Tone {
+  if (status === "completed") return "emerald";
   if (
     status === "sample_collected" ||
     status === "processing" ||
     status === "in_progress"
   )
-    return "warn";
-  if (status === "cancelled") return "danger";
-  if (status === "confirmed") return "brand";
-  return "info";
+    return "amber";
+  if (status === "cancelled") return "rose";
+  if (status === "confirmed") return "sky";
+  return "slate";
 }
 
-function paymentTone(p?: string): "success" | "warn" | "danger" | "neutral" {
+function paymentTone(p?: string): Tone {
   switch (p) {
     case "paid":
-      return "success";
+      return "emerald";
     case "cash_on_collection":
     case "pending":
-      return "warn";
+      return "amber";
     case "failed":
     case "refunded":
-      return "danger";
+      return "rose";
     default:
-      return "neutral";
+      return "slate";
   }
 }
 
+const BOOKING_CARD =
+  "group relative flex flex-col gap-3 rounded-xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]";
+
 export default function TestBookingsPage() {
   const [tab, setTab] = useState<string>("");
+  const [now] = useState(() => Date.now());
   const query = useQuery({
     queryKey: ["patient", "diagnostic", "bookings", tab],
     queryFn: () =>
@@ -163,8 +177,7 @@ export default function TestBookingsPage() {
 
   const summary = useMemo(() => {
     const list = allQuery.data?.bookings ?? [];
-    const now = Date.now();
-    const monthStart = new Date();
+    const monthStart = new Date(now);
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
     const monthStartMs = monthStart.getTime();
@@ -195,220 +208,221 @@ export default function TestBookingsPage() {
       })[0];
 
     return { active, completed, spentThisMonth, nextUpcoming };
-  }, [allQuery.data]);
+  }, [allQuery.data, now]);
+
+  const list = (query.data?.bookings ?? []).slice().sort((a, b) => {
+    const ta = a.scheduledAt
+      ? new Date(a.scheduledAt).getTime()
+      : a.scheduledDate
+        ? new Date(a.scheduledDate).getTime()
+        : 0;
+    const tb = b.scheduledAt
+      ? new Date(b.scheduledAt).getTime()
+      : b.scheduledDate
+        ? new Date(b.scheduledDate).getTime()
+        : 0;
+    return tb - ta; // newest first
+  });
+
+  const next = summary.nextUpcoming;
+  const nextDate = next
+    ? next.scheduledDate
+      ? `${next.scheduledDate}T00:00:00`
+      : (next.scheduledAt ?? null)
+    : null;
 
   return (
-    <div className="flex flex-col gap-6 pb-10">
-      {/* ── 1. Premium hero ─────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden rounded-3xl text-white shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #082F49 0%, #0369A1 50%, #0284C7 100%)",
-        }}
-      >
-        {/* Decorative ambient glows */}
-        <div
-          className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.28) 0%, transparent 70%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 -left-16 w-80 h-80 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(16,185,129,0.18) 0%, transparent 70%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          aria-hidden
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-            maskImage:
-              "radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%)",
-          }}
-        />
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 p-6 sm:p-8">
-          <div className="min-w-0 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 backdrop-blur-md text-[11px] font-bold uppercase tracking-[0.14em] text-sky-100">
-              <Sparkles size={11} className="text-sky-200" />
-              Diagnostics · Orders &amp; results
-            </div>
-            <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-[1.1]">
-              My bookings
-            </h1>
-            <p className="mt-2 text-sm text-sky-100/85 max-w-xl leading-relaxed">
-              Every lab test and package you've scheduled — with live status,
-              collection timeline, and result availability in one place.
-            </p>
-
-            {/* Inline next-upcoming mini-card */}
-            {summary.nextUpcoming ? (
-              <NextUpcomingCard booking={summary.nextUpcoming} />
-            ) : (
-              <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-sky-100/70">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                No bookings on the calendar.{" "}
-                <Link
-                  href="/patient/diagnostic-tests"
-                  className="underline decoration-sky-300/60 underline-offset-2 hover:text-white"
-                >
-                  Book a test
-                </Link>
-                .
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-row lg:flex-col gap-2 lg:items-end shrink-0">
-            <Link
-              href="/patient/diagnostic-tests"
-              className="inline-flex h-10 items-center gap-2 px-4 rounded-xl bg-white text-sky-950 text-[12.5px] font-bold shadow-md hover:bg-sky-50 transition-all hover:scale-[1.01] active:scale-[0.99]"
-            >
-              <Plus size={14} className="text-sky-700" />
-              Book new test
-              <ArrowRight size={13} className="text-sky-600" />
-            </Link>
-            <Link
-              href="/patient/records"
-              className="inline-flex h-10 items-center gap-2 px-4 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md text-white text-[12.5px] font-bold hover:bg-white/20 transition-colors"
-            >
-              <FlaskConical size={13} />
-              Past reports
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 2. Summary stat tiles ──────────────────────────────────── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatTile
-          label="Total bookings"
-          value={String(counts.all)}
-          sublabel={`${counts.completed} completed`}
-          icon={<FlaskConical size={18} />}
-          accent="brand"
-        />
-        <StatTile
-          label="Upcoming"
-          value={String(counts.upcoming)}
-          sublabel={
-            counts.upcoming > 0 ? "Awaiting collection or lab" : "All clear"
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<FlaskConical size={13} aria-hidden />}
+          kicker="Lab tests"
+          kickerMeta="Orders & results"
+          title={
+            <>
+              My lab <HeroAccent>bookings</HeroAccent>
+            </>
           }
-          icon={<Clock size={18} />}
-          accent="sky"
-        />
-        <StatTile
-          label="Completed"
-          value={String(counts.completed)}
-          sublabel="Reports available"
-          icon={<CheckCircle2 size={18} />}
-          accent="green"
-        />
-        <StatTile
-          label="Spent this month"
-          value={
-            summary.spentThisMonth > 0
-              ? `LKR ${summary.spentThisMonth.toLocaleString()}`
-              : "LKR 0"
+          description="Every lab test and package you've scheduled — with live status, collection timeline, and result availability in one place."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <LiveDot />
+                {counts.upcoming > 0 ? `${counts.upcoming} upcoming` : "Nothing pending"}
+              </span>
+              <span className={HERO_CHIP}>
+                <Wallet size={12} className="text-sky-300" aria-hidden />
+                LKR {summary.spentThisMonth.toLocaleString()} this month
+              </span>
+            </>
           }
-          sublabel="Completed tests only"
-          icon={<Wallet size={18} />}
-          accent="amber"
+          aside={
+            <HeroPulse
+              icon={<CalendarDays size={20} strokeWidth={2.3} aria-hidden />}
+              label="Next collection"
+              value={nextDate ? formatDayLabel(nextDate) : "—"}
+              sub={
+                next
+                  ? [next.itemName || next.packageName || "Test booking", extractTime(next.scheduledTimeSlot)]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : "No booking scheduled"
+              }
+            />
+          }
+          actions={
+            <>
+              <Link href="/patient/records" className={HERO_GHOST}>
+                <FlaskConical size={15} aria-hidden />
+                Past reports
+              </Link>
+              <Link href="/patient/diagnostic-tests" className={HERO_PRIMARY}>
+                <Plus size={15} className="text-sky-600" aria-hidden />
+                Book a test
+              </Link>
+            </>
+          }
         />
-      </section>
 
-      {/* ── 3. Tabs ─────────────────────────────────────────────────── */}
-      <SegmentedTabs
-        ariaLabel="Booking filters"
-        activeId={tab}
-        onChange={(id) => setTab(id)}
-        tabs={TABS.map((t) => {
-          const count =
-            t.key === ""
-              ? counts.all
-              : t.key === "active"
-                ? counts.upcoming
-                : t.key === "completed"
-                  ? counts.completed
-                  : counts.cancelled;
-          return {
-            id: t.key,
-            label: (
-              <>
-                <span>{t.label}</span>
-                <span className="inline-grid min-h-[20px] min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-bold tracking-wide">
-                  {count}
-                </span>
-              </>
-            ),
-          };
-        })}
-      />
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="All bookings"
+            icon={<FlaskConical size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(counts.all)}
+            sub={`${counts.completed} completed`}
+            active={tab === ""}
+            onClick={() => setTab("")}
+          />
+          <StatTile
+            label="Upcoming"
+            icon={<Clock3 size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(counts.upcoming)}
+            sub={counts.upcoming > 0 ? "Awaiting collection or lab" : "All clear"}
+            pulse={counts.upcoming > 0}
+            badge={counts.upcoming > 0 ? { text: "Live", tone: "bg-amber-50 text-amber-700" } : undefined}
+            active={tab === "active"}
+            onClick={() => setTab("active")}
+          />
+          <StatTile
+            label="Completed"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(counts.completed)}
+            sub="Reports available"
+            active={tab === "completed"}
+            onClick={() => setTab("completed")}
+          />
+          <StatTile
+            label="Cancelled"
+            icon={<XCircle size={16} />}
+            tone="bg-rose-50 text-rose-600"
+            value={String(counts.cancelled)}
+            sub="Won't proceed"
+            active={tab === "cancelled"}
+            onClick={() => setTab("cancelled")}
+          />
+        </HeroOverlap>
+      </div>
 
-      {/* ── 4. Bookings list ────────────────────────────────────────── */}
-      <Card className="!p-0 overflow-hidden">
-        <QueryBoundary
-          query={query}
-          loadingCount={3}
-          emptyTitle="No bookings here"
-          emptyDescription="Try a different tab, or book your first lab test."
-        >
-          {(data) => {
-            const list = (data?.bookings ?? []).slice().sort((a, b) => {
-              const ta = a.scheduledAt
-                ? new Date(a.scheduledAt).getTime()
-                : a.scheduledDate
-                  ? new Date(a.scheduledDate).getTime()
-                  : 0;
-              const tb = b.scheduledAt
-                ? new Date(b.scheduledAt).getTime()
-                : b.scheduledDate
-                  ? new Date(b.scheduledDate).getTime()
-                  : 0;
-              return tb - ta; // newest first
-            });
-
-            if (list.length === 0) {
-              return <EmptyBookings onBook={() => setTab("")} />;
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="bk-list">
+          <PanelHeader
+            id="bk-list"
+            icon={<FlaskConical size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title="Bookings"
+            caption={query.isLoading ? "Loading…" : `${list.length} shown · newest first`}
+            action={
+              <Link href="/patient/diagnostic-tests" className={SECONDARY_BTN}>
+                <Plus size={13} aria-hidden />
+                <span className="hidden sm:inline">Book a test</span>
+              </Link>
             }
+          />
 
-            return (
-              <ul className="flex flex-col">
-                {list.map((b, idx) => (
-                  <BookingCard
-                    key={b.id}
-                    booking={b}
-                    isLast={idx === list.length - 1}
-                  />
-                ))}
-              </ul>
-            );
-          }}
-        </QueryBoundary>
-      </Card>
-    </div>
+          <div className="mt-5">
+            <Segmented<string>
+              ariaLabel="Booking filters"
+              value={tab}
+              onChange={setTab}
+              options={TABS.map((t) => ({
+                value: t.key,
+                label: t.label,
+                count:
+                  t.key === ""
+                    ? counts.all
+                    : t.key === "active"
+                      ? counts.upcoming
+                      : t.key === "completed"
+                        ? counts.completed
+                        : counts.cancelled,
+              }))}
+            />
+          </div>
+
+          {query.isLoading ? (
+            <PanelSkeleton rows={4} />
+          ) : query.isError ? (
+            <PanelError onRetry={() => void query.refetch()} />
+          ) : list.length === 0 ? (
+            <EmptyBlock
+              icon={<FlaskConical size={19} />}
+              title="No bookings here"
+              body="Schedule a lab test or checkup package — your bookings, status, and reports will all live here."
+              actions={
+                <>
+                  <Link
+                    href="/patient/diagnostic-tests"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+                  >
+                    <Plus size={13} aria-hidden />
+                    Book a test
+                  </Link>
+                  {tab !== "" ? (
+                    <button type="button" onClick={() => setTab("")} className={SECONDARY_BTN}>
+                      View all bookings
+                    </button>
+                  ) : null}
+                </>
+              }
+            />
+          ) : (
+            <div className="mt-5 space-y-3">
+              {list.map((b) => (
+                <BookingCard key={b.id} booking={b} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Booking tools">
+          <QuickToolsPanel
+            id="bk-tools"
+            tools={[
+              { href: "/patient/diagnostic-tests", label: "Book a test", hint: "Browse tests", icon: FlaskConical, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+              { href: "/patient/diagnostic-tests/packages", label: "Packages", hint: "Bundled deals", icon: TestTube2, tone: "from-teal-500 to-emerald-600 shadow-teal-500/30" },
+              { href: "/patient/records", label: "Records", hint: "Past reports", icon: Activity, tone: "from-slate-600 to-slate-800 shadow-slate-500/30" },
+            ]}
+          />
+          <PromoCard
+            href="/patient/diagnostic-tests/packages"
+            kicker="Better value"
+            icon={<TestTube2 size={21} aria-hidden />}
+            title="Bundle tests in a package"
+            body="Accredited lab bundles at one discounted price"
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
  *  Booking card
  * ──────────────────────────────────────────────────────────────────── */
-function BookingCard({
-  booking: b,
-  isLast,
-}: {
-  booking: BookingRow;
-  isLast: boolean;
-}) {
+function BookingCard({ booking: b }: { booking: BookingRow }) {
   const stage = pipelineIndex(b.status);
   const isCancelled = b.status === "cancelled";
   const isCompleted = b.status === "completed";
@@ -418,125 +432,117 @@ function BookingCard({
     ? `${b.scheduledDate}T00:00:00`
     : (b.scheduledAt ?? null);
   const time = extractTime(b.scheduledTimeSlot);
+  const tone = statusTone(b.status);
 
   return (
-    <li
-      className={cn(
-        "relative transition-colors hover:bg-surface-2/60",
-        !isLast && "border-b border-border",
-      )}
-    >
-      <Link
-        href={`/patient/diagnostic-tests/bookings/${b.id}`}
-        className="group flex flex-col sm:flex-row gap-4 p-4 sm:p-5"
-      >
+    <Link href={`/patient/diagnostic-tests/bookings/${b.id}`} className={BOOKING_CARD}>
+      <RowAccent
+        className={
+          tone === "emerald"
+            ? "bg-emerald-500"
+            : tone === "amber"
+              ? "bg-amber-400"
+              : tone === "rose"
+                ? "bg-rose-500"
+                : tone === "sky"
+                  ? "bg-sky-500"
+                  : "bg-slate-300"
+        }
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
         {/* Date chip — left rail */}
         <DateChip iso={date} status={b.status} />
 
         {/* Main content */}
         <div className="min-w-0 flex-1">
-          {/* Row 1: Title + status pill */}
           <div className="flex flex-wrap items-start gap-2 sm:gap-3">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)",
-                  }}
-                  aria-hidden
-                >
-                  <FlaskConical size={13} />
-                </span>
-                <h3 className="text-[14.5px] font-bold text-text truncate">
-                  {name}
-                </h3>
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-text-soft">
+              <h3 className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
+                {name}
+              </h3>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-slate-500">
                 {time ? (
                   <span className="inline-flex items-center gap-1">
-                    <Clock size={11} className="text-text-muted" />
+                    <Clock3 size={11} className="text-slate-400" aria-hidden />
                     {time}
                   </span>
                 ) : null}
                 {b.labName ? (
                   <span className="inline-flex items-center gap-1">
-                    <MapPin size={11} className="text-text-muted" />
+                    <MapPin size={11} className="text-slate-400" aria-hidden />
                     {b.labName}
                   </span>
                 ) : null}
-                <span className="font-mono text-[10.5px] text-text-muted">
+                <span className="font-mono text-[10.5px] text-slate-400">
                   #{shortId(b.id)}
                 </span>
                 {b.scheduledAt ? (
-                  <span className="inline-flex items-center gap-1 text-text-muted">
-                    <Timer size={11} />
+                  <span className="inline-flex items-center gap-1 text-slate-400">
+                    <Timer size={11} aria-hidden />
                     {formatRelative(b.scheduledAt)}
                   </span>
                 ) : null}
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <StatusPill tone={statusTone(b.status)} icon={pillIcon(b.status)}>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <Badge tone={tone}>
+                {pillIcon(b.status)}
                 {humanize(b.status)}
-              </StatusPill>
+              </Badge>
               {b.paymentStatus ? (
-                <StatusPill tone={paymentTone(b.paymentStatus)}>
+                <Badge tone={paymentTone(b.paymentStatus)}>
                   {humanize(b.paymentStatus)}
-                </StatusPill>
+                </Badge>
               ) : null}
-            </div>
-          </div>
-
-          {/* Row 2: progress pipeline (hidden for cancelled) */}
-          {!isCancelled ? (
-            <div className="mt-4">
-              <Pipeline progress={stage} />
-            </div>
-          ) : (
-            <div className="mt-4 flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50/70 px-3 py-2 text-[11.5px] text-rose-700">
-              <XCircle size={13} />
-              <span className="font-semibold">Cancelled</span>
-              <span className="text-rose-600/80">
-                · This booking won't proceed. You can book a new test any time.
-              </span>
-            </div>
-          )}
-
-          {/* Row 3: footer — price + quick actions */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-dashed border-border">
-            <div className="flex items-center gap-3 text-[12px]">
-              {total != null ? (
-                <span className="inline-flex items-baseline gap-1">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wider text-text-muted">
-                    Total
-                  </span>
-                  <span className="font-extrabold text-text tabular-nums">
-                    LKR {total.toLocaleString()}
-                  </span>
-                </span>
-              ) : null}
-              {isCompleted ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                  <CheckCircle2 size={12} />
-                  Report ready
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-text-soft group-hover:text-brand transition-colors">
-              <span>View details</span>
-              <ChevronRight
-                size={14}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
             </div>
           </div>
         </div>
-      </Link>
-    </li>
+      </div>
+
+      {/* Progress pipeline (hidden for cancelled) */}
+      {!isCancelled ? (
+        <div className="pl-1 sm:pl-[92px]">
+          <Pipeline progress={stage} />
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 rounded-lg bg-rose-50/70 px-3 py-2 text-[11.5px] text-rose-700 shadow-[inset_0_0_0_1px_rgba(225,29,72,0.15)]">
+          <XCircle size={13} aria-hidden />
+          <span className="font-semibold">Cancelled</span>
+          <span className="text-rose-600/80">
+            · This booking won&rsquo;t proceed. You can book a new test any time.
+          </span>
+        </div>
+      )}
+
+      {/* Footer — price + quick actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-dashed border-slate-200 pt-3">
+        <div className="flex items-center gap-3 text-[12px]">
+          {total != null ? (
+            <span className="inline-flex items-baseline gap-1">
+              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
+                Total
+              </span>
+              <span className="font-bold tabular-nums text-slate-900">
+                LKR {total.toLocaleString()}
+              </span>
+            </span>
+          ) : null}
+          {isCompleted ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+              <CheckCircle2 size={12} aria-hidden />
+              Report ready
+            </span>
+          ) : null}
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 transition-colors group-hover:text-sky-700">
+          View details
+          <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -556,19 +562,16 @@ function Pipeline({ progress }: { progress: number }) {
           return (
             <div
               key={s.key}
-              className="flex flex-col items-center min-w-0 flex-1 relative"
+              className="relative flex min-w-0 flex-1 flex-col items-center"
             >
               {/* Connector to previous */}
               {i > 0 ? (
                 <div
                   className={cn(
-                    "absolute top-3.5 right-1/2 -translate-y-1/2 h-0.5 -z-0",
-                    i <= progress ? "bg-brand" : "bg-border",
+                    "absolute right-1/2 top-3.5 -z-0 h-0.5 -translate-y-1/2",
+                    i <= progress ? "bg-sky-600" : "bg-slate-200",
                   )}
-                  style={{
-                    left: "-50%",
-                    right: "50%",
-                  }}
+                  style={{ left: "-50%", right: "50%" }}
                 />
               ) : null}
 
@@ -576,9 +579,9 @@ function Pipeline({ progress }: { progress: number }) {
                 className={cn(
                   "relative z-10 grid h-7 w-7 place-items-center rounded-full transition-colors",
                   done
-                    ? "bg-brand text-white shadow-sm shadow-brand/30"
-                    : "bg-surface-2 text-text-muted border border-border",
-                  current && "ring-4 ring-brand/15",
+                    ? "bg-sky-600 text-white shadow-sm shadow-sky-600/30"
+                    : "bg-slate-50 text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)]",
+                  current && "ring-4 ring-sky-100",
                 )}
                 aria-hidden
               >
@@ -591,7 +594,7 @@ function Pipeline({ progress }: { progress: number }) {
               <span
                 className={cn(
                   "mt-1.5 text-[10px] font-semibold uppercase tracking-wider",
-                  done ? "text-brand" : "text-text-muted",
+                  done ? "text-sky-700" : "text-slate-400",
                 )}
               >
                 {s.label}
@@ -618,8 +621,8 @@ function DateChip({
 }) {
   if (!iso) {
     return (
-      <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0 sm:w-[78px] sm:shrink-0 rounded-md border border-dashed border-border bg-surface-2/60 px-3 py-2 sm:py-3 text-center">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+      <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-center shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)] sm:w-[78px] sm:shrink-0 sm:flex-col sm:gap-0 sm:py-3">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           TBD
         </span>
       </div>
@@ -634,112 +637,31 @@ function DateChip({
   return (
     <div
       className={cn(
-        "flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0 sm:w-[78px] sm:shrink-0 rounded-md border px-3 py-2 sm:py-3 text-center transition-colors",
+        "flex items-center gap-2 rounded-lg px-3 py-2 text-center transition-colors sm:w-[78px] sm:shrink-0 sm:flex-col sm:gap-0 sm:py-3",
         faded
-          ? "border-border bg-surface-1 text-text-soft"
-          : "border-brand/30 bg-brand-soft text-brand",
+          ? "bg-slate-50 text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]"
+          : "bg-sky-50 text-sky-700 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.25)]",
       )}
     >
       <span
         className={cn(
           "text-[10px] font-bold uppercase tracking-[0.14em]",
-          faded ? "text-text-muted" : "text-brand",
+          faded ? "text-slate-400" : "text-sky-600",
         )}
       >
         {weekday}
       </span>
-      <span className="text-2xl font-extrabold tabular-nums leading-none">
+      <span className="text-2xl font-bold leading-none tabular-nums">
         {day}
       </span>
       <span
         className={cn(
           "text-[10px] font-bold uppercase tracking-wider",
-          faded ? "text-text-muted" : "text-brand/80",
+          faded ? "text-slate-400" : "text-sky-600/80",
         )}
       >
-        {month} '{year}
+        {month} &rsquo;{year}
       </span>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
- *  Next-upcoming inline card inside the hero
- * ──────────────────────────────────────────────────────────────────── */
-function NextUpcomingCard({ booking }: { booking: BookingRow }) {
-  const name = booking.itemName || booking.packageName || "Test booking";
-  const date = booking.scheduledDate
-    ? `${booking.scheduledDate}T00:00:00`
-    : (booking.scheduledAt ?? null);
-  const dayLabel = date ? formatDayLabel(date) : "TBD";
-  const time = extractTime(booking.scheduledTimeSlot);
-  return (
-    <div className="mt-4 inline-flex flex-col gap-1 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md px-4 py-3 max-w-md">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300 inline-flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        Next up
-      </span>
-      <span className="text-sm font-bold text-white truncate">{name}</span>
-      <span className="text-[12px] text-sky-100/80 inline-flex items-center gap-3">
-        <span className="inline-flex items-center gap-1">
-          <CalendarDays size={11} />
-          {dayLabel}
-        </span>
-        {time ? (
-          <span className="inline-flex items-center gap-1">
-            <Clock size={11} />
-            {time}
-          </span>
-        ) : null}
-        {booking.labName ? (
-          <span className="inline-flex items-center gap-1">
-            <Home size={11} />
-            {booking.labName}
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
- *  Empty state — when there are no bookings in the active tab
- * ──────────────────────────────────────────────────────────────────── */
-function EmptyBookings({ onBook }: { onBook: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center text-center px-6 py-14">
-      <div
-        className="h-16 w-16 rounded-2xl grid place-items-center mb-4"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(14,165,233,0.18) 0%, rgba(2,132,199,0.18) 100%)",
-        }}
-        aria-hidden
-      >
-        <FlaskConical size={26} className="text-sky-700" strokeWidth={1.7} />
-      </div>
-      <h3 className="text-[15px] font-bold text-text">No bookings here yet</h3>
-      <p className="mt-1.5 text-[12.5px] text-text-soft max-w-sm leading-relaxed">
-        Schedule a lab test or checkup package — your bookings, status, and
-        reports will all live here.
-      </p>
-      <div className="mt-5 flex flex-wrap items-center gap-2 justify-center">
-        <Link
-          href="/patient/diagnostic-tests"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand px-3.5 text-[12.5px] font-semibold text-white shadow-sm hover:bg-brand/90 transition-colors"
-        >
-          <Plus size={13} />
-          Book a test
-        </Link>
-        <button
-          type="button"
-          onClick={onBook}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface-1 px-3.5 text-[12.5px] font-semibold text-text-soft hover:border-brand/40 hover:text-text transition-colors"
-        >
-          <RotateCcw size={12} />
-          View all bookings
-        </button>
-      </div>
     </div>
   );
 }
@@ -750,11 +672,10 @@ function EmptyBookings({ onBook }: { onBook: () => void }) {
 function pillIcon(status: string) {
   switch (status) {
     case "completed":
+    case "confirmed":
       return <CheckCircle2 size={11} />;
     case "cancelled":
       return <XCircle size={11} />;
-    case "confirmed":
-      return <CheckCircle2 size={11} />;
     case "in_progress":
     case "processing":
     case "sample_collected":
@@ -763,7 +684,7 @@ function pillIcon(status: string) {
     case "phlebotomist_assigned":
       return <MapPin size={11} />;
     default:
-      return <Clock size={11} />;
+      return <Clock3 size={11} />;
   }
 }
 

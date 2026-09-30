@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -12,23 +12,29 @@ import {
   Phone,
   Mail,
   CalendarClock,
-  Sparkles,
   LayoutGrid,
   List as ListIcon,
-  ArrowUpDown,
-  Stethoscope,
   CalendarPlus,
   DoorOpen,
   HeartPulse,
-  ExternalLink,
+  Droplet,
   X,
+  Loader2,
 } from "lucide-react";
 
 import { api, qk } from "@/portal/lib/api";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
+import { Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
-import { ageFrom, relativeTime } from "@/portal/lib/format";
+import { ageFrom, formatDate, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 
 interface PatientRow {
   patient: {
@@ -50,6 +56,26 @@ interface SearchResponse {
 
 type ViewMode = "list" | "grid";
 type SortMode = "recent" | "name";
+type Filter = "all" | "active" | "female" | "male";
+
+const ACTIVE_WINDOW_DAYS = 30;
+
+function sexOf(sex?: string | null): "F" | "M" | null {
+  const s = sex?.trim().toLowerCase();
+  if (s === "f" || s === "female") return "F";
+  if (s === "m" || s === "male") return "M";
+  return null;
+}
+
+function sexLabel(sex?: string | null) {
+  const s = sexOf(sex);
+  return s === "F" ? "Female" : s === "M" ? "Male" : sex || null;
+}
+
+function isActive(row: PatientRow) {
+  if (!row.lastVisitAt) return false;
+  return (Date.now() - +new Date(row.lastVisitAt)) / 86_400_000 <= ACTIVE_WINDOW_DAYS;
+}
 
 export default function PatientsPage() {
   const searchParams = useSearchParams();
@@ -58,11 +84,26 @@ export default function PatientsPage() {
   const [debounced, setDebounced] = useState(initialQ.trim());
   const [view, setView] = useState<ViewMode>("list");
   const [sort, setSort] = useState<SortMode>("recent");
+  const [filter, setFilter] = useState<Filter>("all");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const id = setTimeout(() => setDebounced(q.trim()), 300);
     return () => clearTimeout(id);
   }, [q]);
+
+  // "/" focuses the registry search (unless already typing somewhere).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const { data: searchData, isLoading: searchLoading, isFetching } = useQuery({
     queryKey: qk.patientSearch({ q: debounced }),
@@ -75,7 +116,7 @@ export default function PatientsPage() {
   });
 
   const { data: recentData, isLoading: recentLoading } = useQuery({
-    queryKey: [...qk.recentPatients, sort],
+    queryKey: qk.recentPatients,
     queryFn: () =>
       api<SearchResponse>(`/doctor/search-patients?recent=1&limit=50`),
     staleTime: 60_000,
@@ -85,8 +126,28 @@ export default function PatientsPage() {
   const rawRows = isSearching ? searchData?.patients ?? [] : recentData?.patients ?? [];
   const loading = isSearching ? searchLoading : recentLoading;
 
+  // Panel stats always describe the recent panel, not the search results.
+  const stats = useMemo(() => {
+    const panel = recentData?.patients ?? [];
+    const total = panel.length;
+    const female = panel.filter((r) => sexOf(r.patient.sex) === "F").length;
+    const male = panel.filter((r) => sexOf(r.patient.sex) === "M").length;
+    return {
+      total,
+      female,
+      male,
+      withBlood: panel.filter((r) => r.patient.bloodGroup).length,
+      recent: panel.filter(isActive).length,
+    };
+  }, [recentData]);
+
   const rows = useMemo(() => {
-    const out = rawRows.slice();
+    const out = rawRows.filter((r) => {
+      if (filter === "active") return isActive(r);
+      if (filter === "female") return sexOf(r.patient.sex) === "F";
+      if (filter === "male") return sexOf(r.patient.sex) === "M";
+      return true;
+    });
     if (sort === "name") {
       out.sort((a, b) => a.user.name.localeCompare(b.user.name));
     } else {
@@ -97,430 +158,343 @@ export default function PatientsPage() {
       });
     }
     return out;
-  }, [rawRows, sort]);
+  }, [rawRows, sort, filter]);
 
-  const stats = useMemo(() => {
-    const total = rawRows.length;
-    const withBlood = rawRows.filter((r) => r.patient.bloodGroup).length;
-    const female = rawRows.filter(
-      (r) => r.patient.sex?.toUpperCase() === "F",
-    ).length;
-    const recent = rawRows.filter((r) => {
-      if (!r.lastVisitAt) return false;
-      const days = (Date.now() - +new Date(r.lastVisitAt)) / 86_400_000;
-      return days <= 30;
-    }).length;
-    return { total, withBlood, female, recent };
-  }, [rawRows]);
+  const filterCounts: Record<Filter, number> = {
+    all: rawRows.length,
+    active: rawRows.filter(isActive).length,
+    female: rawRows.filter((r) => sexOf(r.patient.sex) === "F").length,
+    male: rawRows.filter((r) => sexOf(r.patient.sex) === "M").length,
+  };
+
+  const pct = (n: number) => (stats.total > 0 ? Math.round((n / stats.total) * 100) : 0);
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* ── 1. Signature Oceanic Doctor Patients Hero ──────────────────────── */}
-      <header
-        className="dashboard-hero relative rounded-2xl p-6 md:p-7 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #0C4A6E 0%, #0369A1 40%, #0E7490 70%, #0C8B8C 100%)",
-          boxShadow:
-            "0 12px 36px rgba(3, 105, 161, 0.25), 0 2px 8px rgba(14, 116, 144, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 60%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 border border-white/20 text-sky-200 backdrop-blur-md mb-2">
-                <Users size={12} className="text-sky-300" />
-                Master Patient Index (MPI)
-              </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                Patient Registry &amp; Charts
-              </h1>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">
-                Search your clinical panel by name, National Identity Card (NIC), phone, or HealthHub ID. Access longitudinal health records, prescriptions, and lab panels.
-              </p>
-            </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-              <Link
-                href="/portal/schedule"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/25 transition-all backdrop-blur-md hover:scale-[1.02]"
-              >
-                <CalendarPlus size={13} />
-                <span>My Schedule</span>
+    <div className="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 pb-10">
+      {/* ── 1. Hero + floating stat strip ─────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<Users size={13} aria-hidden />}
+          kicker="Master patient index"
+          kickerMeta={recentLoading ? "Loading panel…" : `${stats.total} on your panel`}
+          title={
+            <>
+              Patient{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                registry
+              </span>
+            </>
+          }
+          description="Find anyone on your panel by name, NIC or phone and jump straight into their chart."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <span className="relative flex h-2 w-2" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                </span>
+                {stats.recent} seen in {ACTIVE_WINDOW_DAYS} days
+              </span>
+              <span className={HERO_CHIP}>
+                <kbd className="rounded border border-white/20 px-1 font-mono text-[10px] text-white/70">/</kbd>
+                to search
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/portal/schedule" className={HERO_GHOST}>
+                <CalendarPlus size={15} aria-hidden />
+                My schedule
               </Link>
-              <Link
-                href="/portal/walk-ins"
-                className="hero-action-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-900 bg-white hover:bg-sky-50 transition-all shadow-md hover:scale-[1.02]"
-                style={{ color: "#0c4a6e" }}
-              >
-                <DoorOpen size={14} className="text-sky-700" style={{ color: "#0284c7" }} />
-                <span style={{ color: "#0c4a6e" }}>+ Check In Walk-In</span>
+              <Link href="/portal/walk-ins" className={HERO_PRIMARY}>
+                <DoorOpen size={15} className="text-sky-600" aria-hidden />
+                Check in walk-in
               </Link>
-            </div>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3.5 border-t border-white/15 text-white">
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-sky-400/30 flex items-center justify-center text-sky-200 shrink-0">
-                <Users size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Panel Size
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.total} Patients
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <CalendarClock size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Active (30d)
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.recent} Visited
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <HeartPulse size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-amber-200 truncate">
-                  Blood Group
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.withBlood} Verified
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <Stethoscope size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Demographics
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {stats.female}F · {stats.total - stats.female}M
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Four Telemetry KPI Tiles ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <StatTile
-          icon={<Users size={18} />}
-          label="Total Clinical Panel"
-          value={stats.total}
-          tone="brand"
-          sub="Registered under your care"
-        />
-        <StatTile
-          icon={<CalendarClock size={18} />}
-          label="Active Encounters (30d)"
-          value={stats.recent}
-          tone="success"
-          sub={
-            stats.total > 0
-              ? `${Math.round((stats.recent / stats.total) * 100)}% of panel seen`
-              : "No encounters"
+            </>
           }
         />
-        <StatTile
-          icon={<HeartPulse size={18} />}
-          label="Blood Group Recorded"
-          value={stats.withBlood}
-          tone="info"
-          sub="ABO/Rh typing confirmed"
-        />
-        <StatTile
-          icon={<Stethoscope size={18} />}
-          label="Female / Male Patients"
-          value={`${stats.female} / ${stats.total - stats.female}`}
-          tone="violet"
-          sub="Gender demographic split"
-        />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Panel size"
+            icon={<Users size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={recentLoading ? "…" : String(stats.total)}
+            sub="Patients under your care"
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          <StatTile
+            label={`Seen in ${ACTIVE_WINDOW_DAYS} days`}
+            icon={<CalendarClock size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={recentLoading ? "…" : String(stats.recent)}
+            sub={`${pct(stats.recent)}% of panel`}
+            progress={stats.total > 0 ? pct(stats.recent) : null}
+            active={filter === "active"}
+            onClick={() => setFilter("active")}
+          />
+          <StatTile
+            label="Blood group on file"
+            icon={<HeartPulse size={16} />}
+            tone="bg-rose-50 text-rose-600"
+            value={recentLoading ? "…" : String(stats.withBlood)}
+            sub={`${pct(stats.withBlood)}% typed`}
+            progress={stats.total > 0 ? pct(stats.withBlood) : null}
+          />
+          <StatTile
+            label="Female · Male"
+            icon={<Users size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={recentLoading ? "…" : `${stats.female} · ${stats.male}`}
+            sub={
+              stats.total - stats.female - stats.male > 0
+                ? `${stats.total - stats.female - stats.male} unspecified`
+                : "Demographic split"
+            }
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 3. Search & Patient Records Stage ───────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden flex flex-col">
-        {/* Search Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <Search size={13} className="text-sky-600" />
-              <span>Find a Patient</span>
-            </span>
-            {isFetching && (
-              <span className="text-[11px] font-semibold text-sky-700 inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-sky-600 animate-ping" />
-                Searching clinical registry…
-              </span>
-            )}
-          </div>
-
+      {/* ── 2. Directory ─────────────────────────────────────────────── */}
+      <section className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+        {/* Search */}
+        <div className="p-4 sm:p-5 flex flex-col gap-3.5 border-b border-slate-100">
           <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
             <input
+              ref={inputRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by legal name, National Identity Card (NIC), phone number…"
-              className="w-full h-12 pl-10 pr-10 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all shadow-2xs"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setQ("");
+              }}
+              placeholder="Search by name, NIC (e.g. 199012345678) or phone (e.g. 0771234567)…"
+              aria-label="Search patients"
+              className="w-full h-12 pl-11 pr-20 rounded-xl border border-slate-200 bg-slate-50/60 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all"
             />
-            {q.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
-              >
-                <X size={13} />
-              </button>
-            )}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              {isFetching && isSearching ? (
+                <Loader2 size={15} className="text-sky-600 animate-spin" />
+              ) : null}
+              {q.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQ("");
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  className="h-7 w-7 rounded-lg bg-slate-200/70 hover:bg-slate-300/70 text-slate-600 flex items-center justify-center cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              ) : (
+                <kbd className="hidden sm:inline-flex h-6 min-w-6 px-1.5 items-center justify-center rounded-md border border-slate-200 bg-white text-[11px] font-semibold text-slate-400">
+                  /
+                </kbd>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-500 flex-wrap">
-            <span className="inline-flex items-center gap-1">
-              <Hash size={11} className="text-slate-400" /> NIC e.g. 199012345678
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Phone size={11} className="text-slate-400" /> Phone e.g. 0771234567
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Sparkles size={11} className="text-slate-400" /> Full or partial legal name
-            </span>
+          {/* Filters + view controls */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {(
+                [
+                  ["all", "All"],
+                  ["active", `Seen ≤${ACTIVE_WINDOW_DAYS}d`],
+                  ["female", "Female"],
+                  ["male", "Male"],
+                ] as const
+              ).map(([key, label]) => {
+                const on = filter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFilter(key)}
+                    aria-pressed={on}
+                    style={on ? { backgroundColor: "#07233a", color: "#ffffff", borderColor: "#07233a" } : undefined}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-semibold transition-colors cursor-pointer",
+                      !on && "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
+                    )}
+                  >
+                    {label}
+                    <span
+                      className={cn(
+                        "tabular-nums text-[11px] font-bold",
+                        on ? "text-white/70" : "text-slate-400",
+                      )}
+                    >
+                      {filterCounts[key]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Segmented
+                value={sort}
+                onChange={setSort}
+                options={[
+                  { value: "recent", label: "Recent" },
+                  { value: "name", label: "A–Z" },
+                ]}
+              />
+              <Segmented
+                value={view}
+                onChange={setView}
+                options={[
+                  { value: "list", label: <ListIcon size={15} />, title: "List view" },
+                  { value: "grid", label: <LayoutGrid size={15} />, title: "Grid view" },
+                ]}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Toolbar */}
-        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">
-              {isSearching ? `Search Results (${searchData?.count ?? rows.length})` : "Recent Patients"}
-            </span>
-            <span className="text-xs text-slate-400">·</span>
-            <span className="text-xs text-slate-500">{rows.length} shown</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Sort chips */}
-            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
-              <button
-                type="button"
-                onClick={() => setSort("recent")}
-                style={{
-                  backgroundColor: sort === "recent" ? "#0284c7" : "transparent",
-                  color: sort === "recent" ? "#ffffff" : "#475569",
-                }}
-                className="h-7 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
-              >
-                <ArrowUpDown size={11} />
-                <span>Recent</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSort("name")}
-                style={{
-                  backgroundColor: sort === "name" ? "#0284c7" : "transparent",
-                  color: sort === "name" ? "#ffffff" : "#475569",
-                }}
-                className="h-7 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
-              >
-                <span>A → Z</span>
-              </button>
-            </div>
-
-            {/* View chips */}
-            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
-              <button
-                type="button"
-                onClick={() => setView("list")}
-                style={{
-                  backgroundColor: view === "list" ? "#0c4a6e" : "transparent",
-                  color: view === "list" ? "#ffffff" : "#64748b",
-                }}
-                className="h-7 w-7 rounded-lg inline-flex items-center justify-center transition-all cursor-pointer"
-                title="List View"
-              >
-                <ListIcon size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setView("grid")}
-                style={{
-                  backgroundColor: view === "grid" ? "#0c4a6e" : "transparent",
-                  color: view === "grid" ? "#ffffff" : "#64748b",
-                }}
-                className="h-7 w-7 rounded-lg inline-flex items-center justify-center transition-all cursor-pointer"
-                title="Grid View"
-              >
-                <LayoutGrid size={14} />
-              </button>
-            </div>
-          </div>
+        {/* Results caption */}
+        <div className="px-5 pt-3.5 pb-2 flex items-center gap-2 text-xs">
+          <span className="font-bold text-slate-900">
+            {isSearching ? `Results for "${debounced}"` : "Recent patients"}
+          </span>
+          <span className="text-slate-400">
+            {rows.length} {rows.length === 1 ? "patient" : "patients"}
+          </span>
         </div>
 
         {/* Content */}
-        <div>
-          {loading ? (
-            <div className="p-5 flex flex-col gap-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-11 w-11 rounded-2xl" />
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    <Skeleton className="h-3.5 w-1/3" />
-                    <Skeleton className="h-3 w-1/4" />
-                  </div>
+        {loading ? (
+          <div className="px-5 pb-5 flex flex-col gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <Skeleton className="h-3.5 w-1/3" />
+                  <Skeleton className="h-3 w-1/4" />
                 </div>
-              ))}
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shadow-xs">
-                <Users size={26} />
+                <Skeleton className="h-3 w-20 hidden md:block" />
               </div>
-              <div className="max-w-md">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  {isSearching ? `No patients match "${debounced}"` : "No Patients on Record"}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  {isSearching
-                    ? "Try adjusting your search by entering a different phone number, NIC, or partial name."
-                    : "When patients are registered or checked in for appointments, they will appear here in your master patient index."}
-                </p>
-              </div>
+            ))}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-14 px-4 flex flex-col items-center justify-center text-center gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center ring-1 ring-sky-100">
+              <Search size={24} />
             </div>
-          ) : view === "list" ? (
+            <div className="max-w-md">
+              <h3 className="text-base font-bold text-slate-900">
+                {isSearching
+                  ? `No patients match "${debounced}"`
+                  : filter !== "all"
+                    ? "No patients match this filter"
+                    : "No patients on record yet"}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                {isSearching
+                  ? "Check the spelling, or try a full NIC or phone number instead."
+                  : filter !== "all"
+                    ? "Try a different filter to see more of your panel."
+                    : "Patients appear here once they're registered or checked in for a visit."}
+              </p>
+            </div>
+            {isSearching || filter !== "all" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQ("");
+                  setFilter("all");
+                }}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+              >
+                <X size={13} />
+                Clear search &amp; filters
+              </button>
+            ) : (
+              <Link
+                href="/portal/walk-ins"
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700"
+              >
+                <DoorOpen size={14} />
+                Check in a walk-in
+              </Link>
+            )}
+          </div>
+        ) : view === "list" ? (
+          <div>
+            <div className="hidden md:grid grid-cols-[minmax(0,2.2fr)_minmax(0,1.6fr)_90px_minmax(0,1fr)_32px] gap-4 px-5 py-2 border-y border-slate-100 bg-slate-50/70 text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+              <span>Patient</span>
+              <span>Contact</span>
+              <span>Blood</span>
+              <span>Last encounter</span>
+              <span />
+            </div>
             <ul className="divide-y divide-slate-100">
               {rows.map((p) => (
                 <PatientListRow key={p.patient.id} row={p} />
               ))}
             </ul>
-          ) : (
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {rows.map((p) => (
-                <PatientCard key={p.patient.id} row={p} />
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="px-5 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+            {rows.map((p) => (
+              <PatientCard key={p.patient.id} row={p} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
 }
 
-function StatTile({
-  icon,
-  label,
+function Segmented<T extends string>({
   value,
-  sub,
-  tone = "neutral",
+  onChange,
+  options,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  sub?: string;
-  tone?: "neutral" | "brand" | "success" | "warn" | "danger" | "info" | "violet";
+  value: T;
+  onChange: (v: T) => void;
+  options: Array<{ value: T; label: React.ReactNode; title?: string }>;
 }) {
-  const cfg = {
-    brand: {
-      border: "border-sky-200 bg-sky-50/40",
-      iconBg: "bg-sky-100 text-sky-700 border-sky-200",
-      text: "text-slate-900",
-    },
-    success: {
-      border: "border-emerald-200 bg-emerald-50/40",
-      iconBg: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      text: "text-slate-900",
-    },
-    info: {
-      border: "border-blue-200 bg-blue-50/40",
-      iconBg: "bg-blue-100 text-blue-700 border-blue-200",
-      text: "text-slate-900",
-    },
-    violet: {
-      border: "border-purple-200 bg-purple-50/40",
-      iconBg: "bg-purple-100 text-purple-700 border-purple-200",
-      text: "text-slate-900",
-    },
-    neutral: {
-      border: "border-slate-200 bg-slate-50/40",
-      iconBg: "bg-slate-100 text-slate-700 border-slate-200",
-      text: "text-slate-900",
-    },
-    warn: {
-      border: "border-amber-200 bg-amber-50/40",
-      iconBg: "bg-amber-100 text-amber-700 border-amber-200",
-      text: "text-slate-900",
-    },
-    danger: {
-      border: "border-rose-200 bg-rose-50/40",
-      iconBg: "bg-rose-100 text-rose-700 border-rose-200",
-      text: "text-slate-900",
-    },
-  }[tone];
-
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-3.5 sm:p-4 flex items-center gap-3.5 bg-white shadow-2xs transition-all",
-        cfg.border,
-      )}
-    >
-      <div
-        className={cn(
-          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs",
-          cfg.iconBg,
-        )}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="text-2xl font-black tabular-nums leading-none text-slate-900">
-          {value}
-        </div>
-        <div className="text-[11px] font-bold text-slate-600 mt-1 uppercase tracking-wide truncate">
-          {label}
-        </div>
-        {sub && (
-          <div className="text-[10px] text-slate-400 mt-0.5 truncate hidden sm:block">
-            {sub}
-          </div>
-        )}
-      </div>
+    <div className="inline-flex items-center gap-0.5 rounded-xl bg-slate-100 p-0.5">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            title={o.title}
+            aria-label={o.title}
+            aria-pressed={on}
+            className={cn(
+              "h-7 min-w-7 px-2.5 rounded-[10px] text-xs font-semibold inline-flex items-center justify-center transition-all cursor-pointer",
+              on ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
+  );
+}
+
+function BloodBadge({ group }: { group?: string | null }) {
+  if (!group) return <span className="text-xs text-slate-300">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-100">
+      <Droplet size={10} fill="currentColor" />
+      {group}
+    </span>
   );
 }
 
@@ -528,69 +502,79 @@ function PatientListRow({ row }: { row: PatientRow }) {
   const p = row.patient;
   const u = row.user;
   const age = p.dob ? ageFrom(p.dob) : null;
-  const lastVisit = row.lastVisitAt ? relativeTime(row.lastVisitAt) : null;
+  const sex = sexLabel(p.sex);
+  const demo = [age != null ? `${age} yrs` : null, sex].filter(Boolean).join(" · ");
+  const recent = isActive(row);
 
   return (
     <li>
       <Link
         href={`/portal/patients/${p.id}/overview`}
-        className="flex items-center gap-4 px-5 py-4 hover:bg-sky-50/40 transition-colors group"
+        className="group grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.6fr)_90px_minmax(0,1fr)_32px] items-center gap-4 px-5 py-3.5 hover:bg-sky-50/50 transition-colors"
       >
-        <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate">
+        {/* Patient */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate">
               {u.name}
-            </span>
-            {age != null && (
-              <span className="text-xs text-slate-500 font-medium">
-                {age}y · {p.sex ?? "—"}
-              </span>
-            )}
-            {p.bloodGroup && (
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
-                {p.bloodGroup}
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-slate-500 truncate mt-0.5 flex items-center gap-3">
-            {p.nic && (
-              <span className="inline-flex items-center gap-1">
-                <Hash size={11} className="text-slate-400" />
-                {p.nic}
-              </span>
-            )}
-            {u.phone && (
-              <span className="inline-flex items-center gap-1">
-                <Phone size={11} className="text-slate-400" />
-                {u.phone}
-              </span>
-            )}
-            {u.email && !u.phone && (
-              <span className="inline-flex items-center gap-1">
-                <Mail size={11} className="text-slate-400" />
-                {u.email}
-              </span>
-            )}
+            </div>
+            <div className="text-xs text-slate-500 truncate mt-0.5">
+              {demo || "Demographics not recorded"}
+              <span className="md:hidden">{u.phone ? ` · ${u.phone}` : ""}</span>
+            </div>
           </div>
         </div>
 
-        {lastVisit && (
-          <div className="hidden md:flex flex-col items-end shrink-0">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-              Last Encounter
+        {/* Contact */}
+        <div className="hidden md:flex flex-col gap-0.5 min-w-0 text-xs text-slate-600">
+          {u.phone ? (
+            <span className="inline-flex items-center gap-1.5 truncate">
+              <Phone size={11} className="text-slate-400 shrink-0" />
+              {u.phone}
             </span>
-            <span className="text-xs text-slate-700 font-semibold mt-0.5">
-              {lastVisit}
+          ) : null}
+          {p.nic ? (
+            <span className="inline-flex items-center gap-1.5 truncate font-mono text-[11px] text-slate-500">
+              <Hash size={11} className="text-slate-400 shrink-0" />
+              {p.nic}
             </span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-1 shrink-0 text-sky-700 font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-          <span>Open Chart</span>
-          <ChevronRight size={14} />
+          ) : null}
+          {!u.phone && !p.nic && u.email ? (
+            <span className="inline-flex items-center gap-1.5 truncate">
+              <Mail size={11} className="text-slate-400 shrink-0" />
+              {u.email}
+            </span>
+          ) : null}
+          {!u.phone && !p.nic && !u.email ? <span className="text-slate-300">—</span> : null}
         </div>
+
+        {/* Blood */}
+        <div className="hidden md:block">
+          <BloodBadge group={p.bloodGroup} />
+        </div>
+
+        {/* Last encounter */}
+        <div className="flex flex-col items-end md:items-start min-w-0">
+          {row.lastVisitAt ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                {recent ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" /> : null}
+                {relativeTime(row.lastVisitAt)}
+              </span>
+              <span className="text-[11px] text-slate-400 hidden md:inline">
+                {formatDate(row.lastVisitAt)}
+              </span>
+            </>
+          ) : (
+            <span className="text-xs text-slate-400">No visits yet</span>
+          )}
+        </div>
+
+        <ChevronRight
+          size={16}
+          className="hidden md:block text-slate-300 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all justify-self-end"
+        />
       </Link>
     </li>
   );
@@ -600,53 +584,50 @@ function PatientCard({ row }: { row: PatientRow }) {
   const p = row.patient;
   const u = row.user;
   const age = p.dob ? ageFrom(p.dob) : null;
-  const lastVisit = row.lastVisitAt ? relativeTime(row.lastVisitAt) : null;
+  const sex = sexLabel(p.sex);
+  const recent = isActive(row);
 
   return (
-    <Link href={`/portal/patients/${p.id}/overview`} className="block group">
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 hover:border-sky-300 hover:shadow-xs transition-all h-full flex flex-col justify-between shadow-2xs">
-        <div>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
-              <div className="min-w-0">
-                <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
-                  {u.name}
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {age != null ? `${age} yrs · ${p.sex ?? "—"}` : p.sex ?? "—"}
-                </p>
-              </div>
+    <Link href={`/portal/patients/${p.id}/overview`} className="block group h-full">
+      <div className="h-full flex flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs hover:border-sky-300 hover:shadow-md hover:-translate-y-0.5 transition-all">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar name={u.name} src={p.photo ?? undefined} size="md" />
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                {u.name}
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5 truncate">
+                {[age != null ? `${age} yrs` : null, sex].filter(Boolean).join(" · ") || "—"}
+              </p>
             </div>
-            {p.bloodGroup && (
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">
-                {p.bloodGroup}
-              </span>
-            )}
           </div>
-
-          <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-500">
-            {p.nic && (
-              <div className="flex items-center gap-1.5 truncate">
-                <Hash size={11} className="text-slate-400 shrink-0" />
-                <span className="truncate">{p.nic}</span>
-              </div>
-            )}
-            {u.phone && (
-              <div className="flex items-center gap-1.5 truncate">
-                <Phone size={11} className="text-slate-400 shrink-0" />
-                <span className="truncate">{u.phone}</span>
-              </div>
-            )}
-          </div>
+          {p.bloodGroup ? <BloodBadge group={p.bloodGroup} /> : null}
         </div>
 
-        {lastVisit && (
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-emerald-700 font-semibold">
-            <span>Last visit: {lastVisit}</span>
-            <ExternalLink size={12} className="text-slate-400 group-hover:text-sky-600" />
+        <div className="mt-4 flex flex-col gap-1.5 text-xs text-slate-600">
+          <span className="inline-flex items-center gap-2 truncate">
+            <Phone size={12} className="text-slate-400 shrink-0" />
+            {u.phone || <span className="text-slate-300">No phone</span>}
+          </span>
+          <span className="inline-flex items-center gap-2 truncate font-mono text-[11px] text-slate-500">
+            <Hash size={12} className="text-slate-400 shrink-0" />
+            {p.nic || <span className="font-sans text-slate-300">No NIC</span>}
+          </span>
+        </div>
+
+        <div className="mt-auto pt-3.5">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="inline-flex items-center gap-1.5 text-slate-500">
+              {recent ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
+              {row.lastVisitAt ? `Seen ${relativeTime(row.lastVisitAt)}` : "No visits yet"}
+            </span>
+            <span className="inline-flex items-center gap-0.5 font-semibold text-sky-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              Open chart
+              <ChevronRight size={13} />
+            </span>
           </div>
-        )}
+        </div>
       </div>
     </Link>
   );

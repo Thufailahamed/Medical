@@ -1,74 +1,79 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Plus } from "lucide-react";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
+import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  Hospital,
+  Package,
+  Plus,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
-import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
-import { Field, Input } from "@/portal/components/ui/Form";
-import { adminApi, adminQk } from "@/portal/lib/admin-api";
+import { adminApi } from "@/portal/lib/admin-api";
+import { formatLkr } from "@/portal/lib/format";
 import { toast } from "@/portal/components/ui/Toast";
+import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  PRIMARY_BTN,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  AdminDirectory,
+  OrgTile,
+  ROW_BTN_QUIET,
+  humanize,
+  type DirectoryRow,
+} from "@/portal/components/admin/AdminDirectory";
+import {
+  FormField,
+  MKT_INPUT,
+  PLAN_TYPES,
+  PLAN_TYPE_TONE,
+  lkrCompact,
+  slugify,
+  useMktPlans,
+  useMktProviders,
+} from "@/portal/components/admin/insurance-mkt";
 
-type Plan = {
-  id: string;
-  providerId: string;
-  providerName: string;
-  name: string;
-  planType: string;
-  coverageSummaryLkr: number;
-  monthlyPremiumLkr: number;
-  annualPremiumLkr: number;
-  annualDiscountPct: number;
-  isPublished: boolean;
-  isFeatured: boolean;
+type Filter = "all" | "published" | "draft" | "featured";
+
+const EMPTY_FORM = {
+  providerId: "",
+  name: "",
+  slug: "",
+  planType: "individual",
+  coverageSummaryLkr: "",
+  monthlyPremiumLkr: "",
+  annualPremiumLkr: "",
+  copayPct: "20",
+  networkHospitalCount: "100",
 };
-
-const PLAN_TYPES = [
-  "individual",
-  "family_floater",
-  "senior",
-  "critical_illness",
-  "cancer",
-  "dental",
-  "maternity",
-];
 
 export default function AdminInsurancePlansPage() {
   const qc = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
+  // Server-side filter: /admin/insurance-plans?provider_id=…
   const [providerFilter, setProviderFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [slugTouched, setSlugTouched] = useState(false);
 
-  const [form, setForm] = useState({
-    providerId: "",
-    name: "",
-    slug: "",
-    planType: "individual",
-    coverageSummaryLkr: "",
-    monthlyPremiumLkr: "",
-    annualPremiumLkr: "",
-    copayPct: "20",
-    networkHospitalCount: "100",
-  });
-
-  const { data, isLoading } = useQuery({
-    queryKey: adminQk.insurancePlans({ providerFilter }),
-    queryFn: () =>
-      adminApi<{ plans: Plan[]; total: number }>(
-        `/admin/insurance-plans${providerFilter ? `?provider_id=${providerFilter}` : ""}`,
-      ),
-  });
-
-  const { data: providersData } = useQuery({
-    queryKey: adminQk.insuranceProviders({}),
-    queryFn: () =>
-      adminApi<{ providers: Array<{ id: string; name: string }> }>(
-        "/admin/insurance-providers",
-      ),
-  });
+  const { data, isLoading } = useMktPlans(providerFilter || undefined);
+  const { data: providersData } = useMktProviders();
+  const providers = providersData?.providers ?? [];
 
   const createMut = useMutation({
     mutationFn: () =>
@@ -76,7 +81,7 @@ export default function AdminInsurancePlansPage() {
         method: "POST",
         json: {
           providerId: form.providerId,
-          name: form.name,
+          name: form.name.trim(),
           slug: form.slug,
           planType: form.planType,
           coverageSummaryLkr: Number(form.coverageSummaryLkr),
@@ -90,224 +95,300 @@ export default function AdminInsurancePlansPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "insurance-plans"] });
+      qc.invalidateQueries({ queryKey: ["admin", "insurance-providers"] });
       setCreateOpen(false);
-      setForm({
-        providerId: "",
-        name: "",
-        slug: "",
-        planType: "individual",
-        coverageSummaryLkr: "",
-        monthlyPremiumLkr: "",
-        annualPremiumLkr: "",
-        copayPct: "20",
-        networkHospitalCount: "100",
-      });
-      toast.success("Plan created");
+      setForm(EMPTY_FORM);
+      setSlugTouched(false);
+      toast.success("Plan created", "It stays a draft until you publish it.");
     },
-    onError: (e: unknown) =>
-      toast.error("Failed", e instanceof Error ? e.message : "Unknown error"),
+    onError: (e: unknown) => toast.error("Could not create plan", e instanceof Error ? e.message : "Unknown error"),
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { isPublished?: boolean; isFeatured?: boolean } }) =>
+      adminApi(`/admin/insurance-plans/${id}`, { method: "PUT", json: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "insurance-plans"] }),
+    onError: (e: unknown) => toast.error("Update failed", e instanceof Error ? e.message : undefined),
   });
 
   const plans = data?.plans ?? [];
+  const published = plans.filter((p) => p.isPublished).length;
+  const featured = plans.filter((p) => p.isFeatured).length;
+  const avgMonthly = plans.length ? plans.reduce((a, p) => a + p.monthlyPremiumLkr, 0) / plans.length : 0;
+  const totalEnrolled = plans.reduce((a, p) => a + (p.enrollmentCount ?? 0), 0);
+  const annualAuto = Number(form.monthlyPremiumLkr) > 0 ? Math.round(Number(form.monthlyPremiumLkr) * 12 * 0.9) : 0;
+
+  const filtered = plans.filter((p) =>
+    filter === "published" ? p.isPublished : filter === "draft" ? !p.isPublished : filter === "featured" ? p.isFeatured : true,
+  );
+
+  const rows: DirectoryRow[] = filtered.map((p) => {
+    const busy = toggleMut.isPending && toggleMut.variables?.id === p.id;
+    return {
+      id: p.id,
+      name: p.name,
+      href: `/admin/insurance-mkt/plans/${p.id}`,
+      leading: <OrgTile icon={<Package size={17} />} tone="from-violet-500 to-purple-600 shadow-violet-500/30" />,
+      accent: p.isPublished ? "bg-emerald-500" : "bg-slate-300",
+      badges: (
+        <>
+          <span className={cn("rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold", PLAN_TYPE_TONE[p.planType] ?? "bg-slate-100 text-slate-600")}>
+            {humanize(p.planType)}
+          </span>
+          <Pill tone={p.isPublished ? "success" : "neutral"}>{p.isPublished ? "Published" : "Draft"}</Pill>
+          {p.isFeatured ? (
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-amber-700">
+              <Star size={10} fill="currentColor" />
+              Featured
+            </span>
+          ) : null}
+        </>
+      ),
+      meta: [
+        { icon: <Building2 size={11} />, text: p.providerName ?? "—" },
+        { icon: <Wallet size={11} />, text: `${formatLkr(p.monthlyPremiumLkr)}/mo · ${formatLkr(p.annualPremiumLkr)}/yr` },
+        { icon: <ShieldCheck size={11} />, text: `${lkrCompact(p.coverageSummaryLkr)} cover`, wide: true },
+        { icon: <Hospital size={11} />, text: `${p.networkHospitalCount ?? 0} hospitals`, wide: true },
+        { icon: <Users size={11} />, text: `${p.enrollmentCount ?? 0} enrolled`, wide: true },
+      ],
+      searchText: [p.slug, p.providerName, p.planType].filter(Boolean).join(" "),
+      actions: (
+        <>
+          <button
+            type="button"
+            onClick={() => toggleMut.mutate({ id: p.id, patch: { isFeatured: !p.isFeatured } })}
+            disabled={busy}
+            title={p.isFeatured ? "Remove from featured" : "Feature this plan"}
+            aria-label={p.isFeatured ? "Remove from featured" : "Feature this plan"}
+            className={cn(
+              "grid h-8 w-8 place-items-center rounded-lg transition-colors disabled:opacity-50",
+              p.isFeatured ? "text-amber-500 hover:bg-amber-50" : "text-slate-300 hover:bg-slate-100 hover:text-amber-500",
+            )}
+          >
+            <Star size={14} fill={p.isFeatured ? "currentColor" : "none"} />
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleMut.mutate({ id: p.id, patch: { isPublished: !p.isPublished } })}
+            disabled={busy}
+            className={ROW_BTN_QUIET}
+          >
+            {p.isPublished ? <EyeOff size={13} /> : <Eye size={13} />}
+            {p.isPublished ? "Unpublish" : "Publish"}
+          </button>
+        </>
+      ),
+    };
+  });
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader
-        icon={<Package size={20} className="text-blue-600" />}
-        title="Insurance plans"
-        subtitle={`${data?.total ?? 0} listed`}
-        actions={
-          <Button
-            onClick={() => setCreateOpen(true)}
-            leftIcon={<Plus size={14} />}
-          >
-            New plan
-          </Button>
-        }
-      />
-
-      <div className="flex gap-2">
+    <AdminDirectory<Filter>
+      hero={
+        <DoctorHero
+          kickerIcon={<Package size={13} aria-hidden />}
+          kicker="Insurance marketplace"
+          kickerMeta={`${plans.length} plan${plans.length === 1 ? "" : "s"}`}
+          title={
+            <>
+              Insurance{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                plans
+              </span>
+            </>
+          }
+          description="Health cover products patients can compare and enrol in. Featured plans are highlighted at the top of the marketplace."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <Eye size={12} className="text-emerald-300" aria-hidden />
+                {published} published
+              </span>
+              <span className={HERO_CHIP}>
+                <Sparkles size={12} className="text-amber-300" aria-hidden />
+                {featured} featured
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/admin/insurance-mkt/providers" className={HERO_GHOST}>
+                <Building2 size={15} aria-hidden />
+                Providers
+              </Link>
+              <button type="button" onClick={() => setCreateOpen(true)} className={HERO_PRIMARY}>
+                <Plus size={15} strokeWidth={2.5} className="text-sky-600" aria-hidden />
+                New plan
+              </button>
+            </>
+          }
+        />
+      }
+      stats={
+        <>
+          <StatTile label="Plans" icon={<Package size={16} />} tone="bg-violet-50 text-violet-600" value={isLoading ? "…" : String(plans.length)} sub={`${totalEnrolled} enrollments`} active={filter === "all"} onClick={() => setFilter("all")} />
+          <StatTile label="Published" icon={<Eye size={16} />} tone="bg-emerald-50 text-emerald-600" value={String(published)} sub="Visible to patients" progress={plans.length ? Math.round((published / plans.length) * 100) : null} active={filter === "published"} onClick={() => setFilter("published")} />
+          <StatTile label="Featured" icon={<Star size={16} />} tone="bg-amber-50 text-amber-600" value={String(featured)} sub="Top of the marketplace" active={filter === "featured"} onClick={() => setFilter("featured")} />
+          <StatTile label="Avg. monthly premium" icon={<Wallet size={16} />} tone="bg-sky-50 text-sky-600" value={plans.length ? lkrCompact(avgMonthly) : "—"} sub="Across listed plans" />
+        </>
+      }
+      title="Plan catalogue"
+      icon={<Package size={16} />}
+      tone="bg-violet-50 text-violet-600"
+      rows={rows}
+      total={plans.length}
+      loading={isLoading}
+      searchPlaceholder="Search plan, provider or type…"
+      toolbar={
         <select
           value={providerFilter}
           onChange={(e) => setProviderFilter(e.target.value)}
-          className="px-3 py-2 border border-border rounded-xl bg-surface text-sm"
+          aria-label="Filter by provider"
+          className="h-9 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-sky-200"
         >
           <option value="">All providers</option>
-          {providersData?.providers?.map((p) => (
+          {providers.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
-      </div>
-
-      {isLoading || !data ? (
-        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
-          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
-          <div className="h-4 w-full admin-shimmer rounded-md" />
-          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
-          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
-        </div>
-      ) : plans.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
-          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
-            <Package size={18} aria-hidden />
-          </div>
-          No plans yet.
-        </div>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Name</TH>
-              <TH>Provider</TH>
-              <TH>Type</TH>
-              <TH className="text-right">Monthly</TH>
-              <TH className="text-right">Annual</TH>
-              <TH className="text-right">Coverage</TH>
-              <TH>Status</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {plans.map((p) => (
-              <TR key={p.id} className="hover:bg-surface-2">
-                <TD className="font-semibold">
-                  <Link
-                    href={`/admin/insurance-mkt/plans/${p.id}`}
-                    className="hover:underline"
-                  >
-                    {p.name}
-                  </Link>
-                </TD>
-                <TD className="text-xs">{p.providerName}</TD>
-                <TD className="text-xs capitalize">
-                  {p.planType.replace(/_/g, " ")}
-                </TD>
-                <TD className="text-xs text-right">
-                  {p.monthlyPremiumLkr.toLocaleString()}
-                </TD>
-                <TD className="text-xs text-right">
-                  {p.annualPremiumLkr.toLocaleString()}
-                </TD>
-                <TD className="text-xs text-right">
-                  {p.coverageSummaryLkr.toLocaleString()}
-                </TD>
-                <TD>
-                  <Pill tone={p.isPublished ? "success" : "warn"}>
-                    {p.isPublished ? "Published" : "Draft"}
-                  </Pill>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
-
+      }
+      segmented={{
+        value: filter,
+        onChange: setFilter,
+        options: [
+          { value: "all", label: "All", count: plans.length },
+          { value: "published", label: "Published", count: published },
+          { value: "draft", label: "Draft", count: plans.length - published },
+          { value: "featured", label: "Featured", count: featured },
+        ],
+      }}
+      empty={{
+        icon: <Package size={19} />,
+        title: providerFilter ? "No plans for this provider" : "No plans yet",
+        body: "Create a plan under one of your providers to list it in the marketplace.",
+        actions: (
+          <button type="button" onClick={() => setCreateOpen(true)} className={PRIMARY_BTN}>
+            <Plus size={13} strokeWidth={2.5} />
+            New plan
+          </button>
+        ),
+      }}
+    >
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Create plan"
+        title="New insurance plan"
+        subtitle="Created as a draft — publish it from the plan page"
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setCreateOpen(false)} className="inline-flex h-9 items-center rounded-lg px-3.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => createMut.mutate()}
+              disabled={
+                !form.providerId ||
+                !form.name.trim() ||
+                form.slug.length < 2 ||
+                !(Number(form.monthlyPremiumLkr) > 0) ||
+                !(Number(form.annualPremiumLkr) > 0) ||
+                !(Number(form.coverageSummaryLkr) > 0) ||
+                createMut.isPending
+              }
+              className={PRIMARY_BTN}
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              {createMut.isPending ? "Creating…" : "Create plan"}
+            </button>
+          </div>
+        }
       >
-        <div className="flex flex-col gap-3">
-          <Field label="Provider">
-            <select
-              value={form.providerId}
-              onChange={(e) => setForm({ ...form, providerId: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-xl bg-surface text-sm"
-            >
-              <option value="">Select…</option>
-              {providersData?.providers?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Name">
-            <Input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
-          <Field label="Slug">
-            <Input
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder="kebab-case"
-            />
-          </Field>
-          <Field label="Plan type">
-            <select
-              value={form.planType}
-              onChange={(e) => setForm({ ...form, planType: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-xl bg-surface text-sm"
-            >
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Provider" className="sm:col-span-2">
+              <select className={MKT_INPUT} value={form.providerId} onChange={(e) => setForm({ ...form, providerId: e.target.value })}>
+                <option value="">Select a provider…</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Plan name">
+              <input
+                className={MKT_INPUT}
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({ ...f, name, slug: slugTouched ? f.slug : slugify(name) }));
+                }}
+                placeholder="e.g. Family Shield Plus"
+              />
+            </FormField>
+            <FormField label="Slug">
+              <input
+                className={`${MKT_INPUT} font-mono text-[13px]`}
+                value={form.slug}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setForm({ ...form, slug: slugify(e.target.value) });
+                }}
+                placeholder="family-shield-plus"
+              />
+            </FormField>
+          </div>
+
+          <div>
+            <p className="text-[12px] font-semibold text-slate-700">Plan type</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               {PLAN_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setForm({ ...form, planType: t })}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                    form.planType === t ? "bg-[#07233a] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                  )}
+                >
+                  {humanize(t)}
+                </button>
               ))}
-            </select>
-          </Field>
-          <Field label="Monthly premium (LKR)">
-            <Input
-              type="number"
-              value={form.monthlyPremiumLkr}
-              onChange={(e) =>
-                setForm({ ...form, monthlyPremiumLkr: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Annual premium (LKR)">
-            <Input
-              type="number"
-              value={form.annualPremiumLkr}
-              onChange={(e) =>
-                setForm({ ...form, annualPremiumLkr: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Coverage (LKR)">
-            <Input
-              type="number"
-              value={form.coverageSummaryLkr}
-              onChange={(e) =>
-                setForm({ ...form, coverageSummaryLkr: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Copay %">
-            <Input
-              type="number"
-              value={form.copayPct}
-              onChange={(e) =>
-                setForm({ ...form, copayPct: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Network hospital count">
-            <Input
-              type="number"
-              value={form.networkHospitalCount}
-              onChange={(e) =>
-                setForm({ ...form, networkHospitalCount: e.target.value })
-              }
-            />
-          </Field>
-          <Button
-            loading={createMut.isPending}
-            onClick={() => createMut.mutate()}
-            disabled={
-              !form.providerId ||
-              !form.name ||
-              !form.slug ||
-              !form.monthlyPremiumLkr
-            }
-          >
-            Create plan
-          </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 rounded-xl bg-slate-50/70 p-4 sm:grid-cols-3">
+            <FormField label="Monthly premium (LKR)">
+              <input className={`${MKT_INPUT} bg-white`} type="number" min={0} value={form.monthlyPremiumLkr} onChange={(e) => setForm({ ...form, monthlyPremiumLkr: e.target.value })} />
+            </FormField>
+            <FormField label="Annual premium (LKR)" hint={annualAuto && !form.annualPremiumLkr ? `Suggested ${annualAuto.toLocaleString()} (10% off)` : undefined}>
+              <input
+                className={`${MKT_INPUT} bg-white`}
+                type="number"
+                min={0}
+                value={form.annualPremiumLkr}
+                onChange={(e) => setForm({ ...form, annualPremiumLkr: e.target.value })}
+                onFocus={() => {
+                  if (!form.annualPremiumLkr && annualAuto) setForm({ ...form, annualPremiumLkr: String(annualAuto) });
+                }}
+              />
+            </FormField>
+            <FormField label="Coverage (LKR)">
+              <input className={`${MKT_INPUT} bg-white`} type="number" min={0} value={form.coverageSummaryLkr} onChange={(e) => setForm({ ...form, coverageSummaryLkr: e.target.value })} />
+            </FormField>
+            <FormField label="Co-pay %">
+              <input className={`${MKT_INPUT} bg-white`} type="number" min={0} max={100} value={form.copayPct} onChange={(e) => setForm({ ...form, copayPct: e.target.value })} />
+            </FormField>
+            <FormField label="Network hospitals">
+              <input className={`${MKT_INPUT} bg-white`} type="number" min={0} value={form.networkHospitalCount} onChange={(e) => setForm({ ...form, networkHospitalCount: e.target.value })} />
+            </FormField>
+          </div>
         </div>
       </Modal>
-    </div>
+    </AdminDirectory>
   );
 }

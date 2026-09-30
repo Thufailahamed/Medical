@@ -6,14 +6,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CheckCircle2,
-  Clock,
-  ExternalLink,
+  Clock3,
   HeartHandshake,
   Loader2,
   Mail,
   Pause,
   Play,
   Plus,
+  QrCode,
+  ShieldAlert,
   ShieldCheck,
   UserCheck,
   UserPlus,
@@ -22,7 +23,25 @@ import {
 
 import { api } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  FIELD_INPUT,
+  FIELD_LABEL,
+  HERO_CHIP,
+  HERO_DANGER_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  StatTile,
+  EmptyBlock,
+} from "@/patient/components/workspace";
 
 interface CaretakerLink {
   linkId: string;
@@ -125,359 +144,360 @@ export default function CaretakersPage() {
   const rawInvites = (invites.data?.invites ?? []).filter((inv) => !inv.revoked);
   const activeLinks = rawLinks.filter((l) => l.status !== "revoked");
   const activeCount = activeLinks.filter((l) => l.status === "active").length;
+  const pausedCount = activeLinks.filter((l) => l.status === "paused").length;
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<HeartHandshake size={13} aria-hidden />}
-        kicker="Delegated Healthcare Access"
-        title="Caretakers & Shared Access"
-        description="Authorize trusted family members, legal guardians, or home nurses to manage consultations, pharmacy orders, and records."
-        actions={
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<HeartHandshake size={13} aria-hidden />}
+        kicker="Family & Safety"
+        kickerMeta="Delegated care access"
+        title={
           <>
-            <Link href="/patient/family" className={heroSecondaryAction}>
-              <Users size={13} aria-hidden />
-              Family Members
-            </Link>
-            <Link href="/patient/emergency-card" className={heroPrimaryAction}>
-              <ShieldCheck size={14} aria-hidden />
-              Emergency Card
-            </Link>
+            Caretakers &amp; <HeroAccent>shared access</HeroAccent>
           </>
         }
-        footer={
+        description="Authorize trusted family members, legal guardians, or home nurses to manage consultations, pharmacy orders, and records on your behalf."
+        chips={
           <>
-            <span>Active Caretakers · {activeCount} Authorized</span>
-            <span>Pending Invites · {rawInvites.length}</span>
-            <span>Access Level · Granular RBAC</span>
-            <span>Audit Trail · Logged Safe</span>
+            <span className={HERO_CHIP}>
+              <UserCheck size={12} className="text-emerald-300" />
+              {activeCount} authorized
+            </span>
+            {pausedCount > 0 ? (
+              <span className={HERO_CHIP}>
+                <Pause size={12} className="text-amber-300" />
+                {pausedCount} paused
+              </span>
+            ) : null}
+            {rawInvites.length > 0 ? (
+              <span className={HERO_DANGER_CHIP}>
+                <Clock3 size={12} />
+                {rawInvites.length} pending invite{rawInvites.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            <span className={HERO_CHIP}>Granular RBAC · audit logged</span>
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/family" className={HERO_GHOST}>
+              <Users size={13} /> Family members
+            </Link>
+            <Link href="/patient/emergency" className={HERO_PRIMARY}>
+              <ShieldCheck size={14} className="text-sky-600" /> Emergency card
+            </Link>
           </>
         }
       />
 
-      {/* ── 2. Invite Caretaker Form Card ──────────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-        <div>
-          <h2 className="pt-kicker flex items-center gap-2">
-            <UserPlus size={16} className="text-brand" aria-hidden />
-            <span>Invite a Trusted Caretaker</span>
-          </h2>
-          <p className="text-xs text-text-soft mt-0.5">
-            Send an SMS or Email invitation granting verified care access to your patient profile.
-          </p>
-        </div>
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<UserCheck size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Active caretakers"
+          value={String(activeCount)}
+          sub="Full delegated access"
+        />
+        <StatTile
+          icon={<Pause size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Paused"
+          value={String(pausedCount)}
+          sub="Access suspended"
+        />
+        <StatTile
+          icon={<Mail size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Pending invites"
+          value={String(rawInvites.length)}
+          sub={rawInvites.length > 0 ? "Awaiting verification" : "None outstanding"}
+          pulse={rawInvites.length > 0}
+        />
+        <StatTile
+          icon={<Users size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Family members"
+          value="Manage"
+          sub="Household profiles"
+          href="/patient/family"
+        />
+      </HeroOverlap>
 
-        <form onSubmit={handleInvite} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-          <div className="sm:col-span-4 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              Caretaker Name
-            </label>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Eleanor Vance"
-              className="pt-input text-xs sm:text-sm"
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<UserPlus size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Invite a trusted caretaker"
+              caption="Send an SMS or email invitation granting verified care access to your profile."
             />
-          </div>
-
-          <div className="sm:col-span-3 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-              Care Role
-            </label>
-            <select
-              value={careRole}
-              onChange={(e) => setCareRole(e.target.value)}
-              className="pt-input text-xs sm:text-sm"
-            >
-              {CARE_ROLES.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="sm:col-span-3 flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider flex items-center justify-between">
-              <span>{channel === "email" ? "Email Address" : "Phone Number"}</span>
-              <div className="flex items-center gap-1 font-semibold text-[10px] text-brand">
-                <button
-                  type="button"
-                  onClick={() => setChannel(channel === "mobile" ? "email" : "mobile")}
-                  className="hover:underline cursor-pointer"
-                >
-                  Use {channel === "mobile" ? "Email" : "SMS"}
-                </button>
-              </div>
-            </label>
-            <div className="relative">
-              <input
-                required
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder={channel === "email" ? "eleanor@example.com" : "+94 77 987 6543"}
-                className="pt-input text-xs sm:text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="sm:col-span-2 flex items-end">
-            <button
-              type="submit"
-              disabled={create.isPending || !name.trim() || !contact.trim()}
-              className="pt-btn pt-btn-primary h-11 w-full text-xs disabled:opacity-50"
-            >
-              {create.isPending ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" aria-hidden />
-                  Inviting…
-                </>
-              ) : (
-                <>
-                  <Plus size={14} aria-hidden />
-                  Invite Caretaker
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
-        {error && (
-          <div className="p-3 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-            <AlertCircle size={14} className="shrink-0" aria-hidden />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="p-3 rounded-lg bg-success-soft border border-success/25 text-xs font-semibold text-success flex items-center gap-2">
-            <CheckCircle2 size={14} className="shrink-0" aria-hidden />
-            <span>{successMsg}</span>
-          </div>
-        )}
-      </section>
-
-      {/* ── 3. Linked Caretakers List ───────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="pt-kicker flex items-center gap-2">
-            <UserCheck size={16} className="text-success" aria-hidden />
-            <span>Authorized Caretakers</span>
-            <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-success">
-              {activeLinks.length}
-            </span>
-          </h2>
-        </div>
-
-        {links.isLoading ? (
-          <div className="flex flex-col gap-2.5">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
-              />
-            ))}
-          </div>
-        ) : activeLinks.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-xl bg-surface border border-border shadow-card flex flex-col items-center text-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success shadow-2xs" aria-hidden>
-              <ShieldCheck size={28} />
-            </div>
-            <div className="max-w-md">
-              <h3 className="t-card-title text-text">
-                No Caretakers Currently Linked
-              </h3>
-              <p className="text-xs sm:text-sm text-text-soft mt-1 leading-relaxed">
-                You maintain full, exclusive control over your health profile. If you have an elderly parent, partner, or private nurse who helps coordinate your medical care, send them an invitation above.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {activeLinks.map((link) => {
-              const isPaused = link.status === "paused";
-              const initials = getInitials(link.caretakerName ?? "Caretaker");
-
-              return (
-                <article
-                  key={link.linkId}
-                  className={cn(
-                    "p-4 sm:p-5 rounded-xl bg-surface border shadow-card hover:shadow-md transition-all flex flex-col justify-between gap-4",
-                    isPaused
-                      ? "border-warn/40 bg-warn-soft/20"
-                      : "border-border hover:border-border-strong",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="grid h-12 w-12 place-items-center rounded-md bg-success-soft text-success font-mono font-bold text-sm shrink-0 shadow-2xs" aria-hidden>
-                        {initials}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-text text-sm sm:text-base truncate">
-                            {link.caretakerName ?? "Authorized Caretaker"}
-                          </h3>
-                          {link.caretakerVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
-                              <CheckCircle2 size={10} aria-hidden />
-                              Verified
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-text-soft font-medium">
-                          <span className="text-success font-semibold bg-success-soft px-2 py-0.5 rounded-md capitalize">
-                            {link.careRole}
-                          </span>
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 rounded-md text-[11px] font-semibold capitalize",
-                              isPaused
-                                ? "bg-warn-soft text-warn"
-                                : "bg-success-soft text-success",
-                            )}
-                          >
-                            {link.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Bar */}
-                  <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
+            <div className="mt-5">
+              <form onSubmit={handleInvite} className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                <div className="flex flex-col gap-1.5 sm:col-span-4">
+                  <label className={FIELD_LABEL}>Caretaker name</label>
+                  <input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Eleanor Vance"
+                    className={FIELD_INPUT}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 sm:col-span-3">
+                  <label className={FIELD_LABEL}>Care role</label>
+                  <select
+                    value={careRole}
+                    onChange={(e) => setCareRole(e.target.value)}
+                    className={FIELD_INPUT}
+                  >
+                    {CARE_ROLES.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5 sm:col-span-3">
+                  <label className={cn(FIELD_LABEL, "flex items-center justify-between")}>
+                    <span>{channel === "email" ? "Email address" : "Phone number"}</span>
                     <button
                       type="button"
-                      onClick={() =>
-                        patch.mutate({
-                          id: link.linkId,
-                          status: isPaused ? "active" : "paused",
-                        })
-                      }
-                      disabled={patch.isPending}
+                      onClick={() => setChannel(channel === "mobile" ? "email" : "mobile")}
+                      className="cursor-pointer text-[10px] font-semibold text-sky-600 hover:underline"
+                    >
+                      Use {channel === "mobile" ? "email" : "SMS"}
+                    </button>
+                  </label>
+                  <input
+                    required
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder={channel === "email" ? "eleanor@example.com" : "+94 77 987 6543"}
+                    className={FIELD_INPUT}
+                  />
+                </div>
+                <div className="flex items-end sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={create.isPending || !name.trim() || !contact.trim()}
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-sky-600 text-xs font-bold text-white transition hover:bg-sky-500 disabled:opacity-50"
+                  >
+                    {create.isPending ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Plus size={14} />
+                    )}
+                    {create.isPending ? "Inviting…" : "Invite"}
+                  </button>
+                </div>
+              </form>
+
+              {error ? (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-600">
+                  <AlertCircle size={14} className="shrink-0" />
+                  {error}
+                </div>
+              ) : null}
+              {successMsg ? (
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
+                  <CheckCircle2 size={14} className="shrink-0" />
+                  {successMsg}
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<UserCheck size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title={`Authorized caretakers (${activeLinks.length})`}
+              caption="Pause or revoke delegated access at any time — changes apply instantly."
+            />
+            {links.isLoading ? (
+              <PanelSkeleton rows={3} />
+            ) : activeLinks.length === 0 ? (
+              <EmptyBlock
+                icon={<ShieldCheck size={19} />}
+                title="No caretakers currently linked"
+                body="You keep full, exclusive control over your health profile. Invite a family member, partner, or home nurse above to delegate care."
+              />
+            ) : (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {activeLinks.map((link) => {
+                  const isPaused = link.status === "paused";
+                  return (
+                    <article
+                      key={link.linkId}
                       className={cn(
-                        "pt-btn h-8 px-3 text-xs disabled:opacity-50",
+                        "flex flex-col justify-between gap-4 rounded-2xl border p-4 transition-all",
                         isPaused
-                          ? "bg-success-soft text-success hover:brightness-95"
-                          : "bg-warn-soft text-warn hover:brightness-95",
+                          ? "border-amber-200 bg-amber-50/40"
+                          : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm",
                       )}
                     >
-                      {isPaused ? <Play size={13} aria-hidden /> : <Pause size={13} aria-hidden />}
-                      {isPaused ? "Resume Access" : "Pause Access"}
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "grid h-11 w-11 shrink-0 place-items-center rounded-xl font-bold text-sm",
+                            isPaused
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-50 text-emerald-600",
+                          )}
+                        >
+                          {getInitials(link.caretakerName ?? "Caretaker")}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate text-sm font-bold text-slate-900">
+                              {link.caretakerName ?? "Authorized caretaker"}
+                            </h3>
+                            {link.caretakerVerified ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                                <CheckCircle2 size={10} /> Verified
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+                            <span className="rounded-md bg-emerald-50 px-2 py-0.5 font-semibold capitalize text-emerald-700">
+                              {link.careRole}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
+                                isPaused
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-emerald-50 text-emerald-700",
+                              )}
+                            >
+                              {link.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Revoke delegated care access for ${link.caretakerName}?`,
-                          )
-                        ) {
-                          revoke.mutate(link.linkId);
-                        }
-                      }}
-                      disabled={revoke.isPending}
-                      className="pt-btn h-8 px-3 text-xs text-danger hover:bg-danger-soft disabled:opacity-50"
-                    >
-                      Revoke Access
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ── 4. Pending Invitations Section ─────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="pt-kicker flex items-center gap-2">
-            <Clock size={16} className="text-warn" aria-hidden />
-            <span>Pending Caretaker Invitations</span>
-            <span className="rounded-md bg-warn-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-warn">
-              {rawInvites.length}
-            </span>
-          </h2>
-        </div>
-
-        {invites.isLoading ? (
-          <div className="flex flex-col gap-2.5">
-            {[1].map((i) => (
-              <div
-                key={i}
-                className="h-16 rounded-xl bg-surface-2 animate-pulse border border-border"
-              />
-            ))}
-          </div>
-        ) : rawInvites.length === 0 ? (
-          <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex items-center gap-3.5">
-            <div className="grid h-10 w-10 place-items-center rounded-md bg-surface-2 text-text-muted shrink-0" aria-hidden>
-              <Mail size={18} />
-            </div>
-            <div>
-              <h3 className="t-card-title text-text">
-                No Pending Caretaker Invitations
-              </h3>
-              <p className="text-xs text-text-soft mt-0.5">
-                All sent caretaker invitations have been resolved or accepted.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {rawInvites.map((inv) => (
-              <div
-                key={inv.id}
-                className="p-4 rounded-xl bg-surface border border-border shadow-card flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="min-w-0">
-                  <p className="font-bold text-text truncate">
-                    {inv.caretakerName}
-                  </p>
-                  <p className="text-[11px] text-text-soft mt-0.5 capitalize">
-                    {inv.careRole} · via {inv.channel}
-                  </p>
-                </div>
-
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-warn-soft text-warn shrink-0">
-                  {inv.consumedAt ? "Accepted" : "Awaiting Verification"}
-                </span>
+                      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patch.mutate({
+                              id: link.linkId,
+                              status: isPaused ? "active" : "paused",
+                            })
+                          }
+                          disabled={patch.isPending}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-50",
+                            isPaused
+                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200/70"
+                              : "bg-amber-100 text-amber-700 hover:bg-amber-200/70",
+                          )}
+                        >
+                          {isPaused ? <Play size={13} /> : <Pause size={13} />}
+                          {isPaused ? "Resume access" : "Pause access"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Revoke delegated care access for ${link.caretakerName}?`,
+                              )
+                            ) {
+                              revoke.mutate(link.linkId);
+                            }
+                          }}
+                          disabled={revoke.isPending}
+                          className="rounded-lg px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                        >
+                          Revoke access
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── 5. Caretaker Privileges Callout ─────────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
-            <ShieldCheck size={22} />
-          </div>
-          <div>
-            <h4 className="t-card-title text-text">
-              Patient Control &amp; Granular Consent
-            </h4>
-            <p className="text-xs text-text-soft mt-0.5">
-              Caretakers only have delegated proxy access. You can pause or permanently revoke their permission at any time with immediate effect.
-            </p>
-          </div>
+            )}
+          </section>
         </div>
 
-        <Link
-          href="/patient/emergency-card"
-          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-        >
-          <ExternalLink size={13} aria-hidden />
-          Emergency Contacts
-        </Link>
-      </section>
-    </div>
+        <div className="flex flex-col gap-5 xl:col-span-4">
+          <QuickToolsPanel
+            id="ct-tools"
+            title="Family & Safety"
+            tools={[
+              {
+                icon: Users,
+                label: "Family",
+                hint: "Members",
+                href: "/patient/family",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: ShieldAlert,
+                label: "Emergency",
+                hint: "SOS + med ID",
+                href: "/patient/emergency",
+                tone: "from-rose-500 to-red-600 shadow-rose-500/30",
+              },
+              {
+                icon: QrCode,
+                label: "Health ID",
+                hint: "Rotating QR",
+                href: "/patient/health-id",
+                tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+            ]}
+          />
+
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Clock3 size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title={`Pending invitations (${rawInvites.length})`}
+              caption="Sent invites awaiting caretaker verification."
+            />
+            {invites.isLoading ? (
+              <PanelSkeleton rows={1} />
+            ) : rawInvites.length === 0 ? (
+              <EmptyBlock
+                icon={<Mail size={19} />}
+                title="No pending invitations"
+                body="All sent caretaker invitations have been resolved or accepted."
+              />
+            ) : (
+              <div className="mt-4 flex flex-col gap-2.5">
+                {rawInvites.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-slate-900">{inv.caretakerName}</p>
+                      <p className="mt-0.5 text-[11px] capitalize text-slate-500">
+                        {inv.careRole} · via {inv.channel}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                      {inv.consumedAt ? "Accepted" : "Awaiting"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <PromoCard
+            icon={<ShieldCheck size={21} aria-hidden />}
+            kicker="Your control"
+            title="Granular consent, always"
+            body="Caretakers only get delegated proxy access — pause or revoke any time with immediate effect."
+            href="/patient/emergency"
+          />
+        </div>
+      </div>
+    </PatientPage>
   );
 }

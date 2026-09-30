@@ -4,23 +4,44 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   BadgeCheck,
   Building2,
+  Cake,
   CalendarDays,
+  Check,
+  ChevronRight,
   Clock3,
+  Copy,
+  Fingerprint,
+  Hash,
+  Hospital,
+  IdCard,
   Lock,
   Mail,
   Phone,
+  RotateCcw,
   ShieldCheck,
+  Star,
   Stethoscope,
   UserRound,
 } from "lucide-react";
-import { Pill, PillRow } from "@/portal/components/ui/Pill";
-import { SectionHeader } from "@/portal/components/ui/PageHeader";
-import { Button } from "@/portal/components/ui/Button";
-import { Select } from "@/portal/components/ui/Form";
 import { NotesPanel } from "@/portal/components/admin/NotesPanel";
+import { cn } from "@/portal/lib/utils";
+import { relativeTime } from "@/portal/lib/format";
+import {
+  DoctorHero,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import { InfoField, humanize } from "@/portal/components/admin/AdminDirectory";
 import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
 
@@ -50,28 +71,6 @@ type Payload = {
   };
 };
 
-const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "neutral"> = {
-  active: "success",
-  pending: "warn",
-  suspended: "danger",
-  rejected: "danger",
-};
-
-const ROLE_TONE: Record<
-  string,
-  "neutral" | "info" | "violet" | "accent" | "success" | "warn" | "danger" | "brand"
-> = {
-  patient: "neutral",
-  doctor: "info",
-  hospital_admin: "violet",
-  hospital_staff: "violet",
-  laboratory: "accent",
-  pharmacy: "success",
-  insurance: "warn",
-  ambulance: "danger",
-  super_admin: "brand",
-};
-
 const ROLES = [
   "patient",
   "doctor",
@@ -96,6 +95,13 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+const STATUS_META: Record<string, { dot: string; ring: string; hint: string }> = {
+  pending: { dot: "bg-amber-400", ring: "shadow-[inset_0_0_0_1.5px_#f59e0b]", hint: "Waiting for approval" },
+  active: { dot: "bg-emerald-500", ring: "shadow-[inset_0_0_0_1.5px_#10b981]", hint: "Can sign in" },
+  suspended: { dot: "bg-red-500", ring: "shadow-[inset_0_0_0_1.5px_#ef4444]", hint: "Blocked from sign-in" },
+  rejected: { dot: "bg-slate-400", ring: "shadow-[inset_0_0_0_1.5px_#94a3b8]", hint: "Application declined" },
+};
+
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const qc = useQueryClient();
@@ -106,6 +112,8 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   const [editRole, setEditRole] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [now] = useState(() => Date.now());
 
   const save = useMutation({
     mutationFn: () =>
@@ -128,268 +136,352 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   if (isLoading || !data) {
     return (
-      <div className="flex flex-col gap-5 max-w-6xl">
-        <div className="admin-shimmer h-44 rounded-3xl border border-border" role="status" aria-label="Loading" />
-        <div className="grid gap-5 lg:grid-cols-3">
-          <div className="admin-shimmer h-64 rounded-3xl border border-border lg:col-span-2" />
-          <div className="admin-shimmer h-64 rounded-3xl border border-border" />
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6" role="status" aria-label="Loading">
+        <div className="h-56 animate-pulse rounded-[20px] bg-slate-200/70" />
+        <div className="grid gap-6 xl:grid-cols-12">
+          <div className="h-72 animate-pulse rounded-2xl bg-slate-100 xl:col-span-8" />
+          <div className="h-72 animate-pulse rounded-2xl bg-slate-100 xl:col-span-4" />
         </div>
       </div>
     );
   }
+
   const u = data.user;
-  const dirty = editRole !== null || editStatus !== null;
+  const nextRole = editRole ?? u.role;
+  const nextStatus = editStatus ?? u.status;
+  const dirty = (editRole !== null && editRole !== u.role) || (editStatus !== null && editStatus !== u.status);
+  const daysSinceJoin = Math.max(0, Math.floor((now - Date.parse(u.createdAt)) / 86_400_000));
+  const doc = data.profiles.doctor;
+  const org = data.profiles.hospital
+    ? { kind: "hospital" as const, ...data.profiles.hospital }
+    : data.profiles.clinic
+      ? { kind: "clinic" as const, ...data.profiles.clinic }
+      : null;
+
+  const copyId = () => {
+    navigator.clipboard?.writeText(u.id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-5 max-w-6xl">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10 [&_a:hover]:no-underline">
       <Link
         href="/admin/users"
-        className="inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-text-soft transition-colors hover:text-blue-700"
+        className="group inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-sky-700"
       >
-        <ArrowLeft size={13} aria-hidden />
+        <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" aria-hidden />
         Back to users
       </Link>
 
-      {/* ── Identity hero ─────────────────────────────────────────── */}
-      <section className="portal-card relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-        {/* Oceanic banner strip */}
-        <div
-          className="relative h-24 overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(135deg, #0B4A6F 0%, #0369A1 45%, #0E7490 75%, #14919B 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, transparent 65%)" }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-            }}
-            aria-hidden
-          />
-        </div>
-
-        <div className="flex flex-col gap-4 px-6 pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-end gap-4 -mt-10">
-            <div
-              aria-hidden
-              className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-2xl font-extrabold text-white shadow-lg ring-4 ring-surface"
-            >
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          leading={
+            <span className="relative grid h-[76px] w-[76px] place-items-center rounded-[20px] bg-gradient-to-br from-sky-400 to-blue-600 text-2xl font-semibold tracking-[-0.02em] text-white shadow-[0_12px_32px_-8px_rgba(14,165,233,0.6)] ring-1 ring-inset ring-white/25">
               {initials(u.name)}
-            </div>
-            <div className="min-w-0 pb-1">
-              <h1 className="truncate text-2xl font-extrabold tracking-tight text-text">
-                {u.name}
-              </h1>
-              <div className="mt-1.5">
-                <PillRow>
-                  <Pill tone={ROLE_TONE[u.role] ?? "neutral"}>{u.role.replace(/_/g, " ")}</Pill>
-                  <Pill tone={STATUS_TONE[u.status] ?? "neutral"}>{u.status}</Pill>
-                  {u.verified ? <Pill tone="success">NIC verified</Pill> : null}
-                </PillRow>
-              </div>
-            </div>
-          </div>
-
-          {/* Meta chips */}
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-soft sm:justify-end sm:pb-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Mail size={12} className="text-blue-600" aria-hidden />
-              {u.email || "—"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Phone size={12} className="text-blue-600" aria-hidden />
-              {u.phone || "—"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays size={12} className="text-blue-600" aria-hidden />
-              Joined {new Date(u.createdAt).toLocaleDateString()}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock3 size={12} className="text-blue-600" aria-hidden />
-              {u.lastLoginAt
-                ? `Last login ${new Date(u.lastLoginAt).toLocaleString()}`
-                : "Never logged in"}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid items-start gap-5 lg:grid-cols-3">
-        {/* ── Main column ─────────────────────────────────────────── */}
-        <div className="flex flex-col gap-5 lg:col-span-2">
-          <section className="portal-card bg-surface border border-border rounded-2xl p-5">
-            <SectionHeader
-              title="Account details"
-              icon={<UserRound size={16} className="text-blue-600" />}
-            />
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
-              <Field label="Email">{u.email || "—"}</Field>
-              <Field label="Phone">{u.phone || "—"}</Field>
-              <Field label="Date of birth">{u.dateOfBirth || "—"}</Field>
-              <Field label="NIC">{u.nic || "—"}</Field>
-              <Field label="Approved at">
-                {u.approvedAt ? new Date(u.approvedAt).toLocaleString() : "—"}
-              </Field>
-              <Field label="Verified">
-                {u.verified ? (
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">
-                    <BadgeCheck size={14} aria-hidden /> Yes
-                  </span>
-                ) : (
-                  "No"
+              <span
+                className={cn(
+                  "absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-[3px] border-[#07233a]",
+                  STATUS_META[u.status]?.dot ?? "bg-slate-400",
                 )}
-              </Field>
-            </dl>
+                aria-hidden
+              />
+            </span>
+          }
+          kickerIcon={<UserRound size={13} aria-hidden />}
+          kicker="User record"
+          kickerMeta={humanize(u.role)}
+          title={u.name}
+          description={[u.email, u.phone].filter(Boolean).join(" · ") || "No contact details on file"}
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <span className={cn("h-2 w-2 rounded-full", STATUS_META[u.status]?.dot ?? "bg-slate-400")} aria-hidden />
+                {humanize(u.status)}
+              </span>
+              {u.verified ? (
+                <span className={HERO_CHIP}>
+                  <BadgeCheck size={12} className="text-emerald-300" aria-hidden />
+                  NIC verified
+                </span>
+              ) : null}
+              {doc ? (
+                <span className={HERO_CHIP}>
+                  <Stethoscope size={12} className={doc.slmcVerifiedAt ? "text-emerald-300" : "text-amber-300"} aria-hidden />
+                  {doc.slmcVerifiedAt ? "SLMC verified" : "SLMC pending"}
+                </span>
+              ) : null}
+              <button type="button" onClick={copyId} className={cn(HERO_CHIP, "font-mono transition-colors hover:bg-white/10")} title="Copy user ID">
+                {copied ? <Check size={12} className="text-emerald-300" aria-hidden /> : <Copy size={12} aria-hidden />}
+                {u.id.slice(0, 8)}…
+              </button>
+            </>
+          }
+          actions={
+            <>
+              {u.phone ? (
+                <a href={`tel:${u.phone}`} className={HERO_GHOST}>
+                  <Phone size={15} aria-hidden />
+                  Call
+                </a>
+              ) : null}
+              {u.email ? (
+                <a href={`mailto:${u.email}`} className={HERO_PRIMARY}>
+                  <Mail size={15} className="text-sky-600" aria-hidden />
+                  Email user
+                </a>
+              ) : null}
+            </>
+          }
+        />
 
-            {u.suspendedReason || u.rejectionReason ? (
-              <div className="mt-5 rounded-xl border border-red-200 bg-danger-soft/60 px-4 py-3">
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Status"
+            icon={<ShieldCheck size={16} />}
+            tone={u.status === "active" ? "bg-emerald-50 text-emerald-600" : u.status === "pending" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}
+            value={humanize(u.status)}
+            sub={STATUS_META[u.status]?.hint ?? "Account state"}
+            pulse={u.status === "pending"}
+          />
+          <StatTile
+            label="Role"
+            icon={<IdCard size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={humanize(u.role)}
+            sub={u.approvedAt ? `Approved ${new Date(u.approvedAt).toLocaleDateString()}` : "Not yet approved"}
+          />
+          <StatTile
+            label="Member for"
+            icon={<CalendarDays size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(daysSinceJoin)}
+            unit={daysSinceJoin === 1 ? "day" : "days"}
+            sub={`Joined ${new Date(u.createdAt).toLocaleDateString()}`}
+          />
+          <StatTile
+            label="Last seen"
+            icon={<Clock3 size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={u.lastLoginAt ? relativeTime(u.lastLoginAt) : "Never"}
+            sub={u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Has not signed in"}
+          />
+        </HeroOverlap>
+      </div>
+
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Main column ─────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          {u.suspendedReason || u.rejectionReason ? (
+            <div className="flex items-start gap-3 rounded-2xl bg-gradient-to-br from-red-50 to-white p-4 ring-1 ring-inset ring-red-600/15">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-red-500 text-white shadow-sm shadow-red-500/30">
+                <AlertTriangle size={17} aria-hidden />
+              </span>
+              <div className="min-w-0 text-sm">
                 {u.suspendedReason ? (
-                  <p className="text-sm text-red-800">
-                    <span className="font-bold">Suspension reason:</span> {u.suspendedReason}
+                  <p className="text-red-900">
+                    <span className="font-semibold">Suspended:</span> {u.suspendedReason}
                   </p>
                 ) : null}
                 {u.rejectionReason ? (
-                  <p className="mt-1 text-sm text-red-800">
-                    <span className="font-bold">Rejection reason:</span> {u.rejectionReason}
+                  <p className="mt-0.5 text-red-900">
+                    <span className="font-semibold">Rejected:</span> {u.rejectionReason}
                   </p>
                 ) : null}
               </div>
-            ) : null}
+            </div>
+          ) : null}
+
+          <section className={PANEL} aria-labelledby="usr-details">
+            <PanelHeader id="usr-details" icon={<UserRound size={16} />} tone="bg-sky-50 text-sky-600" title="Account details" caption="Identity and contact on file" />
+            <dl className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <InfoField icon={<Mail size={15} />} label="Email" copyValue={u.email}>{u.email || "—"}</InfoField>
+              <InfoField icon={<Phone size={15} />} label="Phone" copyValue={u.phone}>{u.phone || "—"}</InfoField>
+              <InfoField icon={<Cake size={15} />} label="Date of birth">{u.dateOfBirth || "—"}</InfoField>
+              <InfoField icon={<Fingerprint size={15} />} label="NIC" mono copyValue={u.nic}>{u.nic || "—"}</InfoField>
+              <InfoField icon={<BadgeCheck size={15} />} label="Approved at">
+                {u.approvedAt ? new Date(u.approvedAt).toLocaleString() : "—"}
+              </InfoField>
+              <InfoField icon={<ShieldCheck size={15} />} label="Identity verified">
+                {u.verified ? (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">
+                    <BadgeCheck size={14} aria-hidden /> Verified
+                  </span>
+                ) : (
+                  <span className="text-slate-500">Not verified</span>
+                )}
+              </InfoField>
+            </dl>
           </section>
 
-          {data.profiles.doctor ? (
-            <section className="portal-card bg-surface border border-border rounded-2xl p-5">
-              <SectionHeader
+          {doc ? (
+            <section className={PANEL} aria-labelledby="usr-doctor">
+              <PanelHeader
+                id="usr-doctor"
+                icon={<Stethoscope size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
                 title="Doctor profile"
-                icon={<Stethoscope size={16} className="text-blue-600" />}
-                right={
-                  data.profiles.doctor.slmcVerifiedAt ? (
-                    <Pill tone="success">SLMC verified</Pill>
-                  ) : (
-                    <Pill tone="warn">SLMC pending</Pill>
-                  )
-                }
+                caption="Clinical registration"
+                href={doc.slmcVerifiedAt ? "/admin/doctors?slmc=verified" : "/admin/doctors?slmc=unverified"}
+                linkLabel="SLMC review"
               />
-              <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
-                <Field label="Specialization">{data.profiles.doctor.specialization}</Field>
-                <Field label="SLMC #">{data.profiles.doctor.slmcRegistrationNo || "—"}</Field>
-                <Field label="SLMC verified at">
-                  {data.profiles.doctor.slmcVerifiedAt
-                    ? new Date(data.profiles.doctor.slmcVerifiedAt).toLocaleString()
-                    : "—"}
-                </Field>
-                <Field label="Rating">{data.profiles.doctor.rating ?? "—"}</Field>
+              <div
+                className={cn(
+                  "mt-5 flex items-center gap-3 rounded-xl p-3.5",
+                  doc.slmcVerifiedAt ? "bg-emerald-50/70 ring-1 ring-inset ring-emerald-600/10" : "bg-amber-50/70 ring-1 ring-inset ring-amber-600/15",
+                )}
+              >
+                <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white", doc.slmcVerifiedAt ? "bg-emerald-500" : "bg-amber-500")}>
+                  {doc.slmcVerifiedAt ? <BadgeCheck size={17} /> : <Clock3 size={17} />}
+                </span>
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="font-semibold text-slate-900">{doc.slmcVerifiedAt ? "SLMC registration verified" : "SLMC verification pending"}</p>
+                  <p className="text-xs text-slate-500">
+                    {doc.slmcVerifiedAt ? `Verified ${new Date(doc.slmcVerifiedAt).toLocaleString()}` : "Review uploaded documents before this doctor can practise."}
+                  </p>
+                </div>
+              </div>
+              <dl className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <InfoField icon={<Stethoscope size={15} />} label="Specialization">{doc.specialization}</InfoField>
+                <InfoField icon={<Hash size={15} />} label="SLMC number" mono copyValue={doc.slmcRegistrationNo}>{doc.slmcRegistrationNo || "—"}</InfoField>
+                <InfoField icon={<Star size={15} />} label="Rating">{doc.rating != null ? `${doc.rating.toFixed(1)} / 5` : "—"}</InfoField>
               </dl>
             </section>
           ) : null}
 
-          {data.profiles.hospital ? (
-            <section className="portal-card bg-surface border border-border rounded-2xl p-5">
-              <SectionHeader
-                title="Hospital"
-                icon={<Building2 size={16} className="text-blue-600" />}
-              />
-              <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
-                <Field label="Name">{data.profiles.hospital.name}</Field>
-                <Field label="License">{data.profiles.hospital.license || "—"}</Field>
-              </dl>
-            </section>
-          ) : null}
-
-          {data.profiles.clinic ? (
-            <section className="portal-card bg-surface border border-border rounded-2xl p-5">
-              <SectionHeader
-                title="Clinic"
-                icon={<Building2 size={16} className="text-blue-600" />}
-              />
-              <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
-                <Field label="Name">{data.profiles.clinic.name}</Field>
-                <Field label="License">{data.profiles.clinic.license || "—"}</Field>
-              </dl>
-            </section>
+          {org ? (
+            <Link
+              href={`/admin/tenants/${org.kind}/${org.id}`}
+              className="group flex items-center gap-4 rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-16px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]"
+            >
+              <span
+                className={cn(
+                  "grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-white shadow-sm",
+                  org.kind === "hospital" ? "from-sky-500 to-blue-600 shadow-sky-500/30" : "from-violet-500 to-purple-600 shadow-violet-500/30",
+                )}
+              >
+                {org.kind === "hospital" ? <Building2 size={20} /> : <Hospital size={20} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                  Owns {org.kind === "hospital" ? "hospital" : "clinic"}
+                </span>
+                <span className="mt-0.5 block truncate text-[15px] font-semibold text-slate-900 group-hover:text-sky-700">{org.name}</span>
+                <span className="block truncate font-mono text-[11px] text-slate-400">{org.license ? `Licence ${org.license}` : "No licence on file"}</span>
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600" />
+            </Link>
           ) : null}
 
           <NotesPanel userId={id} />
         </div>
 
-        {/* ── Right rail: admin controls ──────────────────────────── */}
-        <div className="flex flex-col gap-5 lg:sticky lg:top-4">
-          <section className="portal-card overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <div className="border-b border-border/60 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-soft text-blue-700 ring-1 ring-inset ring-blue-200/60">
-                  <ShieldCheck size={17} aria-hidden />
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-text">Admin controls</h3>
-                  <p className="text-[11px] text-text-muted">Role & status management</p>
-                </div>
+        {/* ── Right rail: admin controls ──────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-4 xl:col-span-4" aria-label="Admin controls">
+          <section className={PANEL} aria-labelledby="usr-controls">
+            <PanelHeader id="usr-controls" icon={<ShieldCheck size={16} />} tone="bg-slate-100 text-slate-700" title="Admin controls" caption="Role & account status" />
+
+            <div className="mt-5">
+              <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">Status</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {STATUSES.map((st) => {
+                  const on = nextStatus === st;
+                  const m = STATUS_META[st];
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setEditStatus(st === u.status ? null : st)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold transition-all",
+                        on ? cn("bg-white text-slate-900", m.ring) : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800",
+                      )}
+                    >
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", m.dot)} aria-hidden />
+                      {humanize(st)}
+                      {st === u.status ? <span className="ml-auto text-[10px] font-medium text-slate-400">current</span> : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 p-5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                  Role
-                </label>
-                <Select
-                  value={editRole ?? u.role}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="h-10 w-full capitalize"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                  Status
-                </label>
-                <Select
-                  value={editStatus ?? u.status}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="h-10 w-full capitalize"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </Select>
-              </div>
-
-              <Button
-                onClick={() => save.mutate()}
-                loading={save.isPending}
-                disabled={!dirty}
-                className="portal-btn-block bg-blue-600 hover:bg-blue-700"
+            <div className="mt-5">
+              <label htmlFor="role-select" className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Role
+              </label>
+              <select
+                id="role-select"
+                value={nextRole}
+                onChange={(e) => setEditRole(e.target.value === u.role ? null : e.target.value)}
+                className="mt-2 h-10 w-full rounded-xl bg-slate-50 px-3 text-sm font-medium text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] outline-none transition-all focus:bg-white focus:shadow-[inset_0_0_0_1.5px_#0284c7,0_0_0_4px_rgba(14,165,233,0.12)]"
               >
-                Save changes
-              </Button>
-
-              <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-text-muted">
-                <Lock size={11} className="mt-0.5 shrink-0" aria-hidden />
-                Changes are audited and require step-up confirmation (passkey).
-              </p>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {humanize(r)}
+                  </option>
+                ))}
+              </select>
             </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-[11px] uppercase tracking-widest text-text-muted font-semibold">{label}</dt>
-      <dd className="mt-1 font-medium text-text">{children}</dd>
+            {dirty ? (
+              <div className="mt-5 rounded-xl bg-sky-50/70 p-3 text-xs ring-1 ring-inset ring-sky-600/10">
+                <p className="font-semibold text-sky-900">Pending changes</p>
+                <ul className="mt-1.5 flex flex-col gap-1 text-slate-600">
+                  {editRole !== null && editRole !== u.role ? (
+                    <li className="flex items-center gap-1.5">
+                      Role <span className="font-medium text-slate-900">{humanize(u.role)}</span>
+                      <ArrowRight size={11} className="text-slate-400" />
+                      <span className="font-semibold text-sky-700">{humanize(editRole)}</span>
+                    </li>
+                  ) : null}
+                  {editStatus !== null && editStatus !== u.status ? (
+                    <li className="flex items-center gap-1.5">
+                      Status <span className="font-medium text-slate-900">{humanize(u.status)}</span>
+                      <ArrowRight size={11} className="text-slate-400" />
+                      <span className="font-semibold text-sky-700">{humanize(editStatus)}</span>
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => save.mutate()}
+                disabled={!dirty || save.isPending}
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#07233a] text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                <Lock size={14} aria-hidden />
+                {save.isPending ? "Saving…" : "Save changes"}
+              </button>
+              {dirty ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditRole(null);
+                    setEditStatus(null);
+                  }}
+                  aria-label="Discard changes"
+                  title="Discard changes"
+                  className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-slate-900"
+                >
+                  <RotateCcw size={15} />
+                </button>
+              ) : null}
+            </div>
+
+            <p className="mt-4 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
+              <Lock size={11} className="mt-0.5 shrink-0" aria-hidden />
+              Changes are audited and require passkey step-up confirmation.
+            </p>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

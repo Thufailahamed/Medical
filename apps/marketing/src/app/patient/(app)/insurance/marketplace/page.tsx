@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -10,19 +11,37 @@ import {
   ChevronRight,
   Filter,
   Percent,
-  Search,
   Shield,
   ShieldCheck,
   Sparkles,
   Star,
   TrendingDown,
-  X,
   Zap,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { formatLkr } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  Badge,
+  EmptyBlock,
+  GROUP_LABEL,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  HeroPulse,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  StatTile,
+  Segmented,
+} from "@/patient/components/workspace";
 
 interface Provider {
   id: string;
@@ -65,7 +84,7 @@ const PLAN_TYPES = [
 const SORT_OPTIONS = [
   { value: "rating", label: "Top Rated" },
   { value: "premium", label: "Lowest Premium" },
-  { value: "premium-desc", label: "Highest Coverage / Premium" },
+  { value: "premium-desc", label: "Highest Coverage" },
 ] as const;
 
 const TYPE_LABEL: Record<string, string> = {
@@ -128,277 +147,220 @@ export default function PatientMarketplace() {
   }, [plans]);
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Oceanic Signature Hero Header ───────────────────────────────── */}
-      <header
-        className="relative rounded-3xl p-6 md:p-8 text-white overflow-hidden shadow-xl"
-        style={{
-          background:
-            "linear-gradient(135deg, #082F49 0%, #0369A1 45%, #0284C7 80%, #0EA5E9 100%)",
-        }}
-      >
-        {/* Glow Orbs */}
-        <div
-          className="pointer-events-none absolute -top-20 -right-20 w-80 h-80 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(56,189,248,0.3) 0%, transparent 70%)",
-          }}
-          aria-hidden
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<Sparkles size={13} aria-hidden />}
+        kicker="Insurance"
+        kickerMeta="Certified marketplace"
+        title={
+          <>
+            Compare &amp; buy <HeroAccent>health plans</HeroAccent>
+          </>
+        }
+        description="Discover individual, family floater, and critical illness plans from Sri Lanka's leading insurers — cashless admissions and instant digital issuance."
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <Building2 size={12} className="text-sky-300" />
+              {providers.length} insurers
+            </span>
+            <span className={HERO_CHIP}>
+              <ShieldCheck size={12} className="text-emerald-300" />
+              {plans.length} plans listed
+            </span>
+            <span className={HERO_CHIP}>100+ cashless hospitals</span>
+          </>
+        }
+        aside={
+          <HeroPulse
+            icon={<Percent size={20} />}
+            label="Max cover"
+            value="LKR 10M"
+            sub="Sum insured available"
+          />
+        }
+        actions={
+          <>
+            <Link href="/patient/insurance" className={HERO_GHOST}>
+              <ShieldCheck size={13} /> My policies
+            </Link>
+            <Link href="/patient/insurance/coverage-check" className={HERO_PRIMARY}>
+              <Activity size={14} className="text-sky-600" /> Coverage estimator
+            </Link>
+          </>
+        }
+      />
+
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Building2 size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Insurers"
+          value={String(providers.length)}
+          sub="Accredited partners"
         />
-        <div
-          className="pointer-events-none absolute -bottom-24 -left-16 w-72 h-72 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%)",
-          }}
-          aria-hidden
+        <StatTile
+          icon={<ShieldCheck size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Plans"
+          value={String(plans.length)}
+          sub="Health plans listed"
         />
+        <StatTile
+          icon={<Zap size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Cashless network"
+          value="100+"
+          sub="Hospitals islandwide"
+        />
+        <StatTile
+          icon={<Sparkles size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Featured"
+          value={String(featured.length)}
+          sub="Top picks this week"
+        />
+      </HeroOverlap>
 
-        <div className="relative z-10 flex flex-col gap-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="min-w-0 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-white/10 border border-white/15 text-sky-200 backdrop-blur-md mb-3">
-                <Sparkles size={13} className="text-sky-300" />
-                <span>Insurance Marketplace · Certified Coverage</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                Compare &amp; Buy Health Insurance Plans
-              </h1>
-              <p className="text-sm sm:text-base text-sky-100/90 mt-2 leading-relaxed max-w-xl font-normal">
-                Discover comprehensive individual, family floater, and critical illness plans from Sri Lanka&apos;s leading insurers. Cashless hospital admissions and instant digital policy issuance.
-              </p>
-            </div>
-
-            {/* Quick Link to Policy Hub */}
-            <div className="flex items-center gap-3 shrink-0 flex-wrap">
-              <Link
-                href="/patient/insurance"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 transition-all backdrop-blur-md hover:scale-[1.02] shadow-sm"
-              >
-                <ShieldCheck size={15} />
-                <span>My Policies</span>
-              </Link>
-              <Link
-                href="/patient/insurance/coverage-check"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-sky-950 bg-surface hover:bg-brand-soft transition-all shadow-md hover:scale-[1.02]"
-              >
-                <Activity size={15} className="text-sky-700" />
-                <span>Coverage Estimator</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Integrated Search Bar inside Hero */}
-          <div className="relative max-w-2xl">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+      <div className="grid gap-5 xl:grid-cols-12">
+        {/* ── Filter rail ──────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-5 xl:col-span-3">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Filter size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Filters"
+              caption={planType || q ? "Filters active" : "All categories"}
+              action={
+                planType || q ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlanType("");
+                      setQ("");
+                    }}
+                    className="text-xs font-semibold text-sky-700 hover:underline"
+                  >
+                    Reset
+                  </button>
+                ) : null
+              }
             />
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search insurers, plan names, or benefits (e.g. Ceylinco, Maternity, Cancer)..."
-              className="w-full h-11 pl-10 pr-9 text-xs sm:text-sm bg-surface text-text placeholder:text-text-muted rounded-xl font-medium shadow-md border-0 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all"
-            />
-            {q ? (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
-              >
-                <X size={14} />
-              </button>
-            ) : null}
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/15 text-white">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm">
-              <div className="h-9 w-9 rounded-lg bg-sky-400/25 flex items-center justify-center text-sky-200 shrink-0">
-                <Building2 size={18} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase font-bold text-sky-200 truncate">
-                  Insurers
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {providers.length} Partners
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-emerald-400/30 flex items-center justify-center text-emerald-200 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Available Plans
-                </p>
-                <p className="text-base font-extrabold text-white">
-                  {plans.length} Health Plans
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/30 flex items-center justify-center text-amber-200 shrink-0">
-                <Zap size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Cashless Network
-                </p>
-                <p className="text-base font-extrabold text-white">100+ Hospitals</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/10 border border-white/10">
-              <div className="h-8 w-8 rounded-lg bg-purple-400/30 flex items-center justify-center text-purple-200 shrink-0">
-                <Percent size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] uppercase font-bold text-sky-200 truncate">
-                  Max Coverage
-                </p>
-                <p className="text-base font-extrabold text-white">LKR 10,000,000</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Marketplace Content Grid (Sidebar + Main) ──────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 items-start">
-        {/* Left Filters Sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-4 bg-surface p-4 rounded-2xl border border-border shadow-xs">
-          {/* Plan Type Filter */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                <Filter size={12} className="text-brand" />
-                Plan Category
-              </span>
-              {planType ? (
+            <div className="mt-4">
+              <p className={GROUP_LABEL}>Plan category</p>
+              <div className="mt-2 flex flex-col gap-1">
                 <button
                   type="button"
                   onClick={() => setPlanType("")}
-                  className="text-[11px] font-bold text-brand hover:text-brand"
-                >
-                  Reset
-                </button>
-              ) : null}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={() => setPlanType("")}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between cursor-pointer",
-                  !planType
-                    ? "bg-brand-soft text-brand font-bold border border-sky-200/80 shadow-2xs"
-                    : "text-text-soft hover:bg-surface-2",
-                )}
-              >
-                <span>All Categories</span>
-                <span className="text-[11px] opacity-70">({plans.length})</span>
-              </button>
-
-              {PLAN_TYPES.map((pt) => {
-                const count = countsByType[pt.id] ?? 0;
-                const isSelected = planType === pt.id;
-                return (
-                  <button
-                    key={pt.id}
-                    type="button"
-                    onClick={() => setPlanType(isSelected ? "" : pt.id)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between cursor-pointer",
-                      isSelected
-                        ? "bg-brand-soft text-brand font-bold border border-sky-200/80 shadow-2xs"
-                        : "text-text-soft hover:bg-surface-2",
-                    )}
-                  >
-                    <span>{pt.label}</span>
-                    <span className="text-[11px] opacity-70">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sort By Filter */}
-          <div className="pt-3 border-t border-border">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-2">
-              Sort By
-            </span>
-            <div className="flex flex-col gap-1">
-              {SORT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setSort(opt.value)}
                   className={cn(
-                    "w-full text-left px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer",
-                    sort === opt.value
-                      ? "bg-surface-2 text-text font-bold"
-                      : "text-text-soft hover:bg-surface-2",
+                    "flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-all",
+                    !planType
+                      ? "bg-sky-50 text-sky-700 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.3)]"
+                      : "text-slate-500 hover:bg-slate-50",
                   )}
                 >
-                  {opt.label}
+                  <span>All categories</span>
+                  <span className="text-[11px] opacity-70">({plans.length})</span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Accredited Insurers List */}
-          <div className="pt-3 border-t border-border">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-2">
-              Top Insurers
-            </span>
-            <div className="flex flex-col gap-1.5">
-              {providers.slice(0, 5).map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between text-xs py-1 text-text-soft"
-                >
-                  <span className="font-medium truncate pr-2">{p.name}</span>
-                  <div className="flex items-center gap-1 text-[11px] text-text-soft shrink-0">
-                    <Star size={10} className="text-amber-500 fill-amber-500" />
-                    <span>{p.ratingAvg.toFixed(1)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* Right Plans Column */}
-        <div className="flex flex-col gap-6 min-w-0">
-          {/* ── Featured Top Picks ────────────────────────────────────────── */}
-          {featured.length > 0 && !planType && !q ? (
-            <section className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-text flex items-center gap-2">
-                  <Sparkles size={16} className="text-amber-500" />
-                  <span>Top Picks This Week</span>
-                </h2>
-                <span className="text-xs text-text-muted font-medium hidden sm:inline">
-                  Hand-picked plans with best claim settlement
-                </span>
+                {PLAN_TYPES.map((pt) => {
+                  const count = countsByType[pt.id] ?? 0;
+                  const isSelected = planType === pt.id;
+                  return (
+                    <button
+                      key={pt.id}
+                      type="button"
+                      onClick={() => setPlanType(isSelected ? "" : pt.id)}
+                      className={cn(
+                        "flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium transition-all",
+                        isSelected
+                          ? "bg-sky-50 font-bold text-sky-700 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.3)]"
+                          : "text-slate-500 hover:bg-slate-50",
+                      )}
+                    >
+                      <span>{pt.label}</span>
+                      <span className="text-[11px] opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className={GROUP_LABEL}>Sort by</p>
+              <div className="mt-2 flex flex-col gap-1">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSort(opt.value)}
+                    className={cn(
+                      "w-full cursor-pointer rounded-xl px-3 py-1.5 text-left text-xs transition-all",
+                      sort === opt.value
+                        ? "bg-slate-100 font-bold text-slate-900"
+                        : "text-slate-500 hover:bg-slate-50",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className={GROUP_LABEL}>Top insurers</p>
+              <div className="mt-2 flex flex-col gap-1.5">
+                {providers.slice(0, 5).map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/patient/insurance/marketplace/${p.id}`}
+                    className="flex items-center justify-between rounded-lg px-1 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-50"
+                  >
+                    <span className="truncate pr-2 font-medium">{p.name}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-[11px]">
+                      <Star size={10} className="fill-amber-400 text-amber-400" />
+                      {p.ratingAvg.toFixed(1)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <PromoCard
+            icon={<Activity size={21} aria-hidden />}
+            kicker="Estimator"
+            title="Check coverage first"
+            body="Estimate out-of-pocket cost for a treatment before you buy."
+            href="/patient/insurance/coverage-check"
+          />
+        </div>
+
+        {/* ── Plans column ─────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-9">
+          <PanelSearch
+            value={q}
+            onChange={setQ}
+            placeholder="Search insurers, plan names, or benefits (e.g. Ceylinco, Maternity)…"
+            ariaLabel="Search insurance plans"
+            className="lg:max-w-none"
+          />
+
+          {featured.length > 0 && !planType && !q ? (
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Sparkles size={16} />}
+                tone="bg-amber-50 text-amber-600"
+                title="Top picks this week"
+                caption="Hand-picked plans with the best claim settlement."
+              />
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {featured.map((plan) => {
                   const provider = providerById[plan.providerId];
                   return (
                     <FeaturedPlanCard
                       key={plan.id}
                       plan={plan}
-                      providerName={provider?.name ?? "Ceylinco Insurance"}
+                      providerName={provider?.name ?? "Accredited Insurer"}
                       settlementRatio={provider?.claimSettlementRatioPct}
                     />
                   );
@@ -407,67 +369,57 @@ export default function PatientMarketplace() {
             </section>
           ) : null}
 
-          {/* ── All Available Plans ──────────────────────────────────────── */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-text flex items-center gap-2">
-                <span>All Available Plans</span>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-2 text-text-soft">
-                  {plans.length}
-                </span>
-              </h2>
-
-              {planType || q ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPlanType("");
-                    setQ("");
-                  }}
-                  className="text-xs font-bold text-brand hover:text-brand"
-                >
-                  Clear all filters
-                </button>
-              ) : null}
-            </div>
-
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<ShieldCheck size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title={`All plans (${plans.length})`}
+              caption={isLoading ? "Loading…" : "Tap a card to see full benefits"}
+              action={
+                planType || q ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlanType("");
+                      setQ("");
+                    }}
+                    className="text-xs font-semibold text-sky-700 hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                ) : null
+              }
+            />
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="h-48 rounded-2xl bg-surface-2 animate-pulse border border-border"
-                  />
+                  <div key={i} className="h-48 animate-pulse rounded-xl bg-slate-100" />
                 ))}
               </div>
             ) : plans.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-surface p-10 text-center flex flex-col items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center">
-                  <Shield size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-text text-sm">
-                    No insurance plans match your criteria
-                  </h3>
-                  <p className="text-xs text-text-soft max-w-sm mt-0.5">
-                    {q
-                      ? `No plans found for "${q}". Try clearing search or choosing another category.`
-                      : "Try selecting a different plan category to browse options."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPlanType("");
-                    setQ("");
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-brand bg-brand-soft hover:bg-brand-soft transition-colors"
-                >
-                  Reset All Filters
-                </button>
-              </div>
+              <EmptyBlock
+                icon={<Shield size={19} />}
+                title="No plans match your criteria"
+                body={
+                  q
+                    ? `No plans found for "${q}". Clear the search or choose another category.`
+                    : "Try a different plan category to browse options."
+                }
+                actions={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlanType("");
+                      setQ("");
+                    }}
+                    className="inline-flex h-9 items-center rounded-lg bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-500"
+                  >
+                    Reset filters
+                  </button>
+                }
+              />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {plans.map((plan) => {
                   const provider = providerById[plan.providerId];
                   return (
@@ -484,6 +436,14 @@ export default function PatientMarketplace() {
           </section>
         </div>
       </div>
+    </PatientPage>
+  );
+}
+
+function PlanImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  return (
+    <div className={cn("relative shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-slate-50", className)}>
+      <Image src={src} alt={alt} fill sizes="96px" className="object-cover" />
     </div>
   );
 }
@@ -501,89 +461,60 @@ function FeaturedPlanCard({
   const planImage = planImageFor(plan.planType);
 
   return (
-    <div className="relative rounded-2xl border-2 border-border bg-gradient-to-br from-sky-50/40 via-white to-white p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-4">
+    <div className="relative flex flex-col justify-between gap-4 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/50 via-white to-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md">
       <div>
-        {/* Top Badges & Settlement Ratio */}
-        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
-              <Sparkles size={11} className="text-amber-600" />
-              Top Pick
-            </span>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge tone="amber">
+              <Sparkles size={11} /> Top pick
+            </Badge>
             {hasDiscount ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <TrendingDown size={11} />
-                {plan.annualDiscountPct.toFixed(0)}% Off
-              </span>
+              <Badge tone="emerald">
+                <TrendingDown size={11} /> {plan.annualDiscountPct.toFixed(0)}% off
+              </Badge>
             ) : null}
           </div>
-
           {settlementRatio ? (
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full">
-              {settlementRatio}% Settlement
-            </span>
+            <Badge tone="emerald">{settlementRatio}% settlement</Badge>
           ) : null}
         </div>
 
-        {/* Title, Provider and Dedicated Crisp Photo Thumbnail */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-extrabold text-text leading-snug">
-              {plan.name}
-            </h3>
-            <p className="text-xs text-text-soft mt-0.5 font-medium">
-              by {providerName}
-            </p>
+            <h3 className="text-base font-bold leading-snug text-slate-900">{plan.name}</h3>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">by {providerName}</p>
           </div>
-
-          {planImage ? (
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border border-border shadow-xs shrink-0 bg-surface-2">
-              <img
-                src={planImage}
-                alt={plan.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : null}
+          {planImage ? <PlanImage src={planImage} alt={plan.name} className="h-16 w-16" /> : null}
         </div>
 
-        {/* Coverage & Features Strip */}
-        <div className="mt-3.5 p-2.5 rounded-xl bg-surface-2/70 border border-border flex flex-col gap-1.5 shadow-2xs">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-text">
-            <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-            <span>Up to {formatLkr(plan.coverageSummaryLkr)} Sum Insured</span>
+        <div className="mt-3.5 flex flex-col gap-1.5 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+            <ShieldCheck size={14} className="shrink-0 text-emerald-600" />
+            <span>Up to {formatLkr(plan.coverageSummaryLkr)} sum insured</span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-text-soft font-medium">
-            <span>{plan.networkHospitalCount}+ Network Hospitals</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-slate-500">
+            <span>{plan.networkHospitalCount}+ network hospitals</span>
             <span>·</span>
-            <span>{plan.copayPct}% Co-pay</span>
+            <span>{plan.copayPct}% co-pay</span>
             <span>·</span>
-            <span>{plan.waitingPeriodDays}d Waiting</span>
+            <span>{plan.waitingPeriodDays}d waiting</span>
           </div>
         </div>
       </div>
 
-      {/* Pricing & CTA */}
-      <div className="pt-3 border-t border-border flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <div>
-          <div className="text-lg font-black text-sky-950">
+          <div className="text-lg font-bold tracking-tight text-slate-900">
             {formatLkr(plan.monthlyPremiumLkr)}
-            <span className="text-xs font-normal text-text-soft"> /mo</span>
+            <span className="text-xs font-normal text-slate-500"> /mo</span>
           </div>
-          <p className="text-[10.5px] text-text-muted">
-            or {formatLkr(plan.annualPremiumLkr)} /yr
-          </p>
+          <p className="text-[10.5px] text-slate-400">or {formatLkr(plan.annualPremiumLkr)} /yr</p>
         </div>
-
         <Link
           href={`/patient/insurance/plans/${plan.id}`}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow-md transition-all shrink-0 hover:scale-[1.02]"
-          style={{
-            background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-          }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-500"
         >
-          <span>View Plan</span>
-          <ArrowRight size={13} />
+          View plan <ArrowRight size={13} />
         </Link>
       </div>
     </div>
@@ -603,93 +534,67 @@ function PlanCard({
   const planImage = planImageFor(plan.planType);
 
   return (
-    <div className="group relative rounded-2xl border border-border bg-surface p-5 shadow-xs hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-4">
+    <div className="group relative flex flex-col justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-md">
       <div>
-        {/* Top Header */}
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-8 w-8 rounded-lg bg-brand-soft border border-border text-brand flex items-center justify-center font-bold text-xs shrink-0">
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sky-50 text-xs font-bold text-sky-700">
               {providerName.slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-text-soft truncate">
-                {providerName}
-              </p>
-              <span className="text-[10.5px] font-bold text-text-muted">
+              <p className="truncate text-xs font-semibold text-slate-500">{providerName}</p>
+              <span className="text-[10.5px] font-bold text-slate-400">
                 {TYPE_LABEL[plan.planType] ?? plan.planType}
               </span>
             </div>
           </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {plan.isFeatured ? (
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                Featured
-              </span>
-            ) : null}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {plan.isFeatured ? <Badge tone="amber">Featured</Badge> : null}
             {hasDiscount ? (
-              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {plan.annualDiscountPct.toFixed(0)}% Off
-              </span>
+              <Badge tone="emerald">{plan.annualDiscountPct.toFixed(0)}% off</Badge>
             ) : null}
           </div>
         </div>
 
-        {/* Plan Name & Dedicated Thumbnail */}
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm sm:text-base font-bold text-text group-hover:text-brand transition-colors leading-snug flex-1">
+          <h3 className="flex-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-sky-700 sm:text-base">
             {plan.name}
           </h3>
-
-          {planImage ? (
-            <div className="w-14 h-14 rounded-xl overflow-hidden border border-border shadow-2xs shrink-0 bg-surface-2">
-              <img
-                src={planImage}
-                alt={plan.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : null}
+          {planImage ? <PlanImage src={planImage} alt={plan.name} className="h-14 w-14" /> : null}
         </div>
 
-        {/* Coverage highlight */}
-        <div className="mt-3 p-2.5 rounded-xl bg-surface-2 border border-border flex flex-col gap-1 text-xs">
-          <div className="flex items-center gap-1.5 font-bold text-text">
-            <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
+        <div className="mt-3 flex flex-col gap-1 rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-xs">
+          <div className="flex items-center gap-1.5 font-bold text-slate-900">
+            <ShieldCheck size={13} className="shrink-0 text-emerald-600" />
             <span>Up to {formatLkr(plan.coverageSummaryLkr)} coverage</span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-text-soft font-medium">
+          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
             <span>{plan.networkHospitalCount}+ hospitals</span>
             <span>·</span>
             <span>{plan.copayPct}% co-pay</span>
             {settlementRatio ? (
               <>
                 <span>·</span>
-                <span className="text-emerald-700 font-semibold">{settlementRatio}% settlement</span>
+                <span className="font-semibold text-emerald-700">{settlementRatio}% settlement</span>
               </>
             ) : null}
           </div>
         </div>
       </div>
 
-      {/* Pricing & CTA */}
-      <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <div>
-          <div className="text-base font-extrabold text-text">
+          <div className="text-base font-bold text-slate-900">
             {formatLkr(plan.monthlyPremiumLkr)}
-            <span className="text-xs font-normal text-text-soft"> /mo</span>
+            <span className="text-xs font-normal text-slate-500"> /mo</span>
           </div>
-          <p className="text-[10px] text-text-muted">
-            or {formatLkr(plan.annualPremiumLkr)} /yr
-          </p>
+          <p className="text-[10px] text-slate-400">or {formatLkr(plan.annualPremiumLkr)} /yr</p>
         </div>
-
         <Link
           href={`/patient/insurance/plans/${plan.id}`}
-          className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold text-brand bg-brand-soft hover:bg-brand-soft border border-border transition-colors"
+          className="inline-flex items-center gap-1 rounded-xl bg-sky-50 px-3.5 py-2 text-xs font-bold text-sky-700 transition-colors hover:bg-sky-100"
         >
-          <span>View</span>
-          <ArrowRight size={12} />
+          View <ArrowRight size={12} />
         </Link>
       </div>
     </div>

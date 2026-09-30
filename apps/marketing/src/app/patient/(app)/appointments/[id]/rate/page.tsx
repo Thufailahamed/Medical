@@ -3,11 +3,24 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Star, Check, Send } from "lucide-react";
+import { Check, ChevronLeft, MessageSquare, Send, ShieldCheck, Star } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
 import { useRateAppointment } from "@/patient/hooks/doctors";
+import { cn } from "@/portal/lib/utils";
+import {
+  FIELD_LABEL,
+  FIELD_TEXTAREA,
+  HERO_CHIP,
+  HERO_GHOST,
+  HeroAccent,
+  PANEL,
+  PanelHeader,
+  PatientHero,
+  PatientPage,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
+
+const LABELS = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
 
 export default function RateVisitPage({
   params,
@@ -22,8 +35,6 @@ export default function RateVisitPage({
   const [review, setReview] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const labels = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -47,38 +58,54 @@ export default function RateVisitPage({
     }
   }
 
-  if (submitted) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 px-1 pb-4 pt-12 sm:px-2">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-success-soft text-success">
-          <Check size={28} aria-hidden />
-        </div>
-        <h2 className="text-lg font-bold text-text">Thanks for your feedback!</h2>
-        <p className="text-sm text-text-soft">Redirecting back to your visit…</p>
-      </div>
-    );
-  }
+  const shown = hovered || rating;
 
   return (
-    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-      <Link
-        href={`/patient/appointments/${id}`}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft transition-colors hover:text-brand"
-      >
-        <ChevronLeft size={14} aria-hidden /> Back to visit
-      </Link>
-
-      <SectionHeader
-        label="Visit feedback"
-        title="How was your visit?"
-        description="Your feedback helps us pick the right doctors and improve care. It's shared with the clinic anonymously."
+    <PatientPage className="max-w-[960px]">
+      <PatientHero
+        overlap={false}
+        kickerIcon={<Star size={13} aria-hidden />}
+        kicker="Visit feedback"
+        title={
+          <>
+            How was your <HeroAccent>visit</HeroAccent>?
+          </>
+        }
+        description="Your feedback helps other patients pick the right doctor and helps clinics improve care."
+        chips={
+          <span className={HERO_CHIP}>
+            <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+            Shared with the clinic anonymously
+          </span>
+        }
+        actions={
+          <Link href={`/patient/appointments/${id}`} className={HERO_GHOST}>
+            <ChevronLeft size={15} aria-hidden />
+            Back to visit
+          </Link>
+        }
       />
 
-      <Card>
-        <form onSubmit={onSubmit} className="flex flex-col gap-5">
-          <div>
-            <p className="t-label">Your rating</p>
-            <div className="mt-2 flex items-center gap-1">
+      {submitted ? (
+        <section className={cn(PANEL, "flex flex-col items-center py-12 text-center")}>
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+            <Check size={26} strokeWidth={2.75} aria-hidden />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-slate-900">Thanks for your feedback!</h2>
+          <p className="mt-1 text-sm text-slate-500">Taking you back to your visit…</p>
+        </section>
+      ) : (
+        <form onSubmit={onSubmit} className={PANEL} aria-labelledby="rate-form">
+          <PanelHeader
+            id="rate-form"
+            icon={<Star size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            title="Your rating"
+            caption="Tap a star — 5 is excellent"
+          />
+
+          <div className="mt-5 flex flex-col items-center gap-3 rounded-xl bg-slate-50 px-4 py-6">
+            <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((i) => (
                 <button
                   key={i}
@@ -86,32 +113,30 @@ export default function RateVisitPage({
                   onClick={() => setRating(i)}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(0)}
-                  className="rounded-full p-1 transition-transform hover:scale-110"
+                  className="rounded-xl p-1.5 transition-transform hover:scale-110"
                   aria-label={`Rate ${i} star${i === 1 ? "" : "s"}`}
+                  aria-pressed={rating === i}
                 >
                   <Star
-                    size={32}
+                    size={36}
                     aria-hidden
                     strokeWidth={1.5}
-                    className={
-                      i <= (hovered || rating)
-                        ? "fill-warn text-warn"
-                        : "text-text-muted"
-                    }
+                    className={i <= shown ? "fill-amber-400 text-amber-400" : "text-slate-300"}
                   />
                 </button>
               ))}
             </div>
-            {rating > 0 ? (
-              <p className="mt-2 text-sm font-semibold text-warn">
-                {labels[rating]}
-              </p>
-            ) : null}
+            <p className={cn("h-5 text-sm font-semibold", shown ? "text-amber-600" : "text-slate-400")}>
+              {shown ? LABELS[shown] : "No rating yet"}
+            </p>
           </div>
 
-          <div>
-            <label htmlFor="review" className="t-label block">
-              Tell us more <span className="text-text-muted">(optional)</span>
+          <div className="mt-5">
+            <label htmlFor="review" className={FIELD_LABEL}>
+              <span className="inline-flex items-center gap-1.5">
+                <MessageSquare size={13} className="text-slate-400" aria-hidden />
+                Tell us more <span className="font-normal text-slate-400">(optional)</span>
+              </span>
             </label>
             <textarea
               id="review"
@@ -119,34 +144,31 @@ export default function RateVisitPage({
               onChange={(e) => setReview(e.target.value)}
               rows={5}
               placeholder="What did you like? What could be better?"
-              className="mt-2 w-full rounded-inner border border-border bg-surface-2 px-4 py-3 text-sm text-text outline-none focus:border-brand"
+              className={FIELD_TEXTAREA}
             />
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-danger">
+            <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
               {error}
             </p>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
+            <Link href={`/patient/appointments/${id}`} className={cn(SECONDARY_BTN, "h-10")}>
+              Skip for now
+            </Link>
             <button
               type="submit"
               disabled={rate.isPending || rating === 0}
-              className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#07233a] px-4 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
             >
               <Send size={14} aria-hidden />
               {rate.isPending ? "Submitting…" : "Submit rating"}
             </button>
-            <Link
-              href={`/patient/appointments/${id}`}
-              className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
-            >
-              Skip for now
-            </Link>
           </div>
         </form>
-      </Card>
-    </div>
+      )}
+    </PatientPage>
   );
 }

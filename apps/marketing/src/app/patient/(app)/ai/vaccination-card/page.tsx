@@ -7,7 +7,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ChevronLeft,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -24,7 +23,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "@/portal/lib/api";
 import { patientKeys } from "@healthcare/shared/contracts";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { AiToolHero } from "@/patient/components/ai/AiToolHero";
+import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
+import {
+  Badge,
+  HERO_PRIMARY,
+  PANEL,
+  PanelHeader,
+  PatientPage,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 interface VaccinationDose {
   vaccineName: string;
@@ -171,124 +179,83 @@ export default function AiVaccinationCardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
+    <PatientPage>
+      <AiToolHero
         icon={<Syringe size={13} aria-hidden />}
-        kicker="Immunization Vision AI"
-        title="Read a Vaccination Card"
-        description="Photograph your paper vaccination card or WHO Yellow Card. Our clinical vision AI extracts each administered dose, lot number, and date directly to your electronic record."
+        badge="Vaccination card"
+        title="Read a vaccination card"
+        description="Photograph your paper vaccination card or WHO Yellow Card. We extract each dose, date and lot number so you can add them to your record."
+        trust={["Multi-dose", "You review before saving"]}
         actions={
-          <>
-            <Link href="/patient/ai" className={heroSecondaryAction}>
-              <ChevronLeft size={13} aria-hidden />
-              AI Workspace
-            </Link>
-            <Link href="/patient/vaccinations" className={heroPrimaryAction}>
-              <UserCheck size={14} aria-hidden />
-              Vaccination Record
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Antigen OCR · Multi-Dose</span>
-            <span>Verification · Lot &amp; Batch</span>
-            <span>Ledger Sync · Auto-Commit</span>
-            <span>Compliance · WHO Format</span>
-          </>
+          <Link href="/patient/vaccinations" className={HERO_PRIMARY}>
+            <UserCheck size={15} className="text-teal-600" aria-hidden />
+            My vaccinations
+          </Link>
         }
       />
 
-      {/* ── 2. Two-Column Upload & Card Recognition Stage ─────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Interactive Dropzone */}
-        <section className="lg:col-span-7 rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-5">
-          <div className="border-b border-border pb-3.5">
-            <h2 className="t-card-title text-text flex items-center gap-2">
-              <Camera size={19} className="text-brand" aria-hidden />
-              <span>Capture or Upload Vaccination Card</span>
-            </h2>
-            <p className="text-xs text-text-soft mt-0.5">
-              Take a clear snapshot of your paper card, Yellow Book, or digital PDF certificate.
-            </p>
-          </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="vc-upload">
+          <PanelHeader
+            id="vc-upload"
+            icon={<Camera size={16} />}
+            tone="bg-teal-50 text-teal-600"
+            title="Capture or upload"
+            caption="JPG, PNG, HEIC or PDF · up to 20 MB"
+          />
 
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => !file && fileInputRef.current?.click()}
             className={cn(
-              "flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 sm:p-10 text-center transition-all cursor-pointer",
-              file
-                ? "border-brand bg-brand-soft/30"
-                : "border-border bg-surface-2/50 hover:border-brand hover:shadow-card",
+              "mt-5 flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 text-center transition-colors sm:p-10",
+              file ? "border-sky-300 bg-sky-50/40" : "border-slate-200 bg-slate-50 hover:border-sky-300",
             )}
           >
             {preview ? (
-              <div className="flex flex-col items-center gap-3 w-full">
+              <div className="flex w-full flex-col items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={preview}
-                  alt="Vaccination card"
-                  className="max-h-72 w-auto rounded-lg object-contain border border-border shadow-sm"
-                />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-semibold text-text">
-                    {file?.name} ({(file ? file.size / 1024 : 0).toFixed(1)} KB)
-                  </span>
-                </div>
+                <img src={preview} alt="Vaccination card" className="max-h-72 w-auto rounded-xl object-contain shadow-md" />
+                <span className="text-xs font-medium text-slate-500">
+                  {file?.name} · {(file ? file.size / 1024 : 0).toFixed(1)} KB
+                </span>
               </div>
             ) : file ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="grid h-16 w-16 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
-                  <FileText size={32} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-text">{file.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB · Ready to Scan
-                  </p>
-                </div>
+              <div className="flex flex-col items-center gap-2">
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-white text-sky-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]" aria-hidden>
+                  <FileText size={22} />
+                </span>
+                <p className="text-sm font-semibold text-slate-900">{file.name}</p>
+                <p className="text-xs text-slate-400">{(file.size / (1024 * 1024)).toFixed(2)} MB · ready to scan</p>
               </div>
             ) : (
               <>
-                <div className="grid h-16 w-16 place-items-center rounded-md bg-surface border border-border text-brand shadow-xs" aria-hidden>
-                  <Upload size={28} />
-                </div>
+                <span className="grid h-14 w-14 place-items-center rounded-[16px] bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/30" aria-hidden>
+                  <Upload size={24} />
+                </span>
                 <div className="max-w-sm">
-                  <h3 className="t-card-title text-text">
-                    Drop your vaccination card photo, or browse
-                  </h3>
-                  <p className="text-xs text-text-soft mt-1">
-                    Supports JPG, PNG, HEIC, or PDF · Up to 20 MB
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">Drop a photo of your card, or browse</p>
+                  <p className="mt-1 text-xs text-slate-400">Flat, well lit and with every row visible works best</p>
                 </div>
               </>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={onFileChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" onChange={onFileChange} className="hidden" />
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="pt-btn pt-btn-secondary h-9 px-4 text-xs"
+                className={SECONDARY_BTN}
               >
-                <ImageIcon size={14} aria-hidden />
-                {file ? "Choose Another Card" : "Browse Files"}
+                <ImageIcon size={13} aria-hidden />
+                {file ? "Choose another" : "Browse files"}
               </button>
-
-              {file && (
+              {file ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -297,153 +264,96 @@ export default function AiVaccinationCardPage() {
                     setPreview(null);
                     setResult(null);
                   }}
-                  className="pt-btn h-9 px-3 text-xs text-danger hover:bg-danger-soft"
+                  className="inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
                 >
                   <X size={13} aria-hidden />
                   Remove
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {error && (
-            <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" aria-hidden />
-              <span>{error}</span>
+          {error ? (
+            <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+              <AlertCircle size={14} className="shrink-0" aria-hidden />
+              {error}
             </div>
-          )}
+          ) : null}
 
-          {/* Primary Action Button */}
-          <button
-            type="button"
-            onClick={upload}
-            disabled={!file || busy}
-            className="pt-btn pt-btn-primary h-12 w-full text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {busy ? (
-              <>
-                <Loader2 size={16} className="animate-spin" aria-hidden />
-                Scanning Card &amp; Reading Doses…
-              </>
-            ) : (
-              <>
-                <Scan size={16} aria-hidden />
-                Read Card and Extract Doses
-              </>
-            )}
-          </button>
+          <div className="mt-5 flex justify-end border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={upload}
+              disabled={!file || busy}
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#07233a] px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-px hover:bg-sky-700 disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none"
+            >
+              {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Scan size={15} aria-hidden />}
+              {busy ? "Reading card…" : "Read card"}
+            </button>
+          </div>
         </section>
 
-        {/* Right Column: Supported Types & Recognized Doses */}
-        <section className="lg:col-span-5 flex flex-col gap-4">
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Doses">
           {result ? (
-            <div className="rounded-xl border border-brand/25 bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="grid h-8 w-8 place-items-center rounded-md bg-success-soft text-success" aria-hidden>
-                    <CheckCircle2 size={16} />
-                  </div>
-                  <div>
-                    <h3 className="t-card-title text-text">
-                      Identified {result.doses.length} Dose{result.doses.length === 1 ? "" : "s"}
-                    </h3>
-                    <p className="text-[11px] text-text-soft">
-                      OCR Immunization Breakdown
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <ul className="flex flex-col gap-2.5">
+            <section className={PANEL} aria-labelledby="vc-result">
+              <PanelHeader
+                id="vc-result"
+                icon={<CheckCircle2 size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title={`Found ${result.doses.length} dose${result.doses.length === 1 ? "" : "s"}`}
+                caption="Check each one before saving"
+              />
+              <ul className="mt-4 flex flex-col gap-2">
                 {result.doses.map((d, i) => (
-                  <li
-                    key={i}
-                    className="p-3 rounded-lg bg-surface-2 border border-border flex flex-col gap-1 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-text text-sm">
-                        {d.vaccineName}
-                      </span>
-                      {d.dose && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand">
-                          {d.dose}
-                        </span>
-                      )}
+                  <li key={i} className="relative rounded-xl bg-white p-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+                    <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-teal-500" aria-hidden />
+                    <div className="ml-1.5 flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-semibold text-slate-900">{d.vaccineName}</span>
+                      {d.dose ? <Badge tone="sky">{d.dose}</Badge> : null}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-text-soft text-[11px] mt-0.5">
-                      <span>Date: <strong className="text-text">{d.administeredAt ?? "Recorded"}</strong></span>
-                      {d.lotNumber && (
-                        <span>Lot: <strong className="text-text">#{d.lotNumber}</strong></span>
-                      )}
-                      {d.provider && (
-                        <span>Center: <strong className="text-text">{d.provider}</strong></span>
-                      )}
-                    </div>
+                    <p className="ml-1.5 mt-0.5 truncate text-xs text-slate-400">
+                      {[d.administeredAt ?? "Date not read", d.lotNumber ? `Lot #${d.lotNumber}` : null, d.provider].filter(Boolean).join(" · ")}
+                    </p>
                   </li>
                 ))}
               </ul>
-
               {saved ? (
-                <div className="p-3.5 rounded-lg bg-success-soft border border-success/25 text-xs font-bold text-success flex items-center gap-2">
+                <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
                   <Check size={14} strokeWidth={3} className="shrink-0" aria-hidden />
-                  <span>Doses successfully added to your health record!</span>
+                  Added to your vaccination record
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={saveDoses}
-                  disabled={busy}
-                  className="pt-btn h-11 w-full text-xs bg-success text-white hover:brightness-110 disabled:opacity-50"
+                  disabled={busy || result.doses.length === 0}
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-px hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {busy ? (
-                    <Loader2 size={14} className="animate-spin" aria-hidden />
-                  ) : (
-                    <>
-                      <Plus size={14} aria-hidden />
-                      Add Doses to My Official Record
-                    </>
-                  )}
+                  {busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Plus size={14} aria-hidden />}
+                  Add doses to my record
                 </button>
               )}
-            </div>
+            </section>
           ) : (
-            <div className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-              <div className="flex items-center gap-2.5 border-b border-border pb-3">
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-                  <Syringe size={16} />
-                </div>
-                <div>
-                  <h3 className="t-card-title text-text">
-                    Recognized Vaccine Schedules
-                  </h3>
-                  <p className="text-[11px] text-text-soft">
-                    Supports international certificates
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
+            <section className={PANEL} aria-labelledby="vc-supported">
+              <PanelHeader id="vc-supported" icon={<Syringe size={16} />} tone="bg-teal-50 text-teal-600" title="Recognised vaccines" caption="Including international certificates" />
+              <div className="mt-4 flex flex-wrap gap-1.5">
                 {SUPPORTED_VACCINES.map((v) => (
-                  <span
-                    key={v}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-2 border border-border text-text-soft"
-                  >
-                    <Check size={11} className="text-brand" aria-hidden />
+                  <span key={v} className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                    <Check size={11} className="text-teal-600" aria-hidden />
                     {v}
                   </span>
                 ))}
               </div>
-
-              <div className="p-3 rounded-lg bg-warn-soft/60 border border-warn/25 text-[11px] text-warn flex items-start gap-2 mt-1">
-                <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden />
-                <span>
-                  Administered batch numbers and dates are validated against standard immunization registries before being committed to your chart.
-                </span>
-              </div>
-            </div>
+              <p className="mt-4 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
+                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden />
+                Nothing is saved until you review the doses and choose to add them.
+              </p>
+            </section>
           )}
-        </section>
+          <AiSafetyNotice />
+        </aside>
       </div>
-    </div>
+    </PatientPage>
   );
 }

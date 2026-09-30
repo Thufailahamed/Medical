@@ -16,28 +16,33 @@ import {
   UploadCloud,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { CardHeader } from "@/patient/components/primitives/CardHeader";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import { useRecords } from "@/patient/hooks";
 import { formatDayLabel, formatRecordType } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  EmptyBlock,
+  PANEL,
+  PanelHeader,
+  PrimaryLink,
+  Segmented,
+  SECONDARY_BTN,
+} from "@/portal/components/doctor/Workspace";
 
 function getRecordVisuals(type: string | null | undefined) {
   const key = (type ?? "").toLowerCase();
   if (key.includes("lab") || key.includes("test")) {
     return {
       icon: FlaskConical,
-      iconContainer: "bg-brand-soft text-brand",
-      badge: "bg-brand-soft text-brand",
+      iconContainer: "bg-sky-50 text-sky-600",
+      badge: "bg-sky-50 text-sky-700",
     };
   }
   if (key.includes("prescription") || key.includes("medication")) {
     return {
       icon: PillIcon,
-      iconContainer: "bg-success-soft text-success",
-      badge: "bg-success-soft text-success",
+      iconContainer: "bg-emerald-50 text-emerald-600",
+      badge: "bg-emerald-50 text-emerald-700",
     };
   }
   if (key.includes("imaging") || key.includes("scan")) {
@@ -50,21 +55,21 @@ function getRecordVisuals(type: string | null | undefined) {
   if (key.includes("vaccin")) {
     return {
       icon: Syringe,
-      iconContainer: "bg-warn-soft text-warn",
-      badge: "bg-warn-soft text-warn",
+      iconContainer: "bg-amber-50 text-amber-600",
+      badge: "bg-amber-50 text-amber-700",
     };
   }
   if (key.includes("allerg")) {
     return {
       icon: Sparkles,
-      iconContainer: "bg-danger-soft text-danger",
-      badge: "bg-danger-soft text-danger",
+      iconContainer: "bg-rose-50 text-rose-600",
+      badge: "bg-rose-50 text-rose-700",
     };
   }
   return {
     icon: FileText,
-    iconContainer: "bg-surface-2 text-text-soft",
-    badge: "bg-surface-2 text-text-soft",
+    iconContainer: "bg-slate-100 text-slate-500",
+    badge: "bg-slate-100 text-slate-600",
   };
 }
 
@@ -80,23 +85,22 @@ export function RecentRecords({ className }: { className?: string }) {
   const [filter, setFilter] = useState<string>("all");
 
   return (
-    <Card
-      accent="sky"
-      className={cn("anim-rise flex h-full flex-col justify-between", className)}
+    <section
+      aria-labelledby="pt-records"
+      className={cn(PANEL, "flex h-full flex-col justify-between", className)}
     >
       <div>
-        <CardHeader
+        <PanelHeader
+          id="pt-records"
+          icon={<FileText size={16} />}
+          tone="bg-violet-50 text-violet-600"
           title="Recent records"
           caption="Latest from your medical file"
-          icon={<FileText size={16} aria-hidden />}
           href="/patient/records"
           linkLabel="See all"
           action={
-            <Link
-              href="/patient/records/new"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-surface-2 px-2.5 text-xs font-semibold text-text transition-colors hover:bg-surface-3"
-            >
-              <Plus size={13} strokeWidth={2.5} className="text-brand" aria-hidden />
+            <Link href="/patient/records/new" className={cn(SECONDARY_BTN, "h-8 px-3")}>
+              <Plus size={13} strokeWidth={2.5} className="text-sky-600" aria-hidden />
               Upload
             </Link>
           }
@@ -104,11 +108,11 @@ export function RecentRecords({ className }: { className?: string }) {
 
         {/* ── Sub-component Filter Tabs ────────────────────────────────── */}
         <div className="mt-4">
-          <SegmentedTabs
+          <Segmented
             ariaLabel="Record type filters"
-            activeId={filter}
+            value={filter}
             onChange={(id) => setFilter(id)}
-            tabs={FILTER_TABS.map((tab) => ({ id: tab.id, label: <>{tab.label}</> }))}
+            options={FILTER_TABS.map((tab) => ({ value: tab.id as string, label: tab.label }))}
           />
         </div>
 
@@ -131,29 +135,22 @@ export function RecentRecords({ className }: { className?: string }) {
 
             if (displayList.length === 0) {
               return (
-                <div className="mt-3 flex flex-col items-center justify-center rounded-xl bg-surface-2 p-7 text-center">
-                  <span className="mb-2 grid h-10 w-10 place-items-center rounded-xl bg-surface text-brand shadow-card">
-                    <UploadCloud size={18} aria-hidden />
-                  </span>
-                  <p className="text-xs font-semibold text-text">
-                    No {filter === "all" ? "" : filter} records found
-                  </p>
-                  <p className="text-[11px] text-text-muted mt-0.5">
-                    Upload documents to populate this section.
-                  </p>
-                    <Link
-                      href="/patient/records/new"
-                      className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-strong"
-                    >
-                      <Plus size={12} aria-hidden />
+                <EmptyBlock
+                  className="mt-3"
+                  icon={<UploadCloud size={19} />}
+                  title={`No ${filter === "all" ? "" : `${FILTER_TABS.find((t) => t.id === filter)?.label.toLowerCase() ?? filter} `}records found`}
+                  body="Upload lab reports, prescriptions or visit notes to build your medical file."
+                  actions={
+                    <PrimaryLink href="/patient/records/new" icon={<Plus size={13} />}>
                       Add record
-                    </Link>
-                </div>
+                    </PrimaryLink>
+                  }
+                />
               );
             }
 
             return (
-              <ul className="mt-2 divide-y divide-border">
+              <ul className="mt-2 flex flex-col gap-2">
                 {displayList.map((r) => {
                   const visuals = getRecordVisuals(r.recordType);
                   const Icon = visuals.icon;
@@ -162,12 +159,12 @@ export function RecentRecords({ className }: { className?: string }) {
                     <li key={r.id} data-testid="record-row">
                       <Link
                         href={`/patient/records/${r.id}`}
-                        className="group -mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand"
+                        className="group flex items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             className={cn(
-                              "grid h-9 w-9 shrink-0 place-items-center rounded-[10px] transition-transform group-hover:scale-105",
+                              "grid h-10 w-10 shrink-0 place-items-center rounded-[10px] transition-transform group-hover:scale-105",
                               visuals.iconContainer,
                             )}
                             aria-hidden
@@ -176,18 +173,18 @@ export function RecentRecords({ className }: { className?: string }) {
                           </div>
 
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-text transition-colors group-hover:text-brand">
+                            <p className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
                               {r.title}
                             </p>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+                            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
                               <span className="inline-flex items-center gap-1">
-                                <Calendar size={10} className="text-text-muted" />
+                                <Calendar size={11} aria-hidden />
                                 {formatDayLabel(r.date)}
                               </span>
                               {r.diagnosis ? (
                                 <>
-                                  <span className="text-border-strong">·</span>
-                                  <span className="truncate font-medium text-text-soft">
+                                  <span className="text-slate-300">·</span>
+                                  <span className="truncate font-medium text-slate-500">
                                     {r.diagnosis}
                                   </span>
                                 </>
@@ -207,7 +204,7 @@ export function RecentRecords({ className }: { className?: string }) {
                           </span>
                           <ChevronRight
                             size={14}
-                            className="text-border-strong transition-all group-hover:translate-x-0.5 group-hover:text-brand"
+                            className="text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-sky-600"
                             aria-hidden
                           />
                         </div>
@@ -222,13 +219,13 @@ export function RecentRecords({ className }: { className?: string }) {
       </div>
 
       {/* ── Footer Status Strip ─────────────────────────────────────── */}
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-3.5 text-xs text-text-muted">
+      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3.5 text-[11px] text-slate-400">
         <span className="inline-flex items-center gap-1.5">
-          <ShieldCheck size={13} className="text-success" />
+          <ShieldCheck size={13} className="text-emerald-500" aria-hidden />
           <span>Encrypted patient records</span>
         </span>
         <span>Showing latest 5</span>
       </div>
-    </Card>
+    </section>
   );
 }

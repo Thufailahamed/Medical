@@ -9,7 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
+import { PANEL } from "@/portal/components/doctor/Workspace";
 import { Pill } from "@/patient/components/primitives/Pill";
 import {
   useCheckDrugInteractions,
@@ -95,20 +95,20 @@ export const DrugInteractionCard = forwardRef<
   useImperativeHandle(ref, () => ({ checkAll }));
 
   return (
-    <Card accent="amber" className="flex h-full flex-col">
+    <section className={cn(PANEL, "flex h-full flex-col")}>
       <div className="flex items-start gap-3">
         <span
           aria-hidden
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warn-soft text-warn"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-amber-50 text-amber-600"
         >
           <PillIcon size={18} />
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="t-card-title text-text">Medication safety</h2>
+            <h2 className="text-[15.5px] font-semibold leading-tight tracking-[-0.01em] text-slate-900">Medication safety</h2>
             <Pill tone="warn">Rx</Pill>
           </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-text-soft">
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
             Cross-check drug interactions and contraindications against a
             verified pharmacopeia.
           </p>
@@ -268,7 +268,7 @@ export const DrugInteractionCard = forwardRef<
           type="button"
           onClick={() => void run()}
           disabled={!medicines.trim() || check.isPending}
-          className="pt-btn h-9 px-3.5 text-xs bg-warn text-white hover:brightness-110 disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 text-xs font-semibold text-white shadow-sm shadow-amber-500/30 transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
         >
           {check.isPending ? (
             <>
@@ -283,6 +283,6 @@ export const DrugInteractionCard = forwardRef<
           )}
         </button>
       </div>
-    </Card>
+    </section>
   );
 });

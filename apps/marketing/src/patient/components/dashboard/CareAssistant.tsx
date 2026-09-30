@@ -7,7 +7,8 @@ import { useConversations } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
 
 /**
- * Compact AI / care-team CTA for the dashboard.
+ * Compact AI / care-team CTA — the indigo feature card from the admin
+ * dashboard, with Ask AI and Messages side by side.
  */
 export function CareAssistant({ className }: { className?: string }) {
   const conversations = useConversations();
@@ -18,33 +19,27 @@ export function CareAssistant({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn(
-        "patient-ink-glow anim-rise anim-rise-delay-2 relative flex h-full flex-col overflow-hidden p-5 text-white",
-        className,
-      )}
+      className={cn("relative overflow-hidden rounded-2xl p-5 text-white", className)}
       style={{
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-float)",
+        background:
+          "radial-gradient(420px 200px at 100% 0%, rgba(56,189,248,0.30), transparent 60%), radial-gradient(300px 160px at 0% 100%, rgba(129,140,248,0.25), transparent 60%), linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 18px 40px -18px rgba(49,46,129,0.6)",
       }}
     >
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full border border-white/10"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-2 -top-2 h-24 w-24 rounded-full border border-white/10"
-        aria-hidden
-      />
+      <span className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full border border-white/10" aria-hidden />
+      <span className="pointer-events-none absolute -right-2 -top-2 h-16 w-16 rounded-full border border-white/10" aria-hidden />
 
-      <div className="relative z-10 flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-white/10 text-sky-200">
-            <Sparkles size={17} aria-hidden />
+      <div className="relative flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-sky-200 ring-1 ring-inset ring-white/15 backdrop-blur">
+            <Sparkles size={19} aria-hidden />
           </span>
-          <p className="pt-hero-kicker">Care insights</p>
+          <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-sky-200/80">
+            Care insights
+          </span>
         </span>
         {unread > 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white">
+          <span className="inline-flex items-center gap-1 rounded-md bg-sky-500 px-2 py-1 text-[11px] font-semibold text-white">
             <MessageSquare size={12} aria-hidden />
             {unread} unread
           </span>
@@ -56,25 +51,25 @@ export function CareAssistant({ className }: { className?: string }) {
         )}
       </div>
 
-      <h3 className="relative z-10 mt-4 font-display text-lg font-semibold tracking-[-0.02em]">
+      <h3 className="relative mt-4 text-lg font-semibold tracking-[-0.01em]">
         Questions about your plan?
       </h3>
-      <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-white/65">
+      <p className="relative mt-1 text-xs leading-relaxed text-white/60">
         Ask about medicines, vitals, or what&apos;s next — with your record attached.
       </p>
 
-      <div className="relative z-10 mt-5 grid grid-cols-2 gap-2">
+      <div className="relative mt-4 grid grid-cols-2 gap-2">
         <Link
           href="/patient/ai/chat"
           data-testid="ask-ai-cta"
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-white text-sm font-semibold text-ink-card transition-all hover:-translate-y-px hover:bg-sky-50"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-white text-sm font-semibold text-[#1e1b4b] transition-all hover:-translate-y-px hover:bg-sky-50"
         >
           <Sparkles size={15} aria-hidden />
           Ask AI
         </Link>
         <Link
           href="/patient/messages"
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] border border-white/20 bg-white/[0.06] text-sm font-semibold text-white transition-colors hover:bg-white/[0.12]"
         >
           <MessageSquare size={15} aria-hidden />
           Messages

@@ -11,7 +11,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ChevronLeft,
   Copy,
   FileText,
   FlaskConical,
@@ -19,14 +18,25 @@ import {
   Loader2,
   MessageSquare,
   Plus,
-  Scan,
   Sparkles,
   Upload,
 } from "lucide-react";
 
 import { api, ApiError } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { formatDayLabel } from "@/patient/lib/format";
+import { AiToolHero } from "@/patient/components/ai/AiToolHero";
+import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
+import {
+  EmptyBlock,
+  HERO_PRIMARY,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientPage,
+  PRIMARY_BTN,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 const SAMPLE_EXPLANATION = `**Comprehensive Metabolic & Lipid Panel (Sample Analysis)**
 
@@ -69,13 +79,13 @@ export default function AiLabExplainPage() {
 
   const labRecords = records.data?.records ?? [];
 
-  async function explain() {
-    if (!selectedRecordId) {
+  async function explain(id: string = selectedRecordId) {
+    if (!id) {
       setError("Please select a lab report to analyze.");
       return;
     }
 
-    if (selectedRecordId === "sample-report") {
+    if (id === "sample-report") {
       setBusy(true);
       setError(null);
       setTimeout(() => {
@@ -91,7 +101,7 @@ export default function AiLabExplainPage() {
     try {
       const res = await api<{ explanation: string }>("/ai/explain/lab-report", {
         method: "POST",
-        json: { reportId: selectedRecordId },
+        json: { reportId: id },
       });
       setExplanation(res.explanation);
     } catch (err) {
@@ -112,304 +122,238 @@ export default function AiLabExplainPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const actionTiles = [
+    { href: "/patient/records/new", label: "Upload PDF", hint: "Hospital e-results", icon: Upload, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+    { href: "/patient/records/scan", label: "Scan paper", hint: "Camera capture", icon: Camera, tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30" },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
+    <PatientPage>
+      <AiToolHero
         icon={<FlaskConical size={13} aria-hidden />}
-        kicker="Pathology Language Translation"
-        title="Explain a Lab Report"
-        description="Translate medical lab values, blood panels, and reference intervals into simple, understandable plain English."
+        badge="Lab interpreter"
+        title="Explain a lab report"
+        description="Turn lab values, blood panels and reference ranges into plain English you can actually use."
+        trust={["Plain English", "Non-diagnostic", "Cached 24h"]}
         actions={
-          <>
-            <Link href="/patient/ai/chat" className={heroSecondaryAction}>
-              <Bot size={13} aria-hidden />
-              AI Chat Assistant
-            </Link>
-            <Link href="/patient/records/new" className={heroPrimaryAction}>
-              <Plus size={14} aria-hidden />
-              Upload Lab Report
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Pathology AI · Plain English</span>
-            <span>Data Security · HIPAA Zero-Log</span>
-            <span>Analysis Speed · Cached 24h</span>
-            <span>Physician Oversight · Non-Diagnostic</span>
-          </>
+          <Link href="/patient/records/new" className={HERO_PRIMARY}>
+            <Plus size={15} className="text-sky-600" aria-hidden />
+            Upload lab report
+          </Link>
         }
       />
 
-      {/* ── 2. Select Lab Report Stage ─────────────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <h2 className="t-card-title text-text flex items-center gap-2">
-              <FlaskConical size={18} className="text-brand" aria-hidden />
-              <span>Choose a Lab Report to Analyze</span>
-            </h2>
-            <p className="text-xs text-text-soft mt-0.5">
-              Select an existing pathology file from your electronic health record.
-            </p>
-          </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          <section className={PANEL} aria-labelledby="le-pick">
+            <PanelHeader
+              id="le-pick"
+              icon={<FlaskConical size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title="Choose a lab report"
+              caption={records.isLoading ? "Loading your reports…" : `${labRecords.length} lab report${labRecords.length === 1 ? "" : "s"} on file`}
+              href="/patient/records"
+              linkLabel="All records"
+            />
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/patient/records/new"
-              className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-            >
-              <Upload size={12} aria-hidden />
-              Upload New PDF
-            </Link>
-            <Link
-              href="/patient/records/scan"
-              className="pt-btn pt-btn-ghost h-8 px-3 text-xs"
-            >
-              <Camera size={12} aria-hidden />
-              Scan Paper
-            </Link>
-          </div>
+            {records.isLoading ? (
+              <PanelSkeleton rows={2} />
+            ) : labRecords.length > 0 ? (
+              <div role="radiogroup" aria-label="Lab reports" className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {labRecords.map((r) => {
+                  const on = selectedRecordId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setSelectedRecordId(r.id)}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-xl bg-white p-3.5 text-left transition-all hover:-translate-y-px",
+                        on
+                          ? "shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1.5px_#0284c7]"
+                          : "shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                          on ? "bg-sky-600 text-white" : "bg-emerald-50 text-emerald-600",
+                        )}
+                        aria-hidden
+                      >
+                        <FileText size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-slate-900 group-hover:text-sky-700">{r.title}</span>
+                        <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+                          <Calendar size={11} aria-hidden />
+                          {formatDayLabel(r.date)}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                          on ? "bg-sky-600 text-white" : "shadow-[inset_0_0_0_1.5px_rgba(15,23,42,0.15)]",
+                        )}
+                        aria-hidden
+                      >
+                        {on ? <Check size={11} strokeWidth={3} /> : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyBlock
+                icon={<FlaskConical size={19} />}
+                title="No lab reports yet"
+                body="Upload a lab PDF from your hospital, photograph a paper report, or try the sample panel to see how it works."
+                actions={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRecordId("sample-report");
+                      void explain("sample-report");
+                    }}
+                    className={PRIMARY_BTN}
+                  >
+                    <Sparkles size={13} aria-hidden />
+                    Try sample panel
+                  </button>
+                }
+              />
+            )}
+
+            {error ? (
+              <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                <AlertCircle size={14} className="shrink-0" aria-hidden />
+                {error}
+              </div>
+            ) : null}
+
+            {labRecords.length > 0 ? (
+              <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                <span className="hidden text-[11px] text-slate-400 sm:inline">Results are cached for 24 hours</span>
+                <button
+                  type="button"
+                  onClick={() => void explain()}
+                  disabled={!selectedRecordId || busy}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#07233a] px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-px hover:bg-sky-700 disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none"
+                >
+                  {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Sparkles size={15} aria-hidden />}
+                  {busy ? "Explaining…" : "Explain in plain English"}
+                </button>
+              </div>
+            ) : null}
+          </section>
+
+          {busy && !explanation ? (
+            <section className={PANEL} aria-busy>
+              <PanelSkeleton rows={4} className="mt-0" />
+            </section>
+          ) : null}
+
+          {explanation ? (
+            <section className={PANEL} aria-labelledby="le-result">
+              <PanelHeader
+                id="le-result"
+                icon={<CheckCircle2 size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title="Plain-English summary"
+                caption="AI-translated lab readout"
+                action={
+                  <button type="button" onClick={handleCopy} className={cn(SECONDARY_BTN, "h-8 px-3")}>
+                    {copied ? <Check size={12} className="text-emerald-600" aria-hidden /> : <Copy size={12} aria-hidden />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                }
+              />
+              <div className="mt-5 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+                {explanation}
+              </div>
+              <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-400">
+                  <Info size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  For understanding only — not a diagnosis. Discuss anything unusual with your doctor.
+                </p>
+                <Link
+                  href={`/patient/ai/chat?prompt=${encodeURIComponent("Help me understand my lab results in more detail: " + explanation.slice(0, 150))}`}
+                  className={cn(PRIMARY_BTN, "shrink-0")}
+                >
+                  <MessageSquare size={13} aria-hidden />
+                  Ask a follow-up
+                </Link>
+              </div>
+            </section>
+          ) : null}
         </div>
 
-        {records.isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
-              />
-            ))}
-          </div>
-        ) : labRecords.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {labRecords.map((r) => {
-              const isSelected = selectedRecordId === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setSelectedRecordId(r.id)}
-                  className={cn(
-                    "p-4 rounded-xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group shadow-2xs",
-                    isSelected
-                      ? "bg-brand-soft/40 border-brand shadow-card"
-                      : "bg-surface border-border hover:border-border-strong",
-                  )}
-                >
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div
-                      className={cn(
-                        "grid h-10 w-10 place-items-center rounded-md shrink-0 shadow-2xs",
-                        isSelected
-                          ? "bg-ink text-white"
-                          : "bg-surface-2 text-text-muted",
-                      )}
-                      aria-hidden
-                    >
-                      <FileText size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-xs sm:text-sm text-text truncate group-hover:text-brand transition-colors">
-                        {r.title}
-                      </h4>
-                      <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-                        <Calendar size={11} aria-hidden />
-                        <span>{r.date}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "grid h-5 w-5 place-items-center rounded-full border shrink-0 mt-1",
-                      isSelected
-                        ? "bg-brand border-brand text-white"
-                        : "border-border bg-surface",
-                    )}
-                    aria-hidden
-                  >
-                    {isSelected && <Check size={11} strokeWidth={3} />}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          /* ── Zero-State when no lab reports are in EHR ──────────────────── */
-          <div className="rounded-xl border border-border bg-surface-2/50 p-6 sm:p-8 flex flex-col items-center text-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-surface text-brand shadow-xs" aria-hidden>
-              <FlaskConical size={24} />
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Add a report">
+          <section className={PANEL} aria-labelledby="le-add">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="le-add" className="text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
+                Add a report
+              </h2>
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">One click</span>
             </div>
-
-            <div className="max-w-md">
-              <h3 className="t-card-title text-text">
-                No Lab Reports Uploaded Yet
-              </h3>
-              <p className="text-xs text-text-soft mt-1 leading-relaxed">
-                You can upload a digital laboratory PDF from your hospital patient portal, photograph a physical paper report, or try our sample panel below.
-              </p>
-            </div>
-
-            {/* 3 Quick Action Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mt-2 text-left">
-              <Link
-                href="/patient/records/new"
-                className="p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:shadow-card transition-all flex flex-col gap-2 group cursor-pointer"
-              >
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-                  <Upload size={15} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-text group-hover:text-brand transition-colors">
-                    Upload Lab PDF
-                  </h4>
-                  <p className="text-[11px] text-text-muted mt-0.5">
-                    Direct hospital e-results
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                href="/patient/records/scan"
-                className="p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:shadow-card transition-all flex flex-col gap-2 group cursor-pointer"
-              >
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-success-soft text-success" aria-hidden>
-                  <Scan size={15} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-text group-hover:text-success transition-colors">
-                    Scan Paper Copy
-                  </h4>
-                  <p className="text-[11px] text-text-muted mt-0.5">
-                    Camera OCR recognition
-                  </p>
-                </div>
-              </Link>
-
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {actionTiles.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 rounded-xl px-1.5 py-3 text-center transition-all hover:-translate-y-0.5 hover:bg-slate-50">
+                    <span className={cn("grid h-11 w-11 place-items-center rounded-[14px] bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-105", t.tone)}>
+                      <Icon size={19} aria-hidden />
+                    </span>
+                    <span className="w-full min-w-0">
+                      <span className="block truncate text-[12.5px] font-semibold text-slate-900">{t.label}</span>
+                      <span className="block truncate text-[11px] text-slate-400">{t.hint}</span>
+                    </span>
+                  </Link>
+                );
+              })}
               <button
                 type="button"
                 onClick={() => {
                   setSelectedRecordId("sample-report");
-                  void explain();
+                  void explain("sample-report");
                 }}
-                className="p-4 rounded-xl bg-ink text-white hover:brightness-110 transition-all flex flex-col gap-2 group cursor-pointer text-left"
+                className="group flex flex-col items-center gap-2 rounded-xl px-1.5 py-3 text-center transition-all hover:-translate-y-0.5 hover:bg-slate-50"
               >
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-white/10 text-white" aria-hidden>
-                  <Sparkles size={15} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs">
-                    Try Sample Panel
-                  </h4>
-                  <p className="text-[11px] text-white/70 mt-0.5">
-                    Metabolic &amp; Lipid demo
-                  </p>
-                </div>
+                <span className="grid h-11 w-11 place-items-center rounded-[14px] bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-105">
+                  <Sparkles size={19} aria-hidden />
+                </span>
+                <span className="w-full min-w-0">
+                  <span className="block truncate text-[12.5px] font-semibold text-slate-900">Sample</span>
+                  <span className="block truncate text-[11px] text-slate-400">Demo panel</span>
+                </span>
               </button>
             </div>
-          </div>
-        )}
+          </section>
 
-        {error && (
-          <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-            <AlertCircle size={15} className="shrink-0" aria-hidden />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Explain Button */}
-        {labRecords.length > 0 && (
-          <div className="pt-2 border-t border-border flex items-center justify-between">
-            <button
-              type="button"
-              onClick={explain}
-              disabled={!selectedRecordId || busy}
-              className="pt-btn pt-btn-primary h-11 px-6 text-xs disabled:opacity-50"
-            >
-              {busy ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" aria-hidden />
-                  Synthesizing Plain English Analysis…
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} aria-hidden />
-                  Generate Plain-English Explanation
-                </>
-              )}
-            </button>
-
-            <span className="text-xs text-text-muted font-medium hidden sm:inline">
-              Cached 24h for instant retrieval
+          <Link
+            href="/patient/ai/lab-trend"
+            className="group relative flex items-center gap-4 overflow-hidden rounded-2xl p-5 text-white transition-all hover:-translate-y-0.5"
+            style={{
+              background:
+                "radial-gradient(420px 200px at 100% 0%, rgba(45,212,191,0.30), transparent 60%), linear-gradient(135deg, #07233a 0%, #0c4a6e 100%)",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 18px 40px -18px rgba(7,35,58,0.6)",
+            }}
+          >
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/10 text-teal-200 ring-1 ring-inset ring-white/15">
+              <Bot size={21} aria-hidden />
             </span>
-          </div>
-        )}
-      </section>
-
-      {/* ── 3. Generated Plain-English Explanation Card ────────────────────── */}
-      {explanation && (
-        <section className="rounded-xl border border-brand/25 bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success" aria-hidden>
-                <CheckCircle2 size={18} />
-              </div>
-              <div>
-                <h3 className="t-card-title text-text">
-                  Plain-English Lab Summary
-                </h3>
-                <p className="text-xs text-text-soft">
-                  AI-translated clinical pathology readout
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-              >
-                {copied ? (
-                  <>
-                    <Check size={12} className="text-success" aria-hidden />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={12} aria-hidden />
-                    Copy Summary
-                  </>
-                )}
-              </button>
-
-              <Link
-                href={`/patient/ai/chat?prompt=${encodeURIComponent(
-                  "Help me understand my lab results in more detail: " +
-                    explanation.slice(0, 150),
-                )}`}
-                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-              >
-                <MessageSquare size={12} aria-hidden />
-                Ask AI Follow-Up
-              </Link>
-            </div>
-          </div>
-
-          <div className="prose prose-sm max-w-none text-text text-xs sm:text-sm leading-relaxed p-4 rounded-lg bg-surface-2 font-normal">
-            <div className="whitespace-pre-wrap">{explanation}</div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-surface-2 border border-border flex items-start gap-2.5 text-[11px] text-text-soft">
-            <Info size={14} className="text-text-muted shrink-0 mt-0.5" aria-hidden />
-            <span>
-              This explanation is generated by clinical language models for patient educational understanding. It does not constitute a diagnostic prescription. Always discuss anomalous numbers with your primary care doctor.
+            <span className="min-w-0 flex-1">
+              <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-teal-200/80">Next</span>
+              <span className="mt-1 block text-base font-semibold">See trends over time</span>
+              <span className="block text-xs text-white/60">HbA1c, cholesterol, kidney markers</span>
             </span>
-          </div>
-        </section>
-      )}
-    </div>
+          </Link>
+
+          <AiSafetyNotice />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

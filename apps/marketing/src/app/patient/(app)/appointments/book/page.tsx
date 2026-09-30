@@ -6,22 +6,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
+  Baby,
+  Bone,
+  Brain,
   Building2,
-  Calendar,
+  CalendarDays,
+  CalendarPlus,
   Check,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Ear,
+  Eye,
+  FileText,
+  Flower2,
+  HeartPulse,
   Loader2,
   MapPin,
-  Search,
-  ShieldCheck,
+  MessageCircle,
+  Smile,
+  Sparkles,
   Star,
   Stethoscope,
-  User,
+  UserRound,
+  Users,
   Video,
-  X,
-  Zap,
 } from "lucide-react";
 
 import {
@@ -30,27 +39,53 @@ import {
   useDoctorSearch,
   useSpecialties,
 } from "@/patient/hooks/doctors";
-import { humanize } from "@/patient/lib/format";
+import { formatDayLabel } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 import { DoctorBadge } from "@/portal/components/doctor/DoctorBadge";
+import {
+  EmptyBlock,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_TEXTAREA,
+  GROUP_LABEL,
+  HERO_CHIP,
+  HERO_GHOST,
+  HeroAccent,
+  HeroOverlap,
+  InfoField,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 type Step = "specialty" | "doctor" | "schedule" | "confirm";
 
-const SPECIALTY_ICONS: Record<string, string> = {
-  Cardiology: "❤️",
-  Neurology: "🧠",
-  Pediatrics: "👶",
-  Orthopedics: "🦴",
-  Dermatology: "✨",
-  General: "🩺",
-  "General Practice": "🩺",
-  Gynecology: "🌸",
-  Psychiatry: "💭",
-  Ophthalmology: "👁️",
-  Dentistry: "🦷",
-  ENT: "👂",
+const STEPS: Array<{ key: Step; label: string; hint: string; icon: typeof Stethoscope }> = [
+  { key: "specialty", label: "Specialty", hint: "What you need", icon: Stethoscope },
+  { key: "doctor", label: "Doctor", hint: "Who you'll see", icon: UserRound },
+  { key: "schedule", label: "Schedule", hint: "When & how", icon: CalendarDays },
+  { key: "confirm", label: "Confirm", hint: "Review & book", icon: Check },
+];
+
+const SPECIALTY_META: Record<string, { icon: typeof Stethoscope; tone: string }> = {
+  Cardiology: { icon: HeartPulse, tone: "from-rose-500 to-pink-600 shadow-rose-500/30" },
+  Neurology: { icon: Brain, tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+  Pediatrics: { icon: Baby, tone: "from-amber-500 to-orange-500 shadow-amber-500/30" },
+  Orthopedics: { icon: Bone, tone: "from-slate-500 to-slate-700 shadow-slate-500/30" },
+  Dermatology: { icon: Sparkles, tone: "from-fuchsia-500 to-pink-500 shadow-fuchsia-500/30" },
+  General: { icon: Stethoscope, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+  "General Practice": { icon: Stethoscope, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+  Gynecology: { icon: Flower2, tone: "from-pink-500 to-rose-500 shadow-pink-500/30" },
+  Psychiatry: { icon: MessageCircle, tone: "from-indigo-500 to-violet-600 shadow-indigo-500/30" },
+  Ophthalmology: { icon: Eye, tone: "from-cyan-500 to-teal-600 shadow-cyan-500/30" },
+  Dentistry: { icon: Smile, tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30" },
+  ENT: { icon: Ear, tone: "from-orange-500 to-amber-600 shadow-orange-500/30" },
 };
+const DEFAULT_SPECIALTY = { icon: Stethoscope, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" };
 
 export default function BookAppointmentPage() {
   const router = useRouter();
@@ -102,640 +137,605 @@ export default function BookAppointmentPage() {
     }
   }
 
-  const stepsOrder: Step[] = ["specialty", "doctor", "schedule", "confirm"];
-  const currentStepIndex = stepsOrder.indexOf(step);
+  const currentStepIndex = STEPS.findIndex((s) => s.key === step);
+  const canAdvance =
+    (step === "specialty" && !!specialty) ||
+    (step === "doctor" && !!doctorId) ||
+    (step === "schedule" && !!date && !!time);
+
+  function goNext() {
+    if (step === "specialty" && specialty) setStep("doctor");
+    else if (step === "doctor" && doctorId) setStep("schedule");
+    else if (step === "schedule" && date && time) setStep("confirm");
+  }
+  function goBack() {
+    if (step === "doctor") setStep("specialty");
+    else if (step === "schedule") setStep(initialDoctor && !specialty ? "specialty" : "doctor");
+    else if (step === "confirm") setStep("schedule");
+  }
+
+  const slots = (availability.data?.slots ?? []).filter((s) => s.available);
+  const doctorList = doctors.data?.doctors ?? [];
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Calendar size={13} />}
-        kicker="Live Appointment Scheduler"
-        title="Book a Clinical Appointment"
-        description="Connect with board-certified physicians for hospital consultations and encrypted HD video teleconsultations."
-        actions={
-          <>
-            <Link href="/patient/appointments" className={heroSecondaryAction}>
-              <ChevronLeft size={13} />
-              <span>My Appointments</span>
-            </Link>
-            <Link href="/patient/care-team" className={heroPrimaryAction}>
-              <User size={14} />
-              <span>My Doctors</span>
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Queue system · instant e-queue</span>
-            <span>Telemedicine · encrypted HD</span>
-            <span>Booking mode · direct confirm</span>
-            <span>Calendar sync · iCal & Google</span>
-          </>
-        }
-      />
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<CalendarPlus size={13} aria-hidden />}
+          kicker="Book a visit"
+          kickerMeta={`Step ${currentStepIndex + 1} of ${STEPS.length}`}
+          title={
+            <>
+              See the <HeroAccent>right doctor</HeroAccent>, fast
+            </>
+          }
+          description="Pick a specialty, choose a doctor, then a time that suits you — in-person at the hospital or over a secure video call."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <Building2 size={12} className="text-sky-300" aria-hidden />
+                In-person visits
+              </span>
+              <span className={HERO_CHIP}>
+                <Video size={12} className="text-violet-300" aria-hidden />
+                Video consultations
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/appointments" className={HERO_GHOST}>
+                <ChevronLeft size={15} aria-hidden />
+                My appointments
+              </Link>
+              <Link href="/patient/care-team" className={HERO_GHOST}>
+                <Users size={15} aria-hidden />
+                My doctors
+              </Link>
+            </>
+          }
+        />
 
-      {/* ── 2. Modern Interactive Multi-Step Stepper Bar ────────────────────── */}
-      <nav aria-label="Booking Progress" className="bg-surface p-2.5 rounded-xl shadow-card">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { key: "specialty" as const, index: 1, label: "1. Medical Specialty" },
-            { key: "doctor" as const, index: 2, label: "2. Choose Doctor" },
-            { key: "schedule" as const, index: 3, label: "3. Schedule & Mode" },
-            { key: "confirm" as const, index: 4, label: "4. Review & Confirm" },
-          ].map((s, idx) => {
-            const isCurrent = step === s.key;
-            const isDone = currentStepIndex > idx;
-            const isClickable = isDone || isCurrent;
-
-            return (
-              <button
-                key={s.key}
-                type="button"
-                disabled={!isClickable}
-                onClick={() => {
-                  if (isClickable) setStep(s.key);
-                }}
-                className={cn(
-                  "p-3 rounded-lg text-left transition-all flex items-center gap-2.5 cursor-pointer disabled:cursor-not-allowed",
-                  isCurrent
-                    ? "bg-brand-soft/60 text-ink font-bold border border-brand"
-                    : isDone
-                      ? "bg-success-soft/60 text-success font-semibold border border-success/25 hover:bg-success-soft"
-                      : "bg-surface-2 text-text-muted font-medium border border-border",
-                )}
-              >
-                <div
+        {/* Stepper floats over the hero edge, like the stat strip. */}
+        <HeroOverlap>
+          <nav aria-label="Booking progress" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {STEPS.map((s, idx) => {
+              const isCurrent = step === s.key;
+              const isDone = currentStepIndex > idx;
+              const clickable = isDone || isCurrent;
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  disabled={!clickable}
+                  aria-current={isCurrent ? "step" : undefined}
+                  onClick={() => clickable && setStep(s.key)}
                   className={cn(
-                    "grid h-6 w-6 place-items-center rounded-full text-xs shrink-0 font-bold",
+                    "group flex min-h-[84px] items-center gap-3 rounded-2xl bg-white p-4 text-left transition-all duration-200 disabled:cursor-not-allowed",
                     isCurrent
-                      ? "bg-brand text-white shadow-2xs"
-                      : isDone
-                        ? "bg-success text-white"
-                        : "bg-surface-3 text-text-soft",
+                      ? "shadow-[0_16px_40px_-16px_rgba(15,23,42,0.22),inset_0_0_0_2px_#0284c7]"
+                      : "shadow-[0_16px_40px_-16px_rgba(15,23,42,0.22),inset_0_0_0_1px_rgba(15,23,42,0.07)]",
+                    isDone && "hover:-translate-y-0.5",
                   )}
-                  aria-hidden
                 >
-                  {isDone ? <Check size={13} strokeWidth={3} /> : s.index}
-                </div>
-                <span className="text-xs truncate">{s.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+                  <span
+                    className={cn(
+                      "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-sm font-bold",
+                      isCurrent
+                        ? "bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30"
+                        : isDone
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-slate-100 text-slate-400",
+                    )}
+                    aria-hidden
+                  >
+                    {isDone ? <Check size={17} strokeWidth={2.75} /> : <Icon size={17} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Step {idx + 1}
+                    </span>
+                    <span className={cn("block truncate text-sm font-semibold", isCurrent || isDone ? "text-slate-900" : "text-slate-400")}>
+                      {s.label}
+                    </span>
+                    <span className="block truncate text-[11px] text-slate-400">{s.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </HeroOverlap>
+      </div>
 
-      {/* ── 3. Step 1: Medical Specialty ───────────────────────────────────── */}
-      {step === "specialty" && (
-        <section className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
-            <div>
-              <h2 className="t-card-title text-text flex items-center gap-2">
-                <Stethoscope size={18} className="text-brand" aria-hidden />
-                <span>Select Medical Specialty</span>
-              </h2>
-              <p className="text-xs text-text-soft mt-0.5">
-                What clinical condition or specialty care do you require?
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSpecialty("");
-                setStep("doctor");
-              }}
-              className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-            >
-              <span>Browse All Physicians</span>
-              <ArrowRight size={12} aria-hidden />
-            </button>
-          </div>
-
-          {specialties.isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div
-                  key={i}
-                  className="h-28 rounded-xl bg-surface-2 animate-pulse border border-border"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {(specialties.data?.specialties ?? []).map((s, idx) => {
-                const isSelected = specialty === s.name;
-                const emoji = SPECIALTY_ICONS[s.name] || "🩺";
-
-                return (
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          {/* ── Step 1: Specialty ───────────────────────────────────── */}
+          {step === "specialty" && (
+            <section className={PANEL} aria-labelledby="bk-specialty">
+              <PanelHeader
+                id="bk-specialty"
+                icon={<Stethoscope size={16} />}
+                tone="bg-sky-50 text-sky-600"
+                title="Choose a specialty"
+                caption="What kind of care do you need?"
+                action={
                   <button
-                    key={s.name ? `${s.name}-${idx}` : `spec-${idx}`}
                     type="button"
                     onClick={() => {
-                      setSpecialty(s.name);
+                      setSpecialty("");
                       setStep("doctor");
                     }}
-                    className={cn(
-                      "p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-between gap-2.5 cursor-pointer group hover:-translate-y-0.5",
-                      isSelected
-                        ? "bg-brand-soft/40 border-brand shadow-card"
-                        : "bg-surface border-border hover:border-border-strong hover:bg-surface-2/80 shadow-xs",
-                    )}
+                    className={cn(SECONDARY_BTN, "h-8 px-3")}
                   >
-                    <span className="text-3xl filter drop-shadow-sm group-hover:scale-110 transition-transform">
-                      {emoji}
-                    </span>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-text group-hover:text-brand transition-colors">
-                        {s.name}
-                      </h3>
-                      <p className="text-[11px] font-semibold text-text-muted mt-0.5">
-                        {s.count} Specialist{s.count === 1 ? "" : "s"}
-                      </p>
-                    </div>
+                    Browse all doctors
+                    <ArrowRight size={12} aria-hidden />
                   </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── 4. Step 2: Choose Doctor ───────────────────────────────────────── */}
-      {step === "doctor" && (
-        <section className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border pb-4">
-            <div>
-              <h2 className="t-card-title text-text flex items-center gap-2">
-                <User size={18} className="text-brand" aria-hidden />
-                <span>Choose an Attending Specialist</span>
-              </h2>
-              {specialty ? (
-                <p className="text-xs text-text-soft mt-0.5">
-                  Filtering for specialists in{" "}
-                  <span className="font-bold text-text">{specialty}</span>
-                </p>
+                }
+              />
+              {specialties.isLoading ? (
+                <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="h-28 animate-pulse rounded-xl bg-slate-100" />
+                  ))}
+                </div>
+              ) : (specialties.data?.specialties ?? []).length === 0 ? (
+                <EmptyBlock icon={<Stethoscope size={19} />} title="No specialties listed" body="Browse all doctors instead." />
               ) : (
-                <p className="text-xs text-text-soft mt-0.5">
-                  Showing all certified hospital physicians and medical consultants.
-                </p>
+                <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                  {(specialties.data?.specialties ?? []).map((s, idx) => {
+                    const on = specialty === s.name;
+                    const meta = SPECIALTY_META[s.name] ?? DEFAULT_SPECIALTY;
+                    const Icon = meta.icon;
+                    return (
+                      <button
+                        key={s.name ? `${s.name}-${idx}` : `spec-${idx}`}
+                        type="button"
+                        onClick={() => {
+                          setSpecialty(s.name);
+                          setStep("doctor");
+                        }}
+                        className={cn(
+                          "group flex flex-col items-center gap-2.5 rounded-xl px-2 py-4 text-center transition-all hover:-translate-y-0.5",
+                          on
+                            ? "bg-sky-50/60 shadow-[inset_0_0_0_1.5px_rgba(2,132,199,0.4)]"
+                            : "hover:bg-slate-50",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "grid h-12 w-12 place-items-center rounded-[14px] bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-105",
+                            meta.tone,
+                          )}
+                        >
+                          <Icon size={20} aria-hidden />
+                        </span>
+                        <span className="w-full min-w-0">
+                          <span className="block truncate text-[13px] font-semibold text-slate-900">{s.name}</span>
+                          <span className="block text-[11px] text-slate-400">
+                            {s.count} doctor{s.count === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-            </div>
+            </section>
+          )}
 
-            {specialty && (
-              <button
-                type="button"
-                onClick={() => setStep("specialty")}
-                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-              >
-                Change Specialty
-              </button>
-            )}
-          </div>
+          {/* ── Step 2: Doctor ──────────────────────────────────────── */}
+          {step === "doctor" && (
+            <section className={PANEL} aria-labelledby="bk-doctor">
+              <PanelHeader
+                id="bk-doctor"
+                icon={<UserRound size={16} />}
+                tone="bg-violet-50 text-violet-600"
+                title="Choose a doctor"
+                caption={
+                  doctors.isLoading
+                    ? "Searching…"
+                    : `${doctorList.length} doctor${doctorList.length === 1 ? "" : "s"}${specialty ? ` in ${specialty}` : ""}`
+                }
+                action={
+                  specialty ? (
+                    <button type="button" onClick={() => setStep("specialty")} className={cn(SECONDARY_BTN, "h-8 px-3")}>
+                      Change specialty
+                    </button>
+                  ) : null
+                }
+              />
 
-          {/* Search & Telemedicine Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface-2 p-3 rounded-xl border border-border">
-            <div className="relative flex-1">
-              <Search
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search physician by name, hospital, or sub-specialty…"
-                className="w-full h-9 pl-9 pr-8 text-xs bg-surface border border-border rounded-lg font-medium text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand transition-all"
-              />
-              {search && (
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <PanelSearch
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search by name, hospital or sub-specialty…"
+                  ariaLabel="Search doctors"
+                  className="lg:max-w-none"
+                />
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
+                  aria-pressed={telemedicine}
+                  onClick={() => setTelemedicine((v) => !v)}
+                  className={cn(
+                    "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 text-xs font-semibold transition-all",
+                    telemedicine
+                      ? "bg-violet-50 text-violet-700 shadow-[inset_0_0_0_1.5px_rgba(124,58,237,0.35)]"
+                      : "bg-slate-50 text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:text-slate-900",
+                  )}
                 >
-                  <X size={13} />
+                  <Video size={14} aria-hidden />
+                  Video only
+                </button>
+              </div>
+
+              {doctors.isLoading ? (
+                <PanelSkeleton rows={3} />
+              ) : doctorList.length === 0 ? (
+                <EmptyBlock
+                  icon={<Stethoscope size={19} />}
+                  title="No doctors found"
+                  body="No doctors matched your filters. Try another name or specialty."
+                  actions={
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("");
+                        setSpecialty("");
+                        setTelemedicine(false);
+                      }}
+                      className={SECONDARY_BTN}
+                    >
+                      Reset filters
+                    </button>
+                  }
+                />
+              ) : (
+                <ul className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {doctorList.map((d, idx) => {
+                    const on = doctorId === d.id;
+                    return (
+                      <li key={d.id ? `${d.id}-${idx}` : `doc-${idx}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDoctorId(d.id);
+                            setStep("schedule");
+                          }}
+                          className={cn(
+                            "group relative flex h-full w-full items-start gap-3.5 rounded-xl bg-white p-3.5 text-left transition-all hover:-translate-y-px",
+                            on
+                              ? "shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1.5px_#0284c7]"
+                              : "shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]",
+                          )}
+                        >
+                          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-gradient-to-br from-sky-400 to-blue-600 text-base font-semibold text-white shadow-md shadow-sky-500/25" aria-hidden>
+                            {d.name?.[0]?.toUpperCase() ?? "D"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              <span className="truncate text-sm font-semibold text-slate-900 group-hover:text-sky-700">Dr. {d.name}</span>
+                              {d.available ? (
+                                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700">Available</span>
+                              ) : null}
+                            </span>
+                            <span className="block truncate text-xs text-slate-500">{d.specialization}</span>
+                            {d.hospitalName ? (
+                              <span className="mt-1 flex items-center gap-1 truncate text-[11px] text-slate-400">
+                                <MapPin size={11} className="shrink-0" aria-hidden />
+                                {d.hospitalName}
+                              </span>
+                            ) : null}
+                            <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                              {d.rating ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                                  <Star size={10} className="fill-amber-400 text-amber-400" aria-hidden />
+                                  {d.rating.toFixed(1)}
+                                </span>
+                              ) : null}
+                              {d.consultationFee ? (
+                                <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600">
+                                  LKR {d.consultationFee.toLocaleString()}
+                                </span>
+                              ) : null}
+                              <DoctorBadge
+                                d={{
+                                  userId: (d as any).userId ?? d.id,
+                                  name: d.name,
+                                  specialty: d.specialization ?? "",
+                                  yearsExperience: (d as any).experience ?? 0,
+                                  feeLkr: d.consultationFee ?? 0,
+                                  verifiedSlmc: !!(d as any).slmcVerifiedAt,
+                                  hospitalName: d.hospitalName ?? undefined,
+                                }}
+                              />
+                            </span>
+                          </span>
+                          <ChevronRight size={16} className="mt-1 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600" aria-hidden />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* ── Step 3: Schedule ────────────────────────────────────── */}
+          {step === "schedule" && (
+            <>
+              <section className={PANEL} aria-labelledby="bk-schedule">
+                <PanelHeader
+                  id="bk-schedule"
+                  icon={<CalendarDays size={16} />}
+                  tone="bg-amber-50 text-amber-600"
+                  title="Pick how and when"
+                  caption="Choose a visit type, a date and an open slot"
+                />
+
+                <p className={cn(GROUP_LABEL, "mt-5")}>Visit type</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {[
+                    { key: "in_person" as const, title: "Hospital visit", body: "In-person examination", icon: Building2, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+                    { key: "video" as const, title: "Video consultation", body: "Secure call from the portal", icon: Video, tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+                  ].map((m) => {
+                    const on = mode === m.key;
+                    const Icon = m.icon;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setMode(m.key)}
+                        className={cn(
+                          "flex items-center gap-3.5 rounded-xl p-3.5 text-left transition-all",
+                          on
+                            ? "bg-white shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1.5px_#0284c7]"
+                            : "bg-slate-50 hover:bg-white hover:shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "grid h-10 w-10 shrink-0 place-items-center rounded-[12px]",
+                            on ? cn("bg-gradient-to-br text-white shadow-lg", m.tone) : "bg-white text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]",
+                          )}
+                        >
+                          <Icon size={18} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-slate-900">{m.title}</span>
+                          <span className="block text-xs text-slate-400">{m.body}</span>
+                        </span>
+                        {on ? (
+                          <span className="grid h-5 w-5 place-items-center rounded-full bg-sky-600 text-white" aria-hidden>
+                            <Check size={12} strokeWidth={3} />
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 max-w-xs">
+                  <label htmlFor="bk-date" className={FIELD_LABEL}>Date</label>
+                  <input
+                    id="bk-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setTime("");
+                    }}
+                    min={new Date().toISOString().slice(0, 10)}
+                    required
+                    className={FIELD_INPUT}
+                  />
+                </div>
+
+                {date ? (
+                  <div className="mt-5 border-t border-slate-100 pt-5">
+                    <p className={GROUP_LABEL}>Open slots · {formatDayLabel(date)}</p>
+                    {availability.isLoading ? (
+                      <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-50 p-4 text-xs text-slate-500">
+                        <Loader2 size={14} className="animate-spin text-sky-600" aria-hidden />
+                        Checking the doctor&apos;s calendar…
+                      </div>
+                    ) : slots.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                        {slots.map((s, idx) => (
+                          <button
+                            key={s.time ? `${s.time}-${idx}` : `slot-${idx}`}
+                            type="button"
+                            aria-pressed={time === s.time}
+                            onClick={() => setTime(s.time)}
+                            className={cn(
+                              "h-10 rounded-lg text-xs font-semibold tabular-nums transition-all",
+                              time === s.time
+                                ? "bg-[#07233a] text-white shadow-lg shadow-slate-900/20"
+                                : "bg-slate-50 text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:bg-white hover:text-sky-700",
+                            )}
+                          >
+                            {s.time}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-50 p-4 text-xs font-medium text-amber-800">
+                        <AlertCircle size={14} className="shrink-0" aria-hidden />
+                        No open slots on this day — try another date.
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </section>
+
+              <section className={PANEL} aria-labelledby="bk-reason">
+                <PanelHeader
+                  id="bk-reason"
+                  icon={<FileText size={16} />}
+                  tone="bg-slate-100 text-slate-500"
+                  title="Reason for visit"
+                  caption="Optional · helps your doctor prepare"
+                />
+                <div className="mt-5 flex flex-col gap-4">
+                  <div>
+                    <label htmlFor="bk-reason-input" className={FIELD_LABEL}>Main reason</label>
+                    <input
+                      id="bk-reason-input"
+                      type="text"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="e.g. Chest discomfort, follow-up, routine check-up…"
+                      className={FIELD_INPUT}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="bk-notes" className={FIELD_LABEL}>Notes for the doctor</label>
+                    <textarea
+                      id="bk-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Symptoms, recent medication changes, questions…"
+                      className={FIELD_TEXTAREA}
+                    />
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* ── Step 4: Confirm ─────────────────────────────────────── */}
+          {step === "confirm" && (
+            <section className={PANEL} aria-labelledby="bk-confirm">
+              <PanelHeader
+                id="bk-confirm"
+                icon={<Check size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title="Review & confirm"
+                caption="Check the details before you book"
+              />
+              <dl className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <InfoField icon={<UserRound size={14} />} label="Doctor">
+                  {selectedDoctor ? `Dr. ${selectedDoctor.name}` : "Selected doctor"}
+                </InfoField>
+                <InfoField icon={<Stethoscope size={14} />} label="Specialty">
+                  {selectedDoctor?.specialization ?? (specialty || "—")}
+                </InfoField>
+                <InfoField icon={<CalendarDays size={14} />} label="Date">
+                  {date ? formatDayLabel(date) : "—"}
+                </InfoField>
+                <InfoField icon={<Clock size={14} />} label="Time">
+                  {time || "—"}
+                </InfoField>
+                <InfoField icon={mode === "video" ? <Video size={14} /> : <Building2 size={14} />} label="Visit type">
+                  {mode === "video" ? "Video consultation" : "Hospital visit"}
+                </InfoField>
+                <InfoField icon={<MapPin size={14} />} label="Location">
+                  {mode === "video" ? "Online · join from Appointments" : selectedDoctor?.hospitalName ?? "Doctor's hospital"}
+                </InfoField>
+                {reason ? (
+                  <div className="sm:col-span-2">
+                    <InfoField icon={<FileText size={14} />} label="Reason">
+                      {reason}
+                    </InfoField>
+                  </div>
+                ) : null}
+              </dl>
+              {error ? (
+                <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                  <AlertCircle size={14} className="shrink-0" aria-hidden />
+                  {error}
+                </div>
+              ) : null}
+            </section>
+          )}
+        </div>
+
+        {/* ── Rail: live summary + navigation ────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-6 xl:col-span-4" aria-label="Your booking">
+          <section className={PANEL} aria-labelledby="bk-summary">
+            <PanelHeader
+              id="bk-summary"
+              icon={<CalendarPlus size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Your booking"
+              caption={canAdvance || step === "confirm" ? "Looking good" : "Fill in each step"}
+            />
+            <ul className="mt-4 flex flex-col gap-0.5 text-[13px]">
+              {[
+                { label: "Specialty", value: specialty || (step !== "specialty" ? "Any" : null), icon: Stethoscope },
+                { label: "Doctor", value: selectedDoctor ? `Dr. ${selectedDoctor.name}` : doctorId ? "Selected" : null, icon: UserRound },
+                { label: "Visit", value: step === "schedule" || step === "confirm" ? (mode === "video" ? "Video" : "In-person") : null, icon: mode === "video" ? Video : Building2 },
+                { label: "Date", value: date ? formatDayLabel(date) : null, icon: CalendarDays },
+                { label: "Time", value: time || null, icon: Clock },
+              ].map((r) => {
+                const Icon = r.icon;
+                return (
+                  <li key={r.label} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2">
+                    <span
+                      className={cn(
+                        "grid h-7 w-7 shrink-0 place-items-center rounded-lg",
+                        r.value ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400",
+                      )}
+                      aria-hidden
+                    >
+                      {r.value ? <Check size={13} strokeWidth={2.75} /> : <Icon size={13} />}
+                    </span>
+                    <span className="min-w-0 flex-1 text-slate-500">{r.label}</span>
+                    <span className={cn("truncate text-right font-semibold", r.value ? "text-slate-900" : "text-slate-300")}>
+                      {r.value ?? "—"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === "specialty"}
+                className="inline-flex h-10 items-center justify-center gap-1 rounded-xl bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700 disabled:opacity-40"
+              >
+                <ChevronLeft size={15} aria-hidden />
+                Back
+              </button>
+              {step !== "confirm" ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canAdvance}
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#07233a] px-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-px hover:bg-sky-700 disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none"
+                >
+                  Continue
+                  <ChevronRight size={15} aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={confirm}
+                  disabled={book.isPending}
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-px hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {book.isPending ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" aria-hidden />
+                      Booking…
+                    </>
+                  ) : (
+                    <>
+                      <Check size={15} strokeWidth={2.75} aria-hidden />
+                      Confirm booking
+                    </>
+                  )}
                 </button>
               )}
             </div>
-
-            <label className="flex items-center gap-2 text-xs font-bold text-text cursor-pointer bg-surface px-3 py-2 rounded-lg border-border shrink-0">
-              <input
-                type="checkbox"
-                checked={telemedicine}
-                onChange={(e) => setTelemedicine(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-border text-brand focus:ring-brand"
-              />
-              <Video size={13} className="text-brand" aria-hidden />
-              <span>Video Consultations Only</span>
-            </label>
-          </div>
-
-          {/* Doctors List */}
-          {doctors.isLoading ? (
-            <div className="flex flex-col gap-2.5">
-              {[1, 2, 3].map((i) => (
-                <div
-                key={i}
-                className="h-24 rounded-xl bg-surface-2 animate-pulse border border-border"
-                />
-              ))}
-            </div>
-          ) : (doctors.data?.doctors ?? []).length === 0 ? (
-            <div className="p-8 rounded-xl bg-surface-2 border border-border text-center flex flex-col items-center gap-2.5">
-              <Stethoscope size={28} className="text-text-muted" />
-              <h3 className="font-bold text-text text-sm">No Physicians Found</h3>
-              <p className="text-xs text-text-soft max-w-sm">
-                No doctors matched your criteria. Try loosening filters or choosing another specialty.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSpecialty("");
-                  setTelemedicine(false);
-                }}
-                className="mt-2 text-xs font-bold text-brand bg-surface px-3 py-1.5 rounded-lg border-border"
-              >
-                Reset All Filters
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(doctors.data?.doctors ?? []).map((d, idx) => {
-                const isSelected = doctorId === d.id;
-
-                return (
-                  <button
-                    key={d.id ? `${d.id}-${idx}` : `doc-${idx}`}
-                    type="button"
-                    onClick={() => {
-                      setDoctorId(d.id);
-                      setStep("schedule");
-                    }}
-                    className={cn(
-                      "p-4 sm:p-5 rounded-xl border text-left transition-all flex items-start justify-between gap-3 cursor-pointer group",
-                      isSelected
-                        ? "bg-brand-soft/40 border-brand shadow-card"
-                        : "bg-surface border-border hover:border-border-strong hover:bg-surface-2 shadow-xs",
-                    )}
-                  >
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft font-mono font-bold text-lg shrink-0 shadow-xs" aria-hidden>
-                        {d.name?.[0]?.toUpperCase() ?? "D"}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
-                            Dr. {d.name}
-                          </h3>
-                          {d.available && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success">
-                              Available
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-xs font-semibold text-text-soft mt-0.5">
-                          {d.specialization}
-                        </p>
-
-                        {d.hospitalName && (
-                          <p className="text-xs text-text-muted mt-1 flex items-center gap-1 truncate">
-                            <MapPin size={11} className="text-text-muted shrink-0" />
-                            <span>{d.hospitalName}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <DoctorBadge
-                      d={{
-                        userId: (d as any).userId ?? d.id,
-                        name: d.name,
-                        specialty: d.specialization ?? "",
-                        yearsExperience: (d as any).experience ?? 0,
-                        feeLkr: d.consultationFee ?? 0,
-                        verifiedSlmc: !!(d as any).slmcVerifiedAt,
-                        hospitalName: d.hospitalName ?? undefined,
-                      }}
-                    />
-
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        {d.rating ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-warn bg-warn-soft px-2 py-0.5 rounded-md">
-                            <Star size={11} className="fill-warn text-warn" aria-hidden />
-                            <span>{d.rating.toFixed(1)}</span>
-                          </span>
-                        ) : null}
-
-                        {d.consultationFee ? (
-                          <span className="text-xs font-bold text-text">
-                            LKR {d.consultationFee.toLocaleString()}
-                          </span>
-                        ) : null}
-
-                        <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 text-text-soft group-hover:bg-brand group-hover:text-white transition-colors mt-1" aria-hidden>
-                          <ChevronRight size={14} />
-                        </div>
-                      </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── 5. Step 3: Schedule Date, Mode & Slot ───────────────────────────── */}
-      {step === "schedule" && (
-        <section className="flex flex-col gap-4">
-          <div className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-5">
-            <div className="border-b border-border pb-4">
-              <h2 className="t-card-title text-text flex items-center gap-2">
-                <Calendar size={18} className="text-brand" aria-hidden />
-                <span>Select Appointment Date &amp; Consultation Mode</span>
-              </h2>
-              <p className="text-xs text-text-soft mt-0.5">
-                Appointments are automatically confirmed and synced to your calendar.
-              </p>
-            </div>
-
-            {/* Visit Mode Cards (In-person vs Video) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setMode("in_person")}
-                className={cn(
-                  "p-4 rounded-xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
-                  mode === "in_person"
-                    ? "bg-brand-soft/40 border-brand shadow-card"
-                    : "bg-surface border-border hover:bg-surface-2",
-                )}
-              >
-                <div
-                  className={cn(
-                    "grid h-10 w-10 place-items-center rounded-md shrink-0",
-                    mode === "in_person"
-                      ? "bg-ink text-white"
-                      : "bg-surface-2 text-text-soft",
-                  )}
-                  aria-hidden
-                >
-                  <Building2 size={18} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-text">Hospital Consultation</h4>
-                  <p className="text-xs text-text-soft mt-0.5">In-person physical clinical exam</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMode("video")}
-                className={cn(
-                  "p-4 rounded-xl border text-left transition-all flex items-center gap-3.5 cursor-pointer",
-                  mode === "video"
-                    ? "bg-brand-soft/40 border-brand shadow-card"
-                    : "bg-surface border-border hover:bg-surface-2",
-                )}
-              >
-                <div
-                  className={cn(
-                    "grid h-10 w-10 place-items-center rounded-md shrink-0",
-                    mode === "video"
-                      ? "bg-ink text-white"
-                      : "bg-surface-2 text-text-soft",
-                  )}
-                  aria-hidden
-                >
-                  <Video size={18} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-text">Video Teleconsultation</h4>
-                  <p className="text-xs text-text-soft mt-0.5">Encrypted remote call via portal</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Date Input */}
-            <div className="flex flex-col gap-1.5 max-w-sm">
-              <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-                Select Appointment Date
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={new Date().toISOString().slice(0, 10)}
-                required
-                className="pt-input text-xs sm:text-sm"
-              />
-            </div>
-
-            {/* Available Time Slots */}
-            {date ? (
-              <div className="flex flex-col gap-2.5 pt-2 border-t border-border">
-                <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-                  Select Available Time Slot
-                </label>
-
-                {availability.isLoading ? (
-                  <div className="flex items-center gap-2 text-xs text-text-soft p-4 bg-surface-2 rounded-lg">
-                    <Loader2 size={14} className="animate-spin text-brand" aria-hidden />
-                    <span>Loading available physician slots for {date}…</span>
-                  </div>
-                ) : availability.data?.slots?.length ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                    {availability.data.slots
-                      .filter((s) => s.available)
-                      .map((s, idx) => (
-                        <button
-                          key={s.time ? `${s.time}-${idx}` : `slot-${idx}`}
-                          type="button"
-                          onClick={() => setTime(s.time)}
-                          className={cn(
-                            "py-2.5 px-3 rounded-lg text-xs font-bold transition-all border cursor-pointer text-center",
-                            time === s.time
-                              ? "bg-ink text-white border-ink shadow-xs"
-                              : "bg-surface border-border text-text hover:border-border-strong hover:bg-surface-2",
-                          )}
-                        >
-                          {s.time}
-                        </button>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-lg bg-warn-soft border border-warn/25 text-xs text-warn">
-                    No available consultation slots for this date. Please select another calendar day.
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Reason & Medical Context Card */}
-          <div className="rounded-xl border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-            <h3 className="pt-kicker">
-              Reason &amp; Clinical Background (Optional)
-            </h3>
-
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-                  Primary Reason for Visit
-                </label>
-                <input
-                  type="text"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g. Chest discomfort, post-op follow up, routine checkup…"
-                  className="pt-input text-xs sm:text-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-                  Notes for Attending Physician
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Share any current symptoms, recent medication changes, or questions beforehand…"
-                  className="pt-input h-auto py-3 text-xs sm:text-sm leading-relaxed"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── 6. Step 4: Review & Confirm ────────────────────────────────────── */}
-      {step === "confirm" && (
-        <section className="rounded-xl border-border bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-6">
-          <div>
-            <h2 className="t-card-title text-text flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-success" aria-hidden />
-              <span>Review Appointment Summary</span>
-            </h2>
-            <p className="text-xs text-text-soft mt-0.5">
-              Please verify your appointment details before finalizing your clinical booking.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-              <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                <User size={12} className="text-text-soft" />
-                Attending Physician
-              </span>
-              <p className="text-sm font-bold text-text">
-                Dr. {selectedDoctor?.name || "Consultant Specialist"}
-              </p>
-              <p className="text-xs text-text-soft">{selectedDoctor?.specialization}</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-              <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                <Calendar size={12} className="text-text-soft" />
-                Date &amp; Time
-              </span>
-              <p className="text-sm font-bold text-text">{date}</p>
-              <p className="text-xs font-semibold text-brand">{time} IST</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  {mode === "video" ? (
-                    <Video size={12} className="text-brand" aria-hidden />
-                  ) : (
-                    <Building2 size={12} className="text-text-soft" aria-hidden />
-                  )}
-                  Consultation Format
-                </span>
-              <p className="text-sm font-bold text-text capitalize">
-                {humanize(mode)}
-              </p>
-              <p className="text-xs text-text-soft">
-                {mode === "video" ? "Secure Portal Video Call" : "Physical Hospital Visit"}
-              </p>
-            </div>
-
-            {reason && (
-              <div className="sm:col-span-2 md:col-span-3 p-4 rounded-xl bg-surface-2 border border-border flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted">
-                  Reason for Visit
-                </span>
-                <p className="text-xs font-medium text-text">{reason}</p>
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="p-4 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" aria-hidden />
-              <span>{error}</span>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── 7. Global Navigation Bar ───────────────────────────────────────── */}
-      <footer className="flex items-center justify-between gap-3 bg-surface p-3.5 rounded-xl shadow-card">
-        <button
-          type="button"
-          onClick={() => {
-            if (step === "doctor") setStep("specialty");
-            else if (step === "schedule") setStep("doctor");
-            else if (step === "confirm") setStep("schedule");
-          }}
-          disabled={step === "specialty"}
-          className="pt-btn pt-btn-secondary h-10 px-4 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft size={14} aria-hidden />
-          Back Step
-        </button>
-
-        {step !== "confirm" ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (step === "specialty" && specialty) setStep("doctor");
-              else if (step === "doctor" && doctorId) setStep("schedule");
-              else if (step === "schedule" && date && time) setStep("confirm");
-            }}
-            disabled={
-              (step === "doctor" && !doctorId) ||
-              (step === "schedule" && (!date || !time))
-            }
-            className="pt-btn pt-btn-primary h-10 px-5 text-xs disabled:opacity-50"
-          >
-            Proceed to Next Step
-            <ChevronRight size={14} aria-hidden />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={confirm}
-            disabled={book.isPending}
-            className="pt-btn pt-btn-primary h-10 px-6 text-xs disabled:opacity-60"
-          >
-            {book.isPending ? (
-              <>
-                <Loader2 size={14} className="animate-spin" aria-hidden />
-                Finalizing Booking…
-              </>
-            ) : (
-              <>
-                <Check size={14} strokeWidth={3} aria-hidden />
-                Confirm &amp; Book Appointment
-              </>
-            )}
-          </button>
-        )}
-      </footer>
-    </div>
+          </section>
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

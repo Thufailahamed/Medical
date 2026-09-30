@@ -4,15 +4,26 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Bell, BellOff, Check, CheckCheck, ChevronRight, Inbox,
+  AlertTriangle, Bell, BellOff, CalendarDays, Check, CheckCheck, ChevronRight, Inbox, Layers, Settings2,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { Button } from "@/portal/components/ui/Button";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { toast } from "@/portal/components/ui/Toast";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { useT } from "@/portal/i18n";
 import { formatDate, relativeTime } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
@@ -38,7 +49,7 @@ const TONE_CHIP: Record<string, string> = {
   success: "bg-emerald-50 text-emerald-600 ring-emerald-600/15",
   warn: "bg-amber-50 text-amber-600 ring-amber-600/15",
   danger: "bg-red-50 text-red-600 ring-red-600/15",
-  neutral: "bg-surface-2 text-text-muted ring-border/60",
+  neutral: "bg-slate-100 text-slate-500 ring-slate-200",
 };
 
 const TONE_BAR: Record<string, string> = {
@@ -49,7 +60,11 @@ const TONE_BAR: Record<string, string> = {
   neutral: "bg-slate-300",
 };
 
-type Filter = "all" | "unread";
+type Filter = "all" | "unread" | "alerts";
+
+function humanizeType(type: string) {
+  return type.replace(/[_.-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -59,6 +74,7 @@ export default function NotificationsPage() {
   const t = useT();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   const { data: notificationsData, isLoading } = useQuery({
     queryKey: ["notifications", "me"],
@@ -82,7 +98,35 @@ export default function NotificationsPage() {
 
   const notifications = notificationsData?.notifications ?? [];
   const unreadCount = unreadData?.count ?? 0;
-  const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+  const [now] = useState(() => Date.now());
+
+  const stats = useMemo(() => {
+    const today = startOfDay(new Date(now));
+    let todayCount = 0;
+    let week = 0;
+    let alerts = 0;
+    const byType = new Map<string, number>();
+    for (const n of notifications) {
+      const ts = Date.parse(n.createdAt);
+      if (ts >= today) todayCount++;
+      if (ts >= now - 7 * 86_400_000) week++;
+      const tone = toneForNotification(n.type, parseNotificationData(n.data));
+      if (tone === "danger" || tone === "warn") alerts++;
+      byType.set(n.type, (byType.get(n.type) ?? 0) + 1);
+    }
+    const types = [...byType.entries()].sort((a, b) => b[1] - a[1]);
+    return { today: todayCount, week, alerts, types };
+  }, [notifications, now]);
+
+  const filtered = notifications.filter((n) => {
+    if (filter === "unread" && n.read) return false;
+    if (filter === "alerts") {
+      const tone = toneForNotification(n.type, parseNotificationData(n.data));
+      if (tone !== "danger" && tone !== "warn") return false;
+    }
+    if (typeFilter && n.type !== typeFilter) return false;
+    return true;
+  });
 
   const groups = useMemo(() => {
     const out: { label: string; items: Notification[] }[] = [];
@@ -104,172 +148,317 @@ export default function NotificationsPage() {
   }, [filtered, t]);
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={t("notifications.title")}
-        subtitle={unreadCount > 0 ? t("notifications.subtitle", { count: unreadCount }) : t("notifications.emptyUnread")}
-        icon={<Bell size={18} className="text-brand" />}
-        badge={unreadCount > 0 ? <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-amber-500 text-[11px] font-bold text-white flex items-center justify-center">{unreadCount}</span> : undefined}
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface-2/60 p-1">
-              {(["all", "unread"] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFilter(f)}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5",
-                    filter === f
-                      ? "bg-white text-slate-900 shadow-2xs ring-1 ring-border/70"
-                      : "text-text-muted hover:text-text"
-                  )}
-                >
-                  {f === "all" ? t("notifications.showAll") : t("notifications.showUnread")}
-                  {f === "unread" && unreadCount > 0 && (
-                    <span className={cn(
-                      "h-4 min-w-[16px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center",
-                      filter === "unread" ? "bg-sky-600 text-white" : "bg-sky-100 text-sky-700"
-                    )}>
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<Bell size={13} aria-hidden />}
+          kicker="Activity feed"
+          kickerMeta={`${stats.today} today`}
+          title={
+            <>
+              Your{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                notifications
+              </span>
+            </>
+          }
+          description={
+            unreadCount > 0
+              ? t("notifications.subtitle", { count: unreadCount })
+              : "You're all caught up. Bookings, lab results, messages and system alerts will appear here."
+          }
+          chips={
+            stats.alerts > 0 ? (
+              <button
+                type="button"
+                onClick={() => setFilter("alerts")}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-400/25"
+              >
+                <AlertTriangle size={12} aria-hidden />
+                {stats.alerts} need attention
+              </button>
+            ) : (
+              <span className={HERO_CHIP}>
+                <CheckCheck size={12} className="text-emerald-300" aria-hidden />
+                No alerts
+              </span>
+            )
+          }
+          actions={
+            <>
+              <Link href="/portal/settings" className={HERO_GHOST}>
+                <Settings2 size={15} aria-hidden />
+                Preferences
+              </Link>
+              <button
+                type="button"
+                onClick={() => markAllRead.mutate()}
+                disabled={unreadCount === 0 || markAllRead.isPending}
+                className={cn(HERO_PRIMARY, "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0")}
+              >
+                <CheckCheck size={15} className="text-sky-600" aria-hidden />
+                {t("notifications.markAllRead")}
+              </button>
+            </>
+          }
+        />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Unread"
+            icon={<Inbox size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : String(unreadCount)}
+            sub={unreadCount > 0 ? "Waiting for you" : "All caught up"}
+            pulse={unreadCount > 0}
+            active={filter === "unread"}
+            onClick={() => setFilter("unread")}
+          />
+          <StatTile
+            label="Needs attention"
+            icon={<AlertTriangle size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(stats.alerts)}
+            sub="Warnings & critical alerts"
+            badge={stats.alerts > 0 ? { text: "Review", tone: "bg-amber-50 text-amber-700" } : undefined}
+            active={filter === "alerts"}
+            onClick={() => setFilter("alerts")}
+          />
+          <StatTile
+            label="Last 7 days"
+            icon={<CalendarDays size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(stats.week)}
+            sub={`${stats.today} today`}
+          />
+          <StatTile
+            label="All notifications"
+            icon={<Bell size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(notifications.length)}
+            sub="Full history"
+            progress={notifications.length > 0 ? Math.round(((notifications.length - unreadCount) / notifications.length) * 100) : null}
+            active={filter === "all" && !typeFilter}
+            onClick={() => {
+              setFilter("all");
+              setTypeFilter(null);
+            }}
+          />
+        </HeroOverlap>
+      </div>
+
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Feed ─────────────────────────────────────────────────────── */}
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="notif-feed">
+          <PanelHeader
+            id="notif-feed"
+            icon={<Bell size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title={typeFilter ? humanizeType(typeFilter) : t("notifications.title")}
+            caption={isLoading ? "Loading…" : `${filtered.length} of ${notifications.length} shown`}
+            action={
+              <Segmented<Filter>
+                ariaLabel="Filter notifications"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: t("notifications.showAll") },
+                  { value: "unread", label: t("notifications.showUnread"), count: unreadCount },
+                  { value: "alerts", label: "Alerts", count: stats.alerts },
+                ]}
+              />
+            }
+          />
+
+          {isLoading ? (
+            <div className="mt-5 space-y-2.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-[68px] animate-pulse rounded-xl bg-slate-100" />
               ))}
             </div>
-            {unreadCount > 0 && (
-              <Button size="sm" variant="secondary" leftIcon={<CheckCheck size={14} />} onClick={() => markAllRead.mutate()} loading={markAllRead.isPending}>
-                {t("notifications.markAllRead")}
-              </Button>
-            )}
-          </div>
-        }
-      />
+          ) : filtered.length === 0 ? (
+            <EmptyBlock
+              icon={filter === "unread" ? <BellOff size={19} /> : <Inbox size={19} />}
+              title={filter === "unread" ? t("notifications.emptyUnread") : t("notifications.empty")}
+              body="New bookings, results, messages and system alerts show up here as they happen."
+              actions={
+                filter !== "all" || typeFilter ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter("all");
+                      setTypeFilter(null);
+                    }}
+                    className={SECONDARY_BTN}
+                  >
+                    Show everything
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="mt-5 flex flex-col gap-5">
+              {groups.map((group) => (
+                <div key={group.label} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="shrink-0 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      {group.label}
+                    </span>
+                    <span className="h-px flex-1 bg-slate-100" />
+                    <span className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-400">
+                      {group.items.length}
+                    </span>
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {group.items.map((n) => {
+                      const data = parseNotificationData(n.data);
+                      const tone = toneForNotification(n.type, data);
+                      const Icon = iconForNotification(n.type, data);
+                      const href = resolveDoctorPortalHref(n.type, data);
+                      const chipClass = TONE_CHIP[tone] ?? TONE_CHIP.neutral;
+                      const barClass = TONE_BAR[tone] ?? TONE_BAR.neutral;
 
-      {isLoading ? (
-        <Card padding={false}>
-          <div className="p-4 sm:p-5 flex flex-col gap-3">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-3.5">
-                <Skeleton className="h-10 w-10 rounded-2xl shrink-0" />
-                <div className="flex-1 flex flex-col gap-2 pt-1">
-                  <Skeleton className="h-3.5 w-2/5" />
-                  <Skeleton className="h-3 w-3/4" />
+                      const body = (
+                        <>
+                          <RowAccent className={n.read ? "bg-transparent" : barClass} />
+                          <span className="flex min-w-0 flex-1 items-start gap-3.5 pl-1.5">
+                            <span
+                              className={cn(
+                                "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                                n.read ? "bg-slate-100 text-slate-400" : chipClass,
+                              )}
+                            >
+                              <Icon size={17} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-baseline justify-between gap-3">
+                                <span
+                                  className={cn(
+                                    "truncate text-[13.5px]",
+                                    n.read ? "font-medium text-slate-600" : "font-semibold text-slate-900",
+                                  )}
+                                >
+                                  {n.title}
+                                </span>
+                                <span className="shrink-0 text-[11px] tabular-nums text-slate-400">
+                                  {relativeTime(n.createdAt)}
+                                </span>
+                              </span>
+                              {n.body ? (
+                                <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-slate-500">
+                                  {n.body}
+                                </span>
+                              ) : null}
+                            </span>
+                          </span>
+                          <span className="flex shrink-0 items-center gap-1.5 self-end pl-1.5 sm:self-center sm:pl-0">
+                            {!n.read ? (
+                              <button
+                                type="button"
+                                title={t("notifications.markRead")}
+                                aria-label={t("notifications.markRead")}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  markRead.mutate(n.id);
+                                }}
+                                className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-500 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                              >
+                                <Check size={13} />
+                                <span className="hidden sm:inline">Read</span>
+                              </button>
+                            ) : null}
+                            {href ? (
+                              <ChevronRight
+                                size={16}
+                                className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600"
+                              />
+                            ) : null}
+                          </span>
+                        </>
+                      );
+
+                      const rowClass = cn(LIST_ROW, "sm:flex-row", !n.read && "bg-sky-50/40");
+                      return (
+                        <li key={n.id}>
+                          {href ? (
+                            <Link
+                              href={href}
+                              className={rowClass}
+                              onClick={() => {
+                                if (!n.read) markRead.mutate(n.id);
+                              }}
+                            >
+                              {body}
+                            </Link>
+                          ) : (
+                            <div className={cn(rowClass, "hover:translate-y-0")}>{body}</div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-                <Skeleton className="h-3 w-12 mt-1" />
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : filtered.length === 0 ? (
-        <Card padding={false}>
-          <Empty
-            title={filter === "unread" ? t("notifications.emptyUnread") : t("notifications.empty")}
-            icon={filter === "unread" ? <BellOff size={22} className="text-brand" /> : <Inbox size={22} className="text-brand" />}
-            className="py-16"
-          />
-        </Card>
-      ) : (
-        groups.map((group) => (
-          <section key={group.label} className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-3 px-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 shrink-0">
-                {group.label}
-              </span>
-              <div className="h-px flex-1 bg-border/50" />
-              <span className="text-[11px] font-bold text-slate-400 tabular-nums shrink-0">
-                {group.items.length}
-              </span>
+              ))}
             </div>
-            <Card padding={false} className="overflow-hidden">
-              <ul className="flex flex-col divide-y divide-border/50">
-                {group.items.map((n) => {
-                  const data = parseNotificationData(n.data);
-                  const tone = toneForNotification(n.type, data);
-                  const Icon = iconForNotification(n.type, data);
-                  const href = resolveDoctorPortalHref(n.type, data);
-                  const chipClass = TONE_CHIP[tone] ?? TONE_CHIP.neutral;
-                  const barClass = TONE_BAR[tone] ?? TONE_BAR.neutral;
+          )}
+        </section>
 
-                  const row = (
-                    <div
-                      className={cn(
-                        "relative flex items-start gap-3.5 px-4 sm:px-5 py-4 transition-colors group",
-                        !n.read && "bg-sky-50/40",
-                        href && "hover:bg-surface-2/70 cursor-pointer"
-                      )}
-                    >
-                      {!n.read && (
-                        <span className={cn("absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full", barClass)} />
-                      )}
-                      <div
+        {/* ── Breakdown ────────────────────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Notification types">
+          <section className={PANEL} aria-labelledby="notif-types">
+            <PanelHeader
+              id="notif-types"
+              icon={<Layers size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="By type"
+              caption="Filter the feed by source"
+            />
+            {stats.types.length === 0 ? (
+              <p className="mt-4 rounded-xl bg-slate-50 px-4 py-6 text-center text-xs text-slate-400">
+                Nothing to break down yet.
+              </p>
+            ) : (
+              <ul className="mt-4 flex flex-col gap-0.5">
+                {stats.types.map(([type, count]) => {
+                  const on = typeFilter === type;
+                  const Icon = iconForNotification(type, null);
+                  const tone = toneForNotification(type, null);
+                  return (
+                    <li key={type}>
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setTypeFilter(on ? null : type)}
                         className={cn(
-                          "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ring-1 ring-inset shadow-2xs",
-                          n.read ? "bg-surface-2 text-text-muted ring-border/50" : chipClass
+                          "-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors",
+                          on ? "bg-sky-50" : "hover:bg-slate-50",
                         )}
                       >
-                        <Icon size={17} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className={cn("text-[13.5px] truncate", n.read ? "font-medium text-text-soft" : "font-bold text-text")}>
-                            {n.title}
-                          </span>
-                          <span className="text-[11px] text-text-muted shrink-0 tabular-nums">
-                            {relativeTime(n.createdAt)}
-                          </span>
-                        </div>
-                        {n.body && (
-                          <p className="text-xs text-text-muted mt-1 line-clamp-2 leading-relaxed">
-                            {n.body}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0 self-center">
-                        {!n.read && (
-                          <button
-                            type="button"
-                            title={t("notifications.markRead")}
-                            aria-label={t("notifications.markRead")}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              markRead.mutate(n.id);
-                            }}
-                            className="h-7 w-7 rounded-full flex items-center justify-center text-text-muted hover:text-emerald-600 hover:bg-emerald-50 ring-1 ring-transparent hover:ring-emerald-200 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                          >
-                            <Check size={14} />
-                          </button>
-                        )}
-                        {!n.read && <span className="h-2 w-2 rounded-full bg-sky-500 group-hover:opacity-0 transition-opacity" />}
-                        {href ? <ChevronRight size={15} className="text-text-muted/70 group-hover:text-text-muted group-hover:translate-x-0.5 transition-all" /> : null}
-                      </div>
-                    </div>
-                  );
-
-                  return (
-                    <li key={n.id}>
-                      {href ? (
-                        <Link
-                          href={href}
-                          className="block"
-                          onClick={() => {
-                            if (!n.read) markRead.mutate(n.id);
-                          }}
+                        <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-lg", TONE_CHIP[tone] ?? TONE_CHIP.neutral)}>
+                          <Icon size={14} />
+                        </span>
+                        <span className={cn("min-w-0 flex-1 truncate text-[13px]", on ? "font-semibold text-sky-800" : "font-medium text-slate-700")}>
+                          {humanizeType(type)}
+                        </span>
+                        <span
+                          className={cn(
+                            "min-w-[28px] rounded-md px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums",
+                            on ? "bg-white text-sky-700" : "bg-slate-100 text-slate-600",
+                          )}
                         >
-                          {row}
-                        </Link>
-                      ) : (
-                        row
-                      )}
+                          {count}
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
               </ul>
-            </Card>
+            )}
           </section>
-        ))
-      )}
+        </aside>
+      </div>
     </div>
   );
 }

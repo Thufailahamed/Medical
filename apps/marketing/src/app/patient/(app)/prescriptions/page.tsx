@@ -3,64 +3,94 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Calendar,
-  CheckCircle2,
+  Archive,
+  BadgeCheck,
+  CalendarDays,
   ChevronRight,
   Download,
   FileText,
   Loader2,
   Pill,
-  RefreshCw,
-  Search,
+  RotateCcw,
   ShieldCheck,
   Stethoscope,
-  X,
+  UserRound,
 } from "lucide-react";
 
 import { usePrescriptions } from "@/patient/hooks/prescriptions";
 import { formatDayLabel, humanize } from "@/patient/lib/format";
 import { patientPaths } from "@healthcare/shared/contracts";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PrimaryLink,
+  ROW_LINK,
+  Segmented,
+  StatTile,
+} from "@/patient/components/workspace";
 
 function cleanScheduleString(val: string | null | undefined): string {
   if (!val) return "";
   const cleaned = val.replace(/_/g, " ").trim();
-  if (cleaned.toLowerCase() === "three times daily") return "3 times daily";
-  if (cleaned.toLowerCase() === "twice daily") return "2 times daily";
-  if (cleaned.toLowerCase() === "once daily") return "Once daily";
-  if (cleaned.toLowerCase() === "as needed") return "As needed (PRN)";
-  if (cleaned.toLowerCase() === "after food") return "After meals";
-  if (cleaned.toLowerCase() === "before food") return "Before meals";
+  const lower = cleaned.toLowerCase();
+  if (lower === "three times daily") return "3 times daily";
+  if (lower === "twice daily") return "2 times daily";
+  if (lower === "once daily") return "Once daily";
+  if (lower === "as needed") return "As needed";
+  if (lower === "after food") return "After meals";
+  if (lower === "before food") return "Before meals";
   return humanize(cleaned);
 }
+
+type Tab = "all" | "active" | "past";
 
 export default function PrescriptionsPage() {
   const query = usePrescriptions();
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "past">("all");
+  const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
   const rawPrescriptions = query.data?.prescriptions ?? [];
 
-  const { activeList, pastList, totalMedicines } = useMemo(() => {
-    const active = rawPrescriptions.filter(
-      (p) => p.status === "active" || p.status === "draft"
-    );
+  const { activeList, pastList, totalMedicines, topMeds, doctors } = useMemo(() => {
+    const active = rawPrescriptions.filter((p) => p.status === "active" || p.status === "draft");
     const past = rawPrescriptions.filter((p) => p.status !== "active" && p.status !== "draft");
-    const medCount = rawPrescriptions.reduce(
-      (acc, p) => acc + (p.medicineCount || p.medicines?.length || 0),
-      0
-    );
-    return { activeList: active, pastList: past, totalMedicines: medCount };
+    const medCount = rawPrescriptions.reduce((acc, p) => acc + (p.medicineCount || p.medicines?.length || 0), 0);
+    const medTally = new Map<string, number>();
+    const docTally = new Map<string, { name: string; spec: string | null; count: number }>();
+    for (const p of rawPrescriptions) {
+      for (const m of p.medicines ?? []) medTally.set(m.name, (medTally.get(m.name) ?? 0) + 1);
+      if (p.doctorName) {
+        const cur = docTally.get(p.doctorName) ?? { name: p.doctorName, spec: p.doctorSpecialization ?? null, count: 0 };
+        cur.count += 1;
+        docTally.set(p.doctorName, cur);
+      }
+    }
+    return {
+      activeList: active,
+      pastList: past,
+      totalMedicines: medCount,
+      topMeds: [...medTally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6),
+      doctors: [...docTally.values()].sort((a, b) => b.count - a.count),
+    };
   }, [rawPrescriptions]);
 
   const filteredPrescriptions = useMemo(() => {
     let list = rawPrescriptions;
     if (activeTab === "active") list = activeList;
     if (activeTab === "past") list = pastList;
-
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -78,19 +108,13 @@ export default function PrescriptionsPage() {
     setDownloading(id);
     try {
       const url = patientPaths.prescriptions.pdf(id);
-      const token =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("auth-token")
-          : null;
+      const token = typeof window !== "undefined" ? window.localStorage.getItem("auth-token") : null;
       if (token) {
         const fullUrl = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787"}${url}`;
-        const response = await fetch(fullUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(fullUrl, { headers: { Authorization: `Bearer ${token}` } });
         if (response.ok) {
           const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          window.open(objectUrl, "_blank");
+          window.open(URL.createObjectURL(blob), "_blank");
         }
       }
     } catch (err) {
@@ -100,286 +124,326 @@ export default function PrescriptionsPage() {
     }
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<ShieldCheck size={13} />}
-        kicker="Verified e-Prescriptions · Secure patient record"
-        title="Medical Prescriptions & Rx"
-        description="A single, trusted place for signed prescriptions, dosage guidance, and official clinical documents."
-        actions={
-          <>
-            <Link href="/patient/appointments/book" className={heroSecondaryAction}>
-              <Stethoscope size={13} />
-              <span>Consult Doctor</span>
-            </Link>
-            <Link href="/patient/medications" className={heroPrimaryAction}>
-              <Pill size={14} />
-              <span>Dose Schedule</span>
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>{rawPrescriptions.length} total prescriptions</span>
-            <span>{activeList.length} active treatments</span>
-            <span>{pastList.length} in history</span>
-            <span>{totalMedicines} prescribed medicines</span>
-          </>
-        }
-      />
+  const latest = rawPrescriptions[0] ?? null;
+  const maxMed = topMeds[0]?.[1] ?? 1;
 
-      {/* ── 2. Filter & Search Toolbar ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl shadow-card">
-        {/* Segmented Filter */}
-        <SegmentedTabs
-          ariaLabel="Prescription filters"
-          activeId={activeTab}
-          onChange={(id) => setActiveTab(id as "all" | "active" | "past")}
-          tabs={[
-            { id: "all", label: <>All ({rawPrescriptions.length})</> },
-            { id: "active", label: <>Active ({activeList.length})</> },
-            { id: "past", label: <>History ({pastList.length})</> },
-          ]}
+  return (
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<ShieldCheck size={13} aria-hidden />}
+          kicker="Prescriptions"
+          kickerMeta={`${rawPrescriptions.length} on file`}
+          title={
+            <>
+              Signed <HeroAccent>prescriptions</HeroAccent>
+            </>
+          }
+          description={
+            latest
+              ? `Latest from ${latest.doctorName ?? "your doctor"} on ${formatDayLabel(latest.date)}. Download the official PDF for any pharmacy.`
+              : "Every prescription your doctors sign lands here — with dosage guidance and an official PDF."
+          }
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <BadgeCheck size={12} className="text-emerald-300" aria-hidden />
+                Digitally signed by your doctor
+              </span>
+              {activeList.length > 0 ? (
+                <span className={HERO_CHIP}>
+                  <Pill size={12} className="text-sky-300" aria-hidden />
+                  {activeList.length} active course{activeList.length === 1 ? "" : "s"}
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/appointments/book" className={HERO_GHOST}>
+                <Stethoscope size={15} aria-hidden />
+                See a doctor
+              </Link>
+              <Link href="/patient/medications" className={HERO_PRIMARY}>
+                <Pill size={15} className="text-sky-600" aria-hidden />
+                Dose schedule
+              </Link>
+            </>
+          }
         />
 
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="All prescriptions"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={query.isLoading ? "…" : String(rawPrescriptions.length)}
+            sub={latest ? `Latest ${formatDayLabel(latest.date)}` : "None yet"}
+            active={activeTab === "all"}
+            onClick={() => setActiveTab("all")}
           />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search diagnosis, doctor, or medicine..."
-            className="pt-input pl-9 pr-8 !h-9 text-xs"
+          <StatTile
+            label="Active"
+            icon={<BadgeCheck size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(activeList.length)}
+            sub="Current treatment"
+            active={activeTab === "active"}
+            onClick={() => setActiveTab(activeTab === "active" ? "all" : "active")}
           />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-soft"
-            >
-              <X size={13} />
-            </button>
-          ) : null}
-        </div>
+          <StatTile
+            label="History"
+            icon={<Archive size={16} />}
+            tone="bg-slate-100 text-slate-500"
+            value={String(pastList.length)}
+            sub="Completed or expired"
+            active={activeTab === "past"}
+            onClick={() => setActiveTab(activeTab === "past" ? "all" : "past")}
+          />
+          <StatTile
+            label="Medicines prescribed"
+            icon={<Pill size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(totalMedicines)}
+            sub={`${topMeds.length} unique`}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 3. Prescriptions List ─────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        {query.isLoading ? (
-          <div className="flex flex-col gap-3">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-32 rounded-xl patient-shimmer"
-              />
-            ))}
-          </div>
-        ) : filteredPrescriptions.length === 0 ? (
-          <div className="rounded-xl border-border bg-surface p-10 text-center flex flex-col items-center gap-3 shadow-card">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-              <FileText size={24} />
-            </div>
-            <div>
-              <h3 className="t-card-title text-text">
-                No prescriptions found
-              </h3>
-              <p className="text-xs text-text-soft max-w-sm mt-0.5">
-                {search
-                  ? `No prescriptions match "${search}". Try another keyword or clear search.`
-                  : "When your doctor prescribes medications or treatment courses, the official script will appear here."}
-              </p>
-            </div>
-            <Link
-              href="/patient/appointments/book"
-              className="pt-btn pt-btn-primary mt-1 h-9 px-4 text-xs"
-            >
-              <Stethoscope size={14} aria-hidden />
-              Book Doctor Consultation
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filteredPrescriptions.map((rx) => {
-              const isDownloading = downloading === rx.id;
-              const isSigned = rx.status === "active" || Boolean(rx.signedAt);
-
-              return (
-                <article
-                  key={rx.id}
-                  className="group patient-card p-4 sm:p-5 hover:shadow-md transition-all flex flex-col gap-3.5"
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="rx-list">
+          <PanelHeader
+            id="rx-list"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title={activeTab === "active" ? "Active prescriptions" : activeTab === "past" ? "Prescription history" : "All prescriptions"}
+            caption={query.isLoading ? "Loading…" : `${filteredPrescriptions.length} of ${rawPrescriptions.length} shown`}
+            action={
+              activeTab !== "all" || search ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("all");
+                    setSearch("");
+                  }}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                 >
-                  {/* Header Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border">
-                    <div className="flex items-start sm:items-center gap-3 min-w-0">
-                      <div className="grid h-10 w-10 place-items-center rounded-md bg-brand-soft text-brand shrink-0 shadow-2xs transition-transform group-hover:scale-105" aria-hidden>
-                        <FileText size={18} />
-                      </div>
+                  <RotateCcw size={12} aria-hidden />
+                  Reset
+                </button>
+              ) : null
+            }
+          />
+          <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <PanelSearch value={search} onChange={setSearch} placeholder="Search diagnosis, doctor or medicine…" ariaLabel="Search prescriptions" />
+            <Segmented<Tab>
+              ariaLabel="Prescription filters"
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                { value: "all", label: "All", count: rawPrescriptions.length },
+                { value: "active", label: "Active", count: activeList.length },
+                { value: "past", label: "History", count: pastList.length },
+              ]}
+            />
+          </div>
 
-                      <div className="min-w-0">
-                        <Link
-                          href={`/patient/prescriptions/${rx.id}`}
-                          className="t-card-title text-text group-hover:text-brand transition-colors truncate block"
-                        >
-                          {rx.diagnosis || "Medical Prescription"}
-                        </Link>
-
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-xs text-text-soft font-medium">
-                          {rx.doctorName ? (
-                            <span className="inline-flex items-center gap-1 text-text font-semibold">
-                              <Stethoscope size={12} className="text-brand" aria-hidden />
-                              {rx.doctorName}
-                              {rx.doctorSpecialization ? (
-                                <span className="text-text-muted font-normal">
-                                  {" "}· {rx.doctorSpecialization}
-                                </span>
-                              ) : null}
-                            </span>
-                          ) : null}
-
-                          <span>·</span>
-
-                          <span className="inline-flex items-center gap-1 text-text-soft">
-                            <Calendar size={12} className="text-text-muted" />
-                            {formatDayLabel(rx.date)}
-                          </span>
-
-                          <span>·</span>
-
-                          <span className="inline-flex items-center gap-1 text-text-soft font-medium">
-                            <Pill size={12} className="text-success" aria-hidden />
-                            {rx.medicineCount || rx.medicines?.length || 0} medicine
-                            {(rx.medicineCount || rx.medicines?.length || 0) === 1 ? "" : "s"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          {query.isLoading ? (
+            <PanelSkeleton rows={3} />
+          ) : filteredPrescriptions.length === 0 ? (
+            <EmptyBlock
+              icon={<FileText size={19} />}
+              title="No prescriptions found"
+              body={
+                search
+                  ? `No prescriptions match "${search}". Try another keyword.`
+                  : "When your doctor prescribes medicines, the signed script appears here."
+              }
+              actions={
+                <PrimaryLink href="/patient/appointments/book" icon={<Stethoscope size={13} />}>
+                  Book a consultation
+                </PrimaryLink>
+              }
+            />
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {filteredPrescriptions.map((rx) => {
+                const isDownloading = downloading === rx.id;
+                const isSigned = rx.status === "active" || Boolean(rx.signedAt);
+                const isActive = rx.status === "active" || rx.status === "draft";
+                const count = rx.medicineCount || rx.medicines?.length || 0;
+                return (
+                  <li
+                    key={rx.id}
+                    className={cn(
+                      "group relative flex flex-col gap-3 rounded-xl p-4 transition-all",
+                      isActive
+                        ? "bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]"
+                        : "bg-slate-50/70 hover:bg-white hover:shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]",
+                    )}
+                  >
+                    <span className={cn("absolute inset-y-3 left-0 w-[3px] rounded-r-full", isActive ? "bg-emerald-500" : "bg-slate-300")} aria-hidden />
+                    <div className="flex items-start gap-3.5">
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
-                          isSigned
-                            ? "bg-success-soft text-success"
-                            : "bg-surface-2 text-text-soft",
+                          "ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                          isActive ? "bg-sky-50 text-sky-600" : "bg-white text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]",
                         )}
+                        aria-hidden
                       >
-                        <CheckCircle2 size={12} className={isSigned ? "text-success" : "text-text-muted"} aria-hidden />
-                        <span>{isSigned ? "Doctor Signed" : humanize(rx.status)}</span>
+                        <FileText size={16} />
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Link
+                            href={`/patient/prescriptions/${rx.id}`}
+                            className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700"
+                          >
+                            {rx.diagnosis || "Prescription"}
+                          </Link>
+                          <Badge tone={isSigned ? "emerald" : "slate"}>
+                            {isSigned ? <BadgeCheck size={11} aria-hidden /> : null}
+                            {isSigned ? "Signed" : humanize(rx.status)}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-400">
+                          {rx.doctorName ? (
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-600">
+                              <Stethoscope size={12} aria-hidden />
+                              {rx.doctorName}
+                              {rx.doctorSpecialization ? <span className="font-normal text-slate-400"> · {rx.doctorSpecialization}</span> : null}
+                            </span>
+                          ) : null}
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays size={12} aria-hidden />
+                            {formatDayLabel(rx.date)}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Pill size={12} aria-hidden />
+                            {count} medicine{count === 1 ? "" : "s"}
+                          </span>
+                        </p>
+                      </div>
+                      <Link
+                        href={`/patient/prescriptions/${rx.id}`}
+                        aria-label="Open prescription"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-sky-50 hover:text-sky-600"
+                      >
+                        <ChevronRight size={16} aria-hidden />
+                      </Link>
                     </div>
-                  </div>
 
-                  {/* Medicines List Section */}
-                  {rx.medicines && rx.medicines.length > 0 ? (
-                    <div className="bg-surface-2/70 rounded-xl p-3 border border-border flex flex-col gap-2">
-                      <p className="text-[10.5px] uppercase font-bold tracking-wider text-text-muted">
-                        Prescribed Medications
-                      </p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {rx.medicines && rx.medicines.length > 0 ? (
+                      <div className="ml-1 grid grid-cols-1 gap-1.5 sm:ml-[3.4rem] md:grid-cols-2">
                         {rx.medicines.map((med) => {
                           const freq = cleanScheduleString(med.frequency);
                           const timing = cleanScheduleString(med.timing);
-
                           return (
-                            <div
-                              key={med.id}
-                              className="bg-surface rounded-lg p-2.5 border-border flex items-start gap-2.5 shadow-2xs"
-                            >
-                              <div className="grid h-7 w-7 place-items-center rounded-md bg-brand-soft text-brand shrink-0 mt-0.5" aria-hidden>
-                                <Pill size={14} />
-                              </div>
-
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-1">
-                                  <h4 className="text-xs font-bold text-text truncate">
-                                    {med.name}
-                                  </h4>
-                                  <span className="text-[11px] font-bold text-brand bg-brand-soft px-1.5 py-0.2 rounded">
-                                    {med.dosage}
-                                  </span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-text-soft font-medium">
-                                  {freq ? <span>{freq}</span> : null}
-                                  {freq && timing ? <span>·</span> : null}
-                                  {timing ? <span className="text-text-soft">{timing}</span> : null}
-                                </div>
-
-                                {med.instructions ? (
-                                  <p className="text-[10.5px] text-text-muted italic mt-0.5 truncate">
-                                    {med.instructions}
-                                  </p>
+                            <div key={med.id} className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2">
+                              <Pill size={13} className="shrink-0 text-emerald-500" aria-hidden />
+                              <span className="min-w-0 flex-1">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="truncate text-xs font-semibold text-slate-800">{med.name}</span>
+                                  <span className="shrink-0 text-[11px] font-semibold text-sky-700">{med.dosage}</span>
+                                </span>
+                                {freq || timing ? (
+                                  <span className="block truncate text-[11px] text-slate-400">{[freq, timing].filter(Boolean).join(" · ")}</span>
                                 ) : null}
-                              </div>
+                              </span>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {/* Doctor's General Notes */}
-                  {rx.notes ? (
-                    <p className="text-xs text-text-soft bg-brand-soft/40 border border-brand/20 rounded-lg p-2.5 italic">
-                      <span className="font-semibold text-brand not-italic mr-1">
-                        Doctor&apos;s Advice:
-                      </span>
-                      {rx.notes}
-                    </p>
-                  ) : null}
+                    {rx.notes ? (
+                      <p className="ml-1 rounded-lg bg-sky-50/70 px-3 py-2 text-xs text-slate-600 sm:ml-[3.4rem]">
+                        <span className="font-semibold text-sky-800">Doctor&apos;s advice: </span>
+                        {rx.notes}
+                      </p>
+                    ) : null}
 
-                  {/* Footer Actions */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-                    <div className="flex items-center gap-2">
+                    <div className="ml-1 flex flex-wrap items-center gap-1.5 sm:ml-[3.4rem]">
                       <button
                         type="button"
                         onClick={() => downloadPdf(rx.id)}
                         disabled={isDownloading}
-                        className="pt-btn pt-btn-secondary h-8 px-3.5 text-xs disabled:opacity-60"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700 disabled:opacity-60"
                       >
-                        {isDownloading ? (
-                          <>
-                            <Loader2 size={13} className="animate-spin" aria-hidden />
-                            Generating PDF…
-                          </>
-                        ) : (
-                          <>
-                            <Download size={13} aria-hidden />
-                            Download Official PDF
-                          </>
-                        )}
+                        {isDownloading ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Download size={13} aria-hidden />}
+                        {isDownloading ? "Preparing PDF…" : "PDF"}
                       </button>
-
-                      <Link
-                        href="/patient/medications"
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-soft hover:bg-surface-2 transition-colors hidden sm:inline"
-                      >
-                        Track in Medications
+                      <Link href={`/patient/prescriptions/${rx.id}`} className={ROW_LINK}>
+                        Details
+                        <ChevronRight size={13} aria-hidden />
                       </Link>
                     </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-                    <Link
-                      href={`/patient/prescriptions/${rx.id}`}
-                      className="pt-btn pt-btn-secondary h-8 px-3.5 text-xs"
-                    >
-                      Full Details
-                      <ChevronRight size={13} aria-hidden />
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </div>
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Prescription insights">
+          <section className={PANEL} aria-labelledby="rx-top">
+            <PanelHeader
+              id="rx-top"
+              icon={<Pill size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="Most prescribed"
+              caption={topMeds.length ? `${topMeds.length} medicines` : "Nothing yet"}
+            />
+            {topMeds.length === 0 ? (
+              <EmptyBlock icon={<Pill size={19} />} title="No medicines yet" body="Medicines from your prescriptions are tallied here." />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {topMeds.map(([name, n]) => (
+                  <li key={name}>
+                    <div className="flex items-center justify-between gap-3 text-[13px]">
+                      <span className="truncate font-medium text-slate-700">{name}</span>
+                      <span className="text-[11px] font-semibold tabular-nums text-slate-500">{n}×</span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-400" style={{ width: `${(n / maxMed) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className={PANEL} aria-labelledby="rx-docs">
+            <PanelHeader
+              id="rx-docs"
+              icon={<UserRound size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Prescribing doctors"
+              caption={`${doctors.length} doctor${doctors.length === 1 ? "" : "s"}`}
+              href="/patient/care-team"
+              linkLabel="Care team"
+            />
+            {doctors.length === 0 ? (
+              <EmptyBlock icon={<UserRound size={19} />} title="No doctors yet" body="Doctors who prescribe for you appear here." />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-0.5">
+                {doctors.slice(0, 6).map((d) => (
+                  <li key={d.name} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-semibold text-white" aria-hidden>
+                      {d.name.replace(/^Dr\.?\s*/i, "")[0]?.toUpperCase() ?? "D"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-slate-800">{d.name}</span>
+                      {d.spec ? <span className="block truncate text-[11px] text-slate-400">{d.spec}</span> : null}
+                    </span>
+                    <span className="min-w-[28px] rounded-md bg-slate-100 px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums text-slate-700">{d.count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

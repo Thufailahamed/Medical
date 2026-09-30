@@ -107,3 +107,28 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     ],
   },
 ];
+/** Resolve a nav label, falling back to "insuranceProviders" → "Insurance Providers". */
+export function navLabel(t: (k: string) => string, key: string): string {
+  const direct = t(key);
+  if (direct && direct !== key) return direct;
+  return (key.split(".").pop() ?? key)
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[-_]/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** Find the nav item (and its group) for a pathname, incl. detail routes. */
+export function findNavItem(pathname: string) {
+  // Tenant detail pages live under /admin/tenants/{type}/…, outside the nav tree.
+  const tenantType = pathname.match(/^\/admin\/tenants\/(hospital|clinic)\//)?.[1];
+  const target = tenantType ? (tenantType === "clinic" ? "/admin/clinics" : "/admin/hospitals") : null;
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (target ? item.href === target : pathname === item.href || pathname.startsWith(item.href + "/")) {
+        return { group, item, isDetail: !!target || pathname !== item.href };
+      }
+    }
+  }
+  return null;
+}

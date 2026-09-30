@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   XCircle,
   RefreshCw,
   UserCheck,
-  Search,
-  Filter,
   Eye,
   Mail,
-  Phone,
   Calendar,
   Clock,
   MapPin,
@@ -28,10 +25,30 @@ import {
   User,
   Info,
 } from "lucide-react";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
-import { Button } from "@/portal/components/ui/Button";
+import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  ROW_LINK,
+  RowAccent,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  ROW_BTN_APPROVE,
+  ROW_BTN_DANGER,
+  humanize,
+  statusRail,
+  statusTone,
+} from "@/portal/components/admin/AdminDirectory";import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
 import { BulkActionBar } from "@/portal/components/admin/BulkActionBar";
@@ -168,6 +185,21 @@ export default function ApprovalsPage() {
 
   const pendingCount = status === "pending" ? data?.items?.length ?? 0 : pendingData?.items?.length ?? 0;
 
+  // Counts for the other buckets so the stat strip shows real numbers.
+  const bucketQueries = useQueries({
+    queries: (["active", "rejected", "suspended"] as const).map((k) => ({
+      queryKey: adminQk.approvals(k),
+      queryFn: () => adminApi<{ items: Item[]; total: number }>(`/admin/approvals?status=${k}`),
+      staleTime: 60_000,
+    })),
+  });
+  const statusCounts: Record<StatusKey, number | undefined> = {
+    pending: pendingCount,
+    active: bucketQueries[0].data?.items?.length,
+    rejected: bucketQueries[1].data?.items?.length,
+    suspended: bucketQueries[2].data?.items?.length,
+  };
+
   const approve = useMutation({
     mutationFn: (userId: string) =>
       adminApiWithStepUp(`/admin/approvals/${userId}/approve`, { method: "POST", json: {} }),
@@ -176,7 +208,7 @@ export default function ApprovalsPage() {
       setReviewTarget(null);
       qc.invalidateQueries({ queryKey: ["admin", "approvals"] });
     },
-    onError: (e: any) => toast.error("Could not approve", e.message),
+    onError: (e: unknown) => toast.error("Could not approve", e instanceof Error ? e.message : undefined),
   });
 
   const reject = useMutation({
@@ -189,7 +221,7 @@ export default function ApprovalsPage() {
       setRejectReason("");
       qc.invalidateQueries({ queryKey: ["admin", "approvals"] });
     },
-    onError: (e: any) => toast.error("Could not reject", e.message),
+    onError: (e: unknown) => toast.error("Could not reject", e instanceof Error ? e.message : undefined),
   });
 
   function copyToClipboard(text?: string | null, id: string = "") {
@@ -232,299 +264,218 @@ export default function ApprovalsPage() {
     return items;
   }, [data?.items, roleFilter, searchQuery]);
 
+  const allChecked = filteredItems.length > 0 && filteredItems.every((it) => selected.has(it.user.id));
+  const roleBreakdown = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of data?.items ?? []) m.set(it.user.role, (m.get(it.user.role) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [data?.items]);
+  const oldestPending = useMemo(() => {
+    const list = status === "pending" ? data?.items : pendingData?.items;
+    if (!list?.length) return null;
+    return list.reduce((m, it) => (it.user.createdAt < m ? it.user.createdAt : m), list[0].user.createdAt);
+  }, [status, data?.items, pendingData?.items]);
+  const [now] = useState(() => Date.now());
+  const oldestDays = oldestPending ? Math.floor((now - Date.parse(oldestPending)) / 86_400_000) : null;
+  const countFor = (k: StatusKey) => (k === status ? data?.items?.length : statusCounts[k]);
+  const pickStatus = (k: StatusKey) => {
+    setStatus(k);
+    setSelected(new Set());
+  };
+
   return (
-    <div className="flex flex-col gap-6 max-w-7xl pb-12">
-      {/* ─── Page Header ───────────────────────────────────── */}
-      <PageHeader
-        title="Account Approvals"
-        subtitle="Review, verify credentials, and grant portal access for healthcare practitioners and facilities."
-        icon={<UserCheck size={22} className="text-blue-600" />}
-        actions={
-          <div className="flex items-center gap-2.5">
-            <ExportButton exportPath="approvals" filters={{ status }} />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw size={14} className={`mr-1.5 ${isFetching ? "animate-spin text-blue-600" : ""}`} />
-              Refresh
-            </Button>
-          </div>
-        }
-      />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10 [&_a:hover]:no-underline">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<UserCheck size={13} aria-hidden />}
+          kicker="Provider onboarding"
+          kickerMeta={`${pendingCount} in queue`}
+          title={
+            <>
+              Account{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                approvals
+              </span>
+            </>
+          }
+          description={
+            pendingCount > 0
+              ? `${pendingCount} application${pendingCount === 1 ? "" : "s"} waiting. Verify credentials before granting portal access.`
+              : "The review queue is clear. New doctor, lab, hospital and pharmacy sign-ups land here."
+          }
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                Step-up auth on every decision
+              </span>
+              {oldestDays != null && oldestDays > 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                  <Clock size={12} aria-hidden />
+                  Oldest waiting {oldestDays}d
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <button type="button" onClick={() => refetch()} disabled={isFetching} className={HERO_GHOST}>
+                <RefreshCw size={15} className={isFetching ? "animate-spin" : undefined} aria-hidden />
+                {isFetching ? "Refreshing…" : "Refresh"}
+              </button>
+              <div className="[&_button]:h-10 [&_button]:rounded-[10px]">
+                <ExportButton exportPath="approvals" filters={{ status }} />
+              </div>
+            </>
+          }
+        />
 
-      {/* ─── Metric Stat Cards ──────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <button
-          type="button"
-          onClick={() => {
-            setStatus("pending");
-            setSelected(new Set());
-          }}
-          className={`text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
-            status === "pending"
-              ? "bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-sm"
-              : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Review</span>
-            <div className="h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">{pendingCount}</span>
-            <span className="text-xs font-medium text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
-              Needs action
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setStatus("active");
-            setSelected(new Set());
-          }}
-          className={`text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
-            status === "active"
-              ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm"
-              : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approved</span>
-            <CheckCircle2 size={16} className="text-emerald-600" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {status === "active" ? data?.items?.length ?? "—" : "Active"}
-            </span>
-            <span className="text-xs font-medium text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-              Live accounts
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setStatus("rejected");
-            setSelected(new Set());
-          }}
-          className={`text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
-            status === "rejected"
-              ? "bg-red-50/80 border-red-300 ring-2 ring-red-500/20 shadow-sm"
-              : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rejected</span>
-            <XCircle size={16} className="text-red-500" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {status === "rejected" ? data?.items?.length ?? "—" : "Archive"}
-            </span>
-            <span className="text-xs font-medium text-red-700 bg-red-100/80 px-2 py-0.5 rounded-full">
-              Declined
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setStatus("suspended");
-            setSelected(new Set());
-          }}
-          className={`text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
-            status === "suspended"
-              ? "bg-slate-100 border-slate-300 ring-2 ring-slate-400/20 shadow-sm"
-              : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Suspended</span>
-            <AlertCircle size={16} className="text-slate-500" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
-              {status === "suspended" ? data?.items?.length ?? "—" : "On Hold"}
-            </span>
-            <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
-              Restricted
-            </span>
-          </div>
-        </button>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Pending review"
+            icon={<Clock size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(pendingCount)}
+            sub={pendingCount ? "Needs a decision" : "Queue is clear"}
+            pulse={pendingCount > 0}
+            badge={pendingCount ? { text: "Action", tone: "bg-amber-50 text-amber-700" } : undefined}
+            active={status === "pending"}
+            onClick={() => pickStatus("pending")}
+          />
+          <StatTile
+            label="Approved"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={countFor("active") != null ? String(countFor("active")) : "…"}
+            sub="Live provider accounts"
+            active={status === "active"}
+            onClick={() => pickStatus("active")}
+          />
+          <StatTile
+            label="Rejected"
+            icon={<XCircle size={16} />}
+            tone="bg-red-50 text-red-600"
+            value={countFor("rejected") != null ? String(countFor("rejected")) : "…"}
+            sub="Declined applications"
+            active={status === "rejected"}
+            onClick={() => pickStatus("rejected")}
+          />
+          <StatTile
+            label="Suspended"
+            icon={<AlertCircle size={16} />}
+            tone="bg-slate-100 text-slate-600"
+            value={countFor("suspended") != null ? String(countFor("suspended")) : "…"}
+            sub="Access on hold"
+            active={status === "suspended"}
+            onClick={() => pickStatus("suspended")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ─── Search & Filters Bar ────────────────────────────── */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-        {/* Status Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {STATUS_FILTERS.map((f) => {
-            const active = status === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => {
-                  setStatus(f.key);
-                  setSelected(new Set());
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none whitespace-nowrap ${
-                  active
-                    ? "bg-blue-600 text-white shadow-xs font-bold"
-                    : "bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
-                }`}
-              >
-                {f.label}
-                {f.key === "pending" && pendingCount > 0 ? (
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      active ? "bg-white/25 text-white" : "bg-blue-200 text-blue-900"
-                    }`}
-                  >
-                    {pendingCount}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Applications ─────────────────────────────────────────────── */}
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="apr-list">
+          <PanelHeader
+            id="apr-list"
+            icon={<UserCheck size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            title={STATUS_FILTERS.find((f) => f.key === status)?.label ?? "Applications"}
+            caption={
+              isLoading
+                ? "Loading applications…"
+                : `${filteredItems.length} of ${data?.items?.length ?? 0} shown${selected.size ? ` · ${selected.size} selected` : ""}`
+            }
+          />
 
-        {/* Search Input & Role Filter */}
-        <div className="flex items-center gap-2.5 flex-1 md:max-w-md justify-end">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
+          <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <PanelSearch
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, email, phone, license..."
-              className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+              onChange={setSearchQuery}
+              placeholder="Search name, email, phone, licence…"
+              ariaLabel="Search applications"
+              className="lg:max-w-[260px]"
             />
-            {searchQuery ? (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-              >
-                ✕
-              </button>
-            ) : null}
+            <Segmented<StatusKey>
+              ariaLabel="Status"
+              value={status}
+              onChange={pickStatus}
+              options={STATUS_FILTERS.map((f) => ({
+                value: f.key,
+                label: f.key === "pending" ? "Pending" : f.label,
+                count: countFor(f.key) ?? undefined,
+              }))}
+            />
           </div>
 
-          <div className="relative">
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              aria-label="Filter by role"
-              className="h-9 px-3 pr-8 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer appearance-none"
-            >
-              <option value="all">All Roles</option>
-              <option value="doctor">Doctors</option>
-              <option value="laboratory">Laboratories</option>
-              <option value="hospital_admin">Hospitals</option>
-              <option value="pharmacy">Pharmacies</option>
-              <option value="insurance">Insurance</option>
-              <option value="ambulance">Ambulance</option>
-            </select>
-            <Filter size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Applications Table ──────────────────────────────── */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
-        {isLoading ? (
-          <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-400">
-            <RefreshCw size={24} className="animate-spin text-blue-600" />
-            <p className="text-sm font-medium">Loading applications…</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="p-16 text-center flex flex-col items-center justify-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <UserCheck size={24} />
+          {isLoading ? (
+            <div className="mt-5 space-y-2.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-[76px] animate-pulse rounded-xl bg-slate-100" />
+              ))}
             </div>
-            <div>
-              <p className="text-base font-bold text-slate-800">
-                No {status} applications found
-              </p>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                {searchQuery || roleFilter !== "all"
-                  ? "Try adjusting your search terms or filter criteria."
-                  : `There are currently no accounts with "${status}" status.`}
-              </p>
-            </div>
-            {(searchQuery || roleFilter !== "all") && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setRoleFilter("all");
-                }}
-                className="mt-2"
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <THead>
-                <TR className="bg-slate-50/70 border-b border-slate-200/80">
-                  <TH className="w-10 pl-4">
-                    <input
-                      type="checkbox"
-                      aria-label="Select all applications"
-                      checked={
-                        filteredItems.length > 0 &&
-                        filteredItems.every((it) => selected.has(it.user.id))
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelected(new Set(filteredItems.map((it) => it.user.id)));
-                        } else {
-                          setSelected(new Set());
-                        }
-                      }}
-                      className="rounded accent-blue-600 cursor-pointer h-4 w-4"
-                    />
-                  </TH>
-                  <TH className="text-xs font-bold uppercase tracking-wider text-slate-600">Applicant</TH>
-                  <TH className="text-xs font-bold uppercase tracking-wider text-slate-600">Role &amp; Status</TH>
-                  <TH className="text-xs font-bold uppercase tracking-wider text-slate-600">Professional Credentials</TH>
-                  <TH className="text-xs font-bold uppercase tracking-wider text-slate-600">Submitted</TH>
-                  <TH className="text-right text-xs font-bold uppercase tracking-wider text-slate-600 pr-5">Actions</TH>
-                </TR>
-              </THead>
-              <TBody>
+          ) : filteredItems.length === 0 ? (
+            <EmptyBlock
+              icon={<UserCheck size={19} />}
+              title={searchQuery || roleFilter !== "all" ? "No matching applications" : `No ${status === "active" ? "approved" : status} applications`}
+              body={
+                searchQuery || roleFilter !== "all"
+                  ? "Try another search term or clear the role filter."
+                  : status === "pending"
+                    ? "Every application has been reviewed. New sign-ups will appear here."
+                    : "Nothing in this bucket right now."
+              }
+              actions={
+                searchQuery || roleFilter !== "all" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setRoleFilter("all");
+                    }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700"
+                  >
+                    Clear filters
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <>
+              <label className="mt-4 flex cursor-pointer items-center gap-2.5 px-1 text-xs font-medium text-slate-500">
+                <input
+                  type="checkbox"
+                  aria-label="Select all applications"
+                  checked={allChecked}
+                  onChange={(e) =>
+                    setSelected(e.target.checked ? new Set(filteredItems.map((it) => it.user.id)) : new Set())
+                  }
+                  className="h-4 w-4 accent-sky-600"
+                />
+                Select all
+              </label>
+              <ul className="mt-2 flex flex-col gap-2">
                 {filteredItems.map((it) => {
                   const u = it.user;
                   const isChecked = selected.has(u.id);
                   const roleConfig = ROLE_CONFIG[u.role] ?? {
-                    label: u.role,
+                    label: humanize(u.role),
                     icon: User,
                     tone: "neutral" as const,
                     bgLight: "bg-slate-50",
                     textDark: "text-slate-700",
                   };
                   const RoleIcon = roleConfig.icon;
+                  const waitingDays = Math.floor((now - Date.parse(u.createdAt)) / 86_400_000);
+                  const canDecide = u.status === "pending" || u.status === "suspended";
 
                   return (
-                    <TR
+                    <li
                       key={u.id}
-                      className={`group hover:bg-blue-50/20 transition-colors border-b border-slate-100 last:border-0 ${
-                        isChecked ? "bg-blue-50/35" : ""
-                      }`}
+                      className={cn(LIST_ROW, isChecked && "bg-sky-50/60 shadow-[inset_0_0_0_1.5px_rgba(2,132,199,0.35)]")}
                     >
-                      {/* Checkbox */}
-                      <TD className="w-10 pl-4">
+                      <RowAccent className={statusRail(u.status)} />
+                      <div className="flex min-w-0 flex-1 items-center gap-3 pl-1.5">
                         <input
                           type="checkbox"
                           aria-label={`Select ${u.name}`}
@@ -535,183 +486,178 @@ export default function ApprovalsPage() {
                             else next.delete(u.id);
                             setSelected(next);
                           }}
-                          className="rounded accent-blue-600 cursor-pointer h-4 w-4"
+                          className="h-4 w-4 shrink-0 accent-sky-600"
                         />
-                      </TD>
-
-                      {/* Applicant Info */}
-                      <TD>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`h-10 w-10 rounded-xl ${roleConfig.bgLight} ${roleConfig.textDark} flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs border border-slate-200/50`}
-                          >
-                            <RoleIcon size={18} />
-                          </div>
-                          <div className="min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => setReviewTarget(it)}
-                              className="font-bold text-slate-900 hover:text-blue-700 text-left transition-colors truncate block cursor-pointer"
-                            >
-                              {u.name}
-                            </button>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                              {u.email && (
-                                <span className="inline-flex items-center gap-1 truncate" title={u.email}>
-                                  <Mail size={12} className="text-slate-400 shrink-0" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewTarget(it)}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-[10px]", roleConfig.bgLight, roleConfig.textDark)}>
+                            <RoleIcon size={17} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
+                                {u.name}
+                              </span>
+                              <Pill tone={roleConfig.tone}>{roleConfig.label}</Pill>
+                              {u.status !== "pending" ? <Pill tone={statusTone(u.status)}>{u.status === "active" ? "Approved" : humanize(u.status)}</Pill> : null}
+                              {u.status === "pending" && waitingDays >= 3 ? (
+                                <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-amber-700">
+                                  {waitingDays}d waiting
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                              {it.doctorProfile ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Stethoscope size={11} />
+                                    {it.doctorProfile.specialization || "General practitioner"}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                                    SLMC {it.doctorProfile.slmcRegistrationNo || "pending"}
+                                  </span>
+                                </>
+                              ) : it.labProfile ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                                    LIC {it.labProfile.licenseNumber}
+                                  </span>
+                                  {it.labProfile.city ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <MapPin size={11} />
+                                      {it.labProfile.city}
+                                    </span>
+                                  ) : null}
+                                </>
+                              ) : null}
+                              {u.email ? (
+                                <span className="hidden min-w-0 items-center gap-1 truncate sm:inline-flex">
+                                  <Mail size={11} />
                                   {u.email}
                                 </span>
-                              )}
-                              {u.phone && (
-                                <span className="inline-flex items-center gap-1 text-slate-500 shrink-0">
-                                  <Phone size={12} className="text-slate-400 shrink-0" />
-                                  {u.phone}
-                                </span>
-                              )}
-                            </div>
-                            {u.rejectionReason && (
-                              <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-medium bg-red-50/80 px-2 py-0.5 rounded-md max-w-fit">
-                                <AlertCircle size={12} />
-                                Rejection Note: {u.rejectionReason}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TD>
-
-                      {/* Role & Status */}
-                      <TD>
-                        <div className="flex flex-col gap-1.5 items-start">
-                          <Pill tone={roleConfig.tone}>
-                            <span className="capitalize">{roleConfig.label}</span>
-                          </Pill>
-                          {u.status === "pending" ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
-                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                              Pending Approval
-                            </span>
-                          ) : u.status === "active" ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                              <CheckCircle2 size={11} /> Approved
-                            </span>
-                          ) : u.status === "rejected" ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200/60">
-                              <XCircle size={11} /> Rejected
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
-                              {u.status}
-                            </span>
-                          )}
-                        </div>
-                      </TD>
-
-                      {/* Credentials / Details Preview */}
-                      <TD>
-                        {it.doctorProfile ? (
-                          <div className="space-y-1">
-                            <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                              <Stethoscope size={13} className="text-sky-600" />
-                              {it.doctorProfile.specialization || "General Practitioner"}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="font-mono text-[11px] bg-sky-50 text-sky-800 px-2 py-0.5 rounded border border-sky-200/60 font-semibold">
-                                SLMC: {it.doctorProfile.slmcRegistrationNo || "Pending"}
+                              ) : null}
+                              <span className="hidden items-center gap-1 sm:inline-flex">
+                                <Calendar size={11} />
+                                {new Date(u.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                               </span>
-                            </div>
-                          </div>
-                        ) : it.labProfile ? (
-                          <div className="space-y-1">
-                            <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                              <Building2 size={13} className="text-blue-600" />
-                              {it.labProfile.labName || u.name}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs flex-wrap">
-                              <span className="font-mono text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200/60 font-semibold">
-                                LIC: {it.labProfile.licenseNumber}
+                            </span>
+                            {u.rejectionReason ? (
+                              <span className="mt-1.5 inline-flex max-w-full items-center gap-1 truncate rounded-md bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
+                                <AlertCircle size={11} className="shrink-0" />
+                                {u.rejectionReason}
                               </span>
-                              {it.labProfile.city && (
-                                <span className="text-[11px] text-slate-500 flex items-center gap-0.5">
-                                  <MapPin size={11} /> {it.labProfile.city}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Standard registration profile</span>
-                        )}
-                      </TD>
-
-                      {/* Date Applied */}
-                      <TD>
-                        <div className="text-xs text-slate-600 flex flex-col gap-0.5">
-                          <span className="font-medium text-slate-800 flex items-center gap-1">
-                            <Calendar size={12} className="text-slate-400" />
-                            {new Date(u.createdAt).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            ) : null}
                           </span>
-                          <span className="text-slate-400 text-[11px] flex items-center gap-1">
-                            <Clock size={11} />
-                            {new Date(u.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </TD>
+                        </button>
+                      </div>
 
-                      {/* Action Buttons */}
-                      <TD className="text-right pr-5">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setReviewTarget(it)}
-                            className="text-xs hover:bg-slate-100 cursor-pointer"
-                          >
-                            <Eye size={13} className="mr-1" />
-                            Review
-                          </Button>
-
-                          {u.status === "pending" || u.status === "suspended" ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={() => approve.mutate(u.id)}
-                                disabled={approve.isPending}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => {
-                                  setRejectTarget(it);
-                                  setRejectReason("");
-                                }}
-                                disabled={reject.isPending}
-                                className="bg-rose-600 hover:bg-rose-700 text-white text-xs cursor-pointer"
-                              >
-                                <XCircle size={13} className="mr-1" />
-                                Reject
-                              </Button>
-                            </>
-                          ) : null}
-                        </div>
-                      </TD>
-                    </TR>
+                      <div className="flex shrink-0 items-center gap-1.5 pl-1.5 sm:pl-0">
+                        {canDecide ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => approve.mutate(u.id)}
+                              disabled={approve.isPending}
+                              className={ROW_BTN_APPROVE}
+                            >
+                              <CheckCircle2 size={13} />
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRejectTarget(it);
+                                setRejectReason("");
+                              }}
+                              disabled={reject.isPending}
+                              className={ROW_BTN_DANGER}
+                            >
+                              <XCircle size={13} />
+                              Reject
+                            </button>
+                          </>
+                        ) : null}
+                        <button type="button" onClick={() => setReviewTarget(it)} className={ROW_LINK}>
+                          <Eye size={13} />
+                          Review
+                        </button>
+                      </div>
+                    </li>
                   );
                 })}
-              </TBody>
-            </Table>
-          </div>
-        )}
+              </ul>
+            </>
+          )}
+        </section>
+
+        {/* ── Role breakdown / filter ──────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Applicant types">
+          <section className={PANEL} aria-labelledby="apr-roles">
+            <PanelHeader
+              id="apr-roles"
+              icon={<Building2 size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="By applicant type"
+              caption="Filter this bucket"
+            />
+            <ul className="mt-4 flex flex-col gap-0.5">
+              {[["all", data?.items?.length ?? 0] as [string, number], ...roleBreakdown].map(([r, count]) => {
+                const on = roleFilter === r;
+                const cfg = ROLE_CONFIG[r];
+                const Icon = r === "all" ? UserCheck : cfg?.icon ?? User;
+                return (
+                  <li key={r}>
+                    <button
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setRoleFilter(r)}
+                      className={cn(
+                        "-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors",
+                        on ? "bg-sky-50" : "hover:bg-slate-50",
+                      )}
+                    >
+                      <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-lg", r === "all" ? "bg-slate-100 text-slate-600" : cn(cfg?.bgLight ?? "bg-slate-50", cfg?.textDark ?? "text-slate-600"))}>
+                        <Icon size={14} />
+                      </span>
+                      <span className={cn("min-w-0 flex-1 truncate text-[13px]", on ? "font-semibold text-sky-800" : "font-medium text-slate-700")}>
+                        {r === "all" ? "All types" : cfg?.label ?? humanize(r)}
+                      </span>
+                      <span className={cn("min-w-[28px] rounded-md px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums", on ? "bg-white text-sky-700" : "bg-slate-100 text-slate-600")}>
+                        {count}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <section className={PANEL} aria-labelledby="apr-checklist">
+            <PanelHeader
+              id="apr-checklist"
+              icon={<Info size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Review checklist"
+              caption="Before you approve"
+            />
+            <ul className="mt-4 flex flex-col gap-2.5 text-[13px] text-slate-600">
+              {[
+                "Doctors: SLMC number matches the council registry",
+                "Labs & pharmacies: licence is valid and unexpired",
+                "Hospitals: facility address and contact are real",
+                "No duplicate account for the same person or entity",
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2.5">
+                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </aside>
       </div>
 
       {/* ─── Bulk Action Bar ─────────────────────────────────── */}

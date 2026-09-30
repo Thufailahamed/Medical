@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
   Droplets,
@@ -11,338 +12,298 @@ import {
   Pill,
   Plus,
   Scale,
-  ShieldCheck,
+  Sparkles,
   UserRound,
+  Users,
 } from "lucide-react";
 
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
 import { VitalsTrend } from "@/patient/components/dashboard/VitalsTrend";
-import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import {
   useHealthSummary,
   useVitalsAlerts,
   useWellness,
 } from "@/patient/hooks";
 import { VITAL_REGISTRY } from "@/patient/lib/vitals";
-import { cn } from "@/portal/lib/utils";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_ATTENTION_CHIP,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  InfoField,
+  LiveDot,
+  PANEL,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  RailRow,
+  StatTile,
+  todayLong,
+} from "@/patient/components/workspace";
+
+function isSevere(classification?: string | null) {
+  const c = (classification ?? "").toLowerCase();
+  return c.includes("low") || c.includes("critical") || c.includes("high") || c.includes("crisis");
+}
 
 export default function HealthPage() {
   const summary = useHealthSummary();
   const alerts = useVitalsAlerts(7);
   const wellness = useWellness();
 
+  const demo = summary.data?.demographics;
   const alertItems = alerts.data?.items ?? [];
   const alertCount = alerts.data?.count ?? alertItems.length;
-  const wellnessScore = wellness.data?.score ?? 64;
-  const activeMedsCount = summary.data?.activeMedicines?.length ?? 1;
-  const bmiVal = summary.data?.demographics?.bmi != null
-    ? Number(summary.data.demographics.bmi).toFixed(1)
-    : "23.8";
-  const bmiCategory = summary.data?.demographics?.bmiCategory ?? "Healthy";
-  const bloodGroup = summary.data?.demographics?.bloodGroup ?? "B+";
+  const score = wellness.data?.score ?? null;
+  const meds = summary.data?.activeMedicines ?? [];
+  const bmi = demo?.bmi != null ? Number(demo.bmi).toFixed(1) : null;
+  const bmiCategory = demo?.bmiCategory ?? null;
+  const bloodGroup = demo?.bloodGroup ?? null;
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<HeartPulse size={13} />}
-        kicker="Vitals Telemetry & Wellness"
-        title="My Health & Biometrics"
-        description="Consolidated clinical biometric dashboard. Track heart rate, oxygen saturation, blood pressure, active prescriptions, and risk alerts."
-        actions={
-          <>
-            <Link href="/patient/vitals" className={heroSecondaryAction}>
-              <Activity size={13} />
-              <span>All Vitals History</span>
-            </Link>
-            <Link href="/patient/vitals" className={heroPrimaryAction}>
-              <Plus size={14} />
-              <span>Log Vitals Reading</span>
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Wellness {wellnessScore} · Good</span>
-            <span>{alertCount === 0 ? "0 alerts · all clear" : `${alertCount} alerts active`}</span>
-            <span>{activeMedsCount} active meds</span>
-            <span>BMI {bmiVal} · {bmiCategory}</span>
-          </>
-        }
-      />
-
-      {/* ── 2. Interactive Snapshot Metric Tiles Strip ─────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link
-          href="/patient/health"
-          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
-        >
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0 transition-transform group-hover:scale-105" aria-hidden>
-            <HeartPulse size={20} />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
-              Wellness Index
-            </span>
-            <span className="pt-metric text-lg block tracking-tight">
-              {wellnessScore}
-            </span>
-            <span className="text-[11px] font-semibold text-success block truncate">
-              {wellness.data?.level?.label ?? "Good Standing"}
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          href="/patient/vitals"
-          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
-        >
-          <div
-            className={cn(
-              "grid h-11 w-11 place-items-center rounded-md shrink-0 transition-transform group-hover:scale-105",
-              alertCount > 0
-                ? "bg-warn-soft text-warn"
-                : "bg-success-soft text-success",
-            )}
-            aria-hidden
-          >
-            <Activity size={20} />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
-              Vitals Alerts (7d)
-            </span>
-            <span className="pt-metric text-lg block tracking-tight">
-              {alertCount}
-            </span>
-            <span
-              className={cn(
-                "text-[11px] font-semibold block truncate",
-                alertCount > 0 ? "text-warn" : "text-success",
-              )}
-            >
-              {alertCount === 0 ? "All Clear" : "Attention Needed"}
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          href="/patient/medications"
-          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
-        >
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-danger-soft text-danger shrink-0 transition-transform group-hover:scale-105" aria-hidden>
-            <Pill size={20} />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
-              Active Meds
-            </span>
-            <span className="pt-metric text-lg block tracking-tight">
-              {activeMedsCount}
-            </span>
-            <span className="text-[11px] font-semibold text-text-soft block truncate">
-              On Current Regimen
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          href="/patient/profile"
-          className="patient-card p-4 hover:shadow-md transition-all flex items-center gap-3.5 group"
-        >
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0 transition-transform group-hover:scale-105" aria-hidden>
-            <Scale size={20} />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted block truncate">
-              Body Mass (BMI)
-            </span>
-            <span className="pt-metric text-lg block tracking-tight">
-              {bmiVal}
-            </span>
-            <span className="text-[11px] font-semibold text-brand block truncate">
-              {bmiCategory}
-            </span>
-          </div>
-        </Link>
-      </div>
-
-      {/* ── 3. Vitals Trend & Recent Alerts Grid ────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-8">
-          <VitalsTrend />
-        </div>
-
-        <div className="xl:col-span-4">
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col h-full justify-between gap-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="grid h-7 w-7 place-items-center rounded-md bg-warn-soft text-warn" aria-hidden>
-                    <AlertTriangle size={14} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-text text-sm">Recent Alerts</h3>
-                    <p className="text-[10.5px] text-text-muted">Past 7 days monitoring</p>
-                  </div>
-                </div>
-
-                <Link
-                  href="/patient/vitals"
-                  className="text-xs font-bold text-brand hover:underline flex items-center gap-1"
-                >
-                  <span>All vitals</span>
-                  <ChevronRight size={13} aria-hidden />
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<HeartPulse size={13} aria-hidden />}
+          kicker="My health"
+          kickerMeta={todayLong()}
+          title={
+            <>
+              Your body, <HeroAccent>in numbers</HeroAccent>
+            </>
+          }
+          description="Vitals, trends, alerts and your clinical profile in one place — log a reading and everything here updates."
+          chips={
+            <>
+              {alertCount > 0 ? (
+                <Link href="/patient/vitals" className={HERO_ATTENTION_CHIP}>
+                  <AlertTriangle size={12} aria-hidden />
+                  {alertCount} alert{alertCount === 1 ? "" : "s"} this week
                 </Link>
-              </div>
+              ) : (
+                <span className={HERO_CHIP}>
+                  <LiveDot />
+                  All vitals in range
+                </span>
+              )}
+              {bloodGroup ? (
+                <span className={HERO_CHIP}>
+                  <Droplets size={12} className="text-rose-300" aria-hidden />
+                  Blood {bloodGroup}
+                </span>
+              ) : null}
+              {bmi ? (
+                <span className={HERO_CHIP}>
+                  <Scale size={12} className="text-sky-300" aria-hidden />
+                  BMI {bmi}
+                  {bmiCategory ? ` · ${bmiCategory}` : ""}
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/trends" className={HERO_GHOST}>
+                <Activity size={15} aria-hidden />
+                Trends
+              </Link>
+              <Link href="/patient/vitals" className={HERO_PRIMARY}>
+                <Plus size={15} className="text-sky-600" aria-hidden />
+                Log vitals
+              </Link>
+            </>
+          }
+        />
 
-              <QueryBoundary
-                query={alerts}
-                isEmpty={(d) => !(d?.items?.length ?? 0)}
-                emptyTitle="No Vitals Alerts"
-                emptyDescription="Your vitals readings are within clinically healthy target ranges."
-                className="mt-4"
-                emptyAction={
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-success-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-success">
-                    <CheckCircle2 size={13} aria-hidden />
-                    <span>Looking Good · Normal Ranges</span>
-                  </span>
-                }
-              >
-                {(data) => (
-                  <ul className="mt-3 flex flex-col gap-2">
-                    {(data?.items ?? []).slice(0, 6).map((a, i) => (
-                      <li
-                        key={`${a.type}-${a.value}-${i}`}
-                        className={cn(
-                          "flex items-start gap-3 rounded-lg p-3",
-                          a.classification?.toLowerCase().includes("low") ||
-                            a.classification?.toLowerCase().includes("critical")
-                            ? "bg-danger-soft/40 text-danger"
-                            : "bg-warn-soft/40 text-warn",
-                        )}
-                      >
-                        <span
-                          className="mt-1.5 block h-2 w-2 shrink-0 rounded-full bg-current"
-                          aria-hidden
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs sm:text-sm font-bold">
-                            {VITAL_REGISTRY[a.type]?.label ?? a.type}: {a.value}{" "}
-                            {VITAL_REGISTRY[a.type]?.unit ?? ""}
-                          </p>
-                          <p className="text-[11px] font-semibold opacity-80 mt-0.5">
-                            {a.classification}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </QueryBoundary>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-surface-2 border border-border flex items-center justify-between gap-3 text-xs">
-              <span className="text-text-soft font-medium">Automatic Wearable Sync</span>
-              <span className="inline-flex items-center gap-1 font-bold text-success">
-                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                Active
-              </span>
-            </div>
-          </div>
-        </div>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            href="/patient/trends"
+            label="Wellness"
+            icon={<HeartPulse size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={score != null ? String(score) : "—"}
+            unit={score != null ? "/ 100" : undefined}
+            sub={wellness.data?.level?.label ?? "Building rhythm"}
+            progress={score}
+          />
+          <StatTile
+            href="/patient/vitals"
+            label="Alerts · 7 days"
+            icon={<Activity size={16} />}
+            tone={alertCount > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}
+            value={String(alertCount)}
+            sub={alertCount === 0 ? "Everything in range" : "Readings to review"}
+            badge={alertCount > 0 ? { text: "Review", tone: "bg-amber-50 text-amber-700" } : undefined}
+            pulse={alertCount > 0}
+          />
+          <StatTile
+            href="/patient/medications"
+            label="Active medicines"
+            icon={<Pill size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={summary.data ? String(meds.length) : "—"}
+            sub={meds.length > 0 ? "On your current plan" : "Nothing active"}
+          />
+          <StatTile
+            href="/patient/profile"
+            label="Body mass index"
+            icon={<Scale size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={bmi ?? "—"}
+            sub={bmiCategory ?? "Add height & weight"}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 4. Patient Clinical Demographics Snapshot ("About You") ─────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-              <UserRound size={16} />
-            </div>
-            <div>
-              <h3 className="font-bold text-text text-sm sm:text-base">About You</h3>
-              <p className="text-xs text-text-soft">Clinical biometric health profile</p>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          <VitalsTrend />
+
+          {/* About you */}
+          <section className={PANEL} aria-labelledby="hl-about">
+            <PanelHeader
+              id="hl-about"
+              icon={<UserRound size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="About you"
+              caption="Clinical profile your care team sees"
+              href="/patient/profile"
+              linkLabel="Edit profile"
+            />
+            {summary.isLoading ? (
+              <PanelSkeleton rows={2} />
+            ) : summary.isError ? (
+              <PanelError onRetry={() => void summary.refetch()} />
+            ) : (
+              <dl className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                <InfoField icon={<UserRound size={14} />} label="Full name">
+                  {demo?.name ?? "—"}
+                </InfoField>
+                <InfoField icon={<CalendarDays size={14} />} label="Age">
+                  {demo?.age != null ? `${demo.age} years` : "—"}
+                </InfoField>
+                <InfoField icon={<Users size={14} />} label="Sex">
+                  <span className="capitalize">{demo?.sex ?? "—"}</span>
+                </InfoField>
+                <InfoField icon={<Droplets size={14} />} label="Blood group">
+                  {bloodGroup ?? "Not recorded"}
+                </InfoField>
+                <InfoField icon={<Scale size={14} />} label="BMI">
+                  {bmi ? `${bmi}${bmiCategory ? ` · ${bmiCategory}` : ""}` : "Not recorded"}
+                </InfoField>
+                <InfoField icon={<Pill size={14} />} label="Active medicines">
+                  {meds.length}
+                </InfoField>
+              </dl>
+            )}
+          </section>
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Health overview">
+          {/* Recent alerts */}
+          <section className={PANEL} aria-labelledby="hl-alerts">
+            <PanelHeader
+              id="hl-alerts"
+              icon={<AlertTriangle size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title="Recent alerts"
+              caption="Readings outside range · past 7 days"
+              href="/patient/vitals"
+              linkLabel="Vitals"
+            />
+            {alerts.isLoading ? (
+              <PanelSkeleton rows={3} />
+            ) : alertItems.length === 0 ? (
+              <EmptyBlock
+                icon={<CheckCircle2 size={19} />}
+                title="Looking good"
+                body="Every reading this week is within its healthy target range."
+              />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-2">
+                {alertItems.slice(0, 6).map((a, i) => {
+                  const severe = isSevere(a.classification);
+                  return (
+                    <li key={`${a.type}-${a.value}-${i}`}>
+                      <Link href={`/patient/vitals?type=${a.type}`}>
+                        <RailRow
+                          tone={severe ? "rose" : "amber"}
+                          icon={<Activity size={16} />}
+                          title={
+                            <>
+                              {VITAL_REGISTRY[a.type]?.label ?? a.type}: {a.value}{" "}
+                              <span className="font-normal text-slate-400">{VITAL_REGISTRY[a.type]?.unit ?? ""}</span>
+                            </>
+                          }
+                          meta={a.classification}
+                          trailing={<ChevronRight size={16} className="text-slate-300" aria-hidden />}
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {/* Active medicines */}
+          <section className={PANEL} aria-labelledby="hl-meds">
+            <PanelHeader
+              id="hl-meds"
+              icon={<Pill size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title="Current medicines"
+              caption={meds.length > 0 ? `${meds.length} active` : "Nothing active"}
+              href="/patient/medications"
+              linkLabel="Manage"
+            />
+            {meds.length === 0 ? (
+              <EmptyBlock
+                icon={<Pill size={19} />}
+                title="No active medicines"
+                body="Prescriptions from your doctor and medicines you add appear here."
+              />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-0.5">
+                {meds.slice(0, 6).map((m, i) => (
+                  <li key={`${m.name}-${i}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 text-[13px] transition-colors hover:bg-slate-50">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{m.name}</span>
+                    {m.dosage ? <Badge tone="sky">{m.dosage}</Badge> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <Link
-            href="/patient/profile"
-            className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
+            href="/patient/ai"
+            className="group relative flex items-center gap-4 overflow-hidden rounded-2xl p-5 text-white transition-all hover:-translate-y-0.5"
+            style={{
+              background:
+                "radial-gradient(420px 200px at 100% 0%, rgba(56,189,248,0.30), transparent 60%), linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 18px 40px -18px rgba(49,46,129,0.6)",
+            }}
           >
-            <span>Edit Profile</span>
-            <ChevronRight size={13} aria-hidden />
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/10 text-sky-200 ring-1 ring-inset ring-white/15">
+              <Sparkles size={21} aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-sky-200/80">
+                AI assistant
+              </span>
+              <span className="mt-1 block text-base font-semibold">Explain my numbers</span>
+              <span className="block text-xs text-white/60">Plain-language read of your trends</span>
+            </span>
+            <ChevronRight size={18} className="shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </Link>
-        </div>
-
-        <QueryBoundary
-          query={summary}
-          emptyTitle="No profile summary"
-          emptyDescription="Information from your clinical intake will populate here."
-        >
-          {(data) => (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <UserRound size={12} className="text-text-soft" />
-                  Full Name
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-text truncate">
-                  {data.demographics?.name ?? "Thufail"}
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted">
-                  Age
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-text">
-                  {data.demographics?.age ? `${data.demographics.age} yrs` : "28 yrs"}
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted">
-                  Biological Sex
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-text capitalize">
-                  {data.demographics?.sex ?? "Male"}
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Droplets size={12} className="text-danger" />
-                  Blood Group
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-danger">
-                  Type {bloodGroup}
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Scale size={12} className="text-brand" />
-                  BMI Index
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-text">
-                  {bmiVal} <span className="text-[11px] font-semibold text-success">({bmiCategory})</span>
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border-0 shadow-[inset_0_0_0_1px_rgba(19,32,68,0.08)] flex flex-col gap-1">
-                <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-                  <Pill size={12} className="text-danger" />
-                  Active Meds
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-text">
-                  {activeMedsCount} Prescribed
-                </p>
-              </div>
-            </div>
-          )}
-        </QueryBoundary>
-      </section>
-    </div>
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

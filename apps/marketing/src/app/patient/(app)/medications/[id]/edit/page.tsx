@@ -3,35 +3,27 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Save, Trash2 } from "lucide-react";
-
-import { Card } from "@/patient/components/primitives/Card";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import {
-  useEditMedication,
-  useStopMedication,
-} from "@/patient/hooks/medicines";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, History, Pencil, Save, Trash2 } from "lucide-react";
+
+import { useEditMedication, useStopMedication } from "@/patient/hooks/medicines";
 import { api } from "@/portal/lib/api";
-
-const FREQUENCY_OPTIONS = [
-  "Once daily",
-  "Twice daily",
-  "Three times daily",
-  "Four times daily",
-  "As needed",
-];
-
-const TIMING_OPTIONS = [
-  "Before food",
-  "After food",
-  "With food",
-  "Any time",
-  "Morning",
-  "Afternoon",
-  "Evening",
-  "Night",
-];
+import { cn } from "@/portal/lib/utils";
+import {
+  MedicineFormPanel,
+  MedicinePreview,
+  type MedicineDraft,
+} from "@/patient/components/medications/MedicineForm";
+import {
+  HERO_GHOST,
+  PANEL,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 export default function EditMedicinePage({
   params,
@@ -49,15 +41,18 @@ export default function EditMedicinePage({
     enabled: Boolean(id),
   });
 
-  const [name, setName] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [frequency, setFrequency] = useState("Once daily");
-  const [timing, setTiming] = useState("After food");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [draft, setDraft] = useState<MedicineDraft>({
+    name: "",
+    dosage: "",
+    frequency: "Once daily",
+    timing: "After food",
+    startDate: "",
+    endDate: "",
+    notes: "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const patch = (p: Partial<MedicineDraft>) => setDraft((d) => ({ ...d, ...p }));
 
   useEffect(() => {
     if (medicine.data && !hydrated) {
@@ -70,13 +65,15 @@ export default function EditMedicinePage({
         endDate: string | null;
         notes: string | null;
       };
-      setName(m.name);
-      setDosage(m.dosage);
-      setFrequency(m.frequency ?? "Once daily");
-      setTiming(m.timing ?? "After food");
-      setStartDate(m.startDate);
-      setEndDate(m.endDate ?? "");
-      setNotes(m.notes ?? "");
+      setDraft({
+        name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency ?? "Once daily",
+        timing: m.timing ?? "After food",
+        startDate: m.startDate,
+        endDate: m.endDate ?? "",
+        notes: m.notes ?? "",
+      });
       setHydrated(true);
     }
   }, [medicine.data, hydrated]);
@@ -87,13 +84,13 @@ export default function EditMedicinePage({
     try {
       await editMedication.mutateAsync({
         id,
-        name: name.trim(),
-        dosage: dosage.trim(),
-        frequency,
-        timing,
-        startDate,
-        endDate: endDate || null,
-        notes: notes.trim() || null,
+        name: draft.name.trim(),
+        dosage: draft.dosage.trim(),
+        frequency: draft.frequency,
+        timing: draft.timing,
+        startDate: draft.startDate,
+        endDate: draft.endDate || null,
+        notes: draft.notes.trim() || null,
       });
       router.push("/patient/medications");
     } catch (err) {
@@ -102,8 +99,7 @@ export default function EditMedicinePage({
   }
 
   async function onStop() {
-    if (!window.confirm("Stop tracking this medicine? You'll see it in history."))
-      return;
+    if (!window.confirm("Stop tracking this medicine? You'll see it in history.")) return;
     try {
       await stopMedication.mutateAsync(id);
       router.push("/patient/medications");
@@ -112,174 +108,85 @@ export default function EditMedicinePage({
     }
   }
 
-  if (medicine.isLoading) {
-    return (
-      <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-        <p className="text-sm text-text-soft">Loading…</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-      <Link
-        href="/patient/medications"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft transition-colors hover:text-brand"
-      >
-        <ChevronLeft size={14} aria-hidden /> Back to medications
-      </Link>
-
-      <SectionHeader
-        label="Daily plan"
-        title="Edit medicine"
-        description="Update dosage, schedule, or notes. Doctor-issued prescriptions stay locked."
+    <PatientPage>
+      <PatientHero
+        overlap={false}
+        kickerIcon={<Pencil size={13} aria-hidden />}
+        kicker="Medications"
+        kickerMeta="Edit"
+        title={hydrated ? draft.name || "Edit medicine" : "Edit medicine"}
+        description="Update the dose, schedule or notes. Doctor-issued prescriptions stay locked."
+        actions={
+          <>
+            <Link href="/patient/medications" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              Back
+            </Link>
+            <Link href="/patient/medications/history" className={HERO_GHOST}>
+              <History size={15} aria-hidden />
+              History
+            </Link>
+          </>
+        }
       />
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <Card>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="medicine-name" className="t-label block">
-                Medicine name
-              </label>
-              <input
-                id="medicine-name"
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="medicine-dosage" className="t-label block">
-                Dosage
-              </label>
-              <input
-                id="medicine-dosage"
-                type="text"
-                value={dosage}
-                onChange={(event) => setDosage(event.target.value)}
-                required
-                className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="frequency" className="t-label block">
-                  Frequency
-                </label>
-                <select
-                  id="frequency"
-                  value={frequency}
-                  onChange={(event) => setFrequency(event.target.value)}
-                  className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-                >
-                  {FREQUENCY_OPTIONS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="timing" className="t-label block">
-                  Timing
-                </label>
-                <select
-                  id="timing"
-                  value={timing}
-                  onChange={(event) => setTiming(event.target.value)}
-                  className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-                >
-                  {TIMING_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="start-date" className="t-label block">
-                  Start date
-                </label>
-                <input
-                  id="start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  required
-                  className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="end-date" className="t-label block">
-                  End date <span className="text-text-muted">(optional)</span>
-                </label>
-                <input
-                  id="end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                  className="mt-2 h-12 w-full rounded-inner border border-border bg-surface-2 px-4 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="notes" className="t-label block">
-                Notes <span className="text-text-muted">(optional)</span>
-              </label>
-              <textarea
-                id="notes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                rows={3}
-                className="mt-2 w-full rounded-inner border border-border bg-surface-2 px-4 py-3 text-sm text-text outline-none focus:border-brand"
-              />
-            </div>
-
-            {error ? (
-              <p role="alert" className="text-sm text-danger">
-                {error}
-              </p>
-            ) : null}
+      {medicine.isLoading ? (
+        <section className={PANEL}>
+          <PanelSkeleton rows={4} className="mt-0" />
+        </section>
+      ) : medicine.isError ? (
+        <section className={PANEL}>
+          <PanelError message="This medicine couldn't be loaded." onRetry={() => void medicine.refetch()} />
+        </section>
+      ) : (
+        <form onSubmit={onSubmit} className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+          <div className="min-w-0 xl:col-span-8">
+            <MedicineFormPanel
+              title="Medicine details"
+              caption="Changes apply to reminders from today"
+              draft={draft}
+              onChange={patch}
+              error={error}
+            />
           </div>
-        </Card>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={editMedication.isPending}
-            className="pt-btn pt-btn-primary h-10 px-5 text-sm disabled:opacity-60"
-          >
-            <Save size={14} aria-hidden />
-            {editMedication.isPending ? "Saving…" : "Save changes"}
-          </button>
-          <button
-            type="button"
-            onClick={onStop}
-            disabled={stopMedication.isPending}
-            className="pt-btn h-10 px-5 text-sm text-danger hover:bg-danger-soft disabled:opacity-60"
-          >
-            <Trash2 size={14} aria-hidden />
-            {stopMedication.isPending ? "Stopping…" : "Stop medicine"}
-          </button>
-          <Link
-            href="/patient/medications"
-            className="pt-btn pt-btn-secondary h-10 px-5 text-sm"
-          >
-            Cancel
-          </Link>
-        </div>
-      </form>
-    </div>
+          <aside className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-6 xl:col-span-4">
+            <MedicinePreview draft={draft} />
+            <div className="flex items-center gap-2">
+              <Link href="/patient/medications" className={cn(SECONDARY_BTN, "h-10 flex-1 justify-center")}>
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={editMedication.isPending}
+                className="inline-flex h-10 flex-[2] items-center justify-center gap-1.5 rounded-xl bg-[#07233a] px-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-px hover:bg-sky-700 disabled:opacity-60"
+              >
+                <Save size={15} aria-hidden />
+                {editMedication.isPending ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+            <section className={PANEL} aria-labelledby="med-stop">
+              <PanelHeader
+                id="med-stop"
+                icon={<Trash2 size={16} />}
+                tone="bg-rose-50 text-rose-600"
+                title="Stop this medicine"
+                caption="It moves to history — you can reactivate it"
+              />
+              <button
+                type="button"
+                onClick={onStop}
+                disabled={stopMedication.isPending}
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-rose-50 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-60"
+              >
+                <Trash2 size={14} aria-hidden />
+                {stopMedication.isPending ? "Stopping…" : "Stop medicine"}
+              </button>
+            </section>
+          </aside>
+        </form>
+      )}
+    </PatientPage>
   );
 }

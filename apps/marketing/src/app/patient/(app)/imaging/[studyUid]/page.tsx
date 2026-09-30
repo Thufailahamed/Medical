@@ -9,13 +9,19 @@ import { use } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft, Layers, ScanLine } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { useT } from "@/portal/i18n";
+import {
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  PANEL,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+} from "@/patient/components/workspace";
 
 const DicomViewer = dynamic(
   () =>
@@ -24,7 +30,9 @@ const DicomViewer = dynamic(
     ),
   {
     ssr: false,
-    loading: () => <Skeleton className="h-[480px] w-full rounded-xl" />,
+    loading: () => (
+      <div className="h-[480px] w-full animate-pulse rounded-xl bg-slate-100" />
+    ),
   }
 );
 
@@ -68,33 +76,61 @@ export default function PatientImagingStudyPage({
     }))
   );
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/portal/me/imaging"
-          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text font-medium transition-colors"
-        >
-          <ArrowLeft size={12} /> {t("imaging.backToRecords")}
-        </Link>
-      </div>
+  const seriesCount = data?.series.length ?? 0;
+  const modality = data?.series[0]?.modality;
 
-      <PageHeader
+  return (
+    <PatientPage>
+      <PatientHero
+        overlap={false}
+        kickerIcon={<ScanLine size={13} aria-hidden />}
+        kicker="Imaging & scans"
+        kickerMeta={modality ? `${modality} study` : "DICOM study"}
         title={t("imaging.viewerTitle")}
-        subtitle={decoded}
+        description={
+          <span className="font-mono text-xs">UID {decoded}</span>
+        }
+        chips={
+          data ? (
+            <>
+              <span className={HERO_CHIP}>
+                <Layers size={12} className="text-sky-300" aria-hidden />
+                {seriesCount} series · {instances.length} slices
+              </span>
+            </>
+          ) : undefined
+        }
+        actions={
+          <Link href="/patient/imaging" className={HERO_GHOST}>
+            <ChevronLeft size={15} aria-hidden />
+            {t("imaging.backToRecords")}
+          </Link>
+        }
       />
 
-      {isLoading ? (
-        <Card padding={false} className="overflow-hidden">
-          <Skeleton className="h-[480px] w-full" />
-        </Card>
-      ) : !data ? (
-        <Card padding={false}>
-          <Empty title={t("imaging.studyNotFound")} className="py-12" />
-        </Card>
-      ) : (
-        <DicomViewer instances={instances} />
-      )}
-    </div>
+      <section className={PANEL}>
+        {isLoading ? (
+          <PanelSkeleton rows={2} className="mt-0 [&>div]:h-56" />
+        ) : !data ? (
+          <EmptyBlock
+            className="mt-0"
+            icon={<ScanLine size={19} />}
+            title={t("imaging.studyNotFound")}
+            body="This study may have been removed, or the link is incomplete."
+            actions={
+              <Link
+                href="/patient/imaging"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+              >
+                <ChevronLeft size={13} aria-hidden />
+                All imaging studies
+              </Link>
+            }
+          />
+        ) : (
+          <DicomViewer instances={instances} />
+        )}
+      </section>
+    </PatientPage>
   );
 }

@@ -1,11 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileLock2, CheckCircle2, ExternalLink, XCircle, RotateCw, Loader2 } from "lucide-react";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
+import { useMemo, useState } from "react";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CalendarClock,
+  CheckCircle2,
+  ExternalLink,
+  FileLock2,
+  Loader2,
+  RefreshCw,
+  RotateCw,
+  ShieldCheck,
+  User,
+  XCircle,
+} from "lucide-react";
+import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  RowAccent,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import { humanize, ROW_BTN_APPROVE, ROW_BTN_DANGER, ROW_BTN_QUIET } from "@/portal/components/admin/AdminDirectory";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
@@ -26,6 +50,8 @@ type Row = {
 };
 
 const STATUSES = ["queued", "approved", "processing", "completed", "cancelled", "failed"] as const;
+type StatusKey = (typeof STATUSES)[number];
+
 const STATUS_TONE: Record<string, "warn" | "info" | "success" | "neutral" | "danger"> = {
   queued: "warn",
   approved: "info",
@@ -35,16 +61,56 @@ const STATUS_TONE: Record<string, "warn" | "info" | "success" | "neutral" | "dan
   failed: "danger",
 };
 
+const STATUS_TILE: Record<string, string> = {
+  queued: "bg-amber-50 text-amber-600",
+  approved: "bg-sky-50 text-sky-600",
+  processing: "bg-violet-50 text-violet-600",
+  completed: "bg-emerald-50 text-emerald-600",
+  cancelled: "bg-slate-100 text-slate-600",
+  failed: "bg-red-50 text-red-600",
+};
+
+const STATUS_RAIL: Record<string, string> = {
+  queued: "bg-amber-400",
+  approved: "bg-sky-500",
+  processing: "bg-violet-500",
+  completed: "bg-emerald-500",
+  cancelled: "bg-slate-300",
+  failed: "bg-red-500",
+};
+
 export default function AdminDSARPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState<string>("queued");
   const [completeTarget, setCompleteTarget] = useState<Row | null>(null);
   const [resultUrl, setResultUrl] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: adminQk.dsar(status),
     queryFn: () => adminApi<{ items: Row[]; total: number }>(`/admin/dsar?status=${status}&limit=200`),
   });
+
+  // Per-bucket counts for the stat strip + segmented control. The bucket for
+  // the active status shares its query key with the list above, so it is free.
+  const bucketQueries = useQueries({
+    queries: STATUSES.map((s) => ({
+      queryKey: adminQk.dsar(s),
+      queryFn: () => adminApi<{ items: Row[]; total: number }>(`/admin/dsar?status=${s}&limit=200`),
+      staleTime: 30_000,
+    })),
+  });
+  const buckets = useMemo(() => {
+    const m = {} as Record<StatusKey, number | undefined>;
+    STATUSES.forEach((s, i) => {
+      const d = bucketQueries[i].data;
+      m[s] = d?.total ?? d?.items.length;
+    });
+    return m;
+  }, [bucketQueries]);
+
+  const openCount = (buckets.queued ?? 0) + (buckets.approved ?? 0) + (buckets.processing ?? 0);
 
   const approve = useMutation({
     mutationFn: (id: string) => adminApi(`/admin/dsar/${id}/approve`, { method: "POST", json: {} }),
@@ -52,7 +118,7 @@ export default function AdminDSARPage() {
       toast.success("Approved");
       qc.invalidateQueries({ queryKey: ["admin", "dsar"] });
     },
-    onError: (e: any) => toast.error("Failed", e.message),
+    onError: (e: unknown) => toast.error("Failed", e instanceof Error ? e.message : undefined),
   });
 
   const complete = useMutation({
@@ -64,14 +130,11 @@ export default function AdminDSARPage() {
       setCompleteTarget(null);
       setResultUrl("");
     },
-    onError: (e: any) => toast.error("Failed", e.message),
+    onError: (e: unknown) => toast.error("Failed", e instanceof Error ? e.message : undefined),
   });
 
-  const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-
   async function refreshStepUp(): Promise<string> {
-    const opts = await adminApi<any>("/admin/webauthn/auth/options", { method: "POST", json: {} });
+    const opts = await adminApi<Parameters<typeof getPasskey>[0]>("/admin/webauthn/auth/options", { method: "POST", json: {} });
     const credential = await getPasskey(opts);
     const res = await adminApi<{ stepUpToken: string }>(
       "/admin/webauthn/auth/verify",
@@ -93,7 +156,7 @@ export default function AdminDSARPage() {
       setRejectTarget(null);
       setRejectReason("");
     },
-    onError: (e: any) => toast.error("Failed", e.message),
+    onError: (e: unknown) => toast.error("Failed", e instanceof Error ? e.message : undefined),
   });
 
   const requeue = useMutation({
@@ -106,95 +169,256 @@ export default function AdminDSARPage() {
       toast.success("Re-queued");
       qc.invalidateQueries({ queryKey: ["admin", "dsar"] });
     },
-    onError: (e: any) => toast.error("Failed", e.message),
+    onError: (e: unknown) => toast.error("Failed", e instanceof Error ? e.message : undefined),
   });
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader title="Privacy / DSAR requests" icon={<FileLock2 size={20} className="text-blue-600" />} />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10 [&_a:hover]:no-underline">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<FileLock2 size={13} aria-hidden />}
+          kicker="Operations"
+          kickerMeta={data ? `${openCount} open requests` : "Privacy / DSAR"}
+          title={
+            <>
+              Privacy{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                requests
+              </span>
+            </>
+          }
+          description={
+            openCount > 0
+              ? `${openCount} data-subject request${openCount === 1 ? "" : "s"} in flight — approve, fulfil and attach the export link.`
+              : "Data-subject access and deletion requests. Approved exports are shared with the requester via a link that expires in 14 days."
+          }
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                Passkey step-up on rejection
+              </span>
+              {(buckets.queued ?? 0) > 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                  <FileLock2 size={12} aria-hidden />
+                  {buckets.queued} awaiting approval
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <button type="button" onClick={() => refetch()} disabled={isFetching} className={HERO_GHOST}>
+              <RefreshCw size={15} className={cn(isFetching && "animate-spin")} aria-hidden />
+              {isFetching ? "Refreshing…" : "Refresh"}
+            </button>
+          }
+        />
 
-      <div className="flex flex-wrap gap-1.5">
-        {STATUSES.map((s) => (
-          <button key={s} className="admin-filter-pill" data-active={status === s} onClick={() => setStatus(s)}>
-            {s}
-          </button>
-        ))}
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Queued"
+            icon={<FileLock2 size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={buckets.queued != null ? String(buckets.queued) : "…"}
+            sub={buckets.queued ? "Awaiting approval" : "Queue is clear"}
+            pulse={(buckets.queued ?? 0) > 0}
+            badge={buckets.queued ? { text: "Action", tone: "bg-amber-50 text-amber-700" } : undefined}
+            active={status === "queued"}
+            onClick={() => setStatus("queued")}
+          />
+          <StatTile
+            label="Approved"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={buckets.approved != null ? String(buckets.approved) : "…"}
+            sub="Ready to fulfil"
+            active={status === "approved"}
+            onClick={() => setStatus("approved")}
+          />
+          <StatTile
+            label="Processing"
+            icon={<Loader2 size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={buckets.processing != null ? String(buckets.processing) : "…"}
+            sub="Export being built"
+            active={status === "processing"}
+            onClick={() => setStatus("processing")}
+          />
+          <StatTile
+            label="Completed"
+            icon={<ShieldCheck size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={buckets.completed != null ? String(buckets.completed) : "…"}
+            sub="Link sent to requester"
+            active={status === "completed"}
+            onClick={() => setStatus("completed")}
+          />
+        </HeroOverlap>
       </div>
 
-      {isLoading || !data ? (
-        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
-          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
-          <div className="h-4 w-full admin-shimmer rounded-md" />
-          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
-          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
-        </div>
-      ) : data.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
-          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
-            <FileLock2 size={18} aria-hidden />
-          </div>No {status} requests.</div>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Requester</TH>
-              <TH>Purpose</TH>
-              <TH>Requested</TH>
-              <TH>Status</TH>
-              <TH>Result</TH>
-              <TH className="text-right">Action</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {data.items.map((r) => (
-              <TR key={r.id}>
-                <TD className="text-xs font-mono">{r.userId.slice(0, 8)}…</TD>
-                <TD><Pill>{r.purpose}</Pill></TD>
-                <TD className="text-xs text-text-muted">{new Date(r.requestedAt).toLocaleString()}</TD>
-                <TD><Pill tone={STATUS_TONE[r.status] ?? "neutral"}>{r.status}</Pill></TD>
-                <TD className="text-xs">
-                  {r.resultUrl ? (
-                    <a href={r.resultUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:underline">
-                      Download <ExternalLink size={12} />
-                    </a>
-                  ) : "—"}
-                </TD>
-                <TD className="text-right">
-                  <div className="inline-flex gap-1">
-                    {r.status === "queued" ? (
-                      <>
-                        <Button size="sm" variant="primary" onClick={() => approve.mutate(r.id)} className="bg-emerald-600 hover:bg-emerald-700" disabled={approve.isPending}>
-                          <CheckCircle2 size={14} className="mr-1" />Approve
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
-                          <XCircle size={14} className="mr-1" />Reject
-                        </Button>
-                      </>
-                    ) : r.status === "approved" ? (
-                      <>
-                        <Button size="sm" variant="primary" onClick={() => setCompleteTarget(r)} className="bg-emerald-600 hover:bg-emerald-700">
-                          Mark complete
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
-                          <XCircle size={14} className="mr-1" />Reject
-                        </Button>
-                      </>
-                    ) : r.status === "processing" ? (
-                      <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
-                        <XCircle size={14} className="mr-1" />Reject
-                      </Button>
-                    ) : r.status === "failed" ? (
-                      <Button size="sm" variant="primary" onClick={() => requeue.mutate(r.id)} disabled={requeue.isPending} className="bg-blue-600 hover:bg-blue-700">
-                        <RotateCw size={14} className="mr-1" />Re-queue
-                      </Button>
-                    ) : null}
-                  </div>
-                </TD>
-              </TR>
+      {/* ── Request ledger ─────────────────────────────────────────────── */}
+      <section className={PANEL} aria-labelledby="dsar-list">
+        <PanelHeader
+          id="dsar-list"
+          icon={<FileLock2 size={16} />}
+          tone="bg-rose-50 text-rose-600"
+          title={`${humanize(status)} requests`}
+          caption={
+            isLoading || !data
+              ? "Loading requests…"
+              : `${data.items.length} of ${data.total.toLocaleString()} shown`
+          }
+          action={
+            <Segmented<string>
+              ariaLabel="Request status"
+              value={status}
+              onChange={setStatus}
+              options={STATUSES.map((s) => ({
+                value: s,
+                label: humanize(s),
+                count: buckets[s] ?? undefined,
+              }))}
+            />
+          }
+        />
+
+        {isLoading || !data ? (
+          <div className="mt-5 space-y-2.5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[68px] animate-pulse rounded-xl bg-slate-100" />
             ))}
-          </TBody>
-        </Table>
-      )}
+          </div>
+        ) : data.items.length === 0 ? (
+          <EmptyBlock
+            icon={<FileLock2 size={19} />}
+            title={`No ${status} requests`}
+            body={
+              status === "queued"
+                ? "Every privacy request has been triaged. New access and deletion requests will appear here."
+                : "Nothing in this bucket right now."
+            }
+          />
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {data.items.map((r) => (
+              <li key={r.id} className={LIST_ROW}>
+                <RowAccent className={STATUS_RAIL[r.status] ?? "bg-slate-300"} />
+                <div className="flex min-w-0 flex-1 items-center gap-3 pl-1.5">
+                  <span
+                    className={cn(
+                      "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                      STATUS_TILE[r.status] ?? "bg-slate-100 text-slate-600",
+                    )}
+                  >
+                    <FileLock2 size={17} aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold capitalize text-slate-900">
+                        {humanize(r.purpose)}
+                      </span>
+                      <Pill tone={STATUS_TONE[r.status] ?? "neutral"}>{humanize(r.status)}</Pill>
+                      {r.resultUrl ? (
+                        <a
+                          href={r.resultUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                        >
+                          Export <ExternalLink size={10} aria-hidden />
+                        </a>
+                      ) : null}
+                    </span>
+                    <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                      <span className="inline-flex min-w-0 items-center gap-1 font-mono text-[11px]">
+                        <User size={11} aria-hidden />
+                        {r.userId.slice(0, 8)}…
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarClock size={11} aria-hidden />
+                        {new Date(r.requestedAt).toLocaleString()}
+                      </span>
+                      {r.completedAt ? (
+                        <span className="inline-flex items-center gap-1">
+                          <CheckCircle2 size={11} aria-hidden />
+                          Completed {new Date(r.completedAt).toLocaleDateString()}
+                        </span>
+                      ) : null}
+                      {r.notes ? (
+                        <span className="inline-flex min-w-0 items-center gap-1 truncate" title={r.notes}>
+                          {r.notes}
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-1.5 pl-1.5 sm:pl-0">
+                  {r.status === "queued" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => approve.mutate(r.id)}
+                        disabled={approve.isPending}
+                        className={ROW_BTN_APPROVE}
+                      >
+                        <CheckCircle2 size={14} aria-hidden />
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRejectTarget(r); setRejectReason(""); }}
+                        className={ROW_BTN_DANGER}
+                      >
+                        <XCircle size={14} aria-hidden />
+                        Reject
+                      </button>
+                    </>
+                  ) : r.status === "approved" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setCompleteTarget(r)}
+                        className={ROW_BTN_APPROVE}
+                      >
+                        <CheckCircle2 size={14} aria-hidden />
+                        Mark complete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRejectTarget(r); setRejectReason(""); }}
+                        className={ROW_BTN_DANGER}
+                      >
+                        <XCircle size={14} aria-hidden />
+                        Reject
+                      </button>
+                    </>
+                  ) : r.status === "processing" ? (
+                    <button
+                      type="button"
+                      onClick={() => { setRejectTarget(r); setRejectReason(""); }}
+                      className={ROW_BTN_DANGER}
+                    >
+                      <XCircle size={14} aria-hidden />
+                      Reject
+                    </button>
+                  ) : r.status === "failed" ? (
+                    <button
+                      type="button"
+                      onClick={() => requeue.mutate(r.id)}
+                      disabled={requeue.isPending}
+                      className={ROW_BTN_QUIET}
+                    >
+                      <RotateCw size={14} aria-hidden />
+                      Re-queue
+                    </button>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Modal open={!!completeTarget} onClose={() => setCompleteTarget(null)} title="Complete DSAR request">
         <form

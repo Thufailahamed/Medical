@@ -10,8 +10,11 @@ import {
   Plus,
   Search,
   CheckCircle,
-  X,
   ShieldCheck,
+  PenLine,
+  PackageCheck,
+  LayoutTemplate,
+  CalendarDays,
 } from "lucide-react";
 
 import { api, qk } from "@/portal/lib/api";
@@ -20,13 +23,29 @@ import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { Input } from "@/portal/components/ui/Form";
 import { Drawer } from "@/portal/components/ui/Modal";
-import { FilterPills } from "@/portal/components/chart/FilterPills";
 import { PrescriptionComposer } from "@/portal/components/rx/PrescriptionComposer";
 import { useT } from "@/portal/i18n";
 import { ageFrom, formatDate } from "@/portal/lib/format";
 import { rxStatusToTone } from "@/portal/lib/clinicalTones";
 import { RxActions } from "@/portal/components/rx/RxActions";
-import { ChartEmpty } from "@/portal/components/chart/ChartEmpty";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PRIMARY_BTN,
+  ROW_LINK,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 
 interface RxRow {
   id: string;
@@ -63,7 +82,12 @@ interface PatientSummary {
 
 type Status = "all" | "signed" | "draft" | "cancelled" | "dispensed";
 
-const STATUS_VALUES: Status[] = ["all", "signed", "draft", "cancelled", "dispensed"];
+const RX_ACCENT: Record<string, string> = {
+  signed: "bg-emerald-500",
+  draft: "bg-amber-400",
+  dispensed: "bg-violet-500",
+  cancelled: "bg-slate-300",
+};
 
 export default function PrescriptionsListPage() {
   const t = useT();
@@ -150,212 +174,228 @@ export default function PrescriptionsListPage() {
     closeComposer();
   }
 
+  const signedPct = totalCount > 0 ? Math.round((signedCount / totalCount) * 100) : 0;
+  const dispensedPct =
+    signedCount + dispensedCount > 0
+      ? Math.round((dispensedCount / (signedCount + dispensedCount)) * 100)
+      : 0;
+
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Oceanic Hero Header ────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col gap-6"
-        style={{
-          background:
-            "radial-gradient(134.49% 134.49% at 94.63% 0%, #009688 0%, #00695C 42.6%, #004D40 100%)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                e-Prescribing & Pharmacotherapy
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<PillIcon size={13} aria-hidden />}
+          kicker="e-Prescribing"
+          kickerMeta={`${totalCount} order${totalCount === 1 ? "" : "s"} on file`}
+          title={
+            <>
+              Prescriptions &amp;{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                e-Rx hub
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 flex items-center gap-1">
-                <ShieldCheck size={13} />
-                <span>SLMC Authenticated</span>
+            </>
+          }
+          description="Review signed orders, track pharmacy dispensing, and issue digitally signed prescriptions with live allergy cross-checks."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                SLMC authenticated
               </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
-              Prescriptions & e-Rx Hub
-            </h1>
-            <p className="text-sm text-teal-100/90 max-w-2xl mt-1 leading-relaxed">
-              Review signed pharmacological orders, manage dispense authorizations, and generate digitally authenticated medical prescriptions with real-time allergy cross-checks.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setComposeOpen(true)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-teal-950 bg-white shadow-md hover:bg-teal-50 transition-all flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Issue New Prescription</span>
-          </button>
-        </div>
-
-        {/* 4 Telemetry Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-teal-200 uppercase tracking-wider">Total e-Rx Issued</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{totalCount}</span>
-            <span className="text-[10.5px] text-teal-200/80 mt-0.5">Historical clinical orders</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">Signed & Valid</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{signedCount}</span>
-            <span className="text-[10.5px] text-emerald-200/80 mt-0.5">Ready for pharmacy dispense</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">Draft In-Progress</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{draftCount}</span>
-            <span className="text-[10.5px] text-amber-200/80 mt-0.5">Pending doctor sign-off</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Dispensed</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{dispensedCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Fulfilled by partner pharmacies</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Filter Controls ───────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all flex-1 max-w-md">
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by patient, medication, or diagnosis…"
-            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="h-5 w-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-
-        <FilterPills<Status>
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "all", label: "All", count: totalCount },
-            { value: "signed", label: "Signed", count: signedCount },
-            { value: "draft", label: "Draft", count: draftCount },
-            { value: "cancelled", label: "Cancelled", count: cancelledCount },
-            { value: "dispensed", label: "Dispensed", count: dispensedCount },
-          ]}
+              {draftCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setStatus("draft")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-400/25"
+                >
+                  <PenLine size={12} aria-hidden />
+                  {draftCount} draft{draftCount === 1 ? "" : "s"} awaiting sign-off
+                </button>
+              ) : null}
+            </>
+          }
+          actions={
+            <>
+              <Link href="/portal/rx-templates" className={HERO_GHOST}>
+                <LayoutTemplate size={15} aria-hidden />
+                Templates
+              </Link>
+              <button type="button" onClick={() => setComposeOpen(true)} className={HERO_PRIMARY}>
+                <Plus size={15} strokeWidth={2.5} className="text-sky-600" aria-hidden />
+                New prescription
+              </button>
+            </>
+          }
         />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Total issued"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading && !allData ? "…" : String(totalCount)}
+            sub={cancelledCount > 0 ? `${cancelledCount} cancelled` : "All clinical orders"}
+            active={status === "all"}
+            onClick={() => setStatus("all")}
+          />
+          <StatTile
+            label="Signed & valid"
+            icon={<ShieldCheck size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(signedCount)}
+            sub="Ready for pharmacy dispense"
+            progress={totalCount > 0 ? signedPct : null}
+            active={status === "signed"}
+            onClick={() => setStatus("signed")}
+          />
+          <StatTile
+            label="Drafts"
+            icon={<PenLine size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(draftCount)}
+            sub={draftCount > 0 ? "Pending your sign-off" : "Nothing pending"}
+            badge={draftCount > 0 ? { text: "Action", tone: "bg-amber-50 text-amber-700" } : undefined}
+            pulse={draftCount > 0}
+            active={status === "draft"}
+            onClick={() => setStatus("draft")}
+          />
+          <StatTile
+            label="Dispensed"
+            icon={<PackageCheck size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(dispensedCount)}
+            sub="Fulfilled by pharmacies"
+            progress={signedCount + dispensedCount > 0 ? dispensedPct : null}
+            active={status === "dispensed"}
+            onClick={() => setStatus("dispensed")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── Prescriptions Listing ──────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden bg-white">
+      {/* ── Prescriptions ledger ───────────────────────────────────────── */}
+      <section className={PANEL} aria-labelledby="rx-ledger">
+        <PanelHeader
+          id="rx-ledger"
+          icon={<PillIcon size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Prescription ledger"
+          caption={
+            isLoading
+              ? "Loading orders…"
+              : `${filteredRows.length} of ${rows.length} shown${search ? ` · matching “${search}”` : ""}`
+          }
+        />
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <PanelSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search patient, medication or diagnosis…"
+            ariaLabel="Search prescriptions"
+          />
+          <Segmented<Status>
+            ariaLabel="Filter by status"
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "all", label: "All", count: totalCount },
+              { value: "signed", label: "Signed", count: signedCount },
+              { value: "draft", label: "Draft", count: draftCount },
+              { value: "dispensed", label: "Dispensed", count: dispensedCount },
+              { value: "cancelled", label: "Cancelled", count: cancelledCount },
+            ]}
+          />
+        </div>
+
         {isLoading ? (
-          <div className="p-5 flex flex-col gap-3">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="mt-5 space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[72px] animate-pulse rounded-xl bg-slate-100" />
+            ))}
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="p-8">
-            <ChartEmpty
-              icon={<FileText size={24} />}
-              title="No prescriptions found"
-              description={
-                search
-                  ? `No prescriptions matching "${search}". Try clearing your search query.`
-                  : "You have no prescriptions filed under this category yet."
-              }
-              action={
-                search ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
-                  >
-                    Clear Search
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setComposeOpen(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Issue New Prescription
-                  </button>
-                )
-              }
-            />
-          </div>
+          <EmptyBlock
+            icon={<FileText size={19} />}
+            title={search ? "No matching prescriptions" : "No prescriptions here yet"}
+            body={
+              search
+                ? `Nothing matches “${search}”. Try a patient name, drug or diagnosis.`
+                : "Orders you issue appear here with their dispense status and a downloadable signed PDF."
+            }
+            actions={
+              search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className={SECONDARY_BTN}
+                >
+                  Clear search
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setComposeOpen(true)}
+                  className={PRIMARY_BTN}
+                >
+                  <Plus size={13} strokeWidth={2.5} />
+                  New prescription
+                </button>
+              )
+            }
+          />
         ) : (
-          <ul className="flex flex-col divide-y divide-slate-100">
+          <ul className="mt-4 flex flex-col gap-2">
             {filteredRows.map((r) => (
               <li
                 key={r.id}
-                className="group flex items-center justify-between gap-4 px-5 py-4 hover:bg-sky-50/40 transition-colors"
+                className={LIST_ROW}
               >
-                <Link
-                  href={`/portal/prescriptions/${r.id}`}
-                  className="flex items-center gap-3.5 flex-1 min-w-0"
-                >
-                  <Avatar
-                    name={r.patient?.name ?? ""}
-                    size="md"
-                    className="ring-2 ring-slate-100 shadow-2xs shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0 mb-0.5">
-                      <span className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                <RowAccent className={RX_ACCENT[r.status]} />
+                <Link href={`/portal/prescriptions/${r.id}`} className="flex min-w-0 flex-1 items-center gap-3.5 pl-1.5">
+                  <Avatar name={r.patient?.name ?? ""} size="md" className="h-10 w-10 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
                         {r.patient?.name ?? "—"}
                       </span>
-                      <Pill tone={rxStatusToTone(r.status)}>
-                        {t(`rx.status.${r.status}`) || r.status}
-                      </Pill>
-                      {r.date && (
-                        <span className="text-xs text-slate-400 font-medium">
-                          • {formatDate(r.date)}
-                        </span>
-                      )}
+                      <Pill tone={rxStatusToTone(r.status)}>{t(`rx.status.${r.status}`) || r.status}</Pill>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
-                      <span className="truncate font-medium">
-                        {r.diagnosis ?? r.title ?? t("prescription.untitled")}
-                      </span>
-                      <span>·</span>
-                      <span className="inline-flex items-center gap-1 font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md text-[11px] border border-sky-100">
+                    <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-slate-500">
+                      <span className="truncate">{r.diagnosis ?? r.title ?? t("prescription.untitled")}</span>
+                      <span className="text-slate-300">·</span>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700">
                         <PillIcon size={11} />
                         {r.medicineCount} {r.medicineCount === 1 ? "med" : "meds"}
                       </span>
+                      {r.date ? (
+                        <>
+                          <span className="hidden text-slate-300 sm:inline">·</span>
+                          <span className="hidden shrink-0 items-center gap-1 text-slate-400 sm:inline-flex">
+                            <CalendarDays size={11} />
+                            {formatDate(r.date)}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </Link>
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <RxActions
-                    id={r.id}
-                    status={r.status}
-                    hideEdit
-                    compact
-                    dispenseToken={r.dispenseToken}
-                  />
+                <div className="flex shrink-0 items-center gap-2 pl-1.5 sm:pl-0">
+                  <RxActions id={r.id} status={r.status} hideEdit compact dispenseToken={r.dispenseToken} />
                   <Link
                     href={`/portal/prescriptions/${r.id}`}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                    className={ROW_LINK}
                   >
-                    <span>{t("rx.actions.view")}</span>
-                    <ArrowRight size={13} />
+                    {t("rx.actions.view")}
+                    <ArrowRight size={13} className="transition-transform group-hover/v:translate-x-0.5" />
                   </Link>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
       {/* ── Prescription Composer Drawer ───────────────────────────────── */}
       <Drawer

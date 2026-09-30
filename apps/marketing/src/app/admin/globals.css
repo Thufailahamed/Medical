@@ -109,12 +109,17 @@
 [data-app="admin"] button {
   font-family: inherit;
 }
-[data-app="admin"] a {
-  color: var(--brand-strong);
-  text-decoration: none;
-}
-[data-app="admin"] a:hover {
-  text-decoration: underline;
+/* Link defaults live in the base layer so Tailwind utilities on a link
+   (text-white, no-underline, …) always win — unlayered rules would beat
+   every layered utility regardless of specificity. */
+@layer base {
+  [data-app="admin"] a {
+    color: var(--brand-strong);
+    text-decoration: none;
+  }
+  [data-app="admin"] a:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Page bg pattern — subtle blue dot grid. */

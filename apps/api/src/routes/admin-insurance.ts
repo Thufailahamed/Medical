@@ -43,7 +43,24 @@ adminRouter.get("/insurance-providers", async (c) => {
     .select()
     .from(insuranceProviders)
     .orderBy(desc(insuranceProviders.createdAt));
-  return c.json({ providers: rows });
+  // Per-provider plan + enrollment counts for the admin directory.
+  const [plans, enrollments] = await Promise.all([
+    db.select({ providerId: insurancePlans.providerId }).from(insurancePlans),
+    db.select({ providerId: insuranceEnrollments.providerId }).from(insuranceEnrollments),
+  ]);
+  const tally = (list: { providerId: string }[]) => {
+    const m = new Map<string, number>();
+    for (const r of list) m.set(r.providerId, (m.get(r.providerId) ?? 0) + 1);
+    return m;
+  };
+  const planCounts = tally(plans);
+  const enrollmentCounts = tally(enrollments);
+  const providers = rows.map((r) => ({
+    ...r,
+    planCount: planCounts.get(r.id) ?? 0,
+    enrollmentCount: enrollmentCounts.get(r.id) ?? 0,
+  }));
+  return c.json({ providers, total: providers.length });
 });
 
 adminRouter.post("/insurance-providers", async (c) => {
@@ -112,28 +129,12 @@ adminRouter.put("/insurance-providers/:id", async (c) => {
   const userId = c.get("userId");
   const id = c.req.param("id");
   const body = insuranceProviderUpdateSchema.parse(await c.req.json());
-  const patch: Record<string, any> = {};
-  const map: Record<string, string> = {
-    name: "name",
-    slug: "slug",
-    logoUrl: "logo_url",
-    tagline: "tagline",
-    description: "description",
-    regulatorLicense: "regulator_license",
-    claimSettlementRatioPct: "claim_settlement_ratio_pct",
-    cashlessHospitalCount: "cashless_hospital_count",
-    websiteUrl: "website_url",
-    supportPhone: "support_phone",
-  };
+  // Drizzle's .set() matches on schema property names (camelCase); snake_case
+  // keys are silently dropped, which left an empty SET clause.
+  const patch: Record<string, any> = { updatedAt: new Date().toISOString() };
   for (const [k, v] of Object.entries(body)) {
-    if (v !== undefined) {
-      patch[map[k] ?? k] = v;
-    }
+    if (v !== undefined) patch[k] = v;
   }
-  if (typeof body.isPublished === "boolean") {
-    patch.is_published = body.isPublished ? 1 : 0;
-  }
-  patch.updated_at = new Date().toISOString();
   await db
     .update(insuranceProviders)
     .set(patch)
@@ -167,7 +168,19 @@ adminRouter.get("/insurance-plans", async (c) => {
     .from(insurancePlans)
     .where(where as any)
     .orderBy(desc(insurancePlans.createdAt));
-  return c.json({ plans: rows });
+  const [providers, enrollments] = await Promise.all([
+    db.select({ id: insuranceProviders.id, name: insuranceProviders.name }).from(insuranceProviders),
+    db.select({ planId: insuranceEnrollments.planId }).from(insuranceEnrollments),
+  ]);
+  const providerNames = new Map(providers.map((p) => [p.id, p.name]));
+  const enrollmentCounts = new Map<string, number>();
+  for (const e of enrollments) enrollmentCounts.set(e.planId, (enrollmentCounts.get(e.planId) ?? 0) + 1);
+  const plans = rows.map((r) => ({
+    ...r,
+    providerName: providerNames.get(r.providerId) ?? "Unknown",
+    enrollmentCount: enrollmentCounts.get(r.id) ?? 0,
+  }));
+  return c.json({ plans, total: plans.length });
 });
 
 adminRouter.post("/insurance-plans", async (c) => {
@@ -218,36 +231,10 @@ adminRouter.put("/insurance-plans/:id", async (c) => {
   const userId = c.get("userId");
   const id = c.req.param("id");
   const body = insurancePlanUpdateSchema.parse(await c.req.json());
-  const camelToSnake: Record<string, string> = {
-    name: "name",
-    slug: "slug",
-    planType: "plan_type",
-    coverageSummaryLkr: "coverage_summary_lkr",
-    coverageDetailsJson: "coverage_details_json",
-    monthlyPremiumLkr: "monthly_premium_lkr",
-    annualPremiumLkr: "annual_premium_lkr",
-    annualDiscountPct: "annual_discount_pct",
-    deductibleLkr: "deductible_lkr",
-    copayPct: "copay_pct",
-    coPaymentCapLkr: "co_payment_cap_lkr",
-    waitingPeriodDays: "waiting_period_days",
-    preExistingWaitingDays: "pre_existing_waiting_days",
-    networkHospitalCount: "network_hospital_count",
-    keyFeaturesJson: "key_features_json",
-    exclusionsJson: "exclusions_json",
-    termMonths: "term_months",
-  };
-  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+  // See provider PUT: keys must be schema property names, not column names.
+  const patch: Record<string, any> = { updatedAt: new Date().toISOString() };
   for (const [k, v] of Object.entries(body)) {
-    if (v !== undefined) {
-      patch[camelToSnake[k] ?? k] = v;
-    }
-  }
-  if (typeof body.isPublished === "boolean") {
-    patch.is_published = body.isPublished ? 1 : 0;
-  }
-  if (typeof body.isFeatured === "boolean") {
-    patch.is_featured = body.isFeatured ? 1 : 0;
+    if (v !== undefined) patch[k] = v;
   }
   await db.update(insurancePlans).set(patch).where(eq(insurancePlans.id, id));
   await audit(db, {
@@ -269,11 +256,27 @@ adminRouter.put("/insurance-plans/:id", async (c) => {
 
 adminRouter.get("/insurance-enrollments", async (c) => {
   const db = c.get("db");
+  const status = c.req.query("status");
   const rows = await db
-    .select()
+    .select({
+      enrollment: insuranceEnrollments,
+      userName: users.name,
+      planName: insurancePlans.name,
+      providerName: insuranceProviders.name,
+    })
     .from(insuranceEnrollments)
+    .leftJoin(users, eq(users.id, insuranceEnrollments.userId))
+    .leftJoin(insurancePlans, eq(insurancePlans.id, insuranceEnrollments.planId))
+    .leftJoin(insuranceProviders, eq(insuranceProviders.id, insuranceEnrollments.providerId))
+    .where(status ? eq(insuranceEnrollments.status, status as any) : undefined)
     .orderBy(desc(insuranceEnrollments.createdAt));
-  return c.json({ enrollments: rows });
+  const enrollments = rows.map((r) => ({
+    ...r.enrollment,
+    userName: r.userName ?? "Unknown",
+    planName: r.planName ?? "Unknown plan",
+    providerName: r.providerName ?? "Unknown",
+  }));
+  return c.json({ enrollments, total: enrollments.length });
 });
 
 adminRouter.get("/insurance-mkt-claims", async (c) => {

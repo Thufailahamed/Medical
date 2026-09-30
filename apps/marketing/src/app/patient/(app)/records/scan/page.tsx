@@ -24,7 +24,22 @@ import { useMutation } from "@tanstack/react-query";
 
 import { ApiError } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroTile,
+  LiveDot,
+  PANEL,
+  PanelHeader,
+  PatientHero,
+  PatientPage,
+  PRIMARY_BTN,
+  PromoCard,
+  RailRow,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 export default function RecordScanPage() {
   const router = useRouter();
@@ -105,125 +120,125 @@ export default function RecordScanPage() {
     upload.mutate(file);
   }
 
+  const EXTRACTS = [
+    { title: "Document type", body: "Lab, prescription, discharge summary", tone: "sky" as const, icon: <FileText size={16} /> },
+    { title: "Visit details", body: "Date, hospital, attending doctor", tone: "violet" as const, icon: <UserCheck size={16} /> },
+    { title: "Lab values", body: "Numbers, units & reference ranges", tone: "emerald" as const, icon: <FileCheck size={16} /> },
+    { title: "Diagnosis & notes", body: "Clinical terms & treatment directions", tone: "amber" as const, icon: <Sparkles size={16} /> },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. VYRO Ink Hero ─────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Scan size={13} />}
-        kicker="Optical Character Recognition (OCR)"
-        title="Scan a Medical Record"
-        description="Drop a photo or PDF scan. Our clinical vision AI extracts laboratory values, diagnosis codes, dates, and doctor notes automatically into your health record."
-        actions={
+    <PatientPage>
+      <PatientHero
+        overlap={false}
+        leading={
+          <HeroTile tone="from-violet-400 to-purple-600">
+            <Scan size={30} aria-hidden />
+          </HeroTile>
+        }
+        kickerIcon={<Scan size={13} aria-hidden />}
+        kicker="Scan a document"
+        kickerMeta="PDF · JPG · PNG · HEIC"
+        title={
           <>
-            <Link href="/patient/records" className={heroSecondaryAction}>
-              <ChevronLeft size={13} />
-              <span>Back to Records</span>
-            </Link>
-            <Link href="/patient/records" className={heroPrimaryAction}>
-              <UserCheck size={14} />
-              <span>View All Records</span>
-            </Link>
+            Turn paper into a <HeroAccent>digital record</HeroAccent>
           </>
         }
-        footer={
+        description="Drop a photo or PDF. We read lab values, dates, diagnosis and doctor notes and file them to your records automatically."
+        chips={
           <>
-            <span>AI OCR engine · clinical vision</span>
-            <span>Data security · AES-256 vault</span>
-            <span>Extraction · auto-parsed</span>
-            <span>Formats · PDF, JPG, HEIC</span>
+            <span className={HERO_CHIP}>
+              <LiveDot tone="sky" />
+              AI extraction ready
+            </span>
+            <span className={HERO_CHIP}>
+              <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+              Encrypted end to end
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/records" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              All records
+            </Link>
+            <Link href="/patient/records/new" className={HERO_PRIMARY}>
+              <FileText size={15} className="text-sky-600" aria-hidden />
+              Enter manually
+            </Link>
           </>
         }
       />
 
-      {/* ── 2. Two-Column Upload & Extraction Stage ────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Interactive Dropzone */}
-        <section className="lg:col-span-7 patient-card p-5 sm:p-7 flex flex-col gap-5">
-          <div className="border-b border-border pb-3.5">
-            <h2 className="text-base sm:text-lg font-bold text-text flex items-center gap-2">
-              <Camera size={19} className="text-sky-600" />
-              <span>Upload Document or Camera Photo</span>
-            </h2>
-            <p className="text-xs text-text-soft mt-0.5">
-              Drag &amp; drop physical paperwork, discharge notes, prescriptions, or pathology printouts.
-            </p>
-          </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="scan-upload">
+          <PanelHeader
+            id="scan-upload"
+            icon={<Camera size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            title="Upload a document or photo"
+            caption="Discharge notes, prescriptions or lab printouts"
+          />
 
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => !file && fileInputRef.current?.click()}
             className={cn(
-              "flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 sm:p-10 text-center transition-all cursor-pointer",
-              file
-                ? "border-brand bg-brand-soft/30"
-                : "border-border bg-surface-2/50 hover:border-brand hover:shadow-card",
+              "mt-5 flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-8 text-center transition-all sm:p-10",
+              file ? "border-sky-300 bg-sky-50/50" : "border-slate-200 bg-slate-50 hover:border-sky-300 hover:bg-white",
             )}
           >
             {preview ? (
-              <div className="flex flex-col items-center gap-3 w-full">
+              <div className="flex w-full flex-col items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={preview}
                   alt="Selected medical document"
-                  className="max-h-72 w-auto rounded-xl object-contain border border-border shadow-sm"
+                  className="max-h-72 w-auto rounded-xl object-contain shadow-[0_8px_24px_-10px_rgba(15,23,42,0.3),inset_0_0_0_1px_rgba(15,23,42,0.07)]"
                 />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-semibold text-text">
-                    {file?.name} ({(file ? file.size / 1024 : 0).toFixed(1)} KB)
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-slate-700">
+                  {file?.name} · {(file ? file.size / 1024 : 0).toFixed(1)} KB
+                </span>
               </div>
             ) : file ? (
               <div className="flex flex-col items-center gap-3">
-                <div className="grid h-16 w-16 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs" aria-hidden>
-                  <FileText size={32} />
-                </div>
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-sky-600 shadow-[0_1px_2px_rgba(15,23,42,0.05),inset_0_0_0_1px_rgba(15,23,42,0.07)]" aria-hidden>
+                  <FileText size={26} />
+                </span>
                 <div>
-                  <p className="text-sm font-bold text-text">{file.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB · Ready for OCR
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">{file.name}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{(file.size / (1024 * 1024)).toFixed(2)} MB · ready to scan</p>
                 </div>
               </div>
             ) : (
               <>
-                <div className="grid h-16 w-16 place-items-center rounded-md bg-surface border border-border text-brand shadow-xs" aria-hidden>
-                  <Upload size={28} />
-                </div>
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-sky-600 shadow-[0_1px_2px_rgba(15,23,42,0.05),inset_0_0_0_1px_rgba(15,23,42,0.07)]" aria-hidden>
+                  <Upload size={24} />
+                </span>
                 <div className="max-w-sm">
-                  <h3 className="text-sm sm:text-base font-bold text-text">
-                    Drop your clinical document here, or browse
-                  </h3>
-                  <p className="text-xs text-text-soft mt-1">
-                    Supports JPG, PNG, HEIC, or PDF · Up to 20 MB
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">Drop your document here, or browse</p>
+                  <p className="mt-1 text-xs text-slate-500">JPG, PNG, HEIC or PDF · up to 20 MB</p>
                 </div>
               </>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={onFileChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" onChange={onFileChange} className="hidden" />
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-1">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="pt-btn pt-btn-secondary h-9 px-4 text-xs"
+                className={SECONDARY_BTN}
               >
-                <ImageIcon size={14} />
-                <span>{file ? "Choose Another File" : "Browse Files"}</span>
+                <ImageIcon size={13} aria-hidden />
+                {file ? "Choose another" : "Browse files"}
               </button>
-
-              {file && (
+              {file ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -231,112 +246,71 @@ export default function RecordScanPage() {
                     setFile(null);
                     setPreview(null);
                   }}
-                  className="pt-btn h-9 px-3 text-xs text-danger hover:bg-danger-soft"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100"
                 >
-                  <X size={13} />
-                  <span>Remove</span>
+                  <X size={13} aria-hidden />
+                  Remove
                 </button>
+              ) : null}
+            </div>
+          </div>
+
+          {error ? (
+            <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+              <AlertCircle size={14} className="shrink-0" aria-hidden />
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-5 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+              <Zap size={12} className="text-amber-500" aria-hidden />
+              Usually takes under 30 seconds
+            </p>
+            <button type="button" onClick={onSubmit} disabled={!file || upload.isPending} className={cn(PRIMARY_BTN, "h-10 px-4 text-sm")}>
+              {upload.isPending ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" aria-hidden />
+                  Extracting &amp; creating record…
+                </>
+              ) : (
+                <>
+                  <Scan size={15} aria-hidden />
+                  Scan and create record
+                </>
               )}
-            </div>
+            </button>
           </div>
-
-          {error && (
-            <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-              <AlertCircle size={15} className="shrink-0" aria-hidden />
-              <span>{error}</span>
-            </div>
-          )}
         </section>
 
-        {/* Right Column: AI Extraction Intelligence & Actions */}
-        <section className="lg:col-span-5 flex flex-col gap-4">
-          {/* What We Extract Card */}
-          <div className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-            <div className="flex items-center gap-2.5 border-b border-border pb-3">
-              <div className="grid h-8 w-8 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-                <Sparkles size={16} />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-text">
-                  What our AI Extracts
-                </h3>
-                <p className="text-[11px] text-text-soft">
-                  Automated clinical classification
-                </p>
-              </div>
-            </div>
-
-            <ul className="flex flex-col gap-2.5 text-xs text-text">
-              <li className="flex items-center gap-2.5">
-                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
-                  <Check size={12} strokeWidth={3} />
-                </div>
-                <span>
-                  <strong>Document Type:</strong> Lab, prescription, discharge summary
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
-                  <Check size={12} strokeWidth={3} />
-                </div>
-                <span>
-                  <strong>Clinical Coordinates:</strong> Date, hospital, attending doctor
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
-                  <Check size={12} strokeWidth={3} />
-                </div>
-                <span>
-                  <strong>Pathology Values:</strong> Numbers, units &amp; reference targets
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <div className="grid h-5 w-5 place-items-center rounded-full bg-success-soft text-success shrink-0" aria-hidden>
-                  <Check size={12} strokeWidth={3} />
-                </div>
-                <span>
-                  <strong>Diagnosis &amp; Notes:</strong> Clinical terms &amp; treatment directives
-                </span>
-              </li>
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="About scanning">
+          <section className={PANEL} aria-labelledby="scan-extracts">
+            <PanelHeader
+              id="scan-extracts"
+              icon={<Sparkles size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="What we extract"
+              caption="Automatic clinical classification"
+            />
+            <ul className="mt-4 flex flex-col gap-2">
+              {EXTRACTS.map((x) => (
+                <li key={x.title}>
+                  <RailRow tone={x.tone} icon={x.icon} title={x.title} meta={x.body} trailing={<Check size={14} className="text-emerald-500" aria-hidden />} />
+                </li>
+              ))}
             </ul>
-          </div>
+          </section>
 
-          {/* Privacy & Encryption Card */}
-          <div className="rounded-xl border border-warn/25 bg-warn-soft p-4 sm:p-5 flex items-start gap-3 text-xs text-warn shadow-2xs">
-            <ShieldCheck size={18} className="shrink-0 mt-0.5" aria-hidden />
-            <div>
-              <h4 className="font-bold">
-                End-to-End Encrypted &amp; HIPAA Protected
-              </h4>
-              <p className="text-[11.5px] mt-0.5 leading-relaxed opacity-80">
-                Your medical files are transmitted over TLS 1.3, processed once through private clinical OCR models, and stored in AES-256 encrypted vaults. Only you and authorized physicians can view your records.
-              </p>
-            </div>
-          </div>
-
-          {/* Primary Action Button */}
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={!file || upload.isPending}
-            className="pt-btn pt-btn-primary h-12 w-full text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {upload.isPending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" aria-hidden />
-                Extracting Clinical Data &amp; Creating Record…
-              </>
-            ) : (
-              <>
-                <Scan size={16} aria-hidden />
-                Scan and Create Health Record
-              </>
-            )}
-          </button>
-        </section>
+          <PromoCard
+            href="/patient/consents"
+            kicker="Privacy"
+            icon={<ShieldCheck size={21} aria-hidden />}
+            title="Encrypted & private"
+            body="Only you and doctors you approve can view it"
+          />
+        </aside>
       </div>
-    </div>
+    </PatientPage>
   );
 }
 

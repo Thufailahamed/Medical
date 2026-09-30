@@ -1,37 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
-import { Pill } from "@/portal/components/ui/Pill";
-import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Field, Input } from "@/portal/components/ui/Form";
-import { adminApi, adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
+import { adminApiWithStepUp, adminQk } from "@/portal/lib/admin-api";
 import { toast } from "@/portal/components/ui/Toast";
-import { FlaskConical } from "lucide-react";
+import { Check, FlaskConical, X } from "lucide-react";
+import { UserTenantDirectory, type TenantUserRow } from "@/portal/components/admin/UserTenantDirectory";
+import { ROW_BTN_APPROVE, ROW_BTN_DANGER } from "@/portal/components/admin/AdminDirectory";
 
-type Row = {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  status: string;
-  createdAt: string;
-  licenseNumber?: string | null;
-  city?: string | null;
-  address?: string | null;
-};
+type Row = TenantUserRow;
 
 export default function AdminLabsPage() {
   const qc = useQueryClient();
   const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const { data, isLoading } = useQuery({
-    queryKey: adminQk.users({ role: "laboratory" }),
-    queryFn: () => adminApi<{ items: Row[]; total: number }>("/admin/users?role=laboratory&limit=200"),
-  });
 
   const approve = useMutation({
     mutationFn: (userId: string) =>
@@ -41,7 +26,7 @@ export default function AdminLabsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
       qc.invalidateQueries({ queryKey: ["admin", "approvals"] });
     },
-    onError: (e: any) => toast.error("Could not approve", e.message),
+    onError: (e: unknown) => toast.error("Could not approve", e instanceof Error ? e.message : undefined),
   });
 
   const reject = useMutation({
@@ -54,77 +39,40 @@ export default function AdminLabsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
       qc.invalidateQueries({ queryKey: ["admin", "approvals"] });
     },
-    onError: (e: any) => toast.error("Could not reject", e.message),
+    onError: (e: unknown) => toast.error("Could not reject", e instanceof Error ? e.message : undefined),
   });
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader
-        icon={<FlaskConical size={20} className="text-blue-600" />}
-        title="Laboratories" subtitle={`${data?.total ?? 0} registered`} 
-      />
-      {isLoading || !data ? (
-        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
-          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
-          <div className="h-4 w-full admin-shimmer rounded-md" />
-          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
-          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
-        </div>
-      ) : data.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
-          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
-            <FlaskConical size={18} aria-hidden />
-          </div>
-          No laboratories.
-        </div>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Name</TH>
-              <TH>License</TH>
-              <TH>Email</TH>
-              <TH>Phone</TH>
-              <TH>Status</TH>
-              <TH>Joined</TH>
-              <TH className="text-right">Action</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {data.items.map((l) => (
-              <TR key={l.id}>
-                <TD className="font-semibold">{l.name}<span className="block text-xs font-normal text-text-muted">{l.city || l.address || ""}</span></TD>
-                <TD className="text-xs">{l.licenseNumber || "—"}</TD>
-                <TD className="text-xs">{l.email || "—"}</TD>
-                <TD className="text-xs">{l.phone || "—"}</TD>
-                <TD><Pill tone={l.status === "active" ? "success" : "warn"}>{l.status}</Pill></TD>
-                <TD className="text-xs text-text-muted">{new Date(l.createdAt).toLocaleDateString()}</TD>
-                <TD className="text-right">
-                  {l.status === "pending" ? (
-                    <div className="flex justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => approve.mutate(l.id)}
-                        disabled={approve.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="danger" onClick={() => setRejectTarget(l)}>
-                        Reject
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-text-muted">—</span>
-                  )}
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
-
+    <UserTenantDirectory
+      queryKey={adminQk.users({ role: "laboratory" })}
+      endpoint="/admin/users?role=laboratory&limit=200"
+      kicker="Diagnostics network"
+      title="Laboratories"
+      titleAccent="& pathology"
+      description="Diagnostic labs that receive orders and upload results. Approve new labs once their licence is verified."
+      noun="laboratory"
+      icon={(s) => <FlaskConical size={s} aria-hidden />}
+      tileTone="from-teal-500 to-cyan-600 shadow-teal-500/30"
+      rowActions={(l) =>
+        l.status === "pending" ? (
+          <>
+            <button
+              type="button"
+              onClick={() => approve.mutate(l.id)}
+              disabled={approve.isPending}
+              className={ROW_BTN_APPROVE}
+            >
+              <Check size={13} strokeWidth={2.5} />
+              Approve
+            </button>
+            <button type="button" onClick={() => setRejectTarget(l)} className={ROW_BTN_DANGER}>
+              <X size={13} />
+              Reject
+            </button>
+          </>
+        ) : null
+      }
+    >
       <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title={`Reject ${rejectTarget?.name ?? ""}`}>
         <form
           className="flex flex-col gap-4"
@@ -157,6 +105,6 @@ export default function AdminLabsPage() {
           </div>
         </form>
       </Modal>
-    </div>
+    </UserTenantDirectory>
   );
 }

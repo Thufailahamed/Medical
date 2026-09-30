@@ -48,11 +48,11 @@ export function AiCommandBar({
     <div className={cn("flex flex-col gap-3", className)}>
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 rounded-xl border border-border bg-surface-2 p-1.5 shadow-card transition-shadow focus-within:border-brand md:p-2"
+        className="flex items-center gap-2 rounded-2xl bg-slate-50 p-1.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all focus-within:bg-white focus-within:shadow-[inset_0_0_0_1.5px_#0284c7,0_0_0_4px_rgba(14,165,233,0.12)] md:p-2"
       >
         <span
           aria-hidden
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-soft text-brand shadow-2xs"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30"
         >
           <Sparkles size={16} />
         </span>
@@ -63,17 +63,17 @@ export function AiCommandBar({
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
           aria-label="Ask the AI assistant"
-          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text placeholder:text-text-muted focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
         />
         <span
           aria-hidden
-          className="hidden sm:inline-flex items-center rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-mono font-bold text-text-muted shadow-2xs"
+          className="hidden items-center rounded-md bg-white px-2 py-1 font-mono text-[10px] font-semibold text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)] sm:inline-flex"
         >
           ⌘K
         </span>
         <button
           type="submit"
-          className="pt-btn pt-btn-primary h-9 shrink-0 px-4 text-xs"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] bg-[#07233a] px-4 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
         >
           <span>Ask AI</span>
           <SendHorizontal size={13} strokeWidth={2.5} aria-hidden />
@@ -83,7 +83,7 @@ export function AiCommandBar({
       {quickPrompts.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {promptsLabel ? (
-            <span className="mr-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
+            <span className="mr-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               {promptsLabel}
             </span>
           ) : null}
@@ -92,7 +92,7 @@ export function AiCommandBar({
               key={prompt.label}
               type="button"
               onClick={prompt.onSelect}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 hover:border-border-strong hover:bg-surface-3 px-3.5 py-1.5 text-xs font-medium text-text shadow-2xs transition-all cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-px hover:text-sky-700 hover:shadow-[inset_0_0_0_1px_rgba(2,132,199,0.3)]"
             >
               {prompt.icon}
               <span>{prompt.label}</span>

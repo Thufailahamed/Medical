@@ -60,7 +60,11 @@
     "copyLink": "Copy link",
     "openLink": "Open link",
     "revoke": "Revoke",
-    "send": "Send"
+    "send": "Send",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
+    "patient": "Patient",
+    "view": "View"
   },
   "auth": {
     "title": "Doctor Portal",
@@ -338,10 +342,21 @@
     "emptyGlobal": "No prescriptions found",
     "untitled": "Untitled prescription",
     "new": "New prescription",
-    "status.all": "All",
-    "status.signed": "Signed",
-    "status.draft": "Draft",
-    "status.cancelled": "Cancelled"
+    "status": {
+      "all": "All",
+      "signed": "Signed",
+      "draft": "Draft",
+      "cancelled": "Cancelled"
+    },
+    "acknowledgeOverride": "I acknowledge the safety warnings and wish to proceed",
+    "allergyWarning": "Patient has documented allergies — review before prescribing",
+    "cancelled": "Prescription cancelled",
+    "field": {
+      "medicine": "Medicine",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "duration": "Duration"
+    }
   },
   "rx": {
     "status": {
@@ -513,7 +528,10 @@
     }
   },
   "labs": {
-    "untitled": "Lab order"
+    "untitled": "Lab order",
+    "newOrder": "New lab order",
+    "testName": "Test name",
+    "title": "Lab orders"
   },
   "labOrders": {
     "title": "Lab orders",
@@ -541,7 +559,10 @@
   },
   "followups": {
     "newFollowup": "New follow-up",
-    "empty": "No follow-ups scheduled"
+    "empty": "No follow-ups scheduled",
+    "dueDate": "Due date",
+    "reason": "Reason",
+    "title": "Follow-up"
   },
   "pharmacy": {
     "title": "Pharmacy",
@@ -845,7 +866,8 @@
     "address": "Address",
     "phone": "Phone",
     "license": "License",
-    "specialties": "Specialties"
+    "specialties": "Specialties",
+    "empty": "No clinics yet"
   },
   "settings": {
     "title": "Settings",
@@ -970,6 +992,11 @@
     "newSubtitle": "Pick a patient to schedule",
     "fields": {
       "patient": "Patient"
+    },
+    "status": {
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "scheduled": "Scheduled"
     }
   },
   "records": {
@@ -1149,7 +1176,15 @@
     "diagnosis": "Diagnosis",
     "treatmentPlan": "Treatment Plan",
     "followUpInstructions": "Follow-up Instructions",
-    "notProvided": "Not provided"
+    "notProvided": "Not provided",
+    "basicInfo": "Basic info",
+    "subjective": "Subjective",
+    "objective": "Objective",
+    "assessment": "Assessment",
+    "plan": "Plan",
+    "markAppointmentCompleted": "Mark appointment as completed",
+    "saveAction": "Save visit summary",
+    "saved": "Visit summary saved"
   },
   "errors": {
     "unauthorized": "Please sign in to continue.",
@@ -1291,7 +1326,8 @@
   },
   "allergies": {
     "banner": "Allergy alerts",
-    "empty": "No allergies on file"
+    "empty": "No allergies on file",
+    "singleCritical": "Critical allergy on file — review before prescribing"
   },
   "visits": {
     "empty": "No visits on file"
@@ -1334,7 +1370,8 @@
       "filterAll": "All",
       "medicineCount_one": "{{count}} med",
       "medicineCount_other": "{{count}} meds",
-      "view": "View"
+      "view": "View",
+      "medicineCount": "{{count}} med"
     },
     "labs": {
       "title": "Lab orders",
@@ -1463,7 +1500,8 @@
     "tab": {
       "title": "Share record",
       "subtitle_one": "{{count}} active link",
-      "subtitle_other": "{{count}} links for this patient"
+      "subtitle_other": "{{count}} links for this patient",
+      "subtitle": "{{count}} active link"
     },
     "createTitle": "Create share link",
     "labelPlaceholder": "Label (e.g. for Dr Perera)",

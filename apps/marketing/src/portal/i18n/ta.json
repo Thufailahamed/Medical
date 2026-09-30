@@ -60,7 +60,11 @@
     "copyLink": "இணைப்பை நகலெடு",
     "openLink": "இணைப்பைத் திற",
     "revoke": "திரும்பப் பெறு",
-    "send": "அனுப்பு"
+    "send": "அனுப்பு",
+    "disabled": "முடக்கப்பட்டது",
+    "enabled": "இயக்கப்பட்டது",
+    "patient": "நோயாளி",
+    "view": "காண்க"
   },
   "auth": {
     "title": "மருத்துவர் போர்டல்",
@@ -99,13 +103,13 @@
     "availability": "கிடைக்கும் நேரம்",
     "clinics": "கிளினிக்குகள்",
     "settings": "அமைப்புகள்",
-    "queue": "Queue",
-    "clinicalNotes": "Clinical notes",
-    "followUps": "Follow-ups",
-    "records": "Records",
-    "tenants": "Tenants",
-    "relationships": "Relationships",
-    "profile": "Profile"
+    "queue": "வரிசை",
+    "clinicalNotes": "மருத்துவ குறிப்புகள்",
+    "followUps": "பின்தொடர்தல்கள்",
+    "records": "பதிவுகள்",
+    "tenants": "நிறுவனங்கள்",
+    "relationships": "உறவுகள்",
+    "profile": "சுயவிவரம்"
   },
   "dashboard": {
     "title": "நல்ல நாள், {{name}}",
@@ -210,9 +214,9 @@
       "follow-ups": "பின்தொடர்தல்",
       "visits": "வருகைகள்",
       "messages": "செய்திகள்",
-      "vaccinations": "Vaccinations",
+      "vaccinations": "தடுப்பூசிகள்",
       "imaging": "இமேஜிங் & ஸ்கேன்",
-      "share": "Share"
+      "share": "பகிர்"
     },
     "backToList": "நோயாளிகளுக்கு திரும்பு",
     "messages": {
@@ -282,24 +286,33 @@
     "statusSigned": "கையொப்பமிடப்பட்டது",
     "statusCancelled": "ரத்து",
     "statusDispensed": "வழங்கப்பட்டது",
-    "sign": "Sign prescription",
-    "signed": "Prescription signed",
-    "signedAt": "Signed at",
-    "payloadHash": "Payload hash",
-    "downloadPdf": "Download PDF",
-    "patient": "Patient",
-    "doctor": "Doctor",
-    "signature": "Signature",
-    "composerTitle": "New prescription",
-    "empty": "No prescriptions on file",
-    "emptyGlobal": "No prescriptions found",
-    "untitled": "Untitled prescription",
-    "new": "New prescription",
+    "sign": "மருந்துச்சீட்டில் கையொப்பமிடு",
+    "signed": "மருந்துச்சீட்டு கையொப்பமிடப்பட்டது",
+    "signedAt": "கையொப்பமிட்ட நேரம்",
+    "payloadHash": "பேலோடு ஹாஷ்",
+    "downloadPdf": "PDF பதிவிறக்கு",
+    "patient": "நோயாளி",
+    "doctor": "மருத்துவர்",
+    "signature": "கையொப்பம்",
+    "composerTitle": "புதிய மருந்துச்சீட்டு",
+    "empty": "மருந்துச்சீட்டுகள் பதிவில் இல்லை",
+    "emptyGlobal": "மருந்துச்சீட்டுகள் எதுவும் இல்லை",
+    "untitled": "தலைப்பற்ற மருந்துச்சீட்டு",
+    "new": "புதிய மருந்துச்சீட்டு",
     "status": {
-      "all": "All",
-      "signed": "Signed",
-      "draft": "Draft",
-      "cancelled": "Cancelled"
+      "all": "அனைத்தும்",
+      "signed": "கையொப்பமிடப்பட்டது",
+      "draft": "வரைவு",
+      "cancelled": "ரத்து செய்யப்பட்டது"
+    },
+    "acknowledgeOverride": "பாதுகாப்பு எச்சரிக்கைகளை ஏற்று தொடர விரும்புகிறேன்",
+    "allergyWarning": "நோயாளிக்கு பதிவு செய்யப்பட்ட ஒவ்வாமைகள் உள்ளன — மருந்து எழுதும் முன் பார்வையிடவும்",
+    "cancelled": "மருந்துச்சீட்டு ரத்து செய்யப்பட்டது",
+    "field": {
+      "medicine": "மருந்து",
+      "dosage": "அளவு",
+      "frequency": "முறை",
+      "duration": "கால அளவு"
     }
   },
   "rx": {
@@ -329,7 +342,7 @@
       "cancel": "ரத்து செய்",
       "discard": "நிராகரி",
       "view": "காண்க",
-      "dispense": "Mark dispensed"
+      "dispense": "வழங்கியதாகக் குறி"
     },
     "detail": {
       "signedBy": "கையொப்பமிட்டவர்",
@@ -338,7 +351,7 @@
       "backToChart": "நோயாளி விவரம்",
       "cancelledNote": "இந்த மருந்துச்சீட்டு ரத்து செய்யப்பட்டது.",
       "dispensedNote": "இந்த மருந்துச்சீட்டு வழங்கப்பட்டது.",
-      "dispensedToast": "Prescription marked as dispensed"
+      "dispensedToast": "மருந்துச்சீட்டு வழங்கப்பட்டதாகக் குறிக்கப்பட்டது"
     },
     "cancel": {
       "confirmTitle": "மருந்துச்சீட்டை ரத்து செய்யவா?",
@@ -385,7 +398,10 @@
     }
   },
   "labs": {
-    "untitled": "ஆய்வக ஆர்டர்"
+    "untitled": "ஆய்வக ஆர்டர்",
+    "newOrder": "புதிய ஆய்வக ஆர்டர்",
+    "testName": "சோதனை பெயர்",
+    "title": "ஆய்வக ஆர்டர்கள்"
   },
   "notes": {
     "title": "மருத்துவ குறிப்பு",
@@ -397,7 +413,10 @@
   },
   "followups": {
     "newFollowup": "புதிய பின்தொடர்தல்",
-    "empty": "பின்தொடர்தல் திட்டமிடப்படவில்லை"
+    "empty": "பின்தொடர்தல் திட்டமிடப்படவில்லை",
+    "dueDate": "நியமித தேதி",
+    "reason": "காரணம்",
+    "title": "பின்தொடர்தல்"
   },
   "messages": {
     "title": "செய்திகள்",
@@ -411,9 +430,9 @@
     "reopenThread": "உரையாடலை மீண்டும் திற",
     "closed": "மூடப்பட்டது",
     "closedHint": "அரட்டை மூடப்பட்டுள்ளது — நோயாளி பதிலளிக்க மீண்டும் திறக்கவும்.",
-    "subtitle": "Direct clinical consultations and patient conversations",
-    "search": "Search conversations by patient name or message…",
-    "new": "New Conversation"
+    "subtitle": "நேரடி மருத்துவ ஆலோசனைகள் மற்றும் நோயாளி உரையாடல்கள்",
+    "search": "நோயாளி பெயர் அல்லது செய்தி மூலம் உரையாடல்களைத் தேடு…",
+    "new": "புதிய உரையாடல்"
   },
   "walkins": {
     "title": "நேரடி வருகை வரிசை",
@@ -457,20 +476,20 @@
     "status_completed": "முடிந்தது",
     "status_cancelled": "ரத்து",
     "status_no_show": "வரவில்லை",
-    "empty": "No appointments for this date",
-    "bookForPatient": "Book for patient",
-    "details": "Appointment Details",
-    "reschedule": "Reschedule",
-    "cancelAppointment": "Cancel appointment",
-    "cancelConfirm": "Are you sure you want to cancel this appointment?",
-    "rescheduled": "Appointment rescheduled",
-    "cancelled": "Appointment cancelled",
-    "newDate": "New date",
-    "newTime": "New time",
-    "patient": "Patient",
-    "queueNumber": "Queue #",
-    "reason": "Reason",
-    "openChart": "Open chart",
+    "empty": "இந்த தேதிக்கு சந்திப்புகள் இல்லை",
+    "bookForPatient": "நோயாளிக்கு முன்பதிவு",
+    "details": "சந்திப்பு விவரங்கள்",
+    "reschedule": "மீண்டும் திட்டமிடு",
+    "cancelAppointment": "சந்திப்பை ரத்து செய்",
+    "cancelConfirm": "இந்த சந்திப்பை ரத்து செய்வது உறுதியா?",
+    "rescheduled": "சந்திப்பு மீண்டும் திட்டமிடப்பட்டது",
+    "cancelled": "சந்திப்பு ரத்து செய்யப்பட்டது",
+    "newDate": "புதிய தேதி",
+    "newTime": "புதிய நேரம்",
+    "patient": "நோயாளி",
+    "queueNumber": "வரிசை #",
+    "reason": "காரணம்",
+    "openChart": "விவரத்தைத் திற",
     "mode": {
       "video": "வீடியோ ஆலோசனை",
       "inPerson": "நேரடி வருகை"
@@ -547,7 +566,7 @@
     "medicine": "மருந்து",
     "dosagePlaceholder": "500 mg",
     "frequencyPlaceholder": "BD",
-    "durationPlaceholder": "5 days",
+    "durationPlaceholder": "5 நாட்கள்",
     "addMedicine": "மருந்து சேர்",
     "cancel": "ரத்து",
     "save": "சேமி"
@@ -636,7 +655,8 @@
     "address": "முகவரி",
     "phone": "தொலைபேசி",
     "license": "உரிமம்",
-    "specialties": "சிறப்புகள்"
+    "specialties": "சிறப்புகள்",
+    "empty": "இன்னும் கிளினிக்குகள் இல்லை"
   },
   "settings": {
     "title": "அமைப்புகள்",
@@ -772,9 +792,9 @@
       "bookVisit": "சந்திப்பை முன்பதிவு செய்",
       "openInbox": "இன்பாக்ஸ் திற",
       "addInsurance": "காப்பீடு சேர்",
-      "print": "Print summary",
-      "refresh": "Refresh",
-      "view": "View"
+      "print": "சுருக்கத்தை அச்சிடு",
+      "refresh": "புதுப்பி",
+      "view": "காண்க"
     },
     "status": {
       "signed": "கையொப்பமிடப்பட்டது",
@@ -795,21 +815,21 @@
       "normal": "இயல்பானது"
     },
     "severity": {
-      "mild": "Mild",
-      "moderate": "Moderate",
-      "severe": "Severe",
-      "critical": "Critical"
+      "mild": "லேசான",
+      "moderate": "மிதமான",
+      "severe": "கடுமையான",
+      "critical": "தீவிரம்"
     },
-    "lastUpdated": "Updated {{time}} ago",
+    "lastUpdated": "{{time}} முன் புதுப்பிக்கப்பட்டது",
     "allergiesBanner": {
-      "title": "Allergies & chronic conditions",
+      "title": "ஒவ்வாமைகள் மற்றும் நாள்பட்ட நிலைமைகள்",
       "severeWarning": "Severe allergies on file — review before prescribing",
-      "none": "No known allergies",
-      "reaction": "Reaction: {{reaction}}",
-      "since": "Since {{date}}",
-      "chronicEmpty": "No chronic conditions recorded"
+      "none": "அறியப்பட்ட ஒவ்வாமைகள் இல்லை",
+      "reaction": "எதிர்வினை: {{reaction}}",
+      "since": "{{date}} முதல்",
+      "chronicEmpty": "நாள்பட்ட நிலைமைகள் பதிவாகவில்லை"
     },
-    "quickActions": "Quick actions"
+    "quickActions": "விரைவு செயல்கள்"
   },
   "vitals": {
     "empty": "உயிர் அறிகுறிகள் இல்லை",
@@ -844,7 +864,8 @@
   },
   "allergies": {
     "banner": "ஒவ்வாமை எச்சரிக்கைகள்",
-    "empty": "ஒவ்வாமை பதிவு இல்லை"
+    "empty": "ஒவ்வாமை பதிவு இல்லை",
+    "singleCritical": "தீவிர ஒவ்வாமை பதிவு — மருந்து எழுதும் முன் பார்வையிடவும்"
   },
   "visits": {
     "empty": "வருகைகள் இல்லை"
@@ -856,7 +877,7 @@
       "new": "ஒவ்வாமையைச் சேர்",
       "empty": "ஒவ்வாமை பதிவு இல்லை",
       "emptyBody": "ஒவ்வொரு சந்திப்பிலும் காண்பிக்க மருந்து, உணவு அல்லது சுற்றுச்சூழல் ஒவ்வாமைகளைச் சேர்க்கவும்.",
-      "subtitle_other": "{{count}} known allergies"
+      "subtitle_other": "{{count}} அறியப்பட்ட ஒவ்வாமைகள்"
     },
     "medications": {
       "title": "மருந்துகள்",
@@ -866,7 +887,7 @@
       "emptyBody": "நோயாளியின் மருந்து பட்டியலைத் தொடங்க புதிய மருந்துச் சீட்டை எழுதவும்.",
       "filterActive": "செயலில்",
       "filterAll": "அனைத்தும்",
-      "subtitle_other": "{{count}} active medications"
+      "subtitle_other": "{{count}} செயலில் உள்ள மருந்துகள்"
     },
     "notes": {
       "title": "மருத்துவ குறிப்புகள்",
@@ -875,7 +896,7 @@
       "empty": "இன்னும் மருத்துவ குறிப்புகள் இல்லை",
       "emptyBody": "SOAP குறிப்பு, வருகை சுருக்கம் அல்லது வேறு மருத்துவ அவதானிப்பை ஆவணப்படுத்தவும்.",
       "searchPlaceholder": "குறிப்புகளைத் தேடு…",
-      "subtitle_other": "{{count}} notes on file"
+      "subtitle_other": "{{count}} குறிப்புகள் உள்ளன"
     },
     "prescriptions": {
       "title": "மருந்துச் சீட்டுகள்",
@@ -887,7 +908,8 @@
       "medicineCount_one": "மருந்து {{count}}",
       "medicineCount_other": "மருந்துகள் {{count}}",
       "view": "பார்",
-      "subtitle_other": "{{count}} prescriptions"
+      "subtitle_other": "{{count}} மருந்துச்சீட்டுகள்",
+      "medicineCount": "மருந்து {{count}}"
     },
     "labs": {
       "title": "ஆய்வக ஆணைகள்",
@@ -900,7 +922,7 @@
       "filterProcessing": "செயலாக்கம்",
       "filterCompleted": "நிறைவு",
       "filterCancelled": "ரத்து",
-      "subtitle_other": "{{count}} orders on file"
+      "subtitle_other": "{{count}} ஆர்டர்கள் உள்ளன"
     },
     "followups": {
       "title": "பின்தொடர்தல்கள்",
@@ -913,7 +935,7 @@
       "filterUpcoming": "வரவிருக்கும்",
       "filterPast": "கடந்த",
       "filterAll": "அனைத்தும்",
-      "subtitle_other": "{{count}} scheduled follow-ups"
+      "subtitle_other": "{{count}} திட்டமிடப்பட்ட பின்தொடர்தல்கள்"
     },
     "visits": {
       "title": "வருகைகள்",
@@ -921,11 +943,11 @@
       "empty": "வருகைகள் இல்லை",
       "emptyBody": "வருகை பதிவைத் தொடங்க சந்திப்பை முன்பதிவு செய்யுங்கள் அல்லது walk-in ஐ ஏற்கவும்.",
       "bookAppointment": "சந்திப்பை முன்பதிவு செய்",
-      "addWalkin": "Walk-in",
+      "addWalkin": "நேரடி வருகை",
       "filterUpcoming": "வரவிருக்கும்",
       "filterPast": "கடந்த",
       "filterAll": "அனைத்தும்",
-      "subtitle_other": "{{count}} visits on file"
+      "subtitle_other": "{{count}} வருகைகள் உள்ளன"
     },
     "vitals": {
       "title": "உயிர் அறிகுறிகள்",
@@ -933,13 +955,13 @@
       "add": "உயிர் அறிகுறிகளை பதிவு செய்",
       "empty": "உயிர் அறிகுறிகள் பதிவு இல்லை",
       "normalRange": "சாதாரண {{min}}–{{max}}",
-      "subtitle_other": "{{count}} readings recorded"
+      "subtitle_other": "{{count}} அளவீடுகள் பதிவாகியுள்ளன"
     },
     "messages": {
       "title": "செய்திகள்",
       "subtitle": "உரையாடல்கள் {{count}}",
       "openInbox": "இன்பாக்ஸ் திற",
-      "subtitle_other": "{{count}} conversations"
+      "subtitle_other": "{{count}} உரையாடல்கள்"
     },
     "overview": {
       "title": "மேலோட்டம்",
@@ -992,10 +1014,10 @@
     "critical": "தீவிரம்",
     "normal": "இயல்பானது",
     "dispensed": "வழங்கப்பட்டது",
-    "elevated": "Elevated",
-    "high": "High",
-    "low": "Low",
-    "sample_collected": "Sample collected"
+    "elevated": "உயர்ந்தது",
+    "high": "மிக உயர்ந்தது",
+    "low": "குறைவு",
+    "sample_collected": "மாதிரி சேகரிக்கப்பட்டது"
   },
   "severity": {
     "mild": "லேசான",
@@ -1005,13 +1027,14 @@
   },
   "kind": {
     "appointment": "சந்திப்பு",
-    "walkin": "Walk-in"
+    "walkin": "நேரடி வருகை"
   },
   "share": {
     "tab": {
       "title": "பதிவைப் பகிரவும்",
       "subtitle_one": "{{count}} செயலில் உள்ள இணைப்பு",
-      "subtitle_other": "இந்த நோயாளிக்கான {{count}} இணைப்புகள்"
+      "subtitle_other": "இந்த நோயாளிக்கான {{count}} இணைப்புகள்",
+      "subtitle": "{{count}} செயலில் இணைப்பு"
     },
     "createTitle": "பகிர்வு இணைப்பை உருவாக்கவும்",
     "labelPlaceholder": "லேபிள் (எ.கா: Dr Perera க்கு)",
@@ -1063,7 +1086,7 @@
       "settings": "அமைப்புகள்",
       "admins": "நிர்வாகிகள்",
       "systemHealth": "கணினி ஆரோக்கியம்",
-      "inbox": "Inbox"
+      "inbox": "இன்பாக்ஸ்"
     }
   },
   "clinicalNotes": {
@@ -1075,48 +1098,34 @@
     "soapHint": "நிலையான SOAP கட்டமைப்பைப் பயன்படுத்தி சந்திப்பை பதிவு செய்யுங்கள்.",
     "fields": {
       "patient": "நோயாளி",
-      "title": "Title",
+      "title": "தலைப்பு",
       "titlePlaceholder": "e.g. Visit — Jul 07, 2026",
-      "diagnosis": "Diagnosis (optional)",
-      "diagnosisPlaceholder": "e.g. Acute pharyngitis",
-      "subjectivePlaceholder": "Patient's reported symptoms and history",
-      "objectivePlaceholder": "Exam findings, vitals, labs reviewed",
-      "assessmentPlaceholder": "Clinical impression",
-      "planPlaceholder": "Treatment plan, prescriptions, follow-up"
+      "diagnosis": "நோய் கண்டறிதல் (விருப்பம்)",
+      "diagnosisPlaceholder": "எ.கா. Acute pharyngitis",
+      "subjectivePlaceholder": "நோயாளி தெரிவித்த அறிகுறிகள் மற்றும் வரலாறு",
+      "objectivePlaceholder": "பரிசோதனை கண்டறிதல்கள், உயிர் அறிகுறிகள், பார்வையிட்ட ஆய்வக முடிவுகள்",
+      "assessmentPlaceholder": "மருத்துவ மதிப்புரை",
+      "planPlaceholder": "சிகிச்சை திட்டம், மருந்துச்சீட்டுகள், பின்தொடர்தல்"
     },
-    "title": "Clinical Notes",
-    "subtitle": "{{count}} notes on file",
+    "title": "மருத்துவ குறிப்புகள்",
+    "subtitle": "{{count}} குறிப்புகள் உள்ளன",
     "searchPlaceholder": "Search by title, diagnosis, patient…",
-    "empty": "No clinical notes yet",
-    "emptySearch": "No notes match your search",
-    "untitled": "Untitled note",
-    "unknownPatient": "Unknown patient",
-    "save": "Save note",
-    "savedToast": "Note saved",
+    "empty": "இன்னும் மருத்துவ குறிப்புகள் இல்லை",
+    "emptySearch": "உங்கள் தேடலுக்கு பொருந்தும் குறிப்புகள் இல்லை",
+    "untitled": "தலைப்பற்ற குறிப்பு",
+    "unknownPatient": "அறியப்படாத நோயாளி",
+    "save": "குறிப்பைச் சேமி",
+    "savedToast": "குறிப்பு சேமிக்கப்பட்டது",
     "detail": {
-      "diagnosis": "Diagnosis",
-      "noBody": "No note body recorded.",
-      "openChart": "Open patient chart"
+      "diagnosis": "நோய் கண்டறிதல்",
+      "noBody": "குறிப்பு உள்ளடக்கம் பதிவாகவில்லை.",
+      "openChart": "நோயாளி விவரத்தைத் திற"
     }
   },
   "patientCombobox": {
     "placeholder": "பெயர், தொலைபேசி அல்லது NIC மூலம் தேடுங்கள்…",
     "noMatches": "நோயாளிகள் இல்லை",
     "minChars": "தேட குறைந்தது 2 எழுத்துகள் தட்டச்சு செய்யுங்கள்"
-  },
-  "new": "புதிய ஆய்வக ஆர்டர்",
-  "newTitle": "ஆய்வக சோதனைகளை ஆர்டர் செய்யுங்கள்",
-  "newSubtitle": "ஆர்டர் செய்ய நோயாளியைத் தேர்ந்தெடுக்கவும்",
-  "fields": {
-    "patient": "நோயாளி"
-  },
-  "title": "Lab orders",
-  "subtitle": "All lab orders you've placed",
-  "emptyGlobal": "No lab orders yet",
-  "filterAll": "All",
-  "actions": {
-    "viewChart": "Open chart",
-    "explain": "Explain this report"
   },
   "followUps": {
     "new": "புதிய பின்தொடர்தல்",
@@ -1125,39 +1134,44 @@
     "fields": {
       "patient": "நோயாளி"
     },
-    "title": "Follow-ups",
-    "subtitle": "Track patient follow-up appointments",
+    "title": "பின்தொடர்தல்கள்",
+    "subtitle": "நோயாளி பின்தொடர்தல் சந்திப்புகளைக் கண்காணி",
     "tabs": {
-      "upcoming": "Upcoming",
-      "completed": "Completed",
-      "all": "All"
+      "upcoming": "வரவிருக்கும்",
+      "completed": "முடிந்தவை",
+      "all": "அனைத்தும்"
     },
     "empty": {
-      "upcoming": "No upcoming follow-ups",
-      "completed": "No completed follow-ups",
-      "all": "No follow-ups found"
+      "upcoming": "வரவிருக்கும் பின்தொடர்தல்கள் இல்லை",
+      "completed": "முடிந்த பின்தொடர்தல்கள் இல்லை",
+      "all": "பின்தொடர்தல்கள் எதுவும் இல்லை"
     },
-    "markCompleted": "Mark completed",
-    "cancel": "Cancel",
-    "reopen": "Reopen",
-    "noDate": "No date set",
-    "scheduled": "Scheduled",
-    "unknownPatient": "Unknown patient"
+    "markCompleted": "முடிந்ததாகக் குறி",
+    "cancel": "ரத்து செய்",
+    "reopen": "மீண்டும் திற",
+    "noDate": "தேதி அமைக்கப்படவில்லை",
+    "scheduled": "திட்டமிடப்பட்டது",
+    "unknownPatient": "அறியப்படாத நோயாளி",
+    "status": {
+      "cancelled": "ரத்து செய்யப்பட்டது",
+      "completed": "முடிந்தது",
+      "scheduled": "திட்டமிடப்பட்டது"
+    }
   },
   "queue": {
-    "title": "Today's queue",
-    "subtitle": "Walk-ins + scheduled appointments",
-    "lastUpdated": "Updated {{time}} ago",
+    "title": "இன்றைய வரிசை",
+    "subtitle": "நேரடி வருகைகள் + திட்டமிடப்பட்ட சந்திப்புகள்",
+    "lastUpdated": "{{time}} முன் புதுப்பிக்கப்பட்டது",
     "empty": {
-      "title": "Nothing in the queue right now",
-      "description": "No walk-ins or appointments match the current filter."
+      "title": "தற்போது வரிசையில் எதுவும் இல்லை",
+      "description": "தற்போதைய வடிகட்டிக்கு பொருந்தும் நேரடி வருகைகள் அல்லது சந்திப்புகள் இல்லை."
     },
     "filter": {
-      "all": "All",
-      "walkIns": "Walk-ins",
-      "appointments": "Appointments",
-      "active": "Active",
-      "completed": "Done"
+      "all": "அனைத்தும்",
+      "walkIns": "நேரடி வருகைகள்",
+      "appointments": "சந்திப்புகள்",
+      "active": "செயலில்",
+      "completed": "முடிந்தவை"
     },
     "modeFilter": {
       "label": "முறையால் வடிகட்டு",
@@ -1166,25 +1180,25 @@
       "inPerson": "நேரடி"
     },
     "stat": {
-      "waiting": "Waiting",
-      "inProgress": "In progress",
-      "completed": "Completed",
-      "noShow": "No-show"
+      "waiting": "காத்திருக்கிறது",
+      "inProgress": "நடைபெறுகிறது",
+      "completed": "முடிந்தது",
+      "noShow": "வரவில்லை"
     },
     "row": {
-      "walkIn": "Walk-in",
-      "appointment": "Appt",
-      "urgent": "Urgent",
-      "arrived": "Arrived"
+      "walkIn": "நேரடி வருகை",
+      "appointment": "சந்திப்பு",
+      "urgent": "அவசர",
+      "arrived": "வந்துள்ளார்"
     },
     "action": {
-      "refresh": "Refresh",
-      "openChart": "Open patient chart"
+      "refresh": "புதுப்பி",
+      "openChart": "நோயாளி விவரத்தைத் திற"
     },
     "toast": {
-      "statusUpdated": "Status updated",
-      "error": "Couldn't update status",
-      "tryAgain": "Please try again."
+      "statusUpdated": "நிலை புதுப்பிக்கப்பட்டது",
+      "error": "நிலையைப் புதுப்பிக்க முடியவில்லை",
+      "tryAgain": "மீண்டும் முயற்சிக்கவும்."
     }
   },
   "imaging": {
@@ -1213,12 +1227,12 @@
     "modality": {
       "CT": "CT",
       "MR": "MRI",
-      "XR": "X-ray",
-      "US": "Ultrasound",
+      "XR": "எக்ஸ்-ரே",
+      "US": "அல்ட்ராசவுண்ட்",
       "PT": "PET",
-      "NM": "Nuclear",
-      "MG": "Mammography",
-      "DX": "Digital X-ray"
+      "NM": "நியூக்ளியர் மருத்துவம்",
+      "MG": "மம்மோகிராஃபி",
+      "DX": "டிஜிட்டல் எக்ஸ்-ரே"
     },
     "error": {
       "parseFailed": "DICOM படத்தை டிகோட் செய்ய முடியவில்லை",
@@ -1256,177 +1270,177 @@
   },
   "ai": {
     "summary": {
-      "title": "AI summary",
-      "subtitle": "Synthesised from records, vitals, labs and meds",
-      "generate": "Generate summary",
-      "regenerate": "Regenerate",
+      "title": "AI சுருக்கம்",
+      "subtitle": "பதிவுகள், உயிர் அறிகுறிகள், ஆய்வகம் மற்றும் மருந்துகளில் இருந்து தொகுக்கப்பட்டது",
+      "generate": "சுருக்கத்தை உருவாக்கு",
+      "regenerate": "மீண்டும் உருவாக்கு",
       "cached": "Cached · {{time}}",
-      "error": "Could not generate summary",
-      "empty": "Generate an AI summary to see a synthesised view of this patient's recent history."
+      "error": "சுருக்கத்தை உருவாக்க முடியவில்லை",
+      "empty": "இந்த நோயாளியின் சமீபத்திய வரலாற்றின் தொகுப்பு காட்சியைக் காண AI சுருக்கத்தை உருவாக்கவும்."
     },
     "labExplain": {
-      "title": "Explain this lab report",
-      "placeholder": "Paste lab report text if no file is attached",
-      "run": "Explain",
-      "abnormal": "Abnormal values",
-      "recommendations": "Recommended follow-up",
-      "error": "Could not generate explanation",
-      "cached": "Cached result"
+      "title": "இந்த ஆய்வக அறிக்கையை விளக்கு",
+      "placeholder": "கோப்பு இணைக்கப்படாவிட்டால் ஆய்வக அறிக்கை உரையை ஒட்டவும்",
+      "run": "விளக்கு",
+      "abnormal": "இயல்பற்ற மதிப்புகள்",
+      "recommendations": "பரிந்துரைக்கப்பட்ட பின்தொடர்தல்",
+      "error": "விளக்கத்தை உருவாக்க முடியவில்லை",
+      "cached": "தற்காலிகமாகச் சேமித்த முடிவு"
     }
   },
   "pharmacy": {
-    "title": "Pharmacy",
-    "subtitle": "Prescriptions awaiting dispensing",
+    "title": "மருந்தகம்",
+    "subtitle": "வழங்குவதற்குக் காத்திருக்கும் மருந்துச்சீட்டுகள்",
     "filter": {
-      "awaiting": "Awaiting",
-      "dispensed": "Dispensed",
-      "rejected": "Rejected",
-      "all": "All"
+      "awaiting": "காத்திருப்பு",
+      "dispensed": "வழங்கப்பட்டவை",
+      "rejected": "நிராகரிக்கப்பட்டவை",
+      "all": "அனைத்தும்"
     },
-    "qrFiltered": "Showing {{patient}}{{via}}",
+    "qrFiltered": "காட்டுகிறது {{patient}}{{via}}",
     "viaQr": " · via QR",
-    "clearFilter": "Show all",
+    "clearFilter": "அனைத்தையும் காட்டு",
     "empty": {
-      "awaiting": "No prescriptions waiting to be dispensed.",
-      "dispensed": "No prescriptions dispensed today.",
-      "rejected": "No rejected prescriptions."
+      "awaiting": "வழங்க காத்திருக்கும் மருந்துச்சீட்டுகள் இல்லை.",
+      "dispensed": "இன்று வழங்கப்பட்ட மருந்துச்சீட்டுகள் இல்லை.",
+      "rejected": "நிராகரிக்கப்பட்ட மருந்துச்சீட்டுகள் இல்லை."
     },
     "actions": {
-      "view": "View",
-      "dispense": "Dispense",
-      "reject": "Reject",
-      "dispensed": "Prescription dispensed",
-      "rejected": "Prescription rejected",
-      "dispenseHint": "Confirm medications match the prescription before dispensing.",
+      "view": "காண்க",
+      "dispense": "வழங்கு",
+      "reject": "நிராகரி",
+      "dispensed": "மருந்துச்சீட்டு வழங்கப்பட்டது",
+      "rejected": "மருந்துச்சீட்டு நிராகரிக்கப்பட்டது",
+      "dispenseHint": "வழங்கும் முன் மருந்துகள் மருந்துச்சீட்டுக்கு பொருந்துகிறதா என உறுதிப்படுத்தவும்.",
       "missingTokenTitle": "Dispense token missing — re-issue from the doctor portal.",
-      "missingTokenHint": "This prescription was signed before single-use redemption was required. Ask the doctor to re-issue it before dispensing."
+      "missingTokenHint": "இந்த மருந்துச்சீட்டு ஒரு முறை பயன்பாட்டு தேவைக்கு முன் கையொப்பமிடப்பட்டது. வழங்கும் முன் மருத்துவரிடம் மீண்டும் வெளியிடக் கோரவும்."
     },
     "reject": {
-      "confirmTitle": "Reject prescription?",
-      "confirmBody": "This will cancel the prescription and notify the issuing doctor. The reason is recorded in the audit trail.",
-      "confirm": "Reject prescription",
-      "reason": "Reason (e.g. out of stock, wrong dose)"
+      "confirmTitle": "மருந்துச்சீட்டை நிராகரிக்கவா?",
+      "confirmBody": "இது மருந்துச்சீட்டை ரத்து செய்து வெளியிட்ட மருத்துவருக்கு அறிவிக்கும். காரணம் தணிக்கை பதிவில் பதிவாகிறது.",
+      "confirm": "மருந்துச்சீட்டை நிராகரி",
+      "reason": "காரணம் (எ.கா. இருப்பு இல்லை, தவறான அளவு)"
     },
     "detail": {
-      "backToList": "Back to pharmacy",
-      "dispenseSuccess": "Prescription dispensed",
-      "rejectSuccess": "Prescription rejected"
+      "backToList": "மருந்தகத்திற்குத் திரும்பு",
+      "dispenseSuccess": "மருந்துச்சீட்டு வழங்கப்பட்டது",
+      "rejectSuccess": "மருந்துச்சீட்டு நிராகரிக்கப்பட்டது"
     }
   },
   "bookAppointment": {
-    "title": "Book Appointment",
-    "subtitle": "Schedule an appointment for a patient",
-    "selectPatient": "Select Patient",
+    "title": "சந்திப்பு முன்பதிவு",
+    "subtitle": "நோயாளிக்கு சந்திப்பை திட்டமிடு",
+    "selectPatient": "நோயாளியைத் தேர்ந்தெடு",
     "searchPatient": "Search by name, NIC, phone…",
-    "selectDate": "Select Date",
-    "selectTime": "Select Time",
-    "confirm": "Confirm Booking",
-    "patient": "Patient",
-    "date": "Date",
-    "time": "Time",
-    "reason": "Reason (optional)",
-    "reasonPlaceholder": "e.g. Follow-up for blood pressure",
-    "morning": "Morning",
-    "afternoon": "Afternoon",
-    "evening": "Evening",
-    "noSlots": "No available slots for this date",
-    "booked": "Appointment booked successfully",
-    "selectPatientFirst": "Please select a patient first",
-    "back": "Back",
-    "next": "Next",
-    "confirmBooking": "Book Appointment",
-    "summary": "Booking Summary",
-    "noPatientResults": "No patients match your search",
-    "searchHint": "Type at least 2 characters to search"
+    "selectDate": "தேதியைத் தேர்ந்தெடு",
+    "selectTime": "நேரத்தைத் தேர்ந்தெடு",
+    "confirm": "முன்பதிவை உறுதிப்படுத்து",
+    "patient": "நோயாளி",
+    "date": "தேதி",
+    "time": "நேரம்",
+    "reason": "காரணம் (விருப்பம்)",
+    "reasonPlaceholder": "எ.கா. இரத்த அழுத்த பின்தொடர்தல்",
+    "morning": "காலை",
+    "afternoon": "மதியம்",
+    "evening": "மாலை",
+    "noSlots": "இந்த தேதிக்கு இடங்கள் இல்லை",
+    "booked": "சந்திப்பு வெற்றிகரமாக முன்பதிவு செய்யப்பட்டது",
+    "selectPatientFirst": "முதலில் நோயாளியைத் தேர்ந்தெடுக்கவும்",
+    "back": "பின்செல்",
+    "next": "அடுத்தது",
+    "confirmBooking": "சந்திப்பை முன்பதிவு செய்",
+    "summary": "முன்பதிவு சுருக்கம்",
+    "noPatientResults": "உங்கள் தேடலுக்கு பொருந்தும் நோயாளிகள் இல்லை",
+    "searchHint": "தேட குறைந்தது 2 எழுத்துகளைத் தட்டச்சு செய்யவும்"
   },
   "records": {
-    "title": "Medical Records",
-    "subtitle": "{{count}} records on file",
+    "title": "மருத்துவ பதிவுகள்",
+    "subtitle": "{{count}} பதிவுகள் உள்ளன",
     "searchPlaceholder": "Search by title, type, patient, tags…",
-    "empty": "No records found",
-    "emptySearch": "No records match your search",
-    "unknownPatient": "Unknown patient",
-    "filterAll": "All",
-    "kindPrescription": "Prescription",
-    "kindLabOrder": "Lab order",
-    "kindDiagnosis": "Diagnosis",
-    "kindNote": "Note"
+    "empty": "பதிவுகள் எதுவும் இல்லை",
+    "emptySearch": "உங்கள் தேடலுக்கு பொருந்தும் பதிவுகள் இல்லை",
+    "unknownPatient": "அறியப்படாத நோயாளி",
+    "filterAll": "அனைத்தும்",
+    "kindPrescription": "மருந்துச்சீட்டு",
+    "kindLabOrder": "ஆய்வக ஆர்டர்",
+    "kindDiagnosis": "நோய் கண்டறிதல்",
+    "kindNote": "குறிப்பு"
   },
   "tenants": {
-    "title": "Tenants",
-    "subtitle": "Hospitals and clinics you're affiliated with",
-    "hospitals": "Hospitals",
-    "clinics": "Clinics",
-    "noHospitals": "No hospital affiliations",
-    "noClinics": "No clinic affiliations"
+    "title": "நிறுவனங்கள்",
+    "subtitle": "நீங்கள் இணைந்துள்ள மருத்துவமனைகள் மற்றும் கிளினிக்குகள்",
+    "hospitals": "மருத்துவமனைகள்",
+    "clinics": "கிளினிக்குகள்",
+    "noHospitals": "மருத்துவமனை இணைவுகள் இல்லை",
+    "noClinics": "கிளினிக் இணைவுகள் இல்லை"
   },
   "relationships": {
-    "title": "Clinical Relationships",
-    "subtitle": "Manage your clinical context with patients",
-    "active": "Active",
-    "inactive": "Inactive",
-    "noActive": "No active relationships",
-    "revoke": "Revoke",
-    "unknownPatient": "Unknown patient"
+    "title": "மருத்துவ உறவுகள்",
+    "subtitle": "நோயாளிகளுடன் உங்கள் மருத்துவத் தொடர்புகளை நிர்வகி",
+    "active": "செயலில்",
+    "inactive": "செயலில் இல்லை",
+    "noActive": "செயலில் உள்ள உறவுகள் இல்லை",
+    "revoke": "ரத்து செய்",
+    "unknownPatient": "அறியப்படாத நோயாளி"
   },
   "notifications": {
-    "title": "Notifications",
-    "subtitle": "{{count}} unread notifications",
-    "showAll": "Show all",
-    "showUnread": "Show unread",
-    "markAllRead": "Mark all read",
-    "markRead": "Mark read",
-    "markedAllRead": "All notifications marked as read",
-    "empty": "No notifications",
-    "emptyUnread": "No unread notifications",
+    "title": "அறிவிப்புகள்",
+    "subtitle": "{{count}} படிக்காத அறிவிப்புகள்",
+    "showAll": "அனைத்தையும் காட்டு",
+    "showUnread": "படிக்காதவற்றைக் காட்டு",
+    "markAllRead": "அனைத்தையும் படித்ததாகக் குறி",
+    "markRead": "படித்ததாகக் குறி",
+    "markedAllRead": "அனைத்து அறிவிப்புகளும் படித்ததாகக் குறிக்கப்பட்டன",
+    "empty": "அறிவிப்புகள் இல்லை",
+    "emptyUnread": "படிக்காத அறிவிப்புகள் இல்லை",
     "bell": {
-      "aria": "Notifications",
-      "unread": "{{count}} unread"
+      "aria": "அறிவிப்புகள்",
+      "unread": "{{count}} படிக்காதவை"
     }
   },
   "audit": {
-    "title": "Audit log",
+    "title": "தணிக்கை பதிவு",
     "subtitle": "Your action history — every sign, cancel, and update",
-    "empty": "No actions logged yet",
+    "empty": "இன்னும் செயல்கள் பதிவாகவில்லை",
     "filter": {
       "action": {
-        "all": "All actions",
-        "create": "Create",
-        "sign": "Sign",
-        "cancel": "Cancel",
-        "update": "Update",
-        "dispense": "Dispense"
+        "all": "அனைத்து செயல்கள்",
+        "create": "உருவாக்கம்",
+        "sign": "கையொப்பம்",
+        "cancel": "ரத்து",
+        "update": "புதுப்பிப்பு",
+        "dispense": "வழங்கல்"
       },
       "resource": {
-        "all": "All resources",
-        "prescription": "Prescriptions",
-        "lab_order": "Lab orders",
-        "patient": "Patients",
-        "note": "Notes",
-        "other": "Other"
+        "all": "அனைத்து வளங்கள்",
+        "prescription": "மருந்துச்சீட்டுகள்",
+        "lab_order": "ஆய்வக ஆர்டர்கள்",
+        "patient": "நோயாளிகள்",
+        "note": "குறிப்புகள்",
+        "other": "மற்றவை"
       }
     },
     "col": {
-      "resource": "Resource"
+      "resource": "வளம்"
     },
     "actions": {
-      "sign": "Signed",
-      "cancel": "Cancelled",
-      "dispense": "Dispensed",
-      "completeLab": "Completed lab",
-      "create": "Created",
-      "update": "Updated",
-      "other": "Action"
+      "sign": "கையொப்பமிட்டது",
+      "cancel": "ரத்து செய்தது",
+      "dispense": "வழங்கியது",
+      "completeLab": "ஆய்வகம் முடித்தது",
+      "create": "உருவாக்கியது",
+      "update": "புதுப்பித்தது",
+      "other": "செயல்"
     },
-    "openPrescription": "Verify prescription",
-    "openPatient": "Open chart"
+    "openPrescription": "மருந்துச்சீட்டைச் சரிபார்",
+    "openPatient": "விவரத்தைத் திற"
   },
   "profile": {
-    "title": "Profile",
-    "subtitle": "Manage your public profile",
-    "personalInfo": "Personal Information",
-    "professionalInfo": "Professional Information",
-    "bio": "Bio",
+    "title": "சுயவிவரம்",
+    "subtitle": "உங்கள் பொது சுயவிவரத்தை நிர்வகி",
+    "personalInfo": "தனிப்பட்ட தகவல்",
+    "professionalInfo": "தொழில்முறை தகவல்",
+    "bio": "சுய விவரம்",
     "bioPlaceholder": "Tell patients about yourself, your experience, and your approach to care…"
   },
   "patientPortal": {
@@ -1494,29 +1508,37 @@
       "expiry30d": "30 நாட்கள்"
     },
     "insurance": {
-      "title": "Insurance",
+      "title": "காப்பீடு",
       "tagline": "Browse plans, file claims, check coverage — all in one place.",
-      "viewAll": "View all insurance",
-      "noActive": "No active policies",
-      "noActiveBody": "Browse the marketplace to get coverage in minutes.",
-      "browse": "Browse plans",
-      "submitClaim": "Submit a claim",
-      "activePolicies": "Active policies",
-      "pendingClaims": "Pending claims",
-      "nextPremiumDue": "Next premium due {{date}}"
+      "viewAll": "அனைத்து காப்பீடுகளையும் காண்க",
+      "noActive": "செயலில் பாலிசிகள் இல்லை",
+      "noActiveBody": "சில நிமிடங்களில் கவரேஜ் பெற சந்தையைப் பாருங்கள்.",
+      "browse": "திட்டங்களைப் பார்",
+      "submitClaim": "கோரிக்கையைச் சமர்ப்பி",
+      "activePolicies": "செயலில் உள்ள பாலிசிகள்",
+      "pendingClaims": "நிலுவையில் உள்ள கோரிக்கைகள்",
+      "nextPremiumDue": "அடுத்த பிரீமியம் {{date}}"
     }
   },
   "visitSummary": {
-    "title": "Visit Summary",
-    "patient": "Patient",
-    "doctor": "Doctor",
-    "chiefComplaint": "Chief Complaint",
-    "historyOfPresentIllness": "History of Present Illness",
-    "examinationFindings": "Examination Findings",
-    "diagnosis": "Diagnosis",
-    "treatmentPlan": "Treatment Plan",
-    "followUpInstructions": "Follow-up Instructions",
-    "notProvided": "Not provided"
+    "title": "வருகை சுருக்கம்",
+    "patient": "நோயாளி",
+    "doctor": "மருத்துவர்",
+    "chiefComplaint": "முக்கிய புகார்",
+    "historyOfPresentIllness": "தற்போதைய நோய் வரலாறு",
+    "examinationFindings": "பரிசோதனை கண்டறிதல்கள்",
+    "diagnosis": "நோய் கண்டறிதல்",
+    "treatmentPlan": "சிகிச்சை திட்டம்",
+    "followUpInstructions": "பின்தொடர்தல் வழிமுறைகள்",
+    "notProvided": "வழங்கப்படவில்லை",
+    "basicInfo": "அடிப்படை தகவல்",
+    "subjective": "புறநிலை",
+    "objective": "உட்புற",
+    "assessment": "மதிப்பீடு",
+    "plan": "திட்டம்",
+    "markAppointmentCompleted": "சந்திப்பை நிறைவாகக் குறி",
+    "saveAction": "வருகை சுருக்கத்தைச் சேமி",
+    "saved": "வருகை சுருக்கம் சேமிக்கப்பட்டது"
   },
   "scan": {
     "title": "நோயாளி QR ஐ ஸ்கேன் செய்",
@@ -1632,24 +1654,24 @@
     }
   },
   "labOrders": {
-    "title": "Lab orders",
-    "subtitle": "All lab orders you've placed",
-    "emptyGlobal": "No lab orders yet",
-    "new": "New lab order",
-    "filterAll": "All",
+    "title": "ஆய்வக ஆர்டர்கள்",
+    "subtitle": "நீங்கள் வைத்த அனைத்து ஆய்வக ஆர்டர்கள்",
+    "emptyGlobal": "இன்னும் ஆய்வக ஆர்டர்கள் இல்லை",
+    "new": "புதிய ஆய்வக ஆர்டர்",
+    "filterAll": "அனைத்தும்",
     "actions": {
-      "viewChart": "Open chart",
-      "explain": "Explain this report"
+      "viewChart": "விவரத்தைத் திற",
+      "explain": "இந்த அறிக்கையை விளக்கு"
     },
-    "newTitle": "Order lab tests",
-    "newSubtitle": "Pick a patient to place the order",
+    "newTitle": "ஆய்வக சோதனைகளை ஆர்டர் செய்யுங்கள்",
+    "newSubtitle": "ஆர்டர் செய்ய நோயாளியைத் தேர்ந்தெடுக்கவும்",
     "fields": {
-      "patient": "Patient"
+      "patient": "நோயாளி"
     }
   },
   "priority": {
-    "routine": "Routine",
-    "urgent": "Urgent",
+    "routine": "வழக்கமான",
+    "urgent": "அவசர",
     "stat": "STAT"
   }
 }

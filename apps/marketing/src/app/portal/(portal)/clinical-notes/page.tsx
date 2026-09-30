@@ -4,11 +4,10 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Edit3,
-  Search,
   Plus,
+  ClipboardList,
   CalendarDays,
   ChevronRight,
-  X,
   FileText,
   Stethoscope,
   ShieldCheck,
@@ -19,19 +18,46 @@ import {
 import { api } from "@/portal/lib/api";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { Pill } from "@/portal/components/ui/Pill";
-import { ErrorState, Skeleton } from "@/portal/components/ui/Empty";
+import { ErrorState } from "@/portal/components/ui/Empty";
 import { Drawer } from "@/portal/components/ui/Modal";
-import { ChartEmpty } from "@/portal/components/chart/ChartEmpty";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PRIMARY_BTN,
+  ROW_LINK,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { PatientCombobox } from "@/portal/components/patient/PatientCombobox";
 import { ClinicalNoteEditor } from "@/portal/components/notes/ClinicalNoteEditor";
 import { ClinicalNoteDetail } from "@/portal/components/notes/ClinicalNoteDetail";
 import { useT } from "@/portal/i18n";
 import { formatDate } from "@/portal/lib/format";
+import { cn } from "@/portal/lib/utils";
 import type { ClinicalNoteRecord } from "@/portal/lib/clinicalNote";
+
+type Scope = "all" | "recent" | "diagnosed" | "open";
+
+const RECENT_DAYS = 30;
+
+function isRecent(n: ClinicalNoteRecord) {
+  const d = new Date(n.date ?? n.createdAt).getTime();
+  return !isNaN(d) && d >= Date.now() - RECENT_DAYS * 86_400_000;
+}
 
 export default function ClinicalNotesPage() {
   const t = useT();
   const [search, setSearch] = useState("");
+  const [scope, setScope] = useState<Scope>("all");
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<ClinicalNoteRecord | null>(null);
   const [pickedPatient, setPickedPatient] = useState<{ id: string; name: string } | null>(null);
@@ -61,15 +87,12 @@ export default function ClinicalNotesPage() {
     () => new Set(allNotes.map((n) => n.patientId).filter(Boolean)).size,
     [allNotes]
   );
-  const recentCount = useMemo(() => {
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return allNotes.filter((n) => {
-      const d = n.date ? new Date(n.date).getTime() : new Date(n.createdAt).getTime();
-      return !isNaN(d) && d >= thirtyDaysAgo;
-    }).length;
-  }, [allNotes]);
+  const recentCount = useMemo(() => allNotes.filter(isRecent).length, [allNotes]);
 
   const filtered = allNotes.filter((note) => {
+    if (scope === "recent" && !isRecent(note)) return false;
+    if (scope === "diagnosed" && !note.diagnosis?.trim()) return false;
+    if (scope === "open" && note.diagnosis?.trim()) return false;
     if (!search.trim()) return true;
     const query = search.toLowerCase();
     const haystack = [note.title, note.diagnosis, note.notes, note.patient?.name]
@@ -79,193 +102,222 @@ export default function ClinicalNotesPage() {
     return haystack.includes(query);
   });
 
+  const diagnosedPct = totalCount > 0 ? Math.round((diagnosedCount / totalCount) * 100) : 0;
+
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Oceanic Hero Header ────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col gap-6"
-        style={{
-          background:
-            "radial-gradient(134.49% 134.49% at 94.63% 0%, #0369A1 0%, #075985 42.6%, #0C4A6E 100%)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                EHR Clinical Documentation
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<Stethoscope size={13} aria-hidden />}
+          kicker="Clinical documentation"
+          kickerMeta={`${recentCount} in the last ${RECENT_DAYS} days`}
+          title={
+            <>
+              Clinical notes &amp;{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                SOAP encounters
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-300/20 text-sky-100 border border-sky-300/30 flex items-center gap-1">
-                <ShieldCheck size={13} />
-                <span>HIPAA & SNOMED CT Compliant</span>
+            </>
+          }
+          description="Document consultations as structured Subjective, Objective, Assessment and Plan records, searchable across every chart."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                SNOMED CT coded
               </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
-              Clinical Notes & SOAP Encounters
-            </h1>
-            <p className="text-sm text-sky-100/90 max-w-2xl mt-1 leading-relaxed">
-              Document and manage patient consultations with structured Subjective, Objective, Assessment, and Plan (SOAP) clinical encounter records.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-sky-950 bg-white shadow-md hover:bg-sky-50 transition-all flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Record New Clinical Note</span>
-          </button>
-        </div>
-
-        {/* 4 Telemetry Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Total Encounters</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{totalCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Documented clinical notes</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">Diagnosed Cases</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{diagnosedCount}</span>
-            <span className="text-[10.5px] text-emerald-200/80 mt-0.5">With formal assessment</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">Patients Treated</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{uniquePatientsCount}</span>
-            <span className="text-[10.5px] text-amber-200/80 mt-0.5">Unique clinical charts</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-teal-200 uppercase tracking-wider">Last 30 Days</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{recentCount}</span>
-            <span className="text-[10.5px] text-teal-200/80 mt-0.5">Recent consultations</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search Canvas ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all">
-        <Search size={16} className="text-slate-400 shrink-0" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by note title, diagnosis, clinical keywords, or patient name…"
-          className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+              {totalCount - diagnosedCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setScope("open")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-400/25"
+                >
+                  <ClipboardList size={12} aria-hidden />
+                  {totalCount - diagnosedCount} without an assessment
+                </button>
+              ) : null}
+            </>
+          }
+          actions={
+            <button type="button" onClick={() => setCreating(true)} className={HERO_PRIMARY}>
+              <Plus size={15} strokeWidth={2.5} className="text-sky-600" aria-hidden />
+              New clinical note
+            </button>
+          }
         />
-        {search && (
-          <button
-            type="button"
-            onClick={() => setSearch("")}
-            className="h-5 w-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X size={12} />
-          </button>
-        )}
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Encounters"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : String(totalCount)}
+            sub="Documented notes"
+            active={scope === "all"}
+            onClick={() => setScope("all")}
+          />
+          <StatTile
+            label="With diagnosis"
+            icon={<Activity size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(diagnosedCount)}
+            sub={`${diagnosedPct}% formally assessed`}
+            progress={totalCount > 0 ? diagnosedPct : null}
+            active={scope === "diagnosed"}
+            onClick={() => setScope("diagnosed")}
+          />
+          <StatTile
+            href="/portal/patients"
+            label="Patients charted"
+            icon={<Users size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(uniquePatientsCount)}
+            sub="Unique clinical charts"
+          />
+          <StatTile
+            label={`Last ${RECENT_DAYS} days`}
+            icon={<CalendarDays size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(recentCount)}
+            sub="Recent consultations"
+            active={scope === "recent"}
+            onClick={() => setScope("recent")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── Clinical Notes Listing ────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden bg-white">
+      {/* ── Notes ledger ───────────────────────────────────────────────── */}
+      <section className={PANEL} aria-labelledby="notes-ledger">
+        <PanelHeader
+          id="notes-ledger"
+          icon={<Edit3 size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Encounter notes"
+          caption={
+            isLoading
+              ? "Loading notes…"
+              : `${filtered.length} of ${totalCount} shown${search ? ` · matching “${search}”` : ""}`
+          }
+        />
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <PanelSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search title, diagnosis, keywords or patient…"
+            ariaLabel="Search clinical notes"
+          />
+          <Segmented<Scope>
+            ariaLabel="Filter notes"
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: "all", label: "All", count: totalCount },
+              { value: "recent", label: `${RECENT_DAYS} days`, count: recentCount },
+              { value: "diagnosed", label: "Diagnosed", count: diagnosedCount },
+              { value: "open", label: "No assessment", count: totalCount - diagnosedCount },
+            ]}
+          />
+        </div>
+
         {isLoading ? (
-          <div className="p-5 flex flex-col gap-3">
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="mt-5 space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[88px] animate-pulse rounded-xl bg-slate-100" />
+            ))}
           </div>
         ) : isError ? (
-          <div className="p-5">
+          <div className="mt-5">
             <ErrorState
               title={t("errors.generic")}
               description={(error as Error)?.message ?? t("errors.tryAgain")}
             />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-8">
-            <ChartEmpty
-              icon={<Edit3 size={24} />}
-              title="No clinical notes found"
-              description={
-                search
-                  ? `No clinical notes matching "${search}". Try clearing your search query.`
-                  : "No clinical encounter notes have been recorded in this clinic yet."
-              }
-              action={
-                search ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all cursor-pointer"
-                  >
-                    Clear Search
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCreating(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Record New Clinical Note
-                  </button>
-                )
-              }
-            />
-          </div>
-        ) : (
-          <ul className="flex flex-col divide-y divide-slate-100">
-            {filtered.map((note) => (
-              <li key={note.id}>
+          <EmptyBlock
+            icon={<Edit3 size={19} />}
+            title={search ? "No matching notes" : "No clinical notes here yet"}
+            body={
+              search
+                ? `Nothing matches “${search}”. Try a diagnosis, keyword or patient name.`
+                : "SOAP notes you record during consultations appear here, newest first."
+            }
+            actions={
+              search || scope !== "all" ? (
                 <button
                   type="button"
-                  onClick={() => setSelected(note)}
-                  className="group w-full flex items-start gap-4 p-5 hover:bg-sky-50/40 transition-colors text-left cursor-pointer"
+                  onClick={() => {
+                    setSearch("");
+                    setScope("all");
+                  }}
+                  className={SECONDARY_BTN}
                 >
-                  <div className="h-11 w-11 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center shrink-0 mt-0.5">
-                    <Edit3 size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
-                        {note.title || t("clinicalNotes.untitled")}
-                      </span>
-                      {note.patient?.name && (
-                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          {note.patient.name}
+                  Clear filters
+                </button>
+              ) : (
+                <button type="button" onClick={() => setCreating(true)} className={PRIMARY_BTN}>
+                  <Plus size={13} strokeWidth={2.5} />
+                  New clinical note
+                </button>
+              )
+            }
+          />
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {filtered.map((note) => {
+              const when = note.date ?? note.createdAt;
+              return (
+                <li key={note.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(note)}
+                    className={cn(LIST_ROW, "w-full cursor-pointer text-left sm:items-start")}
+                  >
+                    <RowAccent className={note.diagnosis?.trim() ? "bg-emerald-500" : "bg-amber-400"} />
+                    <div className="flex min-w-0 flex-1 items-start gap-3.5 pl-1.5">
+                      {note.patient?.name ? (
+                        <Avatar name={note.patient.name} size="md" className="mt-0.5 h-10 w-10 shrink-0" />
+                      ) : (
+                        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-sky-50 text-sky-600">
+                          <Edit3 size={17} />
                         </span>
                       )}
-                      {note.diagnosis && (
-                        <Pill tone="info">
-                          {note.diagnosis}
-                        </Pill>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
+                            {note.title || t("clinicalNotes.untitled")}
+                          </span>
+                          {note.diagnosis ? <Pill tone="info">{note.diagnosis}</Pill> : null}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
+                          {note.patient?.name ? (
+                            <>
+                              <span className="font-medium text-slate-600">{note.patient.name}</span>
+                              <span className="text-slate-300">·</span>
+                            </>
+                          ) : null}
+                          <CalendarDays size={11} />
+                          <span className="tabular-nums">{formatDate(when)}</span>
+                        </div>
+                        {note.notes ? (
+                          <p className="mt-2 line-clamp-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                            {note.notes}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    {note.notes && (
-                      <p className="text-xs text-slate-600 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 line-clamp-2 leading-relaxed font-medium mt-1.5">
-                        {note.notes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 mt-1">
-                    <div className="flex items-center gap-1 text-slate-400">
-                      <CalendarDays size={13} />
-                      <span className="text-xs font-medium tabular-nums text-slate-500">
-                        {note.date ? formatDate(note.date) : formatDate(note.createdAt)}
-                      </span>
-                    </div>
-                    <span className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 border border-slate-200 transition-all flex items-center gap-1">
-                      <span>View Note</span>
-                      <ChevronRight size={13} />
+                    <span className={cn(ROW_LINK, "shrink-0 self-end sm:self-center")}>
+                      Open
+                      <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                     </span>
-                  </div>
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
-      </div>
+      </section>
 
       {/* ── Create Clinical Note Drawer ────────────────────────────────── */}
       <Drawer

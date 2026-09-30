@@ -60,7 +60,11 @@
     "copyLink": "සබැඳිය පිටපත් කරන්න",
     "openLink": "සබැඳිය විවෘත කරන්න",
     "revoke": "අවලංගු කරන්න",
-    "send": "යවන්න"
+    "send": "යවන්න",
+    "disabled": "අක්‍රිය කර ඇත",
+    "enabled": "සක්‍රිය කර ඇත",
+    "patient": "රෝගියා",
+    "view": "බලන්න"
   },
   "auth": {
     "title": "වෛද්‍ය ද්වාරය",
@@ -99,13 +103,13 @@
     "availability": "ලබා ගැනීමේ හැකියාව",
     "clinics": "සායන",
     "settings": "සැකසුම්",
-    "queue": "Queue",
-    "clinicalNotes": "Clinical notes",
-    "followUps": "Follow-ups",
-    "records": "Records",
-    "tenants": "Tenants",
-    "relationships": "Relationships",
-    "profile": "Profile"
+    "queue": "පෙළ",
+    "clinicalNotes": "සායනික සටහන්",
+    "followUps": "පසු විපරම්",
+    "records": "වාර්තා",
+    "tenants": "ආයතන",
+    "relationships": "සබඳතා",
+    "profile": "පැතිකඩ"
   },
   "dashboard": {
     "title": "සුභ දවසක්, {{name}}",
@@ -210,9 +214,9 @@
       "follow-ups": "පසු විපරම්",
       "visits": "පැමිණීම්",
       "messages": "පණිවිඩ",
-      "vaccinations": "Vaccinations",
+      "vaccinations": "එන්නත්",
       "imaging": "විකිරණ සහ ස්කෑන්",
-      "share": "Share"
+      "share": "බෙදාගන්න"
     },
     "backToList": "රෝගීන් වෙත ආපසු",
     "messages": {
@@ -282,24 +286,33 @@
     "statusSigned": "අත්සන් කළ",
     "statusCancelled": "අවලංගු කළ",
     "statusDispensed": "බෙදා දුන්",
-    "sign": "Sign prescription",
-    "signed": "Prescription signed",
-    "signedAt": "Signed at",
-    "payloadHash": "Payload hash",
-    "downloadPdf": "Download PDF",
-    "patient": "Patient",
-    "doctor": "Doctor",
-    "signature": "Signature",
-    "composerTitle": "New prescription",
-    "empty": "No prescriptions on file",
-    "emptyGlobal": "No prescriptions found",
-    "untitled": "Untitled prescription",
-    "new": "New prescription",
+    "sign": "බෙහෙත් පත අත්සන් කරන්න",
+    "signed": "බෙහෙත් පත අත්සන් කරන ලදී",
+    "signedAt": "අත්සන් කළ වේලාව",
+    "payloadHash": "පේළි හැෂ්",
+    "downloadPdf": "PDF බාගන්න",
+    "patient": "රෝගියා",
+    "doctor": "වෛද්‍ය",
+    "signature": "අත්සන",
+    "composerTitle": "නව බෙහෙත් පතක්",
+    "empty": "බෙහෙත් පත් සටහන් වී නැත",
+    "emptyGlobal": "බෙහෙත් පත් හමු නොවීය",
+    "untitled": "මාතෘකාවක් රහිත බෙහෙත් පත",
+    "new": "නව බෙහෙත් පතක්",
     "status": {
-      "all": "All",
-      "signed": "Signed",
-      "draft": "Draft",
-      "cancelled": "Cancelled"
+      "all": "සියල්ල",
+      "signed": "අත්සන් කළ",
+      "draft": "කෙටුම්පත",
+      "cancelled": "අවලංගු කළ"
+    },
+    "acknowledgeOverride": "මම ආරක්ෂක අනතුරු ඇඟවීම් පිළිගෙන ඉදිරියට යාමට කැමැත්තෙමි",
+    "allergyWarning": "රෝගියාට සටහන් කළ ආසාත්මිකතා ඇත — බෙහෙත් නියම කිරීමට පෙර සමාලෝචනය කරන්න",
+    "cancelled": "බෙහෙත් පත අවලංගු කරන ලදී",
+    "field": {
+      "medicine": "ඖෂධය",
+      "dosage": "මාත්‍රාව",
+      "frequency": "වාර ගණන",
+      "duration": "කාල සීමාව"
     }
   },
   "rx": {
@@ -329,7 +342,7 @@
       "cancel": "අවලංගු කරන්න",
       "discard": "ඉවත දමන්න",
       "view": "බලන්න",
-      "dispense": "Mark dispensed"
+      "dispense": "බෙදා දුන් ලෙස සලකුණු කරන්න"
     },
     "detail": {
       "signedBy": "අත්සන් කළේ",
@@ -338,7 +351,7 @@
       "backToChart": "රෝගී පත්‍රය",
       "cancelledNote": "මෙම බෙහෙත් පත අවලංගු කර ඇත.",
       "dispensedNote": "මෙම බෙහෙත් පත බෙදා දී ඇත.",
-      "dispensedToast": "Prescription marked as dispensed"
+      "dispensedToast": "බෙහෙත් පත බෙදා දුන් ලෙස සලකුණු කරන ලදී"
     },
     "cancel": {
       "confirmTitle": "බෙහෙත් පත අවලංගු කරන්නද?",
@@ -385,7 +398,10 @@
     }
   },
   "labs": {
-    "untitled": "රසායනාගාර ඇණවුම"
+    "untitled": "රසායනාගාර ඇණවුම",
+    "newOrder": "නව රසායනාගාර ඇණවුම",
+    "testName": "පරීක්ෂණ නම",
+    "title": "රසායනාගාර ඇණවුම්"
   },
   "notes": {
     "title": "සායනික සටහන",
@@ -397,7 +413,10 @@
   },
   "followups": {
     "newFollowup": "නව පසු විපරම",
-    "empty": "පසු විපරම් නියමිත නැත"
+    "empty": "පසු විපරම් නියමිත නැත",
+    "dueDate": "නියමිත දිනය",
+    "reason": "හේතුව",
+    "title": "පසු විපරම"
   },
   "messages": {
     "title": "පණිවිඩ",
@@ -411,9 +430,9 @@
     "reopenThread": "කතාබහ නැවත විවෘත කරන්න",
     "closed": "වසා ඇත",
     "closedHint": "කතාබහ වසා ඇත — රෝගියාට පිළිතුරු දීමට නැවත විවෘත කරන්න.",
-    "subtitle": "Direct clinical consultations and patient conversations",
-    "search": "Search conversations by patient name or message…",
-    "new": "New Conversation"
+    "subtitle": "සෘජු සායනික උපදේශන සහ රෝගී කතාබහ",
+    "search": "රෝගියාගේ නම හෝ පණිවිඩය අනුව කතාබහ සොයන්න…",
+    "new": "නව කතාබහක්"
   },
   "walkins": {
     "title": "ඇතුළු වීම් පෙළ",
@@ -457,20 +476,20 @@
     "status_completed": "සම්පූර්ණ",
     "status_cancelled": "අවලංගු කළ",
     "status_no_show": "නොපැමිණි",
-    "empty": "No appointments for this date",
-    "bookForPatient": "Book for patient",
-    "details": "Appointment Details",
-    "reschedule": "Reschedule",
-    "cancelAppointment": "Cancel appointment",
-    "cancelConfirm": "Are you sure you want to cancel this appointment?",
-    "rescheduled": "Appointment rescheduled",
-    "cancelled": "Appointment cancelled",
-    "newDate": "New date",
-    "newTime": "New time",
-    "patient": "Patient",
-    "queueNumber": "Queue #",
-    "reason": "Reason",
-    "openChart": "Open chart",
+    "empty": "මෙම දිනයට හමුවීම් නැත",
+    "bookForPatient": "රෝගියාට වෙන්කරන්න",
+    "details": "හමුවීමේ විස්තර",
+    "reschedule": "නැවත සකසන්න",
+    "cancelAppointment": "හමුවීම අවලංගු කරන්න",
+    "cancelConfirm": "මෙම හමුවීම අවලංගු කිරීමට ඔබට විශ්වාසද?",
+    "rescheduled": "හමුවීම නැවත සකසන ලදී",
+    "cancelled": "හමුවීම අවලංගු කරන ලදී",
+    "newDate": "නව දිනය",
+    "newTime": "නව වේලාව",
+    "patient": "රෝගියා",
+    "queueNumber": "පෙළ අංකය",
+    "reason": "හේතුව",
+    "openChart": "පත්‍රය විවෘත කරන්න",
     "mode": {
       "video": "වීඩියෝ පරීක්ෂාව",
       "inPerson": "කෙලින්ම පැමිණීම"
@@ -547,7 +566,7 @@
     "medicine": "ඖෂධ",
     "dosagePlaceholder": "500 mg",
     "frequencyPlaceholder": "BD",
-    "durationPlaceholder": "5 days",
+    "durationPlaceholder": "දින 5",
     "addMedicine": "ඖෂධයක් එකතු කරන්න",
     "cancel": "අවලංගු",
     "save": "සුරකින්න"
@@ -636,7 +655,8 @@
     "address": "ලිපිනය",
     "phone": "දුරකථනය",
     "license": "බලපත්‍රය",
-    "specialties": "විශේෂතා"
+    "specialties": "විශේෂතා",
+    "empty": "තවම සායන නැත"
   },
   "settings": {
     "title": "සැකසුම්",
@@ -677,7 +697,7 @@
     "notifTitle": "දැනුම්දීමේ මනාපයන්",
     "notifSubtitle": "යෙදුම තුළ සහ push මඟින් ඔබට ලැබෙන යාවත්කාලීන තෝරන්න",
     "inApp": "යෙදුම තුළ",
-    "push": "Push",
+    "push": "පුෂ්",
     "alwaysOn": "සැමවිටම සක්‍රීය",
     "savePreferences": "මනාපයන් සුරකින්න",
     "prefsSaved": "දැනුම්දීමේ මනාපයන් සුරකින ලදී",
@@ -772,9 +792,9 @@
       "bookVisit": "හමුවීමක් වෙන්කරන්න",
       "openInbox": "එනතුම විවෘත කරන්න",
       "addInsurance": "රක්ෂණය එකතු කරන්න",
-      "print": "Print summary",
-      "refresh": "Refresh",
-      "view": "View"
+      "print": "සාරාංශය මුද්‍රණය",
+      "refresh": "නැවත පූරණය",
+      "view": "බලන්න"
     },
     "status": {
       "signed": "අත්සන් කළ",
@@ -795,21 +815,21 @@
       "normal": "සාමාන්‍ය"
     },
     "severity": {
-      "mild": "Mild",
-      "moderate": "Moderate",
-      "severe": "Severe",
-      "critical": "Critical"
+      "mild": "මෘදු",
+      "moderate": "මධ්‍යස්ථ",
+      "severe": "දරුණු",
+      "critical": "අවදානම්"
     },
-    "lastUpdated": "Updated {{time}} ago",
+    "lastUpdated": "{{time}} කට පෙර යාවත්කාලීන කරන ලදී",
     "allergiesBanner": {
-      "title": "Allergies & chronic conditions",
+      "title": "ආසාත්මිකතා සහ දිරාපත් තත්ත්ව",
       "severeWarning": "Severe allergies on file — review before prescribing",
-      "none": "No known allergies",
-      "reaction": "Reaction: {{reaction}}",
-      "since": "Since {{date}}",
-      "chronicEmpty": "No chronic conditions recorded"
+      "none": "දන්නා ආසාත්මිකතා නැත",
+      "reaction": "ප්‍රතික්‍රියාව: {{reaction}}",
+      "since": "{{date}} සිට",
+      "chronicEmpty": "දිරාපත් තත්ත්ව සටහන් වී නැත"
     },
-    "quickActions": "Quick actions"
+    "quickActions": "ඉක්මන් ක්‍රියා"
   },
   "vitals": {
     "empty": "ජීවන ලක්ෂණ නැත",
@@ -844,7 +864,8 @@
   },
   "allergies": {
     "banner": "ආසාත්මිකතා ඇඟවීම්",
-    "empty": "ආසාත්මිකතා නැත"
+    "empty": "ආසාත්මිකතා නැත",
+    "singleCritical": "බරපතල ආසාත්මිකතාවක් ඇත — බෙහෙත් නියම කිරීමට පෙර සමාලෝචනය කරන්න"
   },
   "visits": {
     "empty": "පැමිණීම් නැත"
@@ -856,7 +877,7 @@
       "new": "ආසාත්මකතාවයක් එකතු කරන්න",
       "empty": "ආසාත්මකතා නැත",
       "emptyBody": "හමුවීම් වලදී මතුපෙන්වීමට ඖෂධ, ආහාර හෝ පරිසර ආසාත්මකතා එකතු කරන්න.",
-      "subtitle_other": "{{count}} known allergies"
+      "subtitle_other": "දන්නා ආසාත්මිකතා {{count}}ක්"
     },
     "medications": {
       "title": "ඖෂධ",
@@ -866,7 +887,7 @@
       "emptyBody": "රෝගීන්ගේ ඖෂධ ලැයිස්තුව ආරම්භ කිරීමට නව බෙහෙත් පතක් ලියන්න.",
       "filterActive": "ක්‍රියාකාරී",
       "filterAll": "සියල්ල",
-      "subtitle_other": "{{count}} active medications"
+      "subtitle_other": "ක්‍රියාකාරී ඖෂධ {{count}}ක්"
     },
     "notes": {
       "title": "සායනික සටහන්",
@@ -875,7 +896,7 @@
       "empty": "තවම සායනික සටහන් නැත",
       "emptyBody": "SOAP සටහනක්, සංචාර සාරාංශයක් හෝ වෙනත් සායනික නිරීක්ෂණයක් සටහන් කරන්න.",
       "searchPlaceholder": "සටහන් සොයන්න…",
-      "subtitle_other": "{{count}} notes on file"
+      "subtitle_other": "සටහන් {{count}}ක් ඇත"
     },
     "prescriptions": {
       "title": "බෙහෙත් පත්‍ර",
@@ -887,7 +908,8 @@
       "medicineCount_one": "ඖෂධ {{count}}ක්",
       "medicineCount_other": "ඖෂධ {{count}}ක්",
       "view": "බලන්න",
-      "subtitle_other": "{{count}} prescriptions"
+      "subtitle_other": "බෙහෙත් පත්‍ර {{count}}ක්",
+      "medicineCount": "ඖෂධ {{count}}ක්"
     },
     "labs": {
       "title": "රසායනාගාර ඇණවුම්",
@@ -900,7 +922,7 @@
       "filterProcessing": "සැකසෙමින්",
       "filterCompleted": "සම්පූර්ණ",
       "filterCancelled": "අවලංගු කළ",
-      "subtitle_other": "{{count}} orders on file"
+      "subtitle_other": "ඇණවුම් {{count}}ක් ඇත"
     },
     "followups": {
       "title": "පසු විපරම්",
@@ -913,7 +935,7 @@
       "filterUpcoming": "ඉදිරි",
       "filterPast": "අවසන්",
       "filterAll": "සියල්ල",
-      "subtitle_other": "{{count}} scheduled follow-ups"
+      "subtitle_other": "නියමිත පසු විපරම් {{count}}ක්"
     },
     "visits": {
       "title": "පැමිණීම්",
@@ -921,11 +943,11 @@
       "empty": "පැමිණීම් නැත",
       "emptyBody": "පැමිණීම් සටහන ආරම්භ කිරීමට හමුවීමක් වෙන්කරන්න හෝ walk-in භාර ගන්න.",
       "bookAppointment": "හමුවීමක් වෙන්කරන්න",
-      "addWalkin": "Walk-in",
+      "addWalkin": "ඇතුළු වීම",
       "filterUpcoming": "ඉදිරි",
       "filterPast": "අවසන්",
       "filterAll": "සියල්ල",
-      "subtitle_other": "{{count}} visits on file"
+      "subtitle_other": "පැමිණීම් {{count}}ක් ඇත"
     },
     "vitals": {
       "title": "ජීවන ලක්ෂණ",
@@ -933,13 +955,13 @@
       "add": "ජීවන ලක්ෂණ සටහන් කරන්න",
       "empty": "ජීවන ලක්ෂණ සටහන් නැත",
       "normalRange": "සාමාන්‍ය {{min}}–{{max}}",
-      "subtitle_other": "{{count}} readings recorded"
+      "subtitle_other": "මිනුම් {{count}}ක් සටහන් වී ඇත"
     },
     "messages": {
       "title": "පණිවිඩ",
       "subtitle": "සංවාද {{count}}ක්",
       "openInbox": "එනතුම විවෘත කරන්න",
-      "subtitle_other": "{{count}} conversations"
+      "subtitle_other": "කතාබහ {{count}}ක්"
     },
     "overview": {
       "title": "දළ විශ්ලේෂණය",
@@ -992,10 +1014,10 @@
     "critical": "බරපතල",
     "normal": "සාමාන්‍ය",
     "dispensed": "බෙදා දුන්",
-    "elevated": "Elevated",
-    "high": "High",
-    "low": "Low",
-    "sample_collected": "Sample collected"
+    "elevated": "ඉහළ",
+    "high": "ඉතා ඉහළ",
+    "low": "පහළ",
+    "sample_collected": "නියැදිය එකතු කරන ලදී"
   },
   "severity": {
     "mild": "මඳ",
@@ -1005,13 +1027,14 @@
   },
   "kind": {
     "appointment": "හමුවීම",
-    "walkin": "Walk-in"
+    "walkin": "ඇතුළු වීම"
   },
   "share": {
     "tab": {
       "title": "වාර්තාව බෙදාගන්න",
       "subtitle_one": "සක්‍රිය සබැඳි {{count}}ක්",
-      "subtitle_other": "මෙම රෝගියා සඳහා සබැඳි {{count}}ක්"
+      "subtitle_other": "මෙම රෝගියා සඳහා සබැඳි {{count}}ක්",
+      "subtitle": "සක්‍රිය සබැඳි {{count}}ක්"
     },
     "createTitle": "බෙදාගැනීමේ සබැඳියක් සාදන්න",
     "labelPlaceholder": "ලේබලය (උදා: Dr Perera සඳහා)",
@@ -1063,7 +1086,7 @@
       "settings": "සැකසුම්",
       "admins": "පරිපාලකයින්",
       "systemHealth": "පද්ධති සෞඛ්‍යය",
-      "inbox": "Inbox"
+      "inbox": "එන්බොක්ස්"
     }
   },
   "clinicalNotes": {
@@ -1075,48 +1098,34 @@
     "soapHint": "සම්මත SOAP ව්‍යුහය භාවිතයෙන් හමුවීම ලියා තබන්න.",
     "fields": {
       "patient": "රෝගියා",
-      "title": "Title",
+      "title": "මාතෘකාව",
       "titlePlaceholder": "e.g. Visit — Jul 07, 2026",
-      "diagnosis": "Diagnosis (optional)",
-      "diagnosisPlaceholder": "e.g. Acute pharyngitis",
-      "subjectivePlaceholder": "Patient's reported symptoms and history",
-      "objectivePlaceholder": "Exam findings, vitals, labs reviewed",
-      "assessmentPlaceholder": "Clinical impression",
-      "planPlaceholder": "Treatment plan, prescriptions, follow-up"
+      "diagnosis": "රෝග විනිශ්චය (අමතර)",
+      "diagnosisPlaceholder": "උදා. Acute pharyngitis",
+      "subjectivePlaceholder": "රෝගියා වාර්තා කළ රෝග ලක්ෂණ සහ ඉතිහාසය",
+      "objectivePlaceholder": "පරීක්ෂණ සොයාගැනීම්, ජීවන ලක්ෂණ, සමාලෝචිත රසායනාගාර ප්‍රතිඵල",
+      "assessmentPlaceholder": "සායනික අඟය",
+      "planPlaceholder": "ප්‍රතිකාර සැලසුම, බෙහෙත් පත්‍ර, පසු විපරම"
     },
-    "title": "Clinical Notes",
-    "subtitle": "{{count}} notes on file",
+    "title": "සායනික සටහන්",
+    "subtitle": "සටහන් {{count}}ක් ඇත",
     "searchPlaceholder": "Search by title, diagnosis, patient…",
-    "empty": "No clinical notes yet",
-    "emptySearch": "No notes match your search",
-    "untitled": "Untitled note",
-    "unknownPatient": "Unknown patient",
-    "save": "Save note",
-    "savedToast": "Note saved",
+    "empty": "තවම සායනික සටහන් නැත",
+    "emptySearch": "ඔබේ සෙවීමට ගැලපෙන සටහන් නැත",
+    "untitled": "මාතෘකාවක් රහිත සටහන",
+    "unknownPatient": "නොදන්නා රෝගියා",
+    "save": "සටහන සුරකින්න",
+    "savedToast": "සටහන සුරකින ලදී",
     "detail": {
-      "diagnosis": "Diagnosis",
-      "noBody": "No note body recorded.",
-      "openChart": "Open patient chart"
+      "diagnosis": "රෝග විනිශ්චය",
+      "noBody": "සටහනේ අන්තර්ගතය සටහන් වී නැත.",
+      "openChart": "රෝගී පත්‍රය විවෘත කරන්න"
     }
   },
   "patientCombobox": {
     "placeholder": "නම, දුරකථනය, හෝ ජා.හැ.අංකයෙන් සොයන්න…",
     "noMatches": "රෝගීන් හමු නොවීය",
     "minChars": "සෙවීමට අක්ෂර 2 ක්වත් ටයිප් කරන්න"
-  },
-  "new": "නව රසායනාගාර ඇණවුම",
-  "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
-  "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",
-  "fields": {
-    "patient": "රෝගියා"
-  },
-  "title": "Lab orders",
-  "subtitle": "All lab orders you've placed",
-  "emptyGlobal": "No lab orders yet",
-  "filterAll": "All",
-  "actions": {
-    "viewChart": "Open chart",
-    "explain": "Explain this report"
   },
   "followUps": {
     "new": "නව පසු විපරම",
@@ -1125,39 +1134,44 @@
     "fields": {
       "patient": "රෝගියා"
     },
-    "title": "Follow-ups",
-    "subtitle": "Track patient follow-up appointments",
+    "title": "පසු විපරම්",
+    "subtitle": "රෝගී පසු විපරම් හමුවීම් නිරීක්ෂණය කරන්න",
     "tabs": {
-      "upcoming": "Upcoming",
-      "completed": "Completed",
-      "all": "All"
+      "upcoming": "ඉදිරි",
+      "completed": "සම්පූර්ණ",
+      "all": "සියල්ල"
     },
     "empty": {
-      "upcoming": "No upcoming follow-ups",
-      "completed": "No completed follow-ups",
-      "all": "No follow-ups found"
+      "upcoming": "ඉදිරි පසු විපරම් නැත",
+      "completed": "සම්පූර්ණ කළ පසු විපරම් නැත",
+      "all": "පසු විපරම් හමු නොවීය"
     },
-    "markCompleted": "Mark completed",
-    "cancel": "Cancel",
-    "reopen": "Reopen",
-    "noDate": "No date set",
-    "scheduled": "Scheduled",
-    "unknownPatient": "Unknown patient"
+    "markCompleted": "සම්පූර්ණ ලෙස සලකුණු කරන්න",
+    "cancel": "අවලංගු කරන්න",
+    "reopen": "නැවත විවෘත කරන්න",
+    "noDate": "දිනයක් සකසා නැත",
+    "scheduled": "නියමිත",
+    "unknownPatient": "නොදන්නා රෝගියා",
+    "status": {
+      "cancelled": "අවලංගු කළ",
+      "completed": "සම්පූර්ණ",
+      "scheduled": "නියමිත"
+    }
   },
   "queue": {
-    "title": "Today's queue",
-    "subtitle": "Walk-ins + scheduled appointments",
-    "lastUpdated": "Updated {{time}} ago",
+    "title": "අද පෙළ",
+    "subtitle": "ඇතුළු වීම් + නියමිත හමුවීම්",
+    "lastUpdated": "{{time}} කට පෙර යාවත්කාලීන කරන ලදී",
     "empty": {
-      "title": "Nothing in the queue right now",
-      "description": "No walk-ins or appointments match the current filter."
+      "title": "දැනට පෙළේ කිසිවක් නැත",
+      "description": "වත්මන් පෙරහනට ගැලපෙන ඇතුළු වීම් හෝ හමුවීම් නැත."
     },
     "filter": {
-      "all": "All",
-      "walkIns": "Walk-ins",
-      "appointments": "Appointments",
-      "active": "Active",
-      "completed": "Done"
+      "all": "සියල්ල",
+      "walkIns": "ඇතුළු වීම්",
+      "appointments": "හමුවීම්",
+      "active": "සක්‍රිය",
+      "completed": "සම්පූර්ණ"
     },
     "modeFilter": {
       "label": "මාතය අනුව පෙරීම",
@@ -1166,25 +1180,25 @@
       "inPerson": "පෞද්ගලිකව"
     },
     "stat": {
-      "waiting": "Waiting",
-      "inProgress": "In progress",
-      "completed": "Completed",
-      "noShow": "No-show"
+      "waiting": "බලා සිටින",
+      "inProgress": "ක්‍රියාත්මකයි",
+      "completed": "සම්පූර්ණ",
+      "noShow": "නොපැමිණි"
     },
     "row": {
-      "walkIn": "Walk-in",
-      "appointment": "Appt",
-      "urgent": "Urgent",
-      "arrived": "Arrived"
+      "walkIn": "ඇතුළු වීම",
+      "appointment": "හමුවීම",
+      "urgent": "හදිසි",
+      "arrived": "පැමිණි"
     },
     "action": {
-      "refresh": "Refresh",
-      "openChart": "Open patient chart"
+      "refresh": "නැවත පූරණය",
+      "openChart": "රෝගී පත්‍රය විවෘත කරන්න"
     },
     "toast": {
-      "statusUpdated": "Status updated",
-      "error": "Couldn't update status",
-      "tryAgain": "Please try again."
+      "statusUpdated": "තත්ත්වය යාවත්කාලීන කරන ලදී",
+      "error": "තත්ත්වය යාවත්කාලීන කළ නොහැක",
+      "tryAgain": "කරුණාකර නැවත උත්සාහ කරන්න."
     }
   },
   "imaging": {
@@ -1213,12 +1227,12 @@
     "modality": {
       "CT": "CT",
       "MR": "MRI",
-      "XR": "X-ray",
-      "US": "Ultraසවික්ෂන්",
+      "XR": "එක්ස්-රේ",
+      "US": "අල්ට්‍රාසවුන්ඩ්",
       "PT": "PET",
-      "NM": "Nuclear",
-      "MG": "Mammography",
-      "DX": "Digital X-ray"
+      "NM": "නියුක්ලියර් වෛද්‍ය",
+      "MG": "මැමෝග්‍රැෆි",
+      "DX": "ඩිජිටල් එක්ස්-රේ"
     },
     "error": {
       "parseFailed": "DICOM රූපය විකේතනය කළ නොහැක",
@@ -1256,177 +1270,177 @@
   },
   "ai": {
     "summary": {
-      "title": "AI summary",
-      "subtitle": "Synthesised from records, vitals, labs and meds",
-      "generate": "Generate summary",
-      "regenerate": "Regenerate",
+      "title": "AI සාරාංශය",
+      "subtitle": "වාර්තා, ජීවන ලක්ෂණ, රසායනාගාර සහ ඖෂධ වලින් සංස්ලේෂණය කර ඇත",
+      "generate": "සාරාංශය ජනනය කරන්න",
+      "regenerate": "නැවත ජනනය කරන්න",
       "cached": "Cached · {{time}}",
-      "error": "Could not generate summary",
-      "empty": "Generate an AI summary to see a synthesised view of this patient's recent history."
+      "error": "සාරාංශය ජනනය කළ නොහැක",
+      "empty": "මෙම රෝගියාගේ මෑත ඉතිහාසයේ සංයුක්ත දැක්මක් බැලීමට AI සාරාංශයක් ජනනය කරන්න."
     },
     "labExplain": {
-      "title": "Explain this lab report",
-      "placeholder": "Paste lab report text if no file is attached",
-      "run": "Explain",
-      "abnormal": "Abnormal values",
-      "recommendations": "Recommended follow-up",
-      "error": "Could not generate explanation",
-      "cached": "Cached result"
+      "title": "මෙම රසායනාගාර වාර්තාව පැහැදිලි කරන්න",
+      "placeholder": "ගොනුවක් අමුණා නැත්නම් රසායනාගාර වාර්තා පාඨය අලවන්න",
+      "run": "පැහැදිලි කරන්න",
+      "abnormal": "අසාමාන්‍ය අගයන්",
+      "recommendations": "නිර්දේශිත පසු විපරම",
+      "error": "පැහැදිලි කිරීම ජනනය කළ නොහැක",
+      "cached": "ගබඩා කළ ප්‍රතිඵලය"
     }
   },
   "pharmacy": {
-    "title": "Pharmacy",
-    "subtitle": "Prescriptions awaiting dispensing",
+    "title": "ෆාමසිය",
+    "subtitle": "බෙදා දීමට බලා සිටින බෙහෙත් පත්‍ර",
     "filter": {
-      "awaiting": "Awaiting",
-      "dispensed": "Dispensed",
-      "rejected": "Rejected",
-      "all": "All"
+      "awaiting": "බලා සිටින",
+      "dispensed": "බෙදා දුන්",
+      "rejected": "ප්‍රතික්ෂේප කළ",
+      "all": "සියල්ල"
     },
-    "qrFiltered": "Showing {{patient}}{{via}}",
+    "qrFiltered": "පෙන්වන්නේ {{patient}}{{via}}",
     "viaQr": " · via QR",
-    "clearFilter": "Show all",
+    "clearFilter": "සියල්ල පෙන්වන්න",
     "empty": {
-      "awaiting": "No prescriptions waiting to be dispensed.",
-      "dispensed": "No prescriptions dispensed today.",
-      "rejected": "No rejected prescriptions."
+      "awaiting": "බෙදා දීමට බලා සිටින බෙහෙත් පත් නැත.",
+      "dispensed": "අද බෙදා දුන් බෙහෙත් පත් නැත.",
+      "rejected": "ප්‍රතික්ෂේප කළ බෙහෙත් පත් නැත."
     },
     "actions": {
-      "view": "View",
-      "dispense": "Dispense",
-      "reject": "Reject",
-      "dispensed": "Prescription dispensed",
-      "rejected": "Prescription rejected",
-      "dispenseHint": "Confirm medications match the prescription before dispensing.",
+      "view": "බලන්න",
+      "dispense": "බෙදා දෙන්න",
+      "reject": "ප්‍රතික්ෂේප කරන්න",
+      "dispensed": "බෙහෙත් පත බෙදා දෙන ලදී",
+      "rejected": "බෙහෙත් පත ප්‍රතික්ෂේප කරන ලදී",
+      "dispenseHint": "බෙදා දීමට පෙර ඖෂධ බෙහෙත් පතට ගැලපේදැයි තහවුරු කරන්න.",
       "missingTokenTitle": "Dispense token missing — re-issue from the doctor portal.",
-      "missingTokenHint": "This prescription was signed before single-use redemption was required. Ask the doctor to re-issue it before dispensing."
+      "missingTokenHint": "මෙම බෙහෙත් පත එකවර භාවිතය අවශ්‍ය වීමට පෙර අත්සන් කර ඇත. බෙදා දීමට පෙර වෛද්‍යවරයාගෙන් නැවත නිකුත් කරන ලෙස ඉල්ලන්න."
     },
     "reject": {
-      "confirmTitle": "Reject prescription?",
-      "confirmBody": "This will cancel the prescription and notify the issuing doctor. The reason is recorded in the audit trail.",
-      "confirm": "Reject prescription",
-      "reason": "Reason (e.g. out of stock, wrong dose)"
+      "confirmTitle": "බෙහෙත් පත ප්‍රතික්ෂේප කරන්නද?",
+      "confirmBody": "මෙය බෙහෙත් පත අවලංගු කර නිකුත් කළ වෛද්‍යවරයාට දැනුම් දෙයි. හේතුව විගණන පථයේ සටහන් වේ.",
+      "confirm": "බෙහෙත් පත ප්‍රතික්ෂේප කරන්න",
+      "reason": "හේතුව (උදා. තොගය නැත, වැරදි මාත්‍රාව)"
     },
     "detail": {
-      "backToList": "Back to pharmacy",
-      "dispenseSuccess": "Prescription dispensed",
-      "rejectSuccess": "Prescription rejected"
+      "backToList": "ෆාමසිය වෙත ආපසු",
+      "dispenseSuccess": "බෙහෙත් පත බෙදා දෙන ලදී",
+      "rejectSuccess": "බෙහෙත් පත ප්‍රතික්ෂේප කරන ලදී"
     }
   },
   "bookAppointment": {
-    "title": "Book Appointment",
-    "subtitle": "Schedule an appointment for a patient",
-    "selectPatient": "Select Patient",
+    "title": "හමුවීම වෙන්කරන්න",
+    "subtitle": "රෝගියෙකුට හමුවීමක් නියම කරන්න",
+    "selectPatient": "රෝගියා තෝරන්න",
     "searchPatient": "Search by name, NIC, phone…",
-    "selectDate": "Select Date",
-    "selectTime": "Select Time",
-    "confirm": "Confirm Booking",
-    "patient": "Patient",
-    "date": "Date",
-    "time": "Time",
-    "reason": "Reason (optional)",
-    "reasonPlaceholder": "e.g. Follow-up for blood pressure",
-    "morning": "Morning",
-    "afternoon": "Afternoon",
-    "evening": "Evening",
-    "noSlots": "No available slots for this date",
-    "booked": "Appointment booked successfully",
-    "selectPatientFirst": "Please select a patient first",
-    "back": "Back",
-    "next": "Next",
-    "confirmBooking": "Book Appointment",
-    "summary": "Booking Summary",
-    "noPatientResults": "No patients match your search",
-    "searchHint": "Type at least 2 characters to search"
+    "selectDate": "දිනය තෝරන්න",
+    "selectTime": "වේලාව තෝරන්න",
+    "confirm": "වෙන්කිරීම තහවුරු කරන්න",
+    "patient": "රෝගියා",
+    "date": "දිනය",
+    "time": "වේලාව",
+    "reason": "හේතුව (අමතර)",
+    "reasonPlaceholder": "උදා. රුධිර පීඩනය සඳහා පසු විපරම",
+    "morning": "උදේ",
+    "afternoon": "දහවල්",
+    "evening": "සන්ධ්‍යාව",
+    "noSlots": "මෙම දිනයට කාල පරතර නැත",
+    "booked": "හමුවීම සාර්ථකව වෙන් කරන ලදී",
+    "selectPatientFirst": "කරුණාකර මුලින් රෝගියෙකු තෝරන්න",
+    "back": "ආපසු",
+    "next": "ඊළඟ",
+    "confirmBooking": "හමුවීම වෙන්කරන්න",
+    "summary": "වෙන්කිරීමේ සාරාංශය",
+    "noPatientResults": "ඔබේ සෙවීමට ගැලපෙන රෝගීන් නැත",
+    "searchHint": "සෙවීමට අවම වශයෙන් අකුරු 2ක් ලියන්න"
   },
   "records": {
-    "title": "Medical Records",
-    "subtitle": "{{count}} records on file",
+    "title": "වෛද්‍ය වාර්තා",
+    "subtitle": "වාර්තා {{count}}ක් ඇත",
     "searchPlaceholder": "Search by title, type, patient, tags…",
-    "empty": "No records found",
-    "emptySearch": "No records match your search",
-    "unknownPatient": "Unknown patient",
-    "filterAll": "All",
-    "kindPrescription": "Prescription",
-    "kindLabOrder": "Lab order",
-    "kindDiagnosis": "Diagnosis",
-    "kindNote": "Note"
+    "empty": "වාර්තා හමු නොවීය",
+    "emptySearch": "ඔබේ සෙවීමට ගැලපෙන වාර්තා නැත",
+    "unknownPatient": "නොදන්නා රෝගියා",
+    "filterAll": "සියල්ල",
+    "kindPrescription": "බෙහෙත් පත",
+    "kindLabOrder": "රසායනාගාර ඇණවුම",
+    "kindDiagnosis": "රෝග විනිශ්චය",
+    "kindNote": "සටහන"
   },
   "tenants": {
-    "title": "Tenants",
-    "subtitle": "Hospitals and clinics you're affiliated with",
-    "hospitals": "Hospitals",
-    "clinics": "Clinics",
-    "noHospitals": "No hospital affiliations",
-    "noClinics": "No clinic affiliations"
+    "title": "ආයතන",
+    "subtitle": "ඔබ අනුබද්ධිත වූ රෝහල් සහ සායන",
+    "hospitals": "රෝහල්",
+    "clinics": "සායන",
+    "noHospitals": "රෝහල් අනුබද්ධිතා නැත",
+    "noClinics": "සායන අනුබද්ධිතා නැත"
   },
   "relationships": {
-    "title": "Clinical Relationships",
-    "subtitle": "Manage your clinical context with patients",
-    "active": "Active",
-    "inactive": "Inactive",
-    "noActive": "No active relationships",
-    "revoke": "Revoke",
-    "unknownPatient": "Unknown patient"
+    "title": "සායනික සබඳතා",
+    "subtitle": "රෝගීන් සමඟ ඔබේ සායනික සන්දර්භය කළමනාකරණය කරන්න",
+    "active": "සක්‍රිය",
+    "inactive": "අක්‍රිය",
+    "noActive": "සක්‍රිය සබඳතා නැත",
+    "revoke": "අවලංගු කරන්න",
+    "unknownPatient": "නොදන්නා රෝගියා"
   },
   "notifications": {
-    "title": "Notifications",
-    "subtitle": "{{count}} unread notifications",
-    "showAll": "Show all",
-    "showUnread": "Show unread",
-    "markAllRead": "Mark all read",
-    "markRead": "Mark read",
-    "markedAllRead": "All notifications marked as read",
-    "empty": "No notifications",
-    "emptyUnread": "No unread notifications",
+    "title": "දැනුම්දීම්",
+    "subtitle": "නොකියවූ දැනුම්දීම් {{count}}ක්",
+    "showAll": "සියල්ල පෙන්වන්න",
+    "showUnread": "නොකියවූ ඒවා පෙන්වන්න",
+    "markAllRead": "සියල්ල කියවූ ලෙස සලකුණු කරන්න",
+    "markRead": "කියවූ ලෙස සලකුණු කරන්න",
+    "markedAllRead": "සියලු දැනුම්දීම් කියවූ ලෙස සලකුණු කරන ලදී",
+    "empty": "දැනුම්දීම් නැත",
+    "emptyUnread": "නොකියවූ දැනුම්දීම් නැත",
     "bell": {
-      "aria": "Notifications",
-      "unread": "{{count}} unread"
+      "aria": "දැනුම්දීම්",
+      "unread": "නොකියවූ {{count}}"
     }
   },
   "audit": {
-    "title": "Audit log",
+    "title": "විගණන ලඝු-සටහන",
     "subtitle": "Your action history — every sign, cancel, and update",
-    "empty": "No actions logged yet",
+    "empty": "තවම ක්‍රියා සටහන් වී නැත",
     "filter": {
       "action": {
-        "all": "All actions",
-        "create": "Create",
-        "sign": "Sign",
-        "cancel": "Cancel",
-        "update": "Update",
-        "dispense": "Dispense"
+        "all": "සියලු ක්‍රියා",
+        "create": "නිර්මාණය",
+        "sign": "අත්සන් කිරීම",
+        "cancel": "අවලංගු කිරීම",
+        "update": "යාවත්කාලීන කිරීම",
+        "dispense": "බෙදා දීම"
       },
       "resource": {
-        "all": "All resources",
-        "prescription": "Prescriptions",
-        "lab_order": "Lab orders",
-        "patient": "Patients",
-        "note": "Notes",
-        "other": "Other"
+        "all": "සියලු සම්පත්",
+        "prescription": "බෙහෙත් පත්‍ර",
+        "lab_order": "රසායනාගාර ඇණවුම්",
+        "patient": "රෝගීන්",
+        "note": "සටහන්",
+        "other": "වෙනත්"
       }
     },
     "col": {
-      "resource": "Resource"
+      "resource": "සම්පත"
     },
     "actions": {
-      "sign": "Signed",
-      "cancel": "Cancelled",
-      "dispense": "Dispensed",
-      "completeLab": "Completed lab",
-      "create": "Created",
-      "update": "Updated",
-      "other": "Action"
+      "sign": "අත්සන් කළ",
+      "cancel": "අවලංගු කළ",
+      "dispense": "බෙදා දුන්",
+      "completeLab": "රසායනාගාරය සම්පූර්ණ කළ",
+      "create": "නිර්මාණය කළ",
+      "update": "යාවත්කාලීන කළ",
+      "other": "ක්‍රියාව"
     },
-    "openPrescription": "Verify prescription",
-    "openPatient": "Open chart"
+    "openPrescription": "බෙහෙත් පත සත්‍යාපනය කරන්න",
+    "openPatient": "පත්‍රය විවෘත කරන්න"
   },
   "profile": {
-    "title": "Profile",
-    "subtitle": "Manage your public profile",
-    "personalInfo": "Personal Information",
-    "professionalInfo": "Professional Information",
-    "bio": "Bio",
+    "title": "පැතිකඩ",
+    "subtitle": "ඔබේ ප්‍රසිද්ධ පැතිකඩ කළමනාකරණය කරන්න",
+    "personalInfo": "පුද්ගලික තොරතුරු",
+    "professionalInfo": "වෘත්තීය තොරතුරු",
+    "bio": "ජීවන තොරතුරු",
     "bioPlaceholder": "Tell patients about yourself, your experience, and your approach to care…"
   },
   "patientPortal": {
@@ -1494,29 +1508,37 @@
       "expiry30d": "දින 30"
     },
     "insurance": {
-      "title": "Insurance",
+      "title": "රක්ෂණය",
       "tagline": "Browse plans, file claims, check coverage — all in one place.",
-      "viewAll": "View all insurance",
-      "noActive": "No active policies",
-      "noActiveBody": "Browse the marketplace to get coverage in minutes.",
-      "browse": "Browse plans",
-      "submitClaim": "Submit a claim",
-      "activePolicies": "Active policies",
-      "pendingClaims": "Pending claims",
-      "nextPremiumDue": "Next premium due {{date}}"
+      "viewAll": "සියලු රක්ෂණ බලන්න",
+      "noActive": "සක්‍රිය පොලිසි නැත",
+      "noActiveBody": "මිනිත්තු කිහිපයකින් ආවරණය ලබා ගැනීමට වෙළඳපොළ බලන්න.",
+      "browse": "සැලසුම් බලන්න",
+      "submitClaim": "හිමිකමක් ඉදිරිපත් කරන්න",
+      "activePolicies": "සක්‍රිය පොලිසි",
+      "pendingClaims": "පොරොත්තු හිමිකම්",
+      "nextPremiumDue": "ඊළඟ වාරිකය {{date}}"
     }
   },
   "visitSummary": {
-    "title": "Visit Summary",
-    "patient": "Patient",
-    "doctor": "Doctor",
-    "chiefComplaint": "Chief Complaint",
-    "historyOfPresentIllness": "History of Present Illness",
-    "examinationFindings": "Examination Findings",
-    "diagnosis": "Diagnosis",
-    "treatmentPlan": "Treatment Plan",
-    "followUpInstructions": "Follow-up Instructions",
-    "notProvided": "Not provided"
+    "title": "සංචාර සාරාංශය",
+    "patient": "රෝගියා",
+    "doctor": "වෛද්‍ය",
+    "chiefComplaint": "ප්‍රධාන පැමිණිල්ල",
+    "historyOfPresentIllness": "වත්මන් රෝග ඉතිහාසය",
+    "examinationFindings": "පරීක්ෂණ සොයාගැනීම්",
+    "diagnosis": "රෝග විනිශ්චය",
+    "treatmentPlan": "ප්‍රතිකාර සැලසුම",
+    "followUpInstructions": "පසු විපරම් උපදෙස්",
+    "notProvided": "ලබා දී නැත",
+    "basicInfo": "මූලික තොරතුරු",
+    "subjective": "ආත්මීය",
+    "objective": "වස්තුනිෂ්ඨ",
+    "assessment": "තක්සේරුව",
+    "plan": "සැලසුම",
+    "markAppointmentCompleted": "හමුවීම සම්පූර්ණ ලෙස සලකුණු කරන්න",
+    "saveAction": "සංචාර සාරාංශය සුරකින්න",
+    "saved": "සංචාර සාරාංශය සුරකින ලදී"
   },
   "scan": {
     "title": "රෝගීයාගේ QR ස්කෑන් කරන්න",
@@ -1632,24 +1654,24 @@
     }
   },
   "labOrders": {
-    "title": "Lab orders",
-    "subtitle": "All lab orders you've placed",
-    "emptyGlobal": "No lab orders yet",
-    "new": "New lab order",
-    "filterAll": "All",
+    "title": "රසායනාගාර ඇණවුම්",
+    "subtitle": "ඔබ තැබූ සියලු රසායනාගාර ඇණවුම්",
+    "emptyGlobal": "තවම රසායනාගාර ඇණවුම් නැත",
+    "new": "නව රසායනාගාර ඇණවුම",
+    "filterAll": "සියල්ල",
     "actions": {
-      "viewChart": "Open chart",
-      "explain": "Explain this report"
+      "viewChart": "පත්‍රය විවෘත කරන්න",
+      "explain": "මෙම වාර්තාව පැහැදිලි කරන්න"
     },
-    "newTitle": "Order lab tests",
-    "newSubtitle": "Pick a patient to place the order",
+    "newTitle": "රසායනාගාර පරීක්ෂණ ඇණවුම් කරන්න",
+    "newSubtitle": "ඇණවුම තැබීමට රෝගියෙකු තෝරන්න",
     "fields": {
-      "patient": "Patient"
+      "patient": "රෝගියා"
     }
   },
   "priority": {
-    "routine": "Routine",
-    "urgent": "Urgent",
+    "routine": "සාමාන්‍ය",
+    "urgent": "හදිසි",
     "stat": "STAT"
   }
 }

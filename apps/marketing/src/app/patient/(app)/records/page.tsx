@@ -5,15 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
-  ArrowUpRight,
-  Calendar,
+  ChevronRight,
   Clock,
+  Clock3,
   Command,
   FilePlus2,
   FileText,
   FlaskConical,
   FolderInput,
-  ListFilter,
+  FolderOpen,
+  ListChecks,
+  Lock,
   Pill as PillIcon,
   RotateCcw,
   ScanLine,
@@ -41,86 +43,160 @@ import {
   useRecordStats,
 } from "@/patient/hooks";
 import { formatDayLabel, formatRecordType } from "@/patient/lib/format";
+import { RecordTypeIcon, recordTone } from "@/patient/components/records/recordType";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  Badge,
+  BreakdownBar,
+  EmptyBlock,
+  GROUP_LABEL,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  HeroPulse,
+  LiveDot,
+  PANEL,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PrimaryLink,
+  PromoCard,
+  QuickToolsPanel,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+  TONE_RAIL,
+  TONE_TILE,
+} from "@/patient/components/workspace";
 
-const KIND_CHIPS = [
-  { id: "", label: "All records" },
+const KINDS = [
+  { id: "", label: "All" },
   { id: "clinical_note", label: "Visit notes", icon: FileText },
-  { id: "lab_report", label: "Lab reports", icon: FlaskConical },
+  { id: "lab_report", label: "Labs", icon: FlaskConical },
   { id: "prescription", label: "Prescriptions", icon: PillIcon },
-  { id: "imaging", label: "Imaging & scans", icon: ScanLine },
-  { id: "vaccination", label: "Vaccinations", icon: Syringe },
+  { id: "imaging", label: "Imaging", icon: ScanLine },
+  { id: "vaccination", label: "Vaccines", icon: Syringe },
   { id: "allergy", label: "Allergies", icon: Sparkles },
 ] as const;
+
+const KIND_COLOR: Record<string, string> = {
+  clinical_note: "bg-sky-500",
+  lab_report: "bg-teal-500",
+  prescription: "bg-emerald-500",
+  imaging: "bg-violet-500",
+  vaccination: "bg-amber-400",
+  allergy: "bg-rose-500",
+};
 
 type TimeFilter = "all" | "30d" | "year";
 type SortMode = "newest" | "oldest";
 type ArchiveFilter = "active" | "all" | "only";
-
-function typeIcon(type: string | null | undefined, size = 18) {
-  const key = (type ?? "").toLowerCase();
-  if (key.includes("lab")) return <FlaskConical size={size} />;
-  if (key.includes("prescription") || key.includes("medication")) return <PillIcon size={size} />;
-  if (key.includes("imaging") || key.includes("scan")) return <ScanLine size={size} />;
-  if (key.includes("vaccin")) return <Syringe size={size} />;
-  if (key.includes("allerg")) return <Sparkles size={size} />;
-  return <FileText size={size} />;
-}
-
-function typeIconBg(type: string | null | undefined) {
-  const key = (type ?? "").toLowerCase();
-  if (key.includes("lab")) return "bg-brand-soft text-brand ring-brand/20";
-  if (key.includes("prescription") || key.includes("medication")) return "bg-success-soft text-success";
-  if (key.includes("imaging")) return "bg-violet-50 text-violet-600";
-  if (key.includes("vaccin") || key.includes("allergy")) return "bg-warn-soft text-warn";
-  return "bg-brand-soft text-brand";
-}
-
-function typeBadgeColor(type: string | null | undefined) {
-  const key = (type ?? "").toLowerCase();
-  if (key.includes("lab")) return "bg-brand-soft text-brand ring-brand/25";
-  if (key.includes("prescription") || key.includes("medication")) return "bg-success-soft text-success";
-  if (key.includes("imaging")) return "bg-violet-50 text-violet-600";
-  if (key.includes("vaccin") || key.includes("allergy")) return "bg-warn-soft text-warn";
-  return "bg-brand-soft text-brand";
-}
 
 function statusLabel(status: RecordRow["status"]) {
   if (!status) return "Filed";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function MetricButton({ label, value, icon, active, onClick }: { label: string; value: number; icon: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className={cn("group flex min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left transition-all", active ? "bg-surface/16" : "hover:bg-surface/10")}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface/12 text-white ring-1 ring-surface/15 transition-transform group-hover:scale-105">{icon}</span>
-      <span className="min-w-0"><span className="block truncate text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100/75">{label}</span><span className="mt-0.5 block text-xl font-extrabold tracking-tight text-white">{value}</span></span>
-    </button>
-  );
+function countFor(byType: Record<string, number> | undefined, key: string) {
+  if (!byType) return 0;
+  return (byType[key] ?? 0) + (byType[key.toUpperCase()] ?? 0);
 }
 
-function RecordCard({ record, selectMode, checked, onToggle }: { record: RecordRow; selectMode: boolean; checked: boolean; onToggle: () => void }) {
+function RecordItem({
+  record,
+  selectMode,
+  checked,
+  onToggle,
+}: {
+  record: RecordRow;
+  selectMode: boolean;
+  checked: boolean;
+  onToggle: () => void;
+}) {
   const rawTags = record.tags as unknown;
-  const tags = (Array.isArray(rawTags)
-    ? rawTags.filter((tag): tag is string => typeof tag === "string")
-    : typeof rawTags === "string"
-      ? rawTags.split(",")
-      : []
-  ).map((tag) => tag.trim()).filter(Boolean).slice(0, 2);
+  const tags = (
+    Array.isArray(rawTags)
+      ? rawTags.filter((tag): tag is string => typeof tag === "string")
+      : typeof rawTags === "string"
+        ? rawTags.split(",")
+        : []
+  )
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  const tone = recordTone(record.recordType);
+
   return (
-    <li className="group relative">
-      {selectMode ? <input type="checkbox" checked={checked} onChange={onToggle} aria-label={`Select ${record.title}`} className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 rounded border-border-strong text-brand focus:ring-brand" /> : null}
-      <Link href={`/patient/records/${record.id}`} onClick={(event) => { if (selectMode) { event.preventDefault(); onToggle(); } }} className={cn("relative flex items-center gap-4 overflow-hidden rounded-xl border border-border bg-surface px-4 py-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md sm:px-5", selectMode && "pl-11")}>
-        <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand to-brand-strong opacity-0 transition-opacity group-hover:opacity-100" />
-        <span className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-md", typeIconBg(record.recordType))}>{typeIcon(record.recordType, 20)}</span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2"><span className="truncate text-[15px] font-bold tracking-[-0.015em] text-text transition-colors group-hover:text-brand">{record.title}</span><span className={cn("hidden rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ring-1 sm:inline-flex", typeBadgeColor(record.recordType))}>{formatRecordType(record.recordType)}</span></span>
-          <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] font-medium text-text-soft"><span className="inline-flex items-center gap-1.5 text-text-soft"><Clock size={12} className="text-text-muted" />{formatDayLabel(record.date)}</span>{record.diagnosis ? <><span className="text-text-muted">•</span><span className="truncate font-semibold text-text">{record.diagnosis}</span></> : null}<span className="text-text-muted">•</span><span className="inline-flex items-center gap-1 text-success"><span className="h-1.5 w-1.5 rounded-full bg-success" />{statusLabel(record.status)}</span></span>
-          {record.summary ? <span className="mt-2 hidden max-w-2xl truncate text-xs leading-5 text-text-soft md:block">{record.summary}</span> : null}
-          {tags?.length ? <span className="mt-2 hidden flex-wrap gap-1.5 md:flex">{tags.map((tag) => <span key={tag} className="rounded-md bg-surface-2 px-2 py-1 text-[10px] font-semibold text-text-soft ring-1 ring-border">#{tag}</span>)}</span> : null}
+    <li className="relative">
+      {selectMode ? (
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          aria-label={`Select ${record.title}`}
+          className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+        />
+      ) : null}
+      <Link
+        href={`/patient/records/${record.id}`}
+        onClick={(event) => {
+          if (selectMode) {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+        className={cn(
+          "group relative flex items-center gap-3.5 rounded-xl bg-white p-3.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] transition-all hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]",
+          selectMode && "pl-10",
+          checked && "shadow-[inset_0_0_0_2px_#0284c7]",
+        )}
+      >
+        <span className={cn("absolute inset-y-3 left-0 w-[3px] rounded-r-full", TONE_RAIL[tone])} aria-hidden />
+        <span className={cn("ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px]", TONE_TILE[tone])} aria-hidden>
+          <RecordTypeIcon type={record.recordType} />
         </span>
-        <span className="flex shrink-0 items-center gap-2"><span className="hidden text-right sm:block"><span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-text-muted">Open record</span><span className="mt-1 block text-xs font-semibold text-text-soft group-hover:text-brand">View details</span></span><span className="grid h-9 w-9 place-items-center rounded-xl text-text-muted transition-all group-hover:bg-brand-soft group-hover:text-brand"><ArrowUpRight size={17} /></span></span>
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
+              {record.title}
+            </span>
+            <Badge tone={tone} className="hidden sm:inline-flex">
+              {formatRecordType(record.recordType)}
+            </Badge>
+          </span>
+          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-1">
+              <Clock size={11} aria-hidden />
+              {formatDayLabel(record.date)}
+            </span>
+            {record.diagnosis ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="truncate font-medium text-slate-600">{record.diagnosis}</span>
+              </>
+            ) : null}
+            {tags.map((tag) => (
+              <span key={tag} className="hidden rounded bg-slate-100 px-1.5 py-px text-[10.5px] font-medium text-slate-500 md:inline">
+                #{tag}
+              </span>
+            ))}
+          </span>
+          {record.summary ? (
+            <span className="mt-1 hidden max-w-2xl truncate text-xs text-slate-500 md:block">{record.summary}</span>
+          ) : null}
+        </span>
+        <Badge tone={record.status === "cancelled" ? "rose" : record.status === "pending" ? "amber" : "emerald"} className="hidden sm:inline-flex">
+          {statusLabel(record.status)}
+        </Badge>
+        <ChevronRight
+          size={16}
+          className="shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-600"
+          aria-hidden
+        />
       </Link>
     </li>
   );
@@ -148,80 +224,540 @@ export default function RecordsListPage() {
   const bulkTag = useBulkTagRecords();
   const bulkMove = useBulkMoveRecords();
 
-  useEffect(() => { if (searchParams.get("focus") === "search") searchInputRef.current?.focus(); }, [searchParams]);
-  useEffect(() => { function onShortcut(event: KeyboardEvent) { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); searchInputRef.current?.focus(); } } window.addEventListener("keydown", onShortcut); return () => window.removeEventListener("keydown", onShortcut); }, []);
+  useEffect(() => {
+    if (searchParams.get("focus") === "search") searchInputRef.current?.focus();
+  }, [searchParams]);
+  useEffect(() => {
+    function onShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
 
-  const listParams = useMemo(() => { const params: { type?: string; search?: string; limit: number; sort: SortMode; archived?: "true" | "all" | "only" } = { limit: 100, sort, type: kind || undefined, search: search.trim().length >= 2 ? search.trim() : undefined }; if (archived === "all") params.archived = "all"; else if (archived === "only") params.archived = "only"; return params; }, [kind, search, sort, archived]);
+  const listParams = useMemo(() => {
+    const params: { type?: string; search?: string; limit: number; sort: SortMode; archived?: "true" | "all" | "only" } = {
+      limit: 100,
+      sort,
+      type: kind || undefined,
+      search: search.trim().length >= 2 ? search.trim() : undefined,
+    };
+    if (archived === "all") params.archived = "all";
+    else if (archived === "only") params.archived = "only";
+    return params;
+  }, [kind, search, sort, archived]);
   const query = useRecords(listParams);
   const fts = useRecordSearch(search, { limit: 50 });
   const stats = useRecordStats();
-  const records = useMemo(() => { const base = search.trim().length >= 2 && fts.data?.records ? fts.data.records : (query.data?.records ?? []); if (time === "all") return base; const cutoff = new Date(); if (time === "30d") cutoff.setDate(cutoff.getDate() - 30); else cutoff.setFullYear(cutoff.getFullYear() - 1); return base.filter((record) => { const date = record.date ? new Date(record.date) : null; return date ? date >= cutoff : true; }); }, [query.data, fts.data, search, time]);
-  const ids = Array.from(selected);
-  const statData = stats.data;
-  const totalCount = statData?.total ?? records.length;
-  const labCount = statData?.byType?.lab_report ?? statData?.byType?.LAB_REPORT ?? 0;
-  const rxCount = statData?.byType?.prescription ?? statData?.byType?.PRESCRIPTION ?? 0;
-  const notesCount = statData?.byType?.clinical_note ?? statData?.byType?.CLINICAL_NOTE ?? 0;
-  const activeFilterCount = Number(Boolean(kind)) + Number(time !== "all") + Number(sort !== "newest") + Number(archived !== "active");
+  const searching = search.trim().length >= 2;
 
-  function toggle(id: string) { setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
-  function clearSelection() { setSelected(new Set()); setSelectMode(false); setTagPrompt(false); setMoveOpen(false); setBulkError(null); }
-  function clearFilters() { setKind(""); setTime("all"); setSort("newest"); setArchived("active"); }
-  async function runBulk(action: () => Promise<unknown>, label: string) { setBulkError(null); try { await action(); clearSelection(); } catch (cause) { setBulkError(cause instanceof Error ? cause.message : `Could not ${label}.`); } }
+  const records = useMemo(() => {
+    const base = searching && fts.data?.records ? fts.data.records : (query.data?.records ?? []);
+    if (time === "all") return base;
+    const cutoff = new Date();
+    if (time === "30d") cutoff.setDate(cutoff.getDate() - 30);
+    else cutoff.setFullYear(cutoff.getFullYear() - 1);
+    return base.filter((record) => {
+      const date = record.date ? new Date(record.date) : null;
+      return date ? date >= cutoff : true;
+    });
+  }, [query.data, fts.data, searching, time]);
+
+  const ids = Array.from(selected);
+  const byType = stats.data?.byType;
+  const totalCount = stats.data?.total ?? records.length;
+  const labCount = countFor(byType, "lab_report");
+  const rxCount = countFor(byType, "prescription");
+  const notesCount = countFor(byType, "clinical_note");
+  const imagingCount = countFor(byType, "imaging");
+  const activeFilterCount =
+    Number(time !== "all") + Number(sort !== "newest") + Number(archived !== "active");
+  const latest = records[0];
+  const loading = searching ? fts.isLoading : query.isLoading;
+  const errored = searching ? fts.isError : query.isError;
+
+  const breakdown = KINDS.filter((k) => k.id).map((k) => ({
+    key: k.id,
+    label: k.label,
+    count: countFor(byType, k.id),
+    color: KIND_COLOR[k.id] ?? "bg-slate-300",
+  }));
+  const breakdownKnown = breakdown.reduce((s, b) => s + b.count, 0);
+  if (totalCount > breakdownKnown) {
+    breakdown.push({ key: "other", label: "Other", count: totalCount - breakdownKnown, color: "bg-slate-300" });
+  }
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function clearSelection() {
+    setSelected(new Set());
+    setSelectMode(false);
+    setTagPrompt(false);
+    setMoveOpen(false);
+    setBulkError(null);
+  }
+  function clearFilters() {
+    setKind("");
+    setTime("all");
+    setSort("newest");
+    setArchived("active");
+  }
+  async function runBulk(action: () => Promise<unknown>, label: string) {
+    setBulkError(null);
+    try {
+      await action();
+      clearSelection();
+    } catch (cause) {
+      setBulkError(cause instanceof Error ? cause.message : `Could not ${label}.`);
+    }
+  }
+  const toggleKind = (k: string) => setKind(kind === k ? "" : k);
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      <PageHero
-        icon={<ShieldCheck size={13} />}
-        kicker="Your care archive"
-        title="Medical records, organized for you."
-        description="One secure place for visit notes, lab results, prescriptions, scans, and the clinical details that help you stay in control."
-        actions={
-          <>
-            <Link href="/patient/consents" className={heroSecondaryAction}>
-              <Share2 size={14} />
-              <span>Manage sharing</span>
-            </Link>
-            <Link href="/patient/records/new" className={heroPrimaryAction}>
-              <FilePlus2 size={15} />
-              <span>Add record</span>
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Storage · encrypted</span>
-            <span>Last updated · just now</span>
-            <span>Privacy · protected</span>
-            <span>
-              {totalCount} total · {labCount} lab · {rxCount} rx · {notesCount} notes
-            </span>
-          </>
-        }
-      />
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<FolderOpen size={13} aria-hidden />}
+          kicker="Medical records"
+          kickerMeta={`${totalCount} on file`}
+          title={
+            <>
+              Your care <HeroAccent>archive</HeroAccent>
+            </>
+          }
+          description="Visit notes, lab results, prescriptions and scans — one encrypted place that keeps you in control of your history."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <LiveDot />
+                Encrypted &amp; private
+              </span>
+              {latest ? (
+                <span className={HERO_CHIP}>
+                  <Clock3 size={12} className="text-sky-300" aria-hidden />
+                  Latest · {formatDayLabel(latest.date)}
+                </span>
+              ) : null}
+              <Link href="/patient/share" className={HERO_CHIP + " transition-colors hover:bg-white/[0.12]"}>
+                <Share2 size={12} className="text-sky-300" aria-hidden />
+                Share with a doctor
+              </Link>
+            </>
+          }
+          aside={
+            <HeroPulse
+              icon={<ShieldCheck size={20} strokeWidth={2.3} aria-hidden />}
+              label="Records on file"
+              value={stats.data ? totalCount.toLocaleString() : "—"}
+              sub={`${labCount} labs · ${rxCount} rx · ${notesCount} notes`}
+            />
+          }
+          actions={
+            <>
+              <Link href="/patient/records/scan" className={HERO_GHOST}>
+                <ScanLine size={15} aria-hidden />
+                Scan
+              </Link>
+              <Link href="/patient/records/new" className={HERO_PRIMARY}>
+                <FilePlus2 size={15} className="text-sky-600" aria-hidden />
+                Add record
+              </Link>
+            </>
+          }
+        />
 
-      <section className="rounded-xl border border-border bg-surface p-3 shadow-card md:p-4"><div className="flex flex-col gap-3 xl:flex-row xl:items-center"><div className="relative min-w-0 flex-1"><Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" /><input ref={searchInputRef} type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by title, doctor, clinic, or diagnosis…" aria-label="Search medical records" className="h-12 w-full rounded-lg border border-border bg-surface-2 pl-11 pr-24 text-sm font-semibold text-text outline-none transition placeholder:text-text-muted focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand-soft" />{search ? <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-text-muted hover:bg-surface-2 hover:text-text" aria-label="Clear search"><X size={15} /></button> : <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-bold text-text-muted shadow-sm sm:inline-flex"><Command size={11} />K</span>}</div><div className="flex items-center gap-2"><button type="button" onClick={() => setFiltersOpen((open) => !open)} className={cn("inline-flex h-12 items-center gap-2 rounded-lg border px-4 text-xs font-extrabold transition", filtersOpen || activeFilterCount ? "border-brand bg-brand-soft text-brand" : "border-border bg-surface text-text-soft hover:border-border-strong hover:bg-surface-2")} aria-expanded={filtersOpen}><SlidersHorizontal size={16} />Filters{activeFilterCount ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[10px] text-white">{activeFilterCount}</span> : null}</button><button type="button" onClick={() => { setSelectMode((value) => !value); if (selectMode) clearSelection(); }} className={cn("inline-flex h-12 items-center gap-2 rounded-lg border px-4 text-xs font-extrabold transition", selectMode ? "border-ink bg-ink text-white" : "border-border bg-surface text-text-soft hover:border-border-strong hover:bg-surface-2")}><ListFilter size={16} />{selectMode ? "Done" : "Select"}</button></div></div>
-        {filtersOpen ? <div className="mt-3 grid gap-3 rounded-xl border border-border bg-surface-2/75 p-3 sm:grid-cols-3"><FilterSelect label="Date range" value={time} onChange={(value) => setTime(value as TimeFilter)} options={[["all", "All time"], ["30d", "Last 30 days"], ["year", "Last year"]]} /><FilterSelect label="Sort records" value={sort} onChange={(value) => setSort(value as SortMode)} options={[["newest", "Newest first"], ["oldest", "Oldest first"]]} /><FilterSelect label="Visibility" value={archived} onChange={(value) => setArchived(value as ArchiveFilter)} options={[["active", "Active only"], ["all", "Active + archived"], ["only", "Archived only"]]} />{activeFilterCount ? <button type="button" onClick={clearFilters} className="text-left text-xs font-bold text-brand hover:text-brand-strong sm:col-span-3">Clear all filters</button> : null}</div> : null}
-          <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-border pt-3 scrollbar-none" role="tablist" aria-label="Record categories">{KIND_CHIPS.map((chip) => { const active = kind === chip.id; const Icon = chip.id ? chip.icon : undefined; return <button key={chip.id || "all"} type="button" role="tab" aria-selected={active} onClick={() => setKind(chip.id)} className={cn("inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition", active ? "bg-ink text-white" : "text-text-soft hover:bg-surface-2 hover:text-text")}>{Icon ? <Icon size={14} className={active ? "text-brand-soft" : "text-text-muted"} /> : null}{chip.label}</button>; })}</div>
-      </section>
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Visit notes"
+            icon={<FileText size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(notesCount)}
+            sub="From your consultations"
+            active={kind === "clinical_note"}
+            onClick={() => toggleKind("clinical_note")}
+          />
+          <StatTile
+            label="Lab reports"
+            icon={<FlaskConical size={16} />}
+            tone="bg-teal-50 text-teal-600"
+            value={String(labCount)}
+            sub="Results & panels"
+            active={kind === "lab_report"}
+            onClick={() => toggleKind("lab_report")}
+          />
+          <StatTile
+            label="Prescriptions"
+            icon={<PillIcon size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(rxCount)}
+            sub="Signed by your doctors"
+            active={kind === "prescription"}
+            onClick={() => toggleKind("prescription")}
+          />
+          <StatTile
+            label="Imaging"
+            icon={<ScanLine size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(imagingCount)}
+            sub="Scans & reports"
+            active={kind === "imaging"}
+            onClick={() => toggleKind("imaging")}
+          />
+        </HeroOverlap>
+      </div>
 
-      {selectMode && ids.length > 0 ? <div className="flex flex-col gap-3 rounded-xl border border-brand bg-brand-soft p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"><p className="text-xs font-extrabold text-text">{ids.length} record{ids.length === 1 ? "" : "s"} selected</p><div className="flex flex-wrap gap-2"><BulkButton icon={<Archive size={14} />} label="Archive" disabled={bulkArchive.isPending} onClick={() => runBulk(() => bulkArchive.mutateAsync(ids), "archive")} /><BulkButton icon={<RotateCcw size={14} />} label="Restore" disabled={bulkRestore.isPending} onClick={() => runBulk(() => bulkRestore.mutateAsync(ids), "restore")} /><BulkButton icon={<Tag size={14} />} label="Tag" onClick={() => { setTagPrompt(true); setMoveOpen(false); }} /><BulkButton icon={<FolderInput size={14} />} label="Move" onClick={() => { setMoveOpen(true); setTagPrompt(false); }} /><BulkButton destructive icon={<Trash2 size={14} />} label="Delete" disabled={bulkDelete.isPending} onClick={() => { if (window.confirm(`Permanently delete ${ids.length} record(s)? This cannot be undone.`)) runBulk(() => bulkDelete.mutateAsync(ids), "delete"); }} /></div>{tagPrompt ? <form className="flex w-full gap-2 border-t border-border pt-3" onSubmit={(event) => { event.preventDefault(); const tag = tagValue.trim().toLowerCase(); if (!tag) return; runBulk(() => bulkTag.mutateAsync({ ids, add: [tag] }), "tag").then(() => setTagValue("")); }}><input value={tagValue} onChange={(event) => setTagValue(event.target.value)} placeholder="Enter a tag, e.g. Cardiology" className="h-9 min-w-0 flex-1 rounded-lg border-border bg-surface px-3 text-xs text-text outline-none focus:border-brand" /><button type="submit" className="rounded-lg bg-brand px-3 text-xs font-bold text-white hover:bg-brand-strong">Apply</button></form> : null}{moveOpen ? <div className="flex w-full flex-wrap items-center gap-2 border-t border-border pt-3"><span className="text-xs font-bold text-text">Move to:</span><MoveButton label="My records" onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: null }), "move")} />{(family.data?.family ?? []).map((member) => <MoveButton key={member.id} label={member.name} onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: member.id }), "move")} />)}</div> : null}{bulkError ? <p role="alert" className="w-full text-xs font-semibold text-danger">{bulkError}</p> : null}</div> : null}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        {/* ── Record list ───────────────────────────────────────────── */}
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="rec-list">
+          <PanelHeader
+            id="rec-list"
+            icon={<FolderOpen size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            title="Your records"
+            caption={loading ? "Loading…" : `${records.length} shown${kind ? ` · ${formatRecordType(kind)}` : ""}`}
+            action={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  aria-expanded={filtersOpen}
+                  className={cn(SECONDARY_BTN, (filtersOpen || activeFilterCount > 0) && "text-sky-700 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.4)]")}
+                >
+                  <SlidersHorizontal size={13} aria-hidden />
+                  <span className="hidden sm:inline">Filters</span>
+                  {activeFilterCount ? (
+                    <span className="grid h-4 min-w-4 place-items-center rounded bg-sky-600 px-1 text-[10px] text-white">{activeFilterCount}</span>
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectMode) clearSelection();
+                    else setSelectMode(true);
+                  }}
+                  className={cn(SECONDARY_BTN, selectMode && "bg-[#07233a] text-white shadow-none hover:bg-sky-700 hover:text-white")}
+                >
+                  <ListChecks size={13} aria-hidden />
+                  <span className="hidden sm:inline">{selectMode ? "Done" : "Select"}</span>
+                </button>
+              </>
+            }
+          />
 
-      <section className="flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-2"><h2 className="text-xl font-extrabold tracking-[-0.03em] text-text">Your records</h2><span className="rounded-full bg-surface-2 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-text-soft">{records.length} shown</span></div><p className="mt-1 text-xs font-medium text-text-soft">A clear timeline of the documents behind your care.</p></div><span className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted"><ShieldCheck size={14} className="text-success" />Encrypted &amp; private</span></div>
-        {(search.trim().length >= 2 ? fts.isLoading : query.isLoading) ? <div className="flex flex-col gap-3">{[1, 2, 3, 4].map((item) => <div key={item} className="h-[108px] animate-pulse rounded-xl border border-border bg-surface" />)}</div> : (search.trim().length >= 2 ? fts.isError : query.isError) ? <div className="rounded-xl border border-danger/25 bg-danger-soft p-8 text-center text-xs font-semibold text-danger">Could not load medical records. Please refresh the page.</div> : records.length === 0 ? <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border-strong bg-surface p-12 text-center shadow-sm"><div className="grid h-14 w-14 place-items-center rounded-md bg-surface-2 text-text-muted"><FileText size={26} /></div><div><h3 className="text-sm font-extrabold text-text">No medical records found</h3><p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-text-soft">{search ? `No documents match “${search}”. Try another keyword or clear your filters.` : "Prescriptions, lab results, and visit notes logged by your care team will appear here."}</p></div><div className="flex flex-wrap justify-center gap-2">{activeFilterCount || search ? <button type="button" onClick={() => { clearFilters(); setSearch(""); }} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-text-soft hover:bg-surface-2">Clear filters</button> : null}<Link href="/patient/records/new" className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-strong"><FilePlus2 size={14} />Add first record</Link></div></div> : <ul className="flex flex-col gap-3">{records.map((record) => <RecordCard key={record.id} record={record} selectMode={selectMode} checked={selected.has(record.id)} onToggle={() => toggle(record.id)} />)}</ul>}
-      </section>
-    </div>
+          <div className="mt-5 flex flex-col gap-3">
+            <div className="relative w-full">
+              <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setSearch("");
+                }}
+                placeholder="Search by title, doctor, clinic, or diagnosis…"
+                aria-label="Search medical records"
+                className="h-10 w-full rounded-xl bg-slate-50 pl-10 pr-16 text-sm text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:shadow-[inset_0_0_0_1.5px_#0284c7,0_0_0_4px_rgba(14,165,233,0.12)]"
+              />
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700"
+                >
+                  <X size={13} />
+                </button>
+              ) : (
+                <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)] sm:inline-flex">
+                  <Command size={10} aria-hidden />K
+                </span>
+              )}
+            </div>
+
+            <Segmented<string>
+              ariaLabel="Record categories"
+              value={kind}
+              onChange={setKind}
+              options={KINDS.map((k) => ({
+                value: k.id,
+                label: k.label,
+                count: k.id ? countFor(byType, k.id) : totalCount,
+              }))}
+            />
+
+            {filtersOpen ? (
+              <div className="grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-3">
+                <FilterSelect
+                  label="Date range"
+                  value={time}
+                  onChange={(value) => setTime(value as TimeFilter)}
+                  options={[["all", "All time"], ["30d", "Last 30 days"], ["year", "Last year"]]}
+                />
+                <FilterSelect
+                  label="Sort"
+                  value={sort}
+                  onChange={(value) => setSort(value as SortMode)}
+                  options={[["newest", "Newest first"], ["oldest", "Oldest first"]]}
+                />
+                <FilterSelect
+                  label="Visibility"
+                  value={archived}
+                  onChange={(value) => setArchived(value as ArchiveFilter)}
+                  options={[["active", "Active only"], ["all", "Active + archived"], ["only", "Archived only"]]}
+                />
+                {activeFilterCount || kind ? (
+                  <button type="button" onClick={clearFilters} className="text-left text-xs font-semibold text-sky-700 hover:text-sky-800 sm:col-span-3">
+                    Clear all filters
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {selectMode ? (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl bg-sky-50/70 p-3.5 shadow-[inset_0_0_0_1px_rgba(2,132,199,0.2)]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-slate-900">
+                  {ids.length ? `${ids.length} record${ids.length === 1 ? "" : "s"} selected` : "Tap records to select them"}
+                </p>
+                {ids.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    <BulkButton icon={<Archive size={13} />} label="Archive" disabled={bulkArchive.isPending} onClick={() => runBulk(() => bulkArchive.mutateAsync(ids), "archive")} />
+                    <BulkButton icon={<RotateCcw size={13} />} label="Restore" disabled={bulkRestore.isPending} onClick={() => runBulk(() => bulkRestore.mutateAsync(ids), "restore")} />
+                    <BulkButton
+                      icon={<Tag size={13} />}
+                      label="Tag"
+                      onClick={() => {
+                        setTagPrompt(true);
+                        setMoveOpen(false);
+                      }}
+                    />
+                    <BulkButton
+                      icon={<FolderInput size={13} />}
+                      label="Move"
+                      onClick={() => {
+                        setMoveOpen(true);
+                        setTagPrompt(false);
+                      }}
+                    />
+                    <BulkButton
+                      destructive
+                      icon={<Trash2 size={13} />}
+                      label="Delete"
+                      disabled={bulkDelete.isPending}
+                      onClick={() => {
+                        if (window.confirm(`Permanently delete ${ids.length} record(s)? This cannot be undone.`))
+                          runBulk(() => bulkDelete.mutateAsync(ids), "delete");
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              {tagPrompt && ids.length ? (
+                <form
+                  className="flex gap-2 border-t border-sky-100 pt-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const tag = tagValue.trim().toLowerCase();
+                    if (!tag) return;
+                    runBulk(() => bulkTag.mutateAsync({ ids, add: [tag] }), "tag").then(() => setTagValue(""));
+                  }}
+                >
+                  <input
+                    value={tagValue}
+                    onChange={(event) => setTagValue(event.target.value)}
+                    placeholder="Enter a tag, e.g. Cardiology"
+                    className="h-9 min-w-0 flex-1 rounded-lg bg-white px-3 text-xs text-slate-900 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.12)] outline-none focus:shadow-[inset_0_0_0_2px_#0284c7]"
+                  />
+                  <button type="submit" className="h-9 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white hover:bg-sky-700">
+                    Apply
+                  </button>
+                </form>
+              ) : null}
+              {moveOpen && ids.length ? (
+                <div className="flex flex-wrap items-center gap-1.5 border-t border-sky-100 pt-3">
+                  <span className={GROUP_LABEL}>Move to</span>
+                  <BulkButton label="My records" onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: null }), "move")} />
+                  {(family.data?.family ?? []).map((member) => (
+                    <BulkButton
+                      key={member.id}
+                      label={member.name}
+                      onClick={() => runBulk(() => bulkMove.mutateAsync({ ids, familyMemberId: member.id }), "move")}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {bulkError ? (
+                <p role="alert" className="text-xs font-semibold text-rose-600">
+                  {bulkError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <PanelSkeleton rows={5} />
+          ) : errored ? (
+            <PanelError message="Could not load medical records." onRetry={() => void (searching ? fts.refetch() : query.refetch())} />
+          ) : records.length === 0 ? (
+            <EmptyBlock
+              icon={<FileText size={19} />}
+              title="No medical records found"
+              body={
+                search
+                  ? `No documents match “${search}”. Try another keyword or clear your filters.`
+                  : "Prescriptions, lab results, and visit notes logged by your care team will appear here."
+              }
+              actions={
+                <>
+                  {activeFilterCount || kind || search ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearFilters();
+                        setSearch("");
+                      }}
+                      className={SECONDARY_BTN}
+                    >
+                      Clear filters
+                    </button>
+                  ) : null}
+                  <PrimaryLink href="/patient/records/new" icon={<FilePlus2 size={13} />}>
+                    Add first record
+                  </PrimaryLink>
+                </>
+              }
+            />
+          ) : (
+            <ul className="mt-4 flex flex-col gap-2">
+              {records.map((record) => (
+                <RecordItem
+                  key={record.id}
+                  record={record}
+                  selectMode={selectMode}
+                  checked={selected.has(record.id)}
+                  onToggle={() => toggle(record.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ── Rail ──────────────────────────────────────────────────── */}
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Records overview">
+          <QuickToolsPanel
+            id="rec-tools"
+            tools={[
+              { href: "/patient/records/new", label: "Add", hint: "New record", icon: FilePlus2, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+              { href: "/patient/records/scan", label: "Scan", hint: "Paper report", icon: ScanLine, tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+              { href: "/patient/timeline", label: "Timeline", hint: "Your history", icon: Clock3, tone: "from-slate-600 to-slate-800 shadow-slate-500/30" },
+              { href: "/patient/diagnostic-tests", label: "Lab tests", hint: "Book a test", icon: FlaskConical, tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30" },
+              { href: "/patient/vaccinations", label: "Vaccines", hint: "Immunisations", icon: Syringe, tone: "from-amber-500 to-orange-500 shadow-amber-500/30" },
+              { href: "/patient/share", label: "Share", hint: "With a doctor", icon: Share2, tone: "from-rose-500 to-pink-600 shadow-rose-500/30" },
+            ]}
+          />
+
+          <section className={PANEL} aria-labelledby="rec-mix">
+            <PanelHeader
+              id="rec-mix"
+              icon={<FolderOpen size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="By type"
+              caption={`${totalCount.toLocaleString()} total · tap to filter`}
+            />
+            {stats.isLoading ? (
+              <div className="mt-5 h-32 animate-pulse rounded-xl bg-slate-100" />
+            ) : totalCount === 0 ? (
+              <EmptyBlock icon={<FolderOpen size={19} />} title="Nothing filed yet" body="Your breakdown appears as records are added." />
+            ) : (
+              <BreakdownBar
+                items={breakdown}
+                total={totalCount}
+                activeKey={kind}
+                onSelect={(key) => key !== "other" && toggleKind(key)}
+              />
+            )}
+          </section>
+
+          <PromoCard
+            href="/patient/consents"
+            kicker="Privacy"
+            icon={<Lock size={21} aria-hidden />}
+            title="You control who sees this"
+            body="Review consents and every doctor with access"
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }
 
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: readonly (readonly [string, string])[] }) {
-  return <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2.5"><span className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="max-w-[150px] cursor-pointer bg-transparent text-right text-xs font-bold text-text outline-none">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>;
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly (readonly [string, string])[];
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+      <span className={GROUP_LABEL}>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="max-w-[150px] cursor-pointer bg-transparent text-right text-xs font-semibold text-slate-900 outline-none"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
-function BulkButton({ icon, label, onClick, disabled, destructive }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
-  return <button type="button" disabled={disabled} onClick={onClick} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50", destructive ? "border-danger/25 bg-danger-soft text-danger hover:brightness-95" : "border-border bg-surface text-brand hover:bg-brand-soft")}>{icon}{label}</button>;
-}
-
-function MoveButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="rounded-xl border-border bg-surface px-3 py-2 text-xs font-semibold text-brand hover:bg-brand-soft">{label}</button>;
+function BulkButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  destructive,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        destructive
+          ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+          : "bg-white text-slate-700 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] hover:text-sky-700",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
 }

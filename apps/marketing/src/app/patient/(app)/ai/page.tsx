@@ -8,6 +8,7 @@ import {
   FlaskConical,
   Pill,
   ScanLine,
+  ShieldCheck,
   Sparkles,
   Stethoscope,
   Syringe,
@@ -15,8 +16,16 @@ import {
 } from "lucide-react";
 
 import { useMedications, usePatientProfile } from "@/patient/hooks";
-import { PageHero } from "@/patient/components/primitives/PageHero";
-import { Card } from "@/patient/components/primitives/Card";
+import Link from "next/link";
+import {
+  GROUP_LABEL,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PatientHero,
+  PatientPage,
+} from "@/patient/components/workspace";
 import { AiCommandBar } from "@/patient/components/ai/AiCommandBar";
 import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
 import {
@@ -153,70 +162,100 @@ export default function AiToolsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-1 pb-8 pt-1 sm:gap-7 sm:px-2">
-      {/* Hero + command center */}
-      <PageHero
-        icon={<Sparkles size={13} aria-hidden />}
-        kicker="Clinical intelligence"
-        title="AI health assistant"
-        description="Summaries, medication safety checks and lab explanations grounded in your health record — private by design and never a replacement for your physician."
-        footer={
-          <>
-            {TRUST.map((label) => (
-              <span key={label}>{label}</span>
-            ))}
-          </>
-        }
-      />
-
-      <Card>
-        <AiCommandBar
-          promptsLabel="Try"
-          onSubmit={goToChat}
-          quickPrompts={[
-            {
-              label: "Summarize my record",
-              icon: <FileText size={13} className="text-sky-200" aria-hidden />,
-              onSelect: () => runQuickPrompt("summary"),
-            },
-            {
-              label: "Explain my lab results",
-              icon: <FlaskConical size={13} className="text-emerald-200" aria-hidden />,
-              onSelect: () => runQuickPrompt("lab"),
-            },
-            {
-              label: "Check my medications",
-              icon: <Pill size={13} className="text-amber-200" aria-hidden />,
-              onSelect: () => runQuickPrompt("meds"),
-            },
-            {
-              label: "Prepare for my visit",
-              icon: <Stethoscope size={13} className="text-indigo-200" aria-hidden />,
-              onSelect: () => runQuickPrompt("chat"),
-            },
-          ]}
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<Sparkles size={13} aria-hidden />}
+          kicker="Clinical intelligence"
+          kickerMeta={`${TOOLS.length + 2} tools`}
+          title={
+            <>
+              AI health <HeroAccent>assistant</HeroAccent>
+            </>
+          }
+          description="Summaries, medication safety checks and lab explanations grounded in your health record — private by design and never a replacement for your physician."
+          chips={
+            <>
+              {TRUST.map((label) => (
+                <span key={label} className={HERO_CHIP}>
+                  <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                  {label}
+                </span>
+              ))}
+            </>
+          }
+          aside={
+            <div className="flex min-w-[13.5rem] items-center gap-3.5 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 backdrop-blur">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-indigo-400 to-violet-600 text-white shadow-lg shadow-indigo-500/30">
+                <Pill size={20} aria-hidden />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-sky-300">
+                  Meds in context
+                </span>
+                <span className="mt-0.5 block text-2xl font-semibold leading-none tracking-[-0.02em] text-white tabular-nums">
+                  {activeMedNames.length}
+                </span>
+                <span className="mt-1 block text-[11px] text-white/55">Active medicines the AI can check</span>
+              </span>
+            </div>
+          }
+          actions={
+            <Link href="/patient/ai/chat" className={HERO_PRIMARY}>
+              <Bot size={15} className="text-violet-600" aria-hidden />
+              Open care chat
+            </Link>
+          }
         />
-      </Card>
+
+        {/* Command bar floats over the hero edge, like the stat strip. */}
+        <HeroOverlap>
+          <div className="rounded-2xl bg-white p-4 shadow-[0_16px_40px_-16px_rgba(15,23,42,0.22),inset_0_0_0_1px_rgba(15,23,42,0.07)] sm:p-5">
+            <AiCommandBar
+              promptsLabel="Try"
+              onSubmit={goToChat}
+              quickPrompts={[
+                {
+                  label: "Summarize my record",
+                  icon: <FileText size={13} className="text-sky-600" aria-hidden />,
+                  onSelect: () => runQuickPrompt("summary"),
+                },
+                {
+                  label: "Explain my lab results",
+                  icon: <FlaskConical size={13} className="text-emerald-600" aria-hidden />,
+                  onSelect: () => runQuickPrompt("lab"),
+                },
+                {
+                  label: "Check my medications",
+                  icon: <Pill size={13} className="text-amber-600" aria-hidden />,
+                  onSelect: () => runQuickPrompt("meds"),
+                },
+                {
+                  label: "Prepare for my visit",
+                  icon: <Stethoscope size={13} className="text-indigo-600" aria-hidden />,
+                  onSelect: () => runQuickPrompt("chat"),
+                },
+              ]}
+            />
+          </div>
+        </HeroOverlap>
+      </div>
 
       {/* Primary tools */}
-      <section className="anim-rise anim-rise-delay-1 flex flex-col gap-4">
+      <section className="flex flex-col gap-4" aria-labelledby="ai-start">
         <div className="flex items-end justify-between gap-4 px-1">
           <div>
-            <p className="t-label">Start here</p>
-            <h2 className="mt-1 text-lg font-bold tracking-tight text-text md:text-xl">
+            <p className={GROUP_LABEL}>Start here</p>
+            <h2 id="ai-start" className="mt-1 text-lg font-semibold tracking-[-0.01em] text-slate-900">
               Your record, doing the work
             </h2>
           </div>
-          <p className="hidden max-w-xs pb-0.5 text-right text-xs leading-relaxed text-text-muted sm:block">
+          <p className="hidden max-w-xs pb-0.5 text-right text-xs leading-relaxed text-slate-400 sm:block">
             Instant briefings and safety checks generated from your live EMR.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <HealthSummaryCard
-            ref={summaryRef}
-            patientId={patientId}
-            profileLoading={profile.isLoading}
-          />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <HealthSummaryCard ref={summaryRef} patientId={patientId} profileLoading={profile.isLoading} />
           <div ref={drugSectionRef} className="h-full scroll-mt-24">
             <DrugInteractionCard ref={drugRef} activeMedNames={activeMedNames} />
           </div>
@@ -224,15 +263,15 @@ export default function AiToolsPage() {
       </section>
 
       {/* Tool directory */}
-      <section className="anim-rise anim-rise-delay-2 flex flex-col gap-4">
+      <section className="flex flex-col gap-4" aria-labelledby="ai-kit">
         <div className="flex items-end justify-between gap-4 px-1">
           <div>
-            <p className="t-label">AI toolkit</p>
-            <h2 className="mt-1 text-lg font-bold tracking-tight text-text md:text-xl">
+            <p className={GROUP_LABEL}>AI toolkit</p>
+            <h2 id="ai-kit" className="mt-1 text-lg font-semibold tracking-[-0.01em] text-slate-900">
               Specialized assistants
             </h2>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-bold text-text-soft shadow-2xs">
+          <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
             {TOOLS.length} tools
           </span>
         </div>
@@ -243,7 +282,7 @@ export default function AiToolsPage() {
         </div>
       </section>
 
-      <AiSafetyNotice className="anim-rise anim-rise-delay-3" />
-    </div>
+      <AiSafetyNotice />
+    </PatientPage>
   );
 }

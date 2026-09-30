@@ -1,29 +1,44 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShieldCheck,
-  Building2,
-  Wallet,
-  Calendar,
-  Users,
   AlertTriangle,
-  RefreshCw,
-  ExternalLink,
-  CreditCard,
-  X,
   ArrowLeft,
-  Sparkles,
+  Building2,
+  Calendar,
+  CreditCard,
+  ExternalLink,
+  RefreshCw,
+  ShieldCheck,
+  UserCheck,
+  Users,
+  Wallet,
+  X,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { Button } from "@/portal/components/ui/Button";
-import { Pill } from "@/portal/components/ui/Pill";
-import { Skeleton } from "@/portal/components/ui/Empty";
 import { formatDate, formatLkr } from "@/portal/lib/format";
+import {
+  Badge,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_DANGER_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  InfoField,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  QuickToolsPanel,
+  StatTile,
+  type Tone,
+} from "@/patient/components/workspace";
 
 interface EnrollmentDetail {
   enrollment: {
@@ -48,13 +63,13 @@ interface EnrollmentDetail {
   };
 }
 
-const STATUS_TONE: Record<string, "success" | "warn" | "danger" | "neutral"> = {
-  active: "success",
-  payment_pending: "warn",
-  grace: "warn",
-  lapsed: "danger",
-  cancelled: "neutral",
-  expired: "neutral",
+const STATUS_TONE: Record<string, Tone> = {
+  active: "emerald",
+  payment_pending: "amber",
+  grace: "amber",
+  lapsed: "rose",
+  cancelled: "slate",
+  expired: "slate",
 };
 
 export default function PolicyPage({
@@ -64,6 +79,7 @@ export default function PolicyPage({
 }) {
   const { id } = use(params);
   const qc = useQueryClient();
+  const [now] = useState(() => Date.now());
 
   const q = useQuery({
     queryKey: ["insurance", "enrollment", id],
@@ -87,255 +103,327 @@ export default function PolicyPage({
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["insurance"] });
-      window.location.href = "/portal/me/insurance";
+      window.location.href = "/patient/insurance";
     },
   });
 
-  if (q.isLoading) return <Skeleton className="h-48 w-full" />;
   const e = q.data?.enrollment;
-  if (!e) {
-    return (
-      <Card className="text-center py-12">
-        <p className="text-sm text-text-soft">Policy not found.</p>
-      </Card>
-    );
-  }
 
-  const dueIn = e.nextPremiumDueAt
-    ? Math.ceil(
-        (new Date(e.nextPremiumDueAt).getTime() - Date.now()) /
-          (1000 * 60 * 60 * 24),
-      )
+  const dueIn = e?.nextPremiumDueAt
+    ? Math.ceil((new Date(e.nextPremiumDueAt).getTime() - now) / (1000 * 60 * 60 * 24))
     : null;
   const isOverdue = dueIn !== null && dueIn < 0;
   const isDueSoon = dueIn !== null && dueIn >= 0 && dueIn <= 7;
 
   return (
-    <div className="space-y-5 max-w-4xl">
-      <Link
-        href="/portal/me/insurance"
-        className="text-xs text-brand hover:text-brand-strong font-semibold inline-flex items-center gap-1"
-      >
-        <ArrowLeft size={12} />
-        Back to insurance
-      </Link>
+    <PatientPage>
+      <div className="-mb-1">
+        <Link
+          href="/patient/insurance"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-sky-700"
+        >
+          <ArrowLeft size={14} /> Insurance hub
+        </Link>
+      </div>
 
-      {(isDueSoon || isOverdue) && e.status === "active" ? (
-        <Card className="border-2 border-amber-300 bg-amber-50/60">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-              <AlertTriangle size={20} />
-            </div>
-            <div className="flex-1">
-              <div className="font-bold text-amber-900">
-                {isOverdue ? "Payment overdue" : "Premium due soon"}
-              </div>
-              <div className="text-sm text-amber-800 mt-0.5">
-                {formatLkr(e.premiumAmountLkr)} due{" "}
-                {e.nextPremiumDueAt
-                  ? formatDate(e.nextPremiumDueAt)
-                  : "soon"}
-                {dueIn !== null
-                  ? ` (${isOverdue ? `${-dueIn} days overdue` : `in ${dueIn} days`})`
-                  : ""}
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => renewMut.mutate()}
-              loading={renewMut.isPending}
-            >
-              <CreditCard size={14} />
-              Pay now
-            </Button>
-          </div>
-        </Card>
-      ) : null}
-
-      <Card>
-        <div className="flex items-start gap-4">
-          <div className="h-14 w-14 rounded-xl bg-brand-soft text-brand-strong flex items-center justify-center shrink-0">
-            <ShieldCheck size={26} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-text">
-                {e.planName ?? "Policy"}
-              </h1>
-              <Pill tone={STATUS_TONE[e.status] ?? "neutral"}>
-                {e.status.replace(/_/g, " ")}
-              </Pill>
-            </div>
-            <p className="text-sm text-text-soft mt-0.5">
-              {e.providerName} · Policy {e.policyNumber ?? e.id.slice(0, 8)}
-            </p>
-          </div>
-          <Link href={`/portal/me/insurance/ecard/${e.id}`}>
-            <Button variant="secondary" size="sm">
-              <ExternalLink size={14} />
-              View E-card
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-border/60">
-          <Metric label="Coverage" value={formatLkr(e.coverageAmountLkr)} />
-          <Metric label="Premium" value={formatLkr(e.premiumAmountLkr)} />
-          <Metric label="Cycle" value={e.billingCycle} />
-          <Metric label="Status" value={e.status.replace(/_/g, " ")} />
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Card>
-          <h2 className="text-base font-bold text-text mb-3">Schedule</h2>
-          <div className="space-y-2.5 text-sm">
-            <Detail
-              icon={<Calendar size={14} />}
-              label="Start date"
-              value={e.startDate ? formatDate(e.startDate) : "—"}
-            />
-            <Detail
-              icon={<Calendar size={14} />}
-              label="End date"
-              value={e.endDate ? formatDate(e.endDate) : "—"}
-            />
-            <Detail
-              icon={<Wallet size={14} />}
-              label="Last premium paid"
-              value={
-                e.lastPremiumPaidAt ? formatDate(e.lastPremiumPaidAt) : "—"
-              }
-            />
-            <Detail
-              icon={<Wallet size={14} />}
-              label="Next premium due"
-              value={
-                e.nextPremiumDueAt ? formatDate(e.nextPremiumDueAt) : "—"
-              }
-            />
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className="text-base font-bold text-text mb-3">Nominee</h2>
-          {e.nomineeName ? (
-            <div className="text-sm space-y-1.5">
-              <div>
-                <span className="text-text-soft">Name: </span>
-                <span className="text-text font-medium">
-                  {e.nomineeName}
+      {q.isLoading ? (
+        <section className={PANEL}>
+          <PanelSkeleton rows={4} />
+        </section>
+      ) : !e ? (
+        <section className={PANEL}>
+          <EmptyBlock
+            icon={<ShieldCheck size={19} />}
+            title="Policy not found"
+            body="This enrollment may have been removed or is not linked to your account."
+          />
+        </section>
+      ) : (
+        <>
+          <PatientHero
+            kickerIcon={<ShieldCheck size={13} aria-hidden />}
+            kicker="Insurance"
+            kickerMeta={e.providerName ?? "Policy"}
+            title={
+              <>
+                {e.planName ?? "Policy"}{" "}
+                <HeroAccent>· {e.policyNumber ?? e.id.slice(0, 8)}</HeroAccent>
+              </>
+            }
+            description={`${e.billingCycle} billing · ${formatLkr(e.premiumAmountLkr)} premium · up to ${formatLkr(e.coverageAmountLkr)} coverage.`}
+            chips={
+              <>
+                <span className={e.status === "active" ? HERO_CHIP : HERO_DANGER_CHIP}>
+                  <ShieldCheck size={12} className={e.status === "active" ? "text-emerald-300" : ""} />
+                  <span className="capitalize">{e.status.replace(/_/g, " ")}</span>
                 </span>
-              </div>
-              <div>
-                <span className="text-text-soft">Relation: </span>
-                <span className="text-text">{e.nomineeRelation}</span>
-              </div>
-              {e.nomineeDob ? (
-                <div>
-                  <span className="text-text-soft">DOB: </span>
-                  <span className="text-text">{formatDate(e.nomineeDob)}</span>
+                <span className={HERO_CHIP}>
+                  <Building2 size={12} className="text-sky-300" />
+                  {e.providerName ?? "Insurer"}
+                </span>
+                {isOverdue ? (
+                  <span className={HERO_DANGER_CHIP}>
+                    <AlertTriangle size={12} /> {`${-dueIn}d overdue`}
+                  </span>
+                ) : isDueSoon ? (
+                  <span className={HERO_CHIP}>
+                    <AlertTriangle size={12} className="text-amber-300" /> Due in {dueIn}d
+                  </span>
+                ) : null}
+              </>
+            }
+            actions={
+              <>
+                <Link href={`/patient/insurance/ecard/${e.id}`} className={HERO_GHOST}>
+                  <CreditCard size={13} /> E-card
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => renewMut.mutate()}
+                  disabled={renewMut.isPending}
+                  className={HERO_PRIMARY}
+                >
+                  <RefreshCw size={14} className={renewMut.isPending ? "animate-spin text-sky-600" : "text-sky-600"} />
+                  Renew / pay
+                </button>
+              </>
+            }
+          />
+
+          <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <StatTile
+              icon={<ShieldCheck size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              label="Coverage"
+              value={formatLkr(e.coverageAmountLkr)}
+              sub="Annual sum insured"
+            />
+            <StatTile
+              icon={<Wallet size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              label="Premium"
+              value={formatLkr(e.premiumAmountLkr)}
+              sub={`${e.billingCycle} billing`}
+            />
+            <StatTile
+              icon={<Calendar size={16} />}
+              tone={isOverdue ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600"}
+              label="Next premium"
+              value={e.nextPremiumDueAt ? formatDate(e.nextPremiumDueAt) : "—"}
+              sub={isOverdue ? "Overdue" : isDueSoon ? "Due soon" : "On schedule"}
+              pulse={isOverdue || isDueSoon}
+            />
+            <StatTile
+              icon={<Users size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              label="Covered members"
+              value={String(e.dependents?.length ?? 0)}
+              sub={e.nomineeName ? `Nominee: ${e.nomineeName}` : "No nominee on file"}
+            />
+          </HeroOverlap>
+
+          <div className="grid gap-5 xl:grid-cols-12">
+            <div className="flex flex-col gap-5 xl:col-span-8">
+              {(isDueSoon || isOverdue) && e.status === "active" ? (
+                <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-amber-900">
+                        {isOverdue ? "Payment overdue" : "Premium due soon"}
+                      </div>
+                      <div className="mt-0.5 text-sm text-amber-800">
+                        {formatLkr(e.premiumAmountLkr)} due{" "}
+                        {e.nextPremiumDueAt ? formatDate(e.nextPremiumDueAt) : "soon"}
+                        {dueIn !== null
+                          ? ` (${isOverdue ? `${-dueIn} days overdue` : `in ${dueIn} days`})`
+                          : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => renewMut.mutate()}
+                    disabled={renewMut.isPending}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white transition hover:bg-amber-500 disabled:opacity-50"
+                  >
+                    <CreditCard size={14} /> Pay now
+                  </button>
+                </section>
+              ) : null}
+
+              {renewMut.data?.checkoutUrl ? (
+                <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+                  <div>
+                    <div className="font-bold text-amber-900">Renewal checkout ready</div>
+                    <div className="mt-0.5 text-xs text-amber-800">
+                      Open payments.lk to complete renewal.
+                    </div>
+                  </div>
+                  <a
+                    href={renewMut.data.checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white transition hover:bg-amber-500"
+                  >
+                    <ExternalLink size={14} /> Open checkout
+                  </a>
+                </section>
+              ) : null}
+
+              <section className={PANEL}>
+                <PanelHeader
+                  icon={<Calendar size={16} />}
+                  tone="bg-sky-50 text-sky-600"
+                  title="Schedule"
+                  caption="Premium and coverage dates."
+                />
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <InfoField icon={<Calendar size={14} />} label="Start date">
+                    {e.startDate ? formatDate(e.startDate) : "—"}
+                  </InfoField>
+                  <InfoField icon={<Calendar size={14} />} label="End date">
+                    {e.endDate ? formatDate(e.endDate) : "—"}
+                  </InfoField>
+                  <InfoField icon={<Wallet size={14} />} label="Last premium paid">
+                    {e.lastPremiumPaidAt ? formatDate(e.lastPremiumPaidAt) : "—"}
+                  </InfoField>
+                  <InfoField icon={<Wallet size={14} />} label="Next premium due">
+                    {e.nextPremiumDueAt ? formatDate(e.nextPremiumDueAt) : "—"}
+                  </InfoField>
+                </div>
+              </section>
+
+              {e.dependents && e.dependents.length > 0 ? (
+                <section className={PANEL}>
+                  <PanelHeader
+                    icon={<Users size={16} />}
+                    tone="bg-violet-50 text-violet-600"
+                    title={`Covered members (${e.dependents.length})`}
+                    caption="Dependents on this policy."
+                  />
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {e.dependents.map((d) => (
+                      <div
+                        key={d.id}
+                        className="flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm"
+                      >
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-50 text-[11px] font-bold text-violet-600">
+                          {d.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium text-slate-900">{d.name}</div>
+                          <div className="text-[11px] capitalize text-slate-400">
+                            {d.relation}
+                            {d.dob ? ` · ${formatDate(d.dob)}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {e.status === "active" ? (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Cancel this policy? This action cannot be undone.")) {
+                        cancelMut.mutate();
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 transition hover:text-rose-700"
+                  >
+                    <X size={12} /> Cancel policy
+                  </button>
                 </div>
               ) : null}
             </div>
-          ) : (
-            <p className="text-sm text-text-muted">No nominee on file.</p>
-          )}
-        </Card>
-      </div>
 
-      {e.dependents && e.dependents.length > 0 ? (
-        <Card>
-          <h2 className="text-base font-bold text-text mb-3">
-            Covered members
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {e.dependents.map((d) => (
-              <div
-                key={d.id}
-                className="flex items-center gap-2 px-3 py-2 bg-surface-2 rounded-md text-sm"
-              >
-                <Users size={14} className="text-text-muted" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-text truncate">
-                    {d.name}
+            <aside className="flex flex-col gap-5 xl:col-span-4">
+              <section className={PANEL}>
+                <PanelHeader
+                  icon={<UserCheck size={16} />}
+                  tone="bg-emerald-50 text-emerald-600"
+                  title="Nominee"
+                  caption="Beneficiary on file."
+                />
+                {e.nomineeName ? (
+                  <div className="mt-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Name</span>
+                      <span className="font-medium text-slate-900">{e.nomineeName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Relation</span>
+                      <span className="capitalize text-slate-900">{e.nomineeRelation}</span>
+                    </div>
+                    {e.nomineeDob ? (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">DOB</span>
+                        <span className="text-slate-900">{formatDate(e.nomineeDob)}</span>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="text-[11px] text-text-muted">
-                    {d.relation}
-                    {d.dob ? ` · ${formatDate(d.dob)}` : ""}
-                  </div>
-                </div>
-              </div>
-            ))}
+                ) : (
+                  <p className="mt-4 text-sm text-slate-400">No nominee on file.</p>
+                )}
+              </section>
+
+              <section className={PANEL}>
+                <PanelHeader
+                  icon={<CreditCard size={16} />}
+                  tone="bg-sky-50 text-sky-600"
+                  title="E-card"
+                  caption="Cashless admission pass."
+                />
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                  Present your digital e-card at any network hospital — the insurer settles
+                  directly, no upfront payment.
+                </p>
+                <Link
+                  href={`/patient/insurance/ecard/${e.id}`}
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sky-600 text-xs font-bold text-white transition hover:bg-sky-500"
+                >
+                  <ExternalLink size={14} /> View e-card
+                </Link>
+              </section>
+
+              <QuickToolsPanel
+                id="pol-tools"
+                title="Insurance"
+                tools={[
+                  {
+                    icon: ShieldCheck,
+                    label: "Policies",
+                    hint: "My cover",
+                    href: "/patient/insurance",
+                    tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
+                  },
+                  {
+                    icon: Building2,
+                    label: "Marketplace",
+                    hint: "All plans",
+                    href: "/patient/insurance/marketplace",
+                    tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+                  },
+                  {
+                    icon: Wallet,
+                    label: "Claims",
+                    hint: "File & track",
+                    href: "/patient/insurance/claims",
+                    tone: "from-amber-500 to-orange-500 shadow-amber-500/30",
+                  },
+                ]}
+              />
+            </aside>
           </div>
-        </Card>
-      ) : null}
-
-      {renewMut.data?.checkoutUrl ? (
-        <Card className="border-2 border-amber-300 bg-amber-50/60">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-bold text-amber-900">Renewal checkout ready</div>
-              <div className="text-xs text-amber-800 mt-0.5">
-                Open payments.lk to complete renewal.
-              </div>
-            </div>
-            <a href={renewMut.data.checkoutUrl} target="_blank" rel="noopener noreferrer">
-              <Button size="sm">
-                <ExternalLink size={14} />
-                Open checkout
-              </Button>
-            </a>
-          </div>
-        </Card>
-      ) : null}
-
-      {e.status === "active" ? (
-        <div className="flex justify-end">
-          <button
-            onClick={() => {
-              if (confirm("Cancel this policy? This action cannot be undone.")) {
-                cancelMut.mutate();
-              }
-            }}
-            className="text-xs text-red-600 hover:text-red-700 font-semibold inline-flex items-center gap-1"
-          >
-            <X size={12} />
-            Cancel policy
-          </button>
-        </div>
-      ) : null}
-    </div>
+        </>
+      )}
+    </PatientPage>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[11px] text-text-muted uppercase tracking-wide">
-        {label}
-      </div>
-      <div className="text-base font-semibold text-text mt-0.5">{value}</div>
-    </div>
-  );
-}
-
-function Detail({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-7 w-7 rounded-md bg-surface-2 flex items-center justify-center text-text-muted shrink-0">
-        {icon}
-      </div>
-      <div className="text-text-soft">{label}:</div>
-      <div className="text-text font-medium">{value}</div>
-    </div>
-  );
-}

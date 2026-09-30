@@ -8,6 +8,7 @@ vi.mock("@/patient/hooks", () => ({
   useWellness: () => ({ data: { score: 78, level: { label: "Good" } }, isLoading: false }),
   useVitalsAlerts: () => ({ data: { count: 0 }, isLoading: false }),
   useInsurance: () => ({ data: null, isLoading: false, isError: false, error: null, refetch: vi.fn() }),
+  useRefillDue: () => ({ data: { count: 0 }, isLoading: false }),
 }));
 
 import { DashboardHero } from "./DashboardHero";
@@ -30,7 +31,7 @@ describe("DashboardHero", () => {
 
   it("shows vitals status as a pill with text, not dot-only", () => {
     const { container } = withClient(<DashboardHero />);
-    const pill = container.querySelector(".pt-hero");
+    const pill = container.querySelector("header");
     expect(pill).toBeTruthy();
     expect(pill?.textContent).toMatch(/Vitals steady|vital alert/);
   });

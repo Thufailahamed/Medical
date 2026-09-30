@@ -11,21 +11,31 @@ import {
   RotateCcw,
   ChevronRight,
   Plus,
-  Search,
-  X,
   ShieldCheck,
   AlertTriangle,
-  ExternalLink,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Button } from "@/portal/components/ui/Button";
-import { Skeleton } from "@/portal/components/ui/Empty";
 import { Drawer } from "@/portal/components/ui/Modal";
 import { toast } from "@/portal/components/ui/Toast";
-import { FilterPills } from "@/portal/components/chart/FilterPills";
-import { ChartEmpty } from "@/portal/components/chart/ChartEmpty";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PRIMARY_BTN,
+  ROW_LINK,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { PatientCombobox } from "@/portal/components/patient/PatientCombobox";
 import { FollowUpForm } from "@/portal/components/followups/FollowUpForm";
 import { useT } from "@/portal/i18n";
@@ -43,7 +53,7 @@ interface FollowUp {
   patient: { id: string; name: string } | null;
 }
 
-type Tab = "upcoming" | "completed" | "all";
+type Tab = "upcoming" | "overdue" | "completed" | "all";
 
 export default function FollowUpsPage() {
   const t = useT();
@@ -111,6 +121,7 @@ export default function FollowUpsPage() {
   const filtered = allFollowUps.filter((f) => {
     // Tab filter
     if (tab === "completed" && f.status !== "completed") return false;
+    if (tab === "overdue" && !isOverdueRow(f)) return false;
     if (tab === "upcoming") {
       const isFuture = (f.followUpDate || "") >= today;
       if (!isFuture || f.status === "cancelled" || f.status === "completed") return false;
@@ -125,292 +136,332 @@ export default function FollowUpsPage() {
     );
   });
 
+  function isOverdueRow(f: FollowUp) {
+    return Boolean(f.followUpDate) && (f.followUpDate || "") < today && f.status === "pending";
+  }
+
+  const dueThisWeek = useMemo(() => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 7);
+    const weekOut = d.toISOString().split("T")[0];
+    return allFollowUps.filter(
+      (f) =>
+        f.status === "pending" && !!f.followUpDate && f.followUpDate >= today && f.followUpDate <= weekOut,
+    ).length;
+  }, [allFollowUps, today]);
+
+  const closedCount = completedCount + allFollowUps.filter((f) => f.status === "cancelled").length;
+  const completionPct = closedCount > 0 ? Math.round((completedCount / closedCount) * 100) : 0;
+
   function getStatusMeta(status: string, followUpDate: string | null) {
     if (status === "completed") {
-      return { label: t("followUps.status.completed"), tone: "success" as const, icon: Check };
+      return { label: t("followUps.status.completed"), tone: "success" as const, accent: "bg-emerald-500" };
     }
     if (status === "cancelled") {
-      return { label: t("followUps.status.cancelled"), tone: "danger" as const, icon: XCircle };
+      return { label: t("followUps.status.cancelled"), tone: "neutral" as const, accent: "bg-slate-300" };
     }
     if (followUpDate && followUpDate < today) {
-      return { label: "Overdue", tone: "danger" as const, icon: AlertTriangle };
+      return { label: "Overdue", tone: "danger" as const, accent: "bg-red-500" };
     }
-    return { label: t("followUps.status.scheduled"), tone: "warn" as const, icon: Clock4 };
+    return { label: t("followUps.status.scheduled"), tone: "warn" as const, accent: "bg-amber-400" };
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Oceanic Hero Header ────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col gap-6"
-        style={{
-          background:
-            "radial-gradient(134.49% 134.49% at 94.63% 0%, #0284C7 0%, #0369A1 42.6%, #075985 100%)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                Continuity of Care · Patient Monitoring
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<CalendarClock size={13} aria-hidden />}
+          kicker="Continuity of care"
+          kickerMeta={`${dueThisWeek} due this week`}
+          title={
+            <>
+              Follow-ups &amp;{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                recalls
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-300/20 text-sky-100 border border-sky-300/30 flex items-center gap-1">
-                <ShieldCheck size={13} />
-                <span>Automated SMS & Recall Enabled</span>
+            </>
+          }
+          description="Track post-consultation reviews, schedule proactive check-ins and close care gaps before a patient is lost to follow-up."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" aria-hidden />
+                SMS recall enabled
               </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
-              Follow-ups & Patient Recalls
-            </h1>
-            <p className="text-sm text-sky-100/90 max-w-2xl mt-1 leading-relaxed">
-              Track post-consultation reviews, schedule proactive clinical check-ins, monitor treatment responses, and avoid lost-to-follow-up care gaps.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-sky-950 bg-white shadow-md hover:bg-sky-50 transition-all flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Schedule Follow-up</span>
-          </button>
-        </div>
-
-        {/* 4 Telemetry Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Total Recalls</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{totalCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">All scheduled check-ins</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">Upcoming & Due</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{upcomingCount}</span>
-            <span className="text-[10.5px] text-amber-200/80 mt-0.5">Active recall queue</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">Completed Reviews</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{completedCount}</span>
-            <span className="text-[10.5px] text-emerald-200/80 mt-0.5">Successfully seen</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-rose-200 uppercase tracking-wider">Overdue Alerts</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{overdueCount}</span>
-            <span className="text-[10.5px] text-rose-200/80 mt-0.5">Missed follow-up date</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Filter Controls ───────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all flex-1 max-w-md">
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by patient name, follow-up reason, or notes…"
-            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="h-5 w-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X size={12} />
+              {overdueCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setTab("overdue")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-300/30 bg-red-400/15 px-3 py-1.5 text-xs font-semibold text-red-100 transition-colors hover:bg-red-400/25"
+                >
+                  <AlertTriangle size={12} aria-hidden />
+                  {overdueCount} overdue
+                </button>
+              ) : null}
+            </>
+          }
+          actions={
+            <button type="button" onClick={() => setCreating(true)} className={HERO_PRIMARY}>
+              <Plus size={15} strokeWidth={2.5} className="text-sky-600" aria-hidden />
+              Schedule follow-up
             </button>
-          )}
-        </div>
-
-        <FilterPills<Tab>
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "upcoming", label: "Upcoming", count: upcomingCount },
-            { value: "completed", label: "Completed", count: completedCount },
-            { value: "all", label: "All Recalls", count: totalCount },
-          ]}
+          }
         />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Upcoming"
+            icon={<CalendarClock size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading ? "…" : String(upcomingCount)}
+            sub={dueThisWeek > 0 ? `${dueThisWeek} due in 7 days` : "Active recall queue"}
+            active={tab === "upcoming"}
+            onClick={() => setTab("upcoming")}
+          />
+          <StatTile
+            label="Overdue"
+            icon={<AlertTriangle size={16} />}
+            tone="bg-red-50 text-red-600"
+            value={String(overdueCount)}
+            sub={overdueCount > 0 ? "Missed review date" : "No missed reviews"}
+            badge={overdueCount > 0 ? { text: "Action", tone: "bg-red-50 text-red-600" } : undefined}
+            pulse={overdueCount > 0}
+            active={tab === "overdue"}
+            onClick={() => setTab("overdue")}
+          />
+          <StatTile
+            label="Completed"
+            icon={<Check size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(completedCount)}
+            sub={closedCount > 0 ? `${completionPct}% of closed recalls` : "Successfully seen"}
+            progress={closedCount > 0 ? completionPct : null}
+            active={tab === "completed"}
+            onClick={() => setTab("completed")}
+          />
+          <StatTile
+            label="All recalls"
+            icon={<Clock4 size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(totalCount)}
+            sub="Every scheduled check-in"
+            active={tab === "all"}
+            onClick={() => setTab("all")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── Follow-ups Listing ─────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3">
+      {/* ── Recall list ────────────────────────────────────────────────── */}
+      <section className={PANEL} aria-labelledby="fu-list">
+        <PanelHeader
+          id="fu-list"
+          icon={<CalendarClock size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Recall queue"
+          caption={
+            isLoading
+              ? "Loading follow-ups…"
+              : `${filtered.length} shown${search ? ` · matching “${search}”` : ""}`
+          }
+        />
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <PanelSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search patient, reason or notes…"
+            ariaLabel="Search follow-ups"
+          />
+          <Segmented<Tab>
+            ariaLabel="Filter follow-ups"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "upcoming", label: "Upcoming", count: upcomingCount },
+              { value: "overdue", label: "Overdue", count: overdueCount },
+              { value: "completed", label: "Completed", count: completedCount },
+              { value: "all", label: "All", count: totalCount },
+            ]}
+          />
+        </div>
+
         {isLoading ? (
-          [0, 1, 2].map((i) => (
-            <div key={i} className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
-              <Skeleton className="h-24 w-full rounded-xl" />
-            </div>
-          ))
-        ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs p-8">
-            <ChartEmpty
-              icon={<CalendarClock size={24} />}
-              title={
-                tab === "upcoming"
-                  ? "No upcoming follow-ups scheduled"
-                  : tab === "completed"
-                  ? "No completed follow-up reviews yet"
-                  : "No follow-up records found"
-              }
-              description={
-                search
-                  ? `No follow-ups matching "${search}". Try clearing your search query.`
-                  : "Keep patient care on track by scheduling timely post-treatment follow-up reminders."
-              }
-              action={
-                search ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all cursor-pointer"
-                  >
-                    Clear Search
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCreating(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Schedule Follow-up
-                  </button>
-                )
-              }
-            />
+          <div className="mt-5 space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[88px] animate-pulse rounded-xl bg-slate-100" />
+            ))}
           </div>
+        ) : filtered.length === 0 ? (
+          <EmptyBlock
+            icon={<CalendarClock size={19} />}
+            title={
+              search
+                ? "No matching follow-ups"
+                : tab === "upcoming"
+                  ? "No upcoming follow-ups"
+                  : tab === "overdue"
+                    ? "Nothing overdue"
+                    : tab === "completed"
+                      ? "No completed reviews yet"
+                      : "No follow-ups yet"
+            }
+            body={
+              search
+                ? `Nothing matches “${search}”. Try a patient name or reason.`
+                : tab === "overdue"
+                  ? "Every pending recall is still on schedule."
+                  : "Keep care on track by scheduling a review after a consultation or new treatment."
+            }
+            actions={
+              search ? (
+                <button type="button" onClick={() => setSearch("")} className={SECONDARY_BTN}>
+                  Clear search
+                </button>
+              ) : (
+                <button type="button" onClick={() => setCreating(true)} className={PRIMARY_BTN}>
+                  <Plus size={13} strokeWidth={2.5} />
+                  Schedule follow-up
+                </button>
+              )
+            }
+          />
         ) : (
-          filtered.map((f) => {
-            const meta = getStatusMeta(f.status, f.followUpDate);
-            const StatusIcon = meta.icon;
-            const isDone = f.status === "completed";
-            const isCancelled = f.status === "cancelled";
-            const isPending = f.status === "pending";
-            const isOverdue = Boolean(f.followUpDate) && (f.followUpDate || "") < today && isPending;
+          <ul className="mt-4 flex flex-col gap-2">
+            {filtered.map((f) => {
+              const meta = getStatusMeta(f.status, f.followUpDate);
+              const isDone = f.status === "completed";
+              const isCancelled = f.status === "cancelled";
+              const isPending = f.status === "pending";
+              const isOverdue = isOverdueRow(f);
+              const date = f.followUpDate ? new Date(`${f.followUpDate}T00:00:00`) : null;
+              const days = date ? Math.round((+date - +new Date(`${today}T00:00:00`)) / 86_400_000) : null;
 
-            return (
-              <div
-                key={f.id}
-                className={cn(
-                  "rounded-2xl border bg-white p-5 shadow-2xs transition-all hover:border-sky-300",
-                  isOverdue ? "border-rose-200 bg-rose-50/20" : "border-slate-200/90"
-                )}
-              >
-                <div className="flex flex-col gap-3.5">
-                  {/* Top Bar */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      <div
-                        className={cn(
-                          "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border",
-                          isDone
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              return (
+                <li key={f.id} className={cn(LIST_ROW, isOverdue && "bg-red-50/30")}>
+                  <RowAccent className={meta.accent} />
+                  <div className="flex min-w-0 flex-1 items-start gap-3.5 pl-1.5">
+                    {/* Calendar chip */}
+                    <span
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl",
+                        isOverdue
+                          ? "bg-red-50 text-red-700"
+                          : isDone
+                            ? "bg-emerald-50 text-emerald-700"
                             : isCancelled
-                            ? "bg-rose-50 text-rose-700 border-rose-200"
-                            : isOverdue
-                            ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        )}
-                      >
-                        <StatusIcon size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-bold text-slate-900 truncate">
-                            {f.title}
-                          </h3>
-                          <Pill tone={meta.tone}>{meta.label}</Pill>
-                          {f.followUpDate && (
-                            <span
-                              className={cn(
-                                "px-2.5 py-0.5 rounded-full text-xs font-bold border",
-                                isOverdue
-                                  ? "bg-rose-100 text-rose-800 border-rose-200"
-                                  : "bg-slate-100 text-slate-700 border-slate-200"
-                              )}
-                            >
-                              📅 {formatDate(f.followUpDate)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500 font-medium truncate mt-0.5 flex items-center gap-1.5">
-                          <span className="font-bold text-slate-700">
-                            {f.patient?.name || t("followUps.unknownPatient")}
-                          </span>
-                          <span>•</span>
-                          <span>Created {formatDate(f.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/portal/patients/${f.patientId}/follow-ups`}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200 transition-all flex items-center gap-1 shrink-0"
+                              ? "bg-slate-100 text-slate-400"
+                              : "bg-sky-50 text-sky-700",
+                      )}
+                      aria-hidden
                     >
-                      <span>Patient Chart</span>
-                      <ExternalLink size={12} />
-                    </Link>
+                      {date ? (
+                        <>
+                          <span className="text-[9.5px] font-bold uppercase tracking-wider opacity-80">
+                            {date.toLocaleDateString("en", { month: "short" })}
+                          </span>
+                          <span className="text-lg font-semibold leading-none tabular-nums">{date.getDate()}</span>
+                        </>
+                      ) : (
+                        <CalendarClock size={18} />
+                      )}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "truncate text-sm font-semibold text-slate-900",
+                            isCancelled && "text-slate-400 line-through",
+                          )}
+                        >
+                          {f.title}
+                        </span>
+                        <Pill tone={meta.tone}>{meta.label}</Pill>
+                        {isPending && days != null ? (
+                          <span
+                            className={cn(
+                              "rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold",
+                              days < 0
+                                ? "bg-red-50 text-red-600"
+                                : days <= 2
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-slate-100 text-slate-500",
+                            )}
+                          >
+                            {days < 0
+                              ? `${-days}d late`
+                              : days === 0
+                                ? "Today"
+                                : days === 1
+                                  ? "Tomorrow"
+                                  : `in ${days}d`}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-slate-400">
+                        <Link
+                          href={`/portal/patients/${f.patientId}/follow-ups`}
+                          className="truncate font-medium text-slate-600 hover:text-sky-700"
+                        >
+                          {f.patient?.name || t("followUps.unknownPatient")}
+                        </Link>
+                        <span className="text-slate-300">·</span>
+                        <span className="shrink-0">Created {formatDate(f.createdAt)}</span>
+                      </div>
+                      {f.notes ? (
+                        <p className="mt-2 line-clamp-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                          {f.notes}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
 
-                  {/* Notes */}
-                  {f.notes && (
-                    <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 font-medium leading-relaxed">
-                      {f.notes}
-                    </p>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-2">
-                      {isPending && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => updateStatus.mutate({ id: f.id, status: "completed" })}
-                            disabled={updateStatus.isPending}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
-                            style={{
-                              background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                            }}
-                          >
-                            <Check size={14} />
-                            <span>{t("followUps.markCompleted")}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateStatus.mutate({ id: f.id, status: "cancelled" })}
-                            disabled={updateStatus.isPending}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <XCircle size={14} />
-                            <span>{t("followUps.cancel")}</span>
-                          </button>
-                        </>
-                      )}
-                      {(isDone || isCancelled) && (
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5 pl-1.5 sm:pl-0">
+                    {isPending ? (
+                      <>
                         <button
                           type="button"
-                          onClick={() => updateStatus.mutate({ id: f.id, status: "pending" })}
+                          onClick={() => updateStatus.mutate({ id: f.id, status: "completed" })}
                           disabled={updateStatus.isPending}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-700 disabled:opacity-50"
                         >
-                          <RotateCcw size={13} />
-                          <span>Reopen Follow-up</span>
+                          <Check size={13} strokeWidth={2.5} />
+                          {t("followUps.markCompleted")}
                         </button>
-                      )}
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus.mutate({ id: f.id, status: "cancelled" })}
+                          disabled={updateStatus.isPending}
+                          title={t("followUps.cancel")}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <XCircle size={13} />
+                          {t("followUps.cancel")}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => updateStatus.mutate({ id: f.id, status: "pending" })}
+                        disabled={updateStatus.isPending}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-sky-700 disabled:opacity-50"
+                      >
+                        <RotateCcw size={12} />
+                        Reopen
+                      </button>
+                    )}
+                    <Link href={`/portal/patients/${f.patientId}/follow-ups`} className={ROW_LINK}>
+                      Chart
+                      <ChevronRight size={13} className="transition-transform group-hover/v:translate-x-0.5" />
+                    </Link>
                   </div>
-                </div>
-              </div>
-            );
-          })
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </div>
+      </section>
 
       {/* ── Create Follow-Up Drawer ────────────────────────────────────── */}
       <Drawer

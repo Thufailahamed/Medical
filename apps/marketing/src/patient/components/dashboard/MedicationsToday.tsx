@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   AlertCircle,
   Check,
@@ -10,13 +9,10 @@ import {
   Flame,
   Info,
   Pill as PillIcon,
+  Plus,
   SkipForward,
-  Utensils,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { CardHeader } from "@/patient/components/primitives/CardHeader";
-import { RadialGauge } from "@/patient/components/charts/RadialGauge";
 import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
 import {
   useMarkDoseTaken,
@@ -26,10 +22,41 @@ import {
   useTodayDoses,
 } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
+import {
+  EmptyBlock,
+  PANEL,
+  PanelHeader,
+  PrimaryLink,
+} from "@/portal/components/doctor/Workspace";
+
+/** Small progress ring for the "doses taken" summary tile. */
+function DoseRing({ pct }: { pct: number }) {
+  const r = 16;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" className="shrink-0 -rotate-90" aria-hidden>
+      <circle cx="20" cy="20" r={r} fill="none" stroke="#e2e8f0" strokeWidth="4" />
+      <circle
+        cx="20"
+        cy="20"
+        r={r}
+        fill="none"
+        stroke={pct >= 100 ? "#10b981" : "#0284c7"}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - pct / 100)}
+        style={{ transition: "stroke-dashoffset 600ms ease" }}
+      />
+    </svg>
+  );
+}
 
 /**
- * Premium Today's Plan (Medications) card with adherence gauge,
- * tabbed medication selector, context-aware action triggers, and status rows.
+ * Today's plan — a summary row (taken / still due / streak) above one
+ * actionable row per medicine, styled like the admin "Needs attention"
+ * queue: an accent rail marks rows with a dose due, and Take / Skip sit
+ * inline so nothing needs a second click to find.
  */
 export function MedicationsToday({ className }: { className?: string }) {
   const query = useMedicationsToday();
@@ -37,7 +64,7 @@ export function MedicationsToday({ className }: { className?: string }) {
   const doses = useTodayDoses();
   const markTaken = useMarkDoseTaken();
   const skip = useSkipDose();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const doseByMedicine = useMemo(() => {
@@ -56,302 +83,222 @@ export function MedicationsToday({ className }: { className?: string }) {
   const todayTaken = stats.data?.todayTaken ?? 0;
   const todayCount = stats.data?.todayCount ?? 0;
   const streak = stats.data?.streakDays ?? 0;
+  const remaining = Math.max(0, todayCount - todayTaken);
+  const pct = todayCount > 0 ? Math.round((todayTaken / todayCount) * 100) : 0;
 
-  async function run(action: () => Promise<unknown>, fallback: string) {
+  async function run(doseId: string, action: () => Promise<unknown>, fallback: string) {
     setActionError(null);
+    setBusyId(doseId);
     try {
       await action();
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : fallback);
+    } finally {
+      setBusyId(null);
     }
   }
 
   return (
-    <Card accent="sky" className={cn("anim-rise anim-rise-delay-2", className)}>
-      <CardHeader
+    <section className={cn(PANEL, className)} aria-labelledby="pt-today-plan">
+      <PanelHeader
+        id="pt-today-plan"
+        icon={<PillIcon size={16} />}
+        tone="bg-emerald-50 text-emerald-600"
         title="Today's plan"
-        caption="Your doses and schedule for today"
-        icon={<PillIcon size={16} aria-hidden />}
+        caption={
+          todayCount === 0
+            ? "Your doses and schedule for today"
+            : remaining === 0
+              ? `All ${todayCount} doses taken today`
+              : `${remaining} dose${remaining === 1 ? "" : "s"} still due · ${todayTaken} of ${todayCount} taken`
+        }
         href="/patient/medications"
         linkLabel="View all"
       />
 
+      {/* ── Day summary ─────────────────────────────────────────────── */}
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="flex items-center gap-3.5 rounded-xl bg-slate-50 p-4">
+          <DoseRing pct={pct} />
+          <span className="min-w-0">
+            <span className="block text-[24px] font-semibold leading-none tracking-[-0.03em] text-slate-900 tabular-nums">
+              {todayTaken}
+              <span className="text-sm font-medium text-slate-400">/{todayCount}</span>
+            </span>
+            <span className="mt-1.5 block truncate text-xs text-slate-400">Doses taken</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3.5 rounded-xl bg-slate-50 p-4">
+          <span
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+              remaining > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600",
+            )}
+          >
+            {remaining > 0 ? <Clock size={17} aria-hidden /> : <CheckCircle2 size={17} aria-hidden />}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[24px] font-semibold leading-none tracking-[-0.03em] text-slate-900 tabular-nums">
+              {remaining}
+            </span>
+            <span className="mt-1.5 block truncate text-xs text-slate-400">
+              {todayCount === 0 ? "No fixed doses today" : remaining > 0 ? "Still due" : "All done"}
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3.5 rounded-xl bg-slate-50 p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-orange-50 text-orange-500">
+            <Flame size={17} className="fill-orange-300" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[24px] font-semibold leading-none tracking-[-0.03em] text-slate-900 tabular-nums">
+              {streak}
+              <span className="ml-1 text-sm font-medium text-slate-400">day{streak === 1 ? "" : "s"}</span>
+            </span>
+            <span className="mt-1.5 block truncate text-xs text-slate-400">Day streak</span>
+          </span>
+        </div>
+      </div>
+
+      {/* ── Medicines ───────────────────────────────────────────────── */}
       <QueryBoundary
         query={query}
         emptyTitle="Nothing scheduled today"
         emptyDescription="You'll see doses here once your doctor issues an active plan."
-        className="mt-4"
+        className="mt-5"
       >
         {(data) => {
-          const meds = data.medicines.slice(0, 5);
-          const activeId = selectedId ?? meds[0]?.id ?? null;
-          const selected = meds.find((m) => m.id === activeId) ?? meds[0] ?? null;
-
-          const activeDoseList = selected ? doseByMedicine.get(selected.id) ?? [] : [];
-          const pending =
-            activeDoseList.find((d) => !d.takenAt && !d.skipped) ?? null;
-          const takenForMed = activeDoseList.filter((d) => d.takenAt).length;
-          const totalForMed = activeDoseList.length;
-          const pendingForMed = activeDoseList.filter(
-            (d) => !d.takenAt && !d.skipped,
-          ).length;
+          const meds = data.medicines.slice(0, 6);
+          if (meds.length === 0) {
+            return (
+              <EmptyBlock
+                icon={<PillIcon size={19} />}
+                title="Nothing scheduled today"
+                body="You'll see doses here once your doctor issues an active plan, or add a medicine you already take."
+                actions={
+                  <PrimaryLink href="/patient/medications" icon={<Plus size={13} />}>
+                    Add medicine
+                  </PrimaryLink>
+                }
+              />
+            );
+          }
 
           return (
-            <div className="mt-5 flex flex-col gap-5">
-              {selected ? (
-                <div className="grid gap-3 md:grid-cols-[200px_1fr]">
-                  {/* ── Day summary ─────────────────────────────────────── */}
-                  <div className="flex items-center gap-4 rounded-xl bg-surface-2 p-4 md:flex-col md:justify-center md:text-center">
-                    <RadialGauge
-                      value={todayTaken}
-                      max={Math.max(1, todayCount)}
-                      size={96}
-                      tone={todayCount > 0 && todayTaken >= todayCount ? "success" : "brand"}
-                      display={`${todayTaken}/${todayCount}`}
-                      label="doses"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text">
-                        {todayCount === 0
-                          ? "No fixed doses today"
-                          : todayTaken >= todayCount
-                            ? "All doses taken"
-                            : `${todayCount - todayTaken} dose${todayCount - todayTaken === 1 ? "" : "s"} left`}
-                      </p>
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                        <Flame size={12} className="fill-amber-400 text-amber-500" aria-hidden />
-                        {streak}-day streak
-                      </p>
-                    </div>
-                  </div>
+            <div className="mt-5">
+              <p className="mb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Medication schedule
+              </p>
+              <ul className="flex flex-col gap-2" data-testid="med-dose-list">
+                {meds.map((m) => {
+                  const list = doseByMedicine.get(m.id) ?? [];
+                  const taken = list.filter((d) => d.takenAt).length;
+                  const skipped = list.filter((d) => d.skipped).length;
+                  const pending = list.find((d) => !d.takenAt && !d.skipped) ?? null;
+                  const pendingCount = list.filter((d) => !d.takenAt && !d.skipped).length;
+                  const total = list.length;
+                  const state = total === 0 ? "prn" : pendingCount > 0 ? "due" : "done";
+                  const busy = pending != null && busyId === pending.id;
 
-                  {/* ── Selected medicine ───────────────────────────────── */}
-                  <div className="flex flex-col justify-between gap-4 rounded-xl border border-border p-4">
-                    <div>
-                      {meds.length > 1 && (
-                        <div className="-mx-1 mb-3 flex items-center gap-1 overflow-x-auto px-1 pb-1">
-                          {meds.map((m) => {
-                            const on = m.id === selected.id;
-                            const pendingCount = (doseByMedicine.get(m.id) ?? []).filter(
-                              (d) => !d.takenAt && !d.skipped,
-                            ).length;
-                            return (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => setSelectedId(m.id)}
-                                className={cn(
-                                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
-                                  on
-                                    ? "bg-ink text-white"
-                                    : "bg-surface-2 text-text-soft hover:bg-surface-3 hover:text-text",
-                                )}
-                              >
-                                {m.name}
-                                {pendingCount > 0 ? (
-                                  <span
-                                    className={cn(
-                                      "rounded px-1 text-[10px] font-bold",
-                                      on ? "bg-white/20 text-white" : "bg-warn-soft text-warn",
-                                    )}
-                                  >
-                                    {pendingCount}
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
+                  return (
+                    <li
+                      key={m.id}
+                      className={cn(
+                        "relative flex flex-wrap items-center gap-3.5 rounded-xl p-3.5 transition-all sm:flex-nowrap",
+                        state === "due"
+                          ? "bg-white shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:shadow-[0_10px_28px_-14px_rgba(15,23,42,0.25),inset_0_0_0_1px_rgba(2,132,199,0.25)]"
+                          : "bg-slate-50/70",
                       )}
-
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-display text-lg font-semibold tracking-[-0.02em] text-text">
-                          {selected.name}
-                        </h3>
-                        <span className="shrink-0 rounded-md bg-surface-2 px-2 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-text-soft">
-                          {totalForMed === 0 ? "As needed" : "Scheduled"}
+                    >
+                      <span
+                        className={cn(
+                          "absolute inset-y-3 left-0 w-[3px] rounded-r-full",
+                          state === "due" ? "bg-amber-400" : state === "done" ? "bg-emerald-500" : "bg-transparent",
+                        )}
+                        aria-hidden
+                      />
+                      <span
+                        className={cn(
+                          "ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                          state === "due"
+                            ? "bg-amber-50 text-amber-600"
+                            : state === "done"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-white text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]",
+                        )}
+                      >
+                        <PillIcon size={16} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline gap-2">
+                          <span className="truncate text-sm font-semibold text-slate-900">{m.name}</span>
+                          {m.dosage ? (
+                            <span className="shrink-0 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700">
+                              {m.dosage}
+                            </span>
+                          ) : null}
                         </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {selected.dosage ? (
-                          <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
-                            {selected.dosage}
-                          </span>
-                        ) : null}
-                        {selected.timing ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-soft">
-                            <Utensils size={11} aria-hidden />
-                            {selected.timing}
-                          </span>
-                        ) : null}
-                        {selected.frequency ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-soft">
-                            <Clock size={11} aria-hidden />
-                            {selected.frequency}
-                          </span>
-                        ) : null}
-                        {takenForMed > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
-                            <CheckCircle2 size={11} aria-hidden />
-                            {takenForMed} taken today
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {pending ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={markTaken.isPending}
-                          onClick={() =>
-                            run(() => markTaken.mutateAsync({ id: pending.id }), "Could not mark dose taken.")
-                          }
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          <Check size={14} strokeWidth={2.5} aria-hidden />
-                          {markTaken.isPending ? "Saving…" : "Take dose"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={skip.isPending}
-                          onClick={() =>
-                            run(() => skip.mutateAsync({ id: pending.id }), "Could not skip dose.")
-                          }
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-surface-2 px-3.5 text-xs font-semibold text-text transition-colors hover:bg-surface-3 disabled:opacity-50"
-                        >
-                          <SkipForward size={14} className="text-text-muted" aria-hidden />
-                          Skip
-                        </button>
-                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-text-muted">
-                          <Clock size={12} className="text-amber-500" aria-hidden />
-                          Dose due
+                        <span className="mt-0.5 block truncate text-xs text-slate-400">
+                          {m.timing ?? "Standard timing"}
+                          {m.frequency ? ` · ${m.frequency}` : ""}
+                          {skipped > 0 ? ` · ${skipped} skipped` : ""}
                         </span>
-                      </div>
-                    ) : totalForMed > 0 && pendingForMed === 0 ? (
-                      <p className="flex items-center gap-2 rounded-lg bg-success-soft px-3 py-2 text-xs font-medium text-emerald-800">
-                        <CheckCircle2 size={14} className="shrink-0 text-success" aria-hidden />
-                        All doses logged for this medicine today
-                      </p>
-                    ) : (
-                      <p className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 text-xs text-text-soft">
-                        <span className="inline-flex items-center gap-2">
-                          <Info size={14} className="shrink-0 text-brand" aria-hidden />
-                          No doses due today · take as needed
-                        </span>
-                        <Link
-                          href="/patient/medications"
-                          className="shrink-0 font-semibold text-brand hover:underline"
-                        >
-                          Manage
-                        </Link>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : null}
+                      </span>
 
-              {/* ── Schedule list ──────────────────────────────────────── */}
-              {meds.length > 0 ? (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-text-muted">Medication schedule</p>
-                  <ul className="divide-y divide-border" data-testid="med-dose-list">
-                    {meds.map((m) => {
-                      const isRowSelected = m.id === selected?.id;
-                      const list = doseByMedicine.get(m.id) ?? [];
-                      const taken = list.filter((d) => d.takenAt).length;
-                      const skipped = list.filter((d) => d.skipped).length;
-                      const pendingCount = list.filter(
-                        (d) => !d.takenAt && !d.skipped,
-                      ).length;
-                      const total = list.length;
-
-                      const tone =
-                        total === 0
-                          ? "text-text-soft bg-surface-2"
-                          : pendingCount === 0
-                            ? "text-success bg-success-soft"
-                            : "text-warn bg-warn-soft";
-
-                      return (
-                        <li key={m.id}>
+                      {state === "due" && pending ? (
+                        <span className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
                           <button
                             type="button"
-                            onClick={() => setSelectedId(m.id)}
-                            aria-pressed={isRowSelected}
-                            className={cn(
-                              "-mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
-                              isRowSelected ? "bg-brand-soft/50" : "hover:bg-surface-2",
-                            )}
+                            disabled={busy}
+                            onClick={() =>
+                              run(pending.id, () => skip.mutateAsync({ id: pending.id }), "Could not skip dose.")
+                            }
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] transition-colors hover:text-slate-900 disabled:opacity-50 sm:flex-none"
                           >
-                            <span className="flex min-w-0 items-center gap-3">
-                              <span
-                                className={cn(
-                                  "grid h-8 w-8 shrink-0 place-items-center rounded-[10px]",
-                                  isRowSelected ? "bg-brand text-white" : "bg-surface-2 text-text-soft",
-                                )}
-                              >
-                                <PillIcon size={14} aria-hidden />
-                              </span>
-                              <span className="min-w-0">
-                                <span className="flex items-baseline gap-1.5 text-sm">
-                                  <span className="truncate font-semibold text-text">{m.name}</span>
-                                  {m.dosage ? (
-                                    <span className="shrink-0 text-xs text-text-muted">{m.dosage}</span>
-                                  ) : null}
-                                </span>
-                                <span className="mt-0.5 block truncate text-xs text-text-muted">
-                                  {m.timing ?? "Standard timing"}
-                                  {m.frequency ? ` · ${m.frequency}` : ""}
-                                </span>
-                              </span>
-                            </span>
-
-                            <span
-                              className={cn(
-                                "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold",
-                                tone,
-                              )}
-                            >
-                              {total === 0 ? (
-                                <>
-                                  <Info size={11} aria-hidden />
-                                  As needed
-                                </>
-                              ) : pendingCount === 0 ? (
-                                <>
-                                  <Check size={11} strokeWidth={2.5} aria-hidden />
-                                  {taken} taken
-                                </>
-                              ) : (
-                                <>
-                                  <Clock size={11} aria-hidden />
-                                  {pendingCount} pending
-                                </>
-                              )}
-                              {skipped > 0 ? ` · ${skipped} skipped` : ""}
-                            </span>
+                            <SkipForward size={13} aria-hidden />
+                            Skip
                           </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
-
-              {actionError ? (
-                <div
-                  role="alert"
-                  className="flex items-center gap-2 rounded-lg bg-danger-soft p-3 text-xs text-danger"
-                >
-                  <AlertCircle size={14} className="shrink-0" aria-hidden />
-                  <span>{actionError}</span>
-                </div>
-              ) : null}
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              run(pending.id, () => markTaken.mutateAsync({ id: pending.id }), "Could not mark dose taken.")
+                            }
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition-colors hover:bg-emerald-700 disabled:opacity-50 sm:flex-none"
+                          >
+                            <Check size={14} strokeWidth={2.5} aria-hidden />
+                            {busy ? "Saving…" : pendingCount > 1 ? `Take (${pendingCount})` : "Take dose"}
+                          </button>
+                        </span>
+                      ) : state === "done" ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                          <CheckCircle2 size={12} aria-hidden />
+                          {taken} taken
+                        </span>
+                      ) : (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-white px-2 py-1 text-[11px] font-semibold text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+                          <Info size={12} aria-hidden />
+                          As needed
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           );
         }}
       </QueryBoundary>
-    </Card>
+
+      {actionError ? (
+        <div
+          role="alert"
+          className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs text-rose-700"
+        >
+          <AlertCircle size={14} className="shrink-0" aria-hidden />
+          <span>{actionError}</span>
+        </div>
+      ) : null}
+    </section>
   );
 }

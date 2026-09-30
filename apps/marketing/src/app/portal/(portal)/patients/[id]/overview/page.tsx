@@ -7,11 +7,12 @@
  * /doctor-portal/patients/:id/overview payload onto one screen so
  * the most safety-critical + most-asked-about info is visible
  * before scrolling:
- *   1. Allergies + chronic conditions (prominent safety banner)
- *   2. Quick actions (compose, order, schedule)
- *   3. Last-updated + print + refresh header
- *   4. Hero stat strip (counts)
- *   5. Vitals alerts (only if any)
+ *   1. Toolbar: secondary actions (follow-up, book, inbox) + refresh/print
+ *      (primary Rx / note / lab actions live in the chart hero)
+ *   2. Vitals alerts (only if any)
+ *   3. Safety panel: allergies + chronic conditions
+ *   4. Stat strip (counts, each links to its tab)
+ *   5. AI summary
  *   6. 2-col body: main column (activeMeds → vitals → rx → labs →
  *      notes → visits) + sidebar (followUps → familyHistory →
  *      vaccinations → insurance → messages → records-by-type)
@@ -51,6 +52,8 @@ import {
   RefreshCw,
   AlertOctagon,
   ShieldAlert,
+  Check,
+  HeartPulse,
 } from "lucide-react";
 import {
   LineChart,
@@ -260,54 +263,43 @@ function Section({
   const t = useT();
   const palette = SECTION_TONE_CLASSES[tone];
   return (
-    <Card padding={false} className="overflow-hidden">
-      <div
-        className={cn(
-          "flex items-center justify-between gap-3 px-4 md:px-5 pt-4 pb-3 border-b border-border/60 bg-gradient-to-r",
-          palette.gradient
-        )}
-      >
+    <Card padding={false} className="overflow-hidden border-slate-200/80 shadow-xs hover:shadow-sm">
+      <div className="flex items-center justify-between gap-3 px-4 md:px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div
             className={cn(
-              "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+              "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
               palette.bg
             )}
           >
             {icon}
           </div>
-          <div className="text-sm font-bold text-text tracking-tight truncate">
+          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight truncate">
             {title}
-          </div>
+          </h3>
           {typeof count === "number" && count > 0 ? (
-            <span
-              className={cn(
-                "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums",
-                palette.bg
-              )}
-            >
+            <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold tabular-nums bg-slate-100 text-slate-600">
               {count}
             </span>
           ) : null}
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2">
+          {rightSlot}
           {seeAllHref ? (
             <Link
               href={seeAllHref}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand hover:text-brand-strong transition-colors group"
+              className="inline-flex items-center gap-0.5 h-7 pl-2.5 pr-1.5 rounded-lg text-xs font-semibold text-sky-700 hover:bg-sky-50 transition-colors group"
             >
               {seeAllLabel ?? t("overview.seeAll")}
               <ChevronRight
-                size={12}
+                size={13}
                 className="transition-transform group-hover:translate-x-0.5"
               />
             </Link>
-          ) : rightSlot ? (
-            rightSlot
           ) : null}
         </div>
       </div>
-      <div className="px-4 md:px-5 py-4">
+      <div className="px-4 md:px-5 pb-4">
         {isLoading ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-12 w-full" />
@@ -315,11 +307,15 @@ function Section({
             <Skeleton className="h-12 w-3/4" />
           </div>
         ) : isEmpty ? (
-          <Empty
-            title={emptyTitle ?? "—"}
-            className="py-6"
-            action={emptyAction}
-          />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              <div className={cn("h-9 w-9 rounded-full flex items-center justify-center shrink-0 opacity-70", palette.bg)}>
+                {icon}
+              </div>
+              <span className="text-sm font-medium text-slate-500">{emptyTitle ?? "—"}</span>
+            </div>
+            {emptyAction ? <div className="shrink-0">{emptyAction}</div> : null}
+          </div>
         ) : (
           body
         )}
@@ -558,112 +554,79 @@ function RecordTypeChip({
 
 // ─── Stat tile ──────────────────────────────────────────────────────────
 
+const STAT_TONES: Record<string, { icon: string; accent: string }> = {
+  emerald: { icon: "bg-emerald-50 text-emerald-600", accent: "bg-emerald-500" },
+  danger: { icon: "bg-rose-50 text-rose-600", accent: "bg-rose-500" },
+  brand: { icon: "bg-sky-50 text-sky-600", accent: "bg-sky-500" },
+  warn: { icon: "bg-amber-50 text-amber-600", accent: "bg-amber-500" },
+  violet: { icon: "bg-violet-50 text-violet-600", accent: "bg-violet-500" },
+  indigo: { icon: "bg-indigo-50 text-indigo-600", accent: "bg-indigo-500" },
+  neutral: { icon: "bg-slate-100 text-slate-600", accent: "bg-slate-400" },
+};
+
 function StatTile({
   icon,
   label,
   value,
   sub,
   tone = "neutral",
-  trend,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub?: string;
   tone?: SectionTone;
-  trend?: "up" | "down" | "flat";
+  href?: string;
 }) {
-  const toneStyles = {
-    emerald: {
-      border: "border-emerald-200 bg-white hover:border-emerald-300",
-      iconBg: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-      valText: "text-emerald-700",
-    },
-    danger: {
-      border: "border-rose-200 bg-white hover:border-rose-300",
-      iconBg: "bg-rose-50 text-rose-700 border border-rose-200",
-      valText: "text-rose-700",
-    },
-    brand: {
-      border: "border-sky-200 bg-white hover:border-sky-300",
-      iconBg: "bg-sky-50 text-sky-700 border border-sky-200",
-      valText: "text-sky-700",
-    },
-    warn: {
-      border: "border-amber-200 bg-white hover:border-amber-300",
-      iconBg: "bg-amber-50 text-amber-700 border border-amber-200",
-      valText: "text-amber-700",
-    },
-    violet: {
-      border: "border-purple-200 bg-white hover:border-purple-300",
-      iconBg: "bg-purple-50 text-purple-700 border border-purple-200",
-      valText: "text-purple-700",
-    },
-    neutral: {
-      border: "border-slate-200 bg-white hover:border-slate-300",
-      iconBg: "bg-slate-50 text-slate-700 border border-slate-200",
-      valText: "text-slate-900",
-    },
-  }[tone as string] || {
-    border: "border-slate-200 bg-white hover:border-slate-300",
-    iconBg: "bg-slate-50 text-slate-700 border border-slate-200",
-    valText: "text-slate-900",
-  };
-
-  return (
-    <div
-      className={cn(
-        "relative flex items-center gap-3.5 rounded-2xl border p-3.5 sm:p-4 transition-all shadow-2xs hover:shadow-xs",
-        toneStyles.border,
-      )}
-    >
-      <div
-        className={cn(
-          "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
-          toneStyles.iconBg,
-        )}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-1.5">
-          <div className={cn("text-xl font-black tabular-nums leading-tight", toneStyles.valText)}>
-            {value}
-          </div>
-          {trend ? (
-            <span
-              className={cn(
-                "inline-flex items-center text-[10px] font-bold",
-                trend === "up" && "text-emerald-600",
-                trend === "down" && "text-rose-600",
-                trend === "flat" && "text-slate-400"
-              )}
-            >
-              {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
-            </span>
-          ) : null}
+  const s = STAT_TONES[tone] ?? STAT_TONES.neutral;
+  const inner = (
+    <div className="group relative h-full flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 overflow-hidden">
+      <span className={cn("absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity", s.accent)} aria-hidden />
+      <div className="flex items-center justify-between gap-2">
+        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", s.icon)}>
+          {icon}
         </div>
-        <div className="text-[10px] uppercase tracking-wide font-bold text-slate-600 truncate mt-0.5">
-          {label}
-        </div>
-        {sub ? (
-          <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-            {sub}
-          </div>
+        {href ? (
+          <ChevronRight
+            size={14}
+            className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all"
+          />
         ) : null}
+      </div>
+      <div className="min-w-0">
+        <div className="text-2xl font-extrabold tabular-nums leading-none text-slate-900 truncate">
+          {value}
+        </div>
+        <div className="text-xs font-semibold text-slate-500 truncate mt-1.5">{label}</div>
+        {sub ? <div className="text-[11px] text-slate-400 mt-0.5 truncate">{sub}</div> : null}
       </div>
     </div>
   );
+  return href ? (
+    <Link href={href} className="block h-full">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
 }
 
-// ─── Safety banner: allergies + chronic conditions ──────────────────────
+// ─── Safety panel: allergies + chronic conditions ───────────────────────
+
+function isCriticalSeverity(severity: string | null | undefined) {
+  const sev = (severity ?? "").toLowerCase();
+  return sev === "severe" || sev === "life_threatening" || sev === "critical";
+}
 
 function SafetyBanner({
   allergies,
   chronic,
+  allergiesHref,
 }: {
   allergies: PatientOverview["allergies"];
   chronic: PatientOverview["chronicConditions"];
+  allergiesHref: string;
 }) {
   const t = useT();
 
@@ -676,150 +639,147 @@ function SafetyBanner({
     [allergies]
   );
 
-  const hasSevere = sorted.some(
-    (a) =>
-      (a.severity ?? "").toLowerCase() === "severe" ||
-      (a.severity ?? "").toLowerCase() === "life_threatening" ||
-      (a.severity ?? "").toLowerCase() === "critical"
-  );
+  const hasSevere = sorted.some((a) => isCriticalSeverity(a.severity));
+  const hasAllergies = sorted.length > 0;
 
   return (
-    <Card
-      padding={false}
+    <section
       className={cn(
-        "overflow-hidden",
-        hasSevere
-          ? "border-danger/50 ring-1 ring-danger/20"
-          : "border-border/60"
+        "rounded-2xl border bg-white shadow-xs overflow-hidden",
+        hasSevere ? "border-rose-300 ring-4 ring-rose-50" : "border-slate-200/80"
       )}
     >
-      <div
-        className={cn(
-          "flex items-center gap-3 px-4 md:px-5 py-3 border-b border-border/60 bg-gradient-to-r",
-          hasSevere
-            ? "from-danger-soft/70 to-transparent"
-            : "from-brand-soft/30 to-transparent"
-        )}
-      >
-        <div
-          className={cn(
-            "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-            hasSevere ? "bg-danger text-white" : "bg-brand text-white"
-          )}
-        >
-          {hasSevere ? <ShieldAlert size={16} /> : <Heart size={16} />}
+      {hasSevere ? (
+        <div className="flex items-center gap-2 px-4 md:px-5 py-2 bg-rose-600 text-white text-xs font-bold">
+          <ShieldAlert size={14} />
+          {t("overview.allergiesBanner.severeWarning")}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-text">
-            {t("overview.allergiesBanner.title")}
-          </div>
-          {hasSevere ? (
-            <div className="text-[11px] text-danger font-semibold mt-0.5">
-              {t("overview.allergiesBanner.severeWarning")}
-            </div>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
 
-      <div className="px-4 md:px-5 py-4">
-        {sorted.length === 0 ? (
-          <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-emerald-800">
-            <span className="h-6 w-6 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 text-xs font-bold shrink-0">
-              ✓
-            </span>
-            <div>
-              <span className="text-xs font-bold block">No Known Allergies on Record</span>
-              <span className="text-[11px] text-emerald-700/80">
-                Patient has not reported any adverse drug, environmental, or food hypersensitivity.
-              </span>
+      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        {/* Allergies */}
+        <div className="p-4 md:p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div
+                className={cn(
+                  "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                  hasAllergies ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                )}
+              >
+                {hasAllergies ? <ShieldAlert size={15} /> : <ShieldCheck size={15} />}
+              </div>
+              <h3 className="text-[15px] font-bold text-slate-900">Allergies</h3>
+              {hasAllergies ? (
+                <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold tabular-nums bg-rose-100 text-rose-700">
+                  {sorted.length}
+                </span>
+              ) : null}
             </div>
+            <Link
+              href={allergiesHref}
+              className="inline-flex items-center gap-0.5 h-7 pl-2.5 pr-1.5 rounded-lg text-xs font-semibold text-sky-700 hover:bg-sky-50 transition-colors"
+            >
+              {t("overview.seeAll")}
+              <ChevronRight size={13} />
+            </Link>
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {sorted.map((a) => {
-              const sev = (a.severity ?? "").toLowerCase();
-              const isCritical =
-                sev === "severe" ||
-                sev === "life_threatening" ||
-                sev === "critical";
-              return (
-                <div
-                  key={a.id}
-                  className={cn(
-                    "group flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-all",
-                    isCritical
-                      ? "border-danger/40 bg-danger-soft/60 hover:bg-danger-soft"
-                      : "border-warn/30 bg-warn-soft/30 hover:bg-warn-soft/60"
-                  )}
-                  title={a.notes ?? undefined}
-                >
-                  <AlertOctagon
-                    size={12}
+
+          {hasAllergies ? (
+            <div className="flex flex-wrap gap-2">
+              {sorted.map((a) => {
+                const sev = (a.severity ?? "").toLowerCase();
+                const isCritical = isCriticalSeverity(sev);
+                return (
+                  <div
+                    key={a.id}
                     className={cn(
-                      "shrink-0",
-                      isCritical ? "text-danger" : "text-warn"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-bold",
-                      isCritical ? "text-danger" : "text-amber-700"
-                    )}
-                  >
-                    {a.substance}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[10px] uppercase font-semibold tracking-wide px-1.5 py-0.5 rounded",
+                      "flex items-center gap-2 rounded-xl border pl-2 pr-2.5 py-1.5",
                       isCritical
-                        ? "bg-danger/15 text-danger"
-                        : "bg-warn/20 text-amber-700"
+                        ? "border-rose-200 bg-rose-50"
+                        : "border-amber-200 bg-amber-50/70"
                     )}
+                    title={a.notes ?? undefined}
                   >
-                    {t(
-                      `overview.severity.${
-                        sev === "life_threatening"
-                          ? "critical"
-                          : sev || "mild"
-                      }`
-                    )}
-                  </span>
-                  {a.reaction ? (
-                    <span className="text-[10px] text-text-soft hidden md:inline">
-                      · {a.reaction}
+                    <AlertOctagon
+                      size={14}
+                      className={cn("shrink-0", isCritical ? "text-rose-600" : "text-amber-600")}
+                    />
+                    <span className={cn("text-sm font-bold", isCritical ? "text-rose-800" : "text-amber-800")}>
+                      {a.substance}
                     </span>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {chronic.length > 0 ? (
-          <div className="mt-3 pt-3 border-t border-border/40">
-            <div className="text-[10px] uppercase tracking-wider font-bold text-text-muted mb-2">
-              Chronic conditions ({chronic.length})
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase font-bold tracking-wide px-1.5 py-0.5 rounded-md",
+                        isCritical ? "bg-rose-600 text-white" : "bg-amber-200/70 text-amber-800"
+                      )}
+                    >
+                      {t(
+                        `overview.severity.${
+                          sev === "life_threatening" ? "critical" : sev || "mild"
+                        }`
+                      )}
+                    </span>
+                    {a.reaction ? (
+                      <span className="text-xs text-slate-500 hidden md:inline">· {a.reaction}</span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
+          ) : (
+            <div className="flex items-start gap-3 rounded-xl bg-emerald-50/70 border border-emerald-100 px-3.5 py-3">
+              <span className="h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-px">
+                <Check size={13} strokeWidth={3} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-emerald-900">No known allergies</div>
+                <div className="text-xs text-emerald-700/80 mt-0.5">
+                  No adverse drug, environmental, or food hypersensitivity reported.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chronic conditions */}
+        <div className="p-4 md:p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <HeartPulse size={15} />
+            </div>
+            <h3 className="text-[15px] font-bold text-slate-900">Chronic conditions</h3>
+            {chronic.length > 0 ? (
+              <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold tabular-nums bg-slate-100 text-slate-600">
+                {chronic.length}
+              </span>
+            ) : null}
+          </div>
+          {chronic.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {chronic.map((c) => (
                 <span
                   key={c.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-text"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
                 >
-                  <CircleDot size={9} className="text-text-muted" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                   {c.name}
                   {c.since ? (
-                    <span className="text-text-muted font-normal">
-                      · {format(parseISO(c.since), "yyyy")}
+                    <span className="text-slate-400 font-medium">
+                      since {format(parseISO(c.since), "yyyy")}
                     </span>
                   ) : null}
                 </span>
               ))}
             </div>
-          </div>
-        ) : null}
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm text-slate-500">
+              None declared
+            </div>
+          )}
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -835,7 +795,7 @@ export default function PatientOverviewTab({
   const qc = useQueryClient();
 
   const base = `/portal/patients/${id}`;
-  const { data, isLoading, dataUpdatedAt } = useQuery({
+  const { data, isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: qk.patientOverview(id),
     queryFn: () => api<PatientOverview>(`/doctor-portal/patients/${id}/overview`),
     enabled: !!id,
@@ -884,12 +844,9 @@ export default function PatientOverviewTab({
   const vitalsCount = data?.vitals.latest?.length ?? 0;
   const rxCount = data?.prescriptions.recent?.length ?? 0;
   const recordsTotal = data?.records.counts.total ?? 0;
-  const nextVisit = data?.visits.nextScheduled;
-  const nextVisitSub = nextVisit
-    ? `${formatDate(nextVisit.date)}${nextVisit.time ? " · " + nextVisit.time : ""}`
-    : undefined;
-
-  const allergyCount = data?.allergies?.length ?? 0;
+  const labCount =
+    (data?.labOrders.recent?.length ?? 0) + (data?.labReports.recent?.length ?? 0);
+  const followUpCount = data?.followUps.upcoming?.length ?? 0;
 
   const handleRefresh = () =>
     qc.invalidateQueries({ queryKey: qk.patientOverview(id) });
@@ -900,186 +857,165 @@ export default function PatientOverviewTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ─── Toolbar: last-updated + refresh + print ─────────── */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] text-text-muted">
-          {dataUpdatedAt
-            ? t("overview.lastUpdated", {
-                time: relativeTime(new Date(dataUpdatedAt).toISOString()),
-              })
-            : null}
+      {/* ─── Toolbar: secondary actions + last-updated + refresh/print ─── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={`${base}/follow-ups`}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs transition-colors"
+          >
+            <CalendarClock size={14} className="text-sky-600" />
+            {t("overview.action.addFollowUp")}
+          </Link>
+          <Link
+            href="/portal/book-appointment"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs transition-colors"
+          >
+            <CalendarCheck size={14} className="text-emerald-600" />
+            {t("overview.action.bookVisit")}
+          </Link>
+          <Link
+            href="/portal/messages"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs transition-colors"
+          >
+            <MessageSquare size={14} className="text-violet-600" />
+            {t("overview.section.messages")}
+            {data?.messages.unreadCount ? (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-rose-500 text-white inline-flex items-center justify-center">
+                {data.messages.unreadCount}
+              </span>
+            ) : null}
+          </Link>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            leftIcon={<RefreshCw size={12} />}
+          {dataUpdatedAt ? (
+            <span className="text-[11px] text-slate-400 mr-1 hidden sm:inline">
+              {t("overview.lastUpdated", {
+                time: relativeTime(new Date(dataUpdatedAt).toISOString()),
+              })}
+            </span>
+          ) : null}
+          <button
+            type="button"
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={isLoading || isFetching}
+            title={t("overview.action.refresh")}
+            aria-label={t("overview.action.refresh")}
+            className="h-9 w-9 rounded-xl inline-flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {t("overview.action.refresh")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            leftIcon={<Printer size={12} />}
+            <RefreshCw size={15} className={cn(isFetching && "animate-spin")} />
+          </button>
+          <button
+            type="button"
             onClick={handlePrint}
-            className="hidden md:inline-flex"
+            title={t("overview.action.print")}
+            aria-label={t("overview.action.print")}
+            className="h-9 w-9 rounded-xl hidden md:inline-flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
           >
-            {t("overview.action.print")}
-          </Button>
+            <Printer size={15} />
+          </button>
         </div>
       </div>
 
-      {/* ─── Quick actions bar ─────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs flex flex-wrap items-center gap-2.5">
-        <div className="text-[10.5px] uppercase tracking-wider font-extrabold text-slate-400 px-2 hidden lg:block">
-          {t("overview.quickActions")}
-        </div>
-        <Link href={`${base}/prescriptions`} className="flex-1 min-w-[140px]">
-          <button
-            type="button"
-            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-white shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            style={{
-              background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-            }}
-          >
-            <Pill size={14} />
-            <span>{t("overview.action.addPrescription")}</span>
-          </button>
-        </Link>
-        <Link href={`${base}/clinical-notes`} className="flex-1 min-w-[140px]">
-          <button
-            type="button"
-            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Stethoscope size={14} className="text-slate-500" />
-            <span>{t("overview.action.addNote")}</span>
-          </button>
-        </Link>
-        <Link href={`${base}/lab-orders`} className="flex-1 min-w-[140px]">
-          <button
-            type="button"
-            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <FlaskConical size={14} className="text-slate-500" />
-            <span>{t("overview.action.addLabOrder")}</span>
-          </button>
-        </Link>
-        <Link href={`${base}/follow-ups`} className="flex-1 min-w-[140px]">
-          <button
-            type="button"
-            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <CalendarClock size={14} className="text-slate-500" />
-            <span>{t("overview.action.addFollowUp")}</span>
-          </button>
-        </Link>
-        <Link href="/portal/book-appointment" className="flex-1 min-w-[140px]">
-          <button
-            type="button"
-            className="w-full h-10 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <CalendarCheck size={14} className="text-slate-500" />
-            <span>{t("overview.action.bookVisit")}</span>
-          </button>
-        </Link>
-      </div>
-
-      {/* ─── Safety banner: allergies + chronic conditions ─────────── */}
-      {data ? (
-        <SafetyBanner
-          allergies={data.allergies}
-          chronic={data.chronicConditions}
-        />
-      ) : (
-        <Card>
-          <Skeleton className="h-20 w-full" />
-        </Card>
-      )}
-
-      {/* ─── AI summary ────────────────────────────────────────────── */}
-      <AiSummaryCard patientId={id} />
-
-      {/* ─── Hero stat strip ─────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <StatTile
-          icon={<Pill size={18} />}
-          label={t("overview.section.activeMeds")}
-          value={activeMedsCount}
-          tone="emerald"
-        />
-        <StatTile
-          icon={<Activity size={18} />}
-          label={t("overview.section.vitals")}
-          value={vitalsCount}
-          tone={data?.vitals.alerts?.length ? "danger" : "brand"}
-        />
-        <StatTile
-          icon={<FileText size={18} />}
-          label={t("overview.section.prescriptions")}
-          value={rxCount}
-          tone="brand"
-        />
-        <StatTile
-          icon={<AlertOctagon size={18} />}
-          label="Allergies"
-          value={allergyCount}
-          tone={allergyCount > 0 ? "danger" : "emerald"}
-          sub={allergyCount === 0 ? "No known allergies" : undefined}
-        />
-        <StatTile
-          icon={<ListChecks size={18} />}
-          label={t("overview.section.recordsSummary")}
-          value={recordsTotal}
-          tone="violet"
-        />
-        <StatTile
-          icon={<CalendarCheck size={18} />}
-          label={t("overview.nextVisit")}
-          value={nextVisit ? relativeTime(nextVisit.date) : "—"}
-          sub={nextVisitSub}
-          tone={nextVisit ? "warn" : "neutral"}
-        />
-      </div>
-
-      {/* ─── Vitals alerts banner ─────────────────────────── */}
+      {/* ─── Vitals alerts — first thing a clinician should see ───── */}
       {data?.vitals.alerts && data.vitals.alerts.length > 0 ? (
-        <div className="flex items-start gap-3.5 rounded-2xl border border-rose-200 bg-rose-50/75 p-4 shadow-2xs">
-          <div className="h-10 w-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+        <div className="flex items-start gap-3.5 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-white p-4 shadow-xs">
+          <div className="h-10 w-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-rose-500/30">
             <AlertTriangle size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-rose-900">
-                {t("overview.section.alerts")}
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200/80 text-rose-800 uppercase tracking-wide">
-                Critical Telemetry
-              </span>
+            <div className="text-sm font-bold text-rose-900">
+              {t("overview.section.alerts")}
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {data.vitals.alerts.slice(0, 6).map((al, idx) => {
                 const title = al.label || vitalLabel(al.type);
                 const reading = al.value != null ? `${al.value} ${al.unit ?? ""}` : null;
                 return (
-                  <span
+                  <Link
                     key={idx}
-                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-900 shadow-2xs"
+                    href={`${base}/vitals`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs shadow-xs hover:border-rose-300 transition-colors"
                   >
-                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping shrink-0" />
-                    <span className="font-bold text-slate-800">{title}</span>
-                    {reading && <span className="font-bold text-rose-700 font-mono">{reading}</span>}
-                    <span className="px-2 py-0.5 rounded-md text-[10.5px] font-extrabold uppercase bg-rose-100 text-rose-800">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                    </span>
+                    <span className="font-semibold text-slate-700 capitalize">{title}</span>
+                    {reading ? <span className="font-bold text-rose-700 tabular-nums">{reading}</span> : null}
+                    <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-100 text-rose-700">
                       {al.classification || "elevated"}
                     </span>
-                  </span>
+                  </Link>
                 );
               })}
             </div>
           </div>
         </div>
       ) : null}
+
+      {/* ─── Safety panel: allergies + chronic conditions ─────────── */}
+      {data ? (
+        <SafetyBanner
+          allergies={data.allergies}
+          chronic={data.chronicConditions}
+          allergiesHref={`${base}/allergies`}
+        />
+      ) : (
+        <Skeleton className="h-36 w-full rounded-2xl" />
+      )}
+
+      {/* ─── Stat strip — each tile jumps to its tab ─────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <StatTile
+          icon={<Pill size={17} />}
+          label={t("overview.section.activeMeds")}
+          value={activeMedsCount}
+          tone="emerald"
+          href={`${base}/medications`}
+        />
+        <StatTile
+          icon={<Activity size={17} />}
+          label={t("overview.section.vitals")}
+          value={vitalsCount}
+          sub={data?.vitals.alerts?.length ? `${data.vitals.alerts.length} out of range` : undefined}
+          tone={data?.vitals.alerts?.length ? "danger" : "brand"}
+          href={`${base}/vitals`}
+        />
+        <StatTile
+          icon={<FileText size={17} />}
+          label={t("overview.section.prescriptions")}
+          value={rxCount}
+          sub={data?.prescriptions.activeCount ? `${data.prescriptions.activeCount} active` : undefined}
+          tone="brand"
+          href={`${base}/prescriptions`}
+        />
+        <StatTile
+          icon={<FlaskConical size={17} />}
+          label={t("overview.section.labOrders")}
+          value={labCount}
+          tone="violet"
+          href={`${base}/lab-orders`}
+        />
+        <StatTile
+          icon={<CalendarClock size={17} />}
+          label={t("overview.section.followUps")}
+          value={followUpCount}
+          sub={data?.followUps.missed ? `${data.followUps.missed} ${t("overview.dueOverdue")}` : undefined}
+          tone={data?.followUps.missed ? "warn" : "brand"}
+          href={`${base}/follow-ups`}
+        />
+        <StatTile
+          icon={<ListChecks size={17} />}
+          label={t("overview.section.recordsSummary")}
+          value={recordsTotal}
+          tone="indigo"
+          href={`${base}/records`}
+        />
+      </div>
+
+      {/* ─── AI summary ────────────────────────────────────────────── */}
+      <AiSummaryCard patientId={id} />
 
       {/* ─── 2-column body: main + sidebar ─────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

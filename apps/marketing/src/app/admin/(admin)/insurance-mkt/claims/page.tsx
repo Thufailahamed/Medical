@@ -1,147 +1,209 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
+import {
+  Banknote,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Hash,
+  Receipt,
+  Stethoscope,
+  XCircle,
+} from "lucide-react";
 import { Pill } from "@/portal/components/ui/Pill";
-import { Table, THead, TBody, TR, TH, TD } from "@/portal/components/ui/Table";
 import { adminApi, adminQk } from "@/portal/lib/admin-api";
-import { Receipt } from "lucide-react";
+import { formatLkr } from "@/portal/lib/format";
+import {
+  DoctorHero,
+  HERO_CHIP,
+  HERO_GHOST,
+  PANEL,
+  PanelHeader,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  AdminDirectory,
+  OrgTile,
+  humanize,
+  type DirectoryRow,
+} from "@/portal/components/admin/AdminDirectory";
+import {
+  CLAIM_STATUSES,
+  OPEN_CLAIM_STATUSES,
+  claimTone,
+  lkrCompact,
+  useMktClaims,
+  type MktClaim,
+} from "@/portal/components/admin/insurance-mkt";
 
-type Claim = {
-  id: string;
-  patientName: string;
-  providerName: string;
-  policyNumber: string;
-  treatmentType: string;
-  amountRequestedLkr: number;
-  amountApprovedLkr?: number | null;
-  status: string;
-  submittedAt?: string | null;
-};
-
-const STATUS_TABS = [
-  undefined,
-  "submitted",
-  "under_review",
-  "more_info_needed",
-  "approved",
-  "rejected",
-  "paid",
-] as const;
-
-const TONE: Record<string, "warn" | "info" | "success" | "danger" | "neutral"> = {
-  submitted: "warn",
-  under_review: "info",
-  more_info_needed: "warn",
-  approved: "success",
-  rejected: "danger",
-  paid: "success",
-  draft: "neutral",
-};
+type Filter = "all" | (typeof CLAIM_STATUSES)[number];
 
 export default function AdminInsuranceMarketplaceClaimsPage() {
-  const [status, setStatus] = useState<string | undefined>();
+  const [status, setStatus] = useState<Filter>("all");
+
+  // Unfiltered list powers the stat strip + breakdown.
+  const { data: allData, isLoading: allLoading } = useMktClaims();
+  // The list itself is filtered server-side.
+  const statusParam = status === "all" ? undefined : status;
   const { data, isLoading } = useQuery({
-    queryKey: adminQk.insuranceMarketplaceClaims(status),
+    queryKey: adminQk.insuranceMarketplaceClaims(statusParam),
     queryFn: () =>
-      adminApi<{ claims: Claim[]; total: number }>(
-        `/admin/insurance-mkt-claims${status ? `?status=${status}` : ""}`,
+      adminApi<{ claims: MktClaim[]; total: number }>(
+        `/admin/insurance-mkt-claims${statusParam ? `?status=${statusParam}` : ""}`,
       ),
+    enabled: status !== "all",
   });
 
-  const rows = data?.claims ?? [];
+  const all = useMemo(() => allData?.claims ?? [], [allData]);
+  const list = status === "all" ? all : data?.claims ?? [];
+  const count = (s: string) => all.filter((c) => c.status === s).length;
+  const open = all.filter((c) => OPEN_CLAIM_STATUSES.has(c.status));
+  const requestedOpen = open.reduce((a, c) => a + c.amountRequestedLkr, 0);
+  const decided = all.filter((c) => ["approved", "paid", "rejected"].includes(c.status));
+  const approvedCount = count("approved") + count("paid");
+  const approvalRate = decided.length ? Math.round((approvedCount / decided.length) * 100) : null;
+  const approvedTotal = all.reduce((a, c) => a + (c.amountApprovedLkr ?? 0), 0);
+  const requestedDecided = all
+    .filter((c) => c.amountApprovedLkr != null)
+    .reduce((a, c) => a + c.amountRequestedLkr, 0);
+  const payoutRatio = requestedDecided ? Math.round((approvedTotal / requestedDecided) * 100) : null;
+
+  const pipeline = CLAIM_STATUSES.map((s) => ({ status: s, count: count(s) }));
+
+  const rows: DirectoryRow[] = list.map((c) => {
+    const tone = claimTone(c.status);
+    return {
+      id: c.id,
+      name: c.patientName,
+      href: `/admin/insurance-mkt/claims/${c.id}`,
+      leading: <OrgTile icon={<Receipt size={17} />} tone="from-sky-500 to-blue-600 shadow-sky-500/30" />,
+      accent: tone.rail,
+      badges: <Pill tone={tone.pill}>{humanize(c.status)}</Pill>,
+      meta: [
+        { icon: <Building2 size={11} />, text: c.providerName },
+        { icon: <Stethoscope size={11} />, text: humanize(c.treatmentType) },
+        {
+          icon: <Banknote size={11} />,
+          text:
+            c.amountApprovedLkr != null
+              ? `${formatLkr(c.amountApprovedLkr)} of ${formatLkr(c.amountRequestedLkr)}`
+              : `${formatLkr(c.amountRequestedLkr)} requested`,
+        },
+        ...(c.policyNumber ? [{ icon: <Hash size={11} />, text: c.policyNumber, mono: true, wide: true }] : []),
+        ...(c.submittedAt ? [{ icon: <CalendarDays size={11} />, text: new Date(c.submittedAt).toLocaleDateString(), wide: true }] : []),
+      ],
+      searchText: [c.providerName, c.policyNumber, c.treatmentType].filter(Boolean).join(" "),
+      linkLabel: "Details",
+    };
+  });
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl">
-      <PageHeader
-        icon={<Receipt size={20} className="text-blue-600" />}
-        title="Marketplace claims"
-        subtitle={`${data?.total ?? 0} total`}
-      />
-      <div className="flex gap-2 flex-wrap">
-        {STATUS_TABS.map((s) => (
-          <button
-            key={s ?? "all"}
-            onClick={() => setStatus(s)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium border ${
-              (s ?? "") === (status ?? "")
-                ? "bg-primary text-white border-primary"
-                : "bg-surface text-text-soft border-border"
-            }`}
-          >
-            {s ? s.replace(/_/g, " ") : "All"}
-          </button>
-        ))}
-      </div>
-      {isLoading || !data ? (
-        <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-surface p-5 shadow-sm" role="status" aria-label="Loading">
-          <div className="h-4 w-1/4 admin-shimmer rounded-md" />
-          <div className="h-4 w-full admin-shimmer rounded-md" />
-          <div className="h-4 w-5/6 admin-shimmer rounded-md" />
-          <div className="h-4 w-2/3 admin-shimmer rounded-md" />
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface p-10 text-center text-sm font-medium text-text-soft shadow-2xs">
-          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-text-muted ring-1 ring-inset ring-border">
-            <Receipt size={18} aria-hidden />
-          </div>
-          No claims.
-        </div>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Policyholder</TH>
-              <TH>Provider</TH>
-              <TH>Policy</TH>
-              <TH>Treatment</TH>
-              <TH className="text-right">Requested</TH>
-              <TH className="text-right">Approved</TH>
-              <TH>Status</TH>
-              <TH>Submitted</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {rows.map((c) => (
-              <TR key={c.id} className="hover:bg-surface-2">
-                <TD className="font-semibold">
-                  <Link
-                    href={`/admin/insurance-mkt/claims/${c.id}`}
-                    className="hover:underline"
+    <AdminDirectory<Filter>
+      hero={
+        <DoctorHero
+          kickerIcon={<Receipt size={13} aria-hidden />}
+          kicker="Insurance marketplace"
+          kickerMeta={`${all.length} claim${all.length === 1 ? "" : "s"}`}
+          title={
+            <>
+              Marketplace{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                claims
+              </span>
+            </>
+          }
+          description="Claims filed against marketplace policies. Insurers adjudicate them in their own portal — this view is for oversight."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <Clock size={12} className="text-amber-300" aria-hidden />
+                {open.length} open · {lkrCompact(requestedOpen)} requested
+              </span>
+              {approvalRate != null ? (
+                <span className={HERO_CHIP}>
+                  <CheckCircle2 size={12} className="text-emerald-300" aria-hidden />
+                  {approvalRate}% approval rate
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <Link href="/admin/insurance-mkt/enrollments" className={HERO_GHOST}>
+              <Receipt size={15} aria-hidden />
+              Enrollments
+            </Link>
+          }
+        />
+      }
+      stats={
+        <>
+          <StatTile label="Open claims" icon={<Clock size={16} />} tone="bg-amber-50 text-amber-600" value={allLoading ? "…" : String(open.length)} sub={`${count("more_info_needed")} need more info`} pulse={open.length > 0} active={status === "submitted"} onClick={() => setStatus("submitted")} />
+          <StatTile label="Approved & paid" icon={<CheckCircle2 size={16} />} tone="bg-emerald-50 text-emerald-600" value={String(approvedCount)} sub={`${count("paid")} paid out`} progress={approvalRate} active={status === "approved"} onClick={() => setStatus("approved")} />
+          <StatTile label="Rejected" icon={<XCircle size={16} />} tone="bg-red-50 text-red-600" value={String(count("rejected"))} sub="Declined by insurer" active={status === "rejected"} onClick={() => setStatus("rejected")} />
+          <StatTile label="Approved value" icon={<Banknote size={16} />} tone="bg-sky-50 text-sky-600" value={lkrCompact(approvedTotal)} sub={payoutRatio != null ? `${payoutRatio}% of amount requested` : "Nothing approved yet"} />
+        </>
+      }
+      title="Claims ledger"
+      icon={<Receipt size={16} />}
+      rows={rows}
+      total={status === "all" ? all.length : list.length}
+      loading={status === "all" ? allLoading : isLoading}
+      searchPlaceholder="Search policyholder, provider, policy or treatment…"
+      segmented={{
+        value: status,
+        onChange: setStatus,
+        options: [
+          { value: "all", label: "All", count: all.length },
+          ...CLAIM_STATUSES.map((s) => ({
+            value: s,
+            label: s === "more_info_needed" ? "More info" : s === "under_review" ? "Review" : humanize(s),
+            count: count(s),
+          })),
+        ],
+      }}
+      empty={{
+        icon: <Receipt size={19} />,
+        title: "No claims",
+        body: "Claims appear here when policyholders file them from the app.",
+      }}
+      aside={
+        <section className={PANEL} aria-labelledby="clm-pipeline">
+          <PanelHeader id="clm-pipeline" icon={<Receipt size={16} />} tone="bg-sky-50 text-sky-600" title="Claim pipeline" caption="Where every claim stands" />
+          <ul className="mt-4 flex flex-col gap-0.5">
+            {pipeline.map((p) => {
+              const on = status === p.status;
+              const tone = claimTone(p.status);
+              return (
+                <li key={p.status}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setStatus(on ? "all" : p.status)}
+                    className={
+                      on
+                        ? "-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg bg-sky-50 px-2 py-2 text-left"
+                        : "-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50"
+                    }
                   >
-                    {c.patientName}
-                  </Link>
-                </TD>
-                <TD className="text-xs">{c.providerName}</TD>
-                <TD className="text-xs font-mono">{c.policyNumber}</TD>
-                <TD className="text-xs capitalize">
-                  {c.treatmentType.replace(/_/g, " ")}
-                </TD>
-                <TD className="text-xs text-right">
-                  {c.amountRequestedLkr.toLocaleString()}
-                </TD>
-                <TD className="text-xs text-right">
-                  {typeof c.amountApprovedLkr === "number"
-                    ? c.amountApprovedLkr.toLocaleString()
-                    : "—"}
-                </TD>
-                <TD>
-                  <Pill tone={TONE[c.status] ?? "neutral"}>
-                    {c.status.replace(/_/g, " ")}
-                  </Pill>
-                </TD>
-                <TD className="text-xs">
-                  {c.submittedAt
-                    ? new Date(c.submittedAt).toLocaleDateString()
-                    : "—"}
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
-    </div>
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.rail}`} aria-hidden />
+                    <span className={on ? "min-w-0 flex-1 truncate text-[13px] font-semibold text-sky-800" : "min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700"}>
+                      {humanize(p.status)}
+                    </span>
+                    <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                      <span className={`block h-full rounded-full ${tone.rail}`} style={{ width: `${all.length ? (p.count / all.length) * 100 : 0}%` }} />
+                    </span>
+                    <span className="min-w-[24px] text-right text-[12px] font-semibold tabular-nums text-slate-600">{p.count}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      }
+    />
   );
 }

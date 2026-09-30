@@ -11,14 +11,13 @@ import {
 
 import { useInsurance, type InsuranceStatus } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
-import { Card } from "@/patient/components/primitives/Card";
-import { CardHeader } from "@/patient/components/primitives/CardHeader";
+import { PANEL, PanelHeader, PrimaryLink } from "@/portal/components/doctor/Workspace";
 
 const STATUS_TONE: Record<InsuranceStatus, string> = {
-  active: "text-success bg-success-soft",
-  pending: "text-warn bg-warn-soft",
-  lapsed: "text-danger bg-danger-soft",
-  expired: "text-danger bg-danger-soft",
+  active: "text-emerald-800 bg-emerald-300/90",
+  pending: "text-amber-900 bg-amber-300/90",
+  lapsed: "text-rose-900 bg-rose-300/90",
+  expired: "text-rose-900 bg-rose-300/90",
 };
 
 function daysUntil(iso: string | null): number | null {
@@ -38,50 +37,50 @@ export function InsuranceCoverage({ className }: { className?: string }) {
 
   const renewalTone =
     days != null && days <= 30
-      ? "text-warn bg-warn-soft"
+      ? "text-amber-700 bg-amber-50"
       : days != null
-        ? "text-brand bg-brand-soft"
-        : "text-text-soft bg-surface-2";
+        ? "text-sky-700 bg-sky-50"
+        : "text-slate-600 bg-slate-100";
 
   return (
-    <Card
-      as="section"
-      className={cn("anim-rise anim-rise-delay-2 flex h-full flex-col", className)}
+    <section
+      aria-labelledby="pt-insurance"
+      className={cn(PANEL, "flex h-full flex-col", className)}
     >
       <div>
-        <CardHeader
+        <PanelHeader
+          id="pt-insurance"
+          icon={<Shield size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
           title="Insurance"
           caption="Coverage & active policy"
-          icon={<Shield size={16} aria-hidden />}
           href="/patient/insurance"
           linkLabel="Manage"
         />
 
         {loading ? (
           <div data-testid="insurance-skeleton" className="mt-4 space-y-2.5">
-            <div className="h-24 rounded-xl patient-shimmer" />
-            <div className="h-8 rounded-lg patient-shimmer" />
+            <div className="h-28 animate-pulse rounded-xl bg-slate-100" />
+            <div className="h-8 animate-pulse rounded-lg bg-slate-100" />
           </div>
         ) : !policy ? (
-          <div className="mt-4 flex items-start gap-3 rounded-xl bg-surface-2 p-4">
+          <div className="mt-4 flex items-start gap-3 rounded-xl bg-slate-50 p-4">
             <span
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-surface text-brand shadow-card"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-white text-sky-600 shadow-[0_1px_2px_rgba(15,23,42,0.05),inset_0_0_0_1px_rgba(15,23,42,0.07)]"
               aria-hidden
             >
-              <CreditCard size={16} />
+              <CreditCard size={17} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-text">No policy linked</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-text-muted">
+              <p className="text-sm font-semibold text-slate-900">No policy linked</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
                 Connect your plan to track claims and check benefits.
               </p>
-              <Link
-                href="/patient/insurance"
-                className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-strong"
-              >
-                <Plus size={13} strokeWidth={2.5} aria-hidden />
-                Link policy
-              </Link>
+              <div className="mt-3">
+                <PrimaryLink href="/patient/insurance" icon={<Plus size={13} strokeWidth={2.5} />}>
+                  Link policy
+                </PrimaryLink>
+              </div>
             </div>
           </div>
         ) : (
@@ -89,13 +88,18 @@ export function InsuranceCoverage({ className }: { className?: string }) {
             {/* Digital card */}
             <Link
               href="/patient/insurance"
-              className="relative block overflow-hidden rounded-xl bg-gradient-to-br from-[#1a3a8f] via-[#2a58d9] to-[#3b82f6] p-4 text-white shadow-brand transition-transform hover:-translate-y-0.5"
+              className="relative block overflow-hidden rounded-xl p-4 text-white transition-transform hover:-translate-y-0.5"
+              style={{
+                background:
+                  "radial-gradient(320px 160px at 100% 0%, rgba(45,212,191,0.35), transparent 60%), linear-gradient(135deg, #07233a 0%, #0c4a6e 100%)",
+                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 16px 32px -16px rgba(7,35,58,0.55)",
+              }}
             >
               <span className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" aria-hidden />
               <span className="pointer-events-none absolute -bottom-12 right-10 h-28 w-28 rounded-full bg-white/5" aria-hidden />
               <span className="relative flex items-start justify-between gap-3">
                 <span className="min-w-0">
-                  <span className="block text-[10.5px] font-medium uppercase tracking-wider text-white/60">
+                  <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
                     Health plan
                   </span>
                   <span className="mt-0.5 block truncate text-[15px] font-semibold">
@@ -130,8 +134,8 @@ export function InsuranceCoverage({ className }: { className?: string }) {
                   {days <= 0 ? "Renewal due" : `renews in ${days}d`}
                 </span>
               ) : null}
-              <span className="inline-flex items-center gap-1.5 text-text-soft">
-                <FileCheck2 size={13} className="text-brand" aria-hidden />
+              <span className="inline-flex items-center gap-1.5 text-slate-500">
+                <FileCheck2 size={13} className="text-sky-600" aria-hidden />
                 {claimsOpen === 0
                   ? "No open claims"
                   : `${claimsOpen} open claim${claimsOpen === 1 ? "" : "s"}`}
@@ -140,6 +144,6 @@ export function InsuranceCoverage({ className }: { className?: string }) {
           </div>
         )}
       </div>
-    </Card>
+    </section>
   );
 }

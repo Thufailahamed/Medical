@@ -9,9 +9,9 @@ import {
   Sparkles,
   Hash,
   Plus,
-  Search,
-  X,
   ShieldCheck,
+  Loader,
+  TestTube2,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -19,11 +19,26 @@ import {
 
 import { api, qk } from "@/portal/lib/api";
 import { Pill } from "@/portal/components/ui/Pill";
-import { ErrorState, Skeleton } from "@/portal/components/ui/Empty";
+import { ErrorState } from "@/portal/components/ui/Empty";
 import { Avatar } from "@/portal/components/ui/Avatar";
 import { Drawer } from "@/portal/components/ui/Modal";
-import { FilterPills } from "@/portal/components/chart/FilterPills";
-import { ChartEmpty } from "@/portal/components/chart/ChartEmpty";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PRIMARY_BTN,
+  ROW_LINK,
+  RowAccent,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
 import { AiExplainLabDrawer } from "@/portal/components/ai/AiExplainLabDrawer";
 import { PatientCombobox } from "@/portal/components/patient/PatientCombobox";
 import { LabOrderForm } from "@/portal/components/labs/LabOrderForm";
@@ -34,8 +49,6 @@ import {
   labOrderStatusToTone,
 } from "@/portal/lib/clinicalTones";
 import {
-  LAB_ORDER_STATUS_FILTERS,
-  labOrderFilterLabelKey,
   labOrderFilterToQuery,
   labOrderPriorityLabelKey,
   labOrderStatusLabelKey,
@@ -55,6 +68,22 @@ interface LabOrderRow {
   patientName?: string | null;
   patientNic?: string | null;
   patientPhoto?: string | null;
+}
+
+const LAB_ACCENT: Record<string, string> = {
+  ordered: "bg-amber-400",
+  processing: "bg-violet-500",
+  sample_collected: "bg-violet-500",
+  in_progress: "bg-violet-500",
+  completed: "bg-emerald-500",
+  cancelled: "bg-slate-300",
+};
+
+const PROCESSING = new Set(["processing", "sample_collected", "in_progress"]);
+
+function isUrgent(priority?: string | null) {
+  const p = (priority ?? "").toLowerCase();
+  return p === "stat" || p === "urgent";
 }
 
 function safeJson(s: string | string[]): string[] {
@@ -112,7 +141,7 @@ export default function DoctorLabOrdersPage() {
   // Status telemetry counters
   const totalCount = allRows.length;
   const orderedCount = allRows.filter((o) => o.status === "ordered").length;
-  const processingCount = allRows.filter((o) => o.status === "processing").length;
+  const processingCount = allRows.filter((o) => PROCESSING.has(o.status)).length;
   const completedCount = allRows.filter((o) => o.status === "completed").length;
   const cancelledCount = allRows.filter((o) => o.status === "cancelled").length;
 
@@ -126,243 +155,249 @@ export default function DoctorLabOrdersPage() {
     );
   });
 
+  const openCount = orderedCount + processingCount;
+  const urgentOpen = allRows.filter(
+    (o) => (o.status === "ordered" || PROCESSING.has(o.status)) && isUrgent(o.priority),
+  ).length;
+  const completedPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Oceanic Hero Header ────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col gap-6"
-        style={{
-          background:
-            "radial-gradient(134.49% 134.49% at 94.63% 0%, #0284C7 0%, #0369A1 42.6%, #075985 100%)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                Diagnostic Laboratory & Pathology Hub
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {/* ── Hero + floating stat strip ─────────────────────────────────── */}
+      <div>
+        <DoctorHero
+          kickerIcon={<FlaskConical size={13} aria-hidden />}
+          kicker="Diagnostics"
+          kickerMeta={`${openCount} open requisition${openCount === 1 ? "" : "s"}`}
+          title={
+            <>
+              Lab orders &amp;{" "}
+              <span className="bg-gradient-to-r from-sky-200 via-white to-teal-200 bg-clip-text text-transparent">
+                results
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-300/20 text-sky-100 border border-sky-300/30 flex items-center gap-1">
-                <ShieldCheck size={13} />
-                <span>LIMS & HL7 Integrated</span>
+            </>
+          }
+          description="Request haematology, biochemistry and pathology panels, follow each sample through the lab, and read results with the AI explainer."
+          chips={
+            <>
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-sky-300" aria-hidden />
+                LIMS &amp; HL7 integrated
               </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
-              Lab Orders & Diagnostic Requisitions
-            </h1>
-            <p className="text-sm text-sky-100/90 max-w-2xl mt-1 leading-relaxed">
-              Order hematology, biochemistry, and pathology panels, monitor diagnostic processing statuses in real time, and analyze laboratory results with integrated AI explainers.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-sky-950 bg-white shadow-md hover:bg-sky-50 transition-all flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Request New Lab Order</span>
-          </button>
-        </div>
-
-        {/* 4 Telemetry Status Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Total Orders</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{totalCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Historical diagnostic panels</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">Ordered & Pending</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{orderedCount}</span>
-            <span className="text-[10.5px] text-amber-200/80 mt-0.5">Awaiting sample collection</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-sky-200 uppercase tracking-wider">Processing</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{processingCount}</span>
-            <span className="text-[10.5px] text-sky-200/80 mt-0.5">Under laboratory assay</span>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-3.5 flex flex-col">
-            <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">Completed / Reported</span>
-            <span className="text-2xl font-black text-white mt-1 tabular-nums">{completedCount}</span>
-            <span className="text-[10.5px] text-emerald-200/80 mt-0.5">Results verified & filed</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Segmented Filter Controls ─────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all flex-1 max-w-md">
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by patient, test name, or clinical notes…"
-            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="h-5 w-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X size={12} />
+              {urgentOpen > 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-red-300/30 bg-red-400/15 px-3 py-1.5 text-xs font-semibold text-red-100">
+                  <AlertCircle size={12} aria-hidden />
+                  {urgentOpen} urgent in progress
+                </span>
+              ) : null}
+            </>
+          }
+          actions={
+            <button type="button" onClick={() => setCreating(true)} className={HERO_PRIMARY}>
+              <Plus size={15} strokeWidth={2.5} className="text-sky-600" aria-hidden />
+              New lab order
             </button>
-          )}
-        </div>
-
-        <FilterPills<LabOrderStatusFilter>
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "all", label: "All", count: totalCount },
-            { value: "ordered", label: "Ordered", count: orderedCount },
-            { value: "processing", label: "Processing", count: processingCount },
-            { value: "completed", label: "Completed", count: completedCount },
-            { value: "cancelled", label: "Cancelled", count: cancelledCount },
-          ]}
+          }
         />
+
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Total orders"
+            icon={<FlaskConical size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={isLoading && !allData ? "…" : String(totalCount)}
+            sub={cancelledCount > 0 ? `${cancelledCount} cancelled` : "All requisitions"}
+            active={status === "all"}
+            onClick={() => setStatus("all")}
+          />
+          <StatTile
+            label="Awaiting sample"
+            icon={<Clock size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(orderedCount)}
+            sub={orderedCount > 0 ? "Pending collection" : "All samples collected"}
+            pulse={orderedCount > 0}
+            active={status === "ordered"}
+            onClick={() => setStatus("ordered")}
+          />
+          <StatTile
+            label="Processing"
+            icon={<Loader size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(processingCount)}
+            sub="Under laboratory assay"
+            active={status === "processing"}
+            onClick={() => setStatus("processing")}
+          />
+          <StatTile
+            label="Reported"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(completedCount)}
+            sub={`${completedPct}% of orders resulted`}
+            progress={totalCount > 0 ? completedPct : null}
+            active={status === "completed"}
+            onClick={() => setStatus("completed")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── Lab Orders Listing ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden bg-white">
+      {/* ── Orders ledger ──────────────────────────────────────────────── */}
+      <section className={PANEL} aria-labelledby="lab-ledger">
+        <PanelHeader
+          id="lab-ledger"
+          icon={<TestTube2 size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Requisitions"
+          caption={
+            isLoading
+              ? "Loading orders…"
+              : `${filteredRows.length} of ${rows.length} shown${search ? ` · matching “${search}”` : ""}`
+          }
+        />
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <PanelSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search patient, test or clinical notes…"
+            ariaLabel="Search lab orders"
+          />
+          <Segmented<LabOrderStatusFilter>
+            ariaLabel="Filter by status"
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "all", label: "All", count: totalCount },
+              { value: "ordered", label: "Ordered", count: orderedCount },
+              { value: "processing", label: "Processing", count: processingCount },
+              { value: "completed", label: "Completed", count: completedCount },
+              { value: "cancelled", label: "Cancelled", count: cancelledCount },
+            ]}
+          />
+        </div>
+
         {isLoading ? (
-          <div className="p-5 flex flex-col gap-3">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="mt-5 space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[72px] animate-pulse rounded-xl bg-slate-100" />
+            ))}
           </div>
         ) : isError ? (
-          <div className="p-5">
+          <div className="mt-5">
             <ErrorState
               title={t("errors.generic")}
               description={(error as Error)?.message ?? t("errors.tryAgain")}
             />
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="p-8">
-            <ChartEmpty
-              icon={<FlaskConical size={24} />}
-              title="No lab orders found"
-              description={
-                search
-                  ? `No orders matching "${search}". Try clearing your search query.`
-                  : "No diagnostic lab orders have been requested under this category yet."
-              }
-              action={
-                search ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
-                  >
-                    Clear Search
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setCreating(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs"
-                    style={{
-                      background: "linear-gradient(135deg, #0284C7 0%, #0369A1 100%)",
-                    }}
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Request New Lab Order
-                  </button>
-                )
-              }
-            />
-          </div>
+          <EmptyBlock
+            icon={<FlaskConical size={19} />}
+            title={search ? "No matching orders" : "No lab orders here yet"}
+            body={
+              search
+                ? `Nothing matches “${search}”. Try a patient name or test.`
+                : "Requisitions you raise appear here and update as the lab collects, processes and reports them."
+            }
+            actions={
+              search ? (
+                <button type="button" onClick={() => setSearch("")} className={SECONDARY_BTN}>
+                  Clear search
+                </button>
+              ) : (
+                <button type="button" onClick={() => setCreating(true)} className={PRIMARY_BTN}>
+                  <Plus size={13} strokeWidth={2.5} />
+                  New lab order
+                </button>
+              )
+            }
+          />
         ) : (
-          <ul className="flex flex-col divide-y divide-slate-100">
+          <ul className="mt-4 flex flex-col gap-2">
             {filteredRows.map((o) => (
-              <li
-                key={o.id}
-                className="group flex items-center justify-between gap-4 px-5 py-4 hover:bg-sky-50/40 transition-colors"
-              >
+              <li key={o.id} className={LIST_ROW}>
+                <RowAccent className={LAB_ACCENT[o.status]} />
                 <Link
                   href={`/portal/patients/${o.patientId}/lab-orders`}
-                  className="flex items-center gap-3.5 flex-1 min-w-0"
+                  className="flex min-w-0 flex-1 items-center gap-3.5 pl-1.5"
                 >
                   <Avatar
                     name={o.patientName ?? "?"}
                     src={o.patientPhoto ?? undefined}
                     size="md"
-                    className="ring-2 ring-slate-100 shadow-2xs shrink-0"
+                    className="h-10 w-10 shrink-0"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0 mb-1">
-                      <span className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-700 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-sky-700">
                         {o.patientName ?? t("labs.untitled")}
                       </span>
-                      <Pill tone={labOrderStatusToTone(o.status)}>
-                        {t(labOrderStatusLabelKey(o.status))}
-                      </Pill>
-                      <Pill tone={labOrderPriorityToTone(o.priority)}>
-                        {t(labOrderPriorityLabelKey(o.priority))}
-                      </Pill>
-                      {o.patientNic && (
-                        <span className="text-xs text-slate-400 font-medium">
-                          • NIC: {o.patientNic}
-                        </span>
-                      )}
+                      <Pill tone={labOrderStatusToTone(o.status)}>{t(labOrderStatusLabelKey(o.status))}</Pill>
+                      {isUrgent(o.priority) ? (
+                        <Pill tone={labOrderPriorityToTone(o.priority)}>{t(labOrderPriorityLabelKey(o.priority))}</Pill>
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate flex-wrap">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {o.tests.length > 0 ? (
-                          o.tests.map((test) => (
+                    <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                      {o.tests.length > 0 ? (
+                        <>
+                          {o.tests.slice(0, 4).map((test) => (
                             <span
                               key={test}
-                              className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200/80"
+                              className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700"
                             >
                               {test}
                             </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 italic">
-                            {o.notes ?? t("labs.untitled")}
-                          </span>
-                        )}
-                      </div>
-                      {o.orderedAt && (
-                        <span className="text-xs text-slate-400 font-medium ml-1">
-                          • {formatDateTime(o.orderedAt)}
-                        </span>
+                          ))}
+                          {o.tests.length > 4 ? (
+                            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
+                              +{o.tests.length - 4}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="truncate italic text-slate-400">{o.notes ?? t("labs.untitled")}</span>
                       )}
+                      {o.orderedAt ? (
+                        <span className="ml-1 inline-flex shrink-0 items-center gap-1 text-slate-400">
+                          <Clock size={11} />
+                          {formatDateTime(o.orderedAt)}
+                        </span>
+                      ) : null}
+                      {o.patientNic ? (
+                        <span className="hidden shrink-0 items-center gap-1 font-mono text-[11px] text-slate-400 md:inline-flex">
+                          <Hash size={10} />
+                          {o.patientNic}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </Link>
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {o.status === "completed" && (
+                <div className="flex shrink-0 items-center gap-2 pl-1.5 sm:pl-0">
+                  {o.status === "completed" ? (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         setExplainFor(o);
                       }}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1 cursor-pointer"
                       title={t("labOrders.actions.explain")}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 text-xs font-semibold text-amber-800 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.2)] transition-all hover:shadow-[inset_0_0_0_1px_rgba(217,119,6,0.4)]"
                     >
                       <Sparkles size={13} className="text-amber-600" />
-                      <span>AI Explainer</span>
+                      AI explain
                     </button>
-                  )}
-                  <Link
-                    href={`/portal/patients/${o.patientId}/lab-orders`}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>View Order</span>
-                    <ArrowRight size={13} />
+                  ) : null}
+                  <Link href={`/portal/patients/${o.patientId}/lab-orders`} className={ROW_LINK}>
+                    View
+                    <ArrowRight size={13} className="transition-transform group-hover/v:translate-x-0.5" />
                   </Link>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
       {explainFor && (
         <AiExplainLabDrawer

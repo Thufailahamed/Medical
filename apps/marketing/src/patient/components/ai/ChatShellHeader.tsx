@@ -68,25 +68,32 @@ export function ChatShellHeader({
   const ActiveIcon = activeModel.icon;
 
   return (
-    <header className="relative z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-white/95 px-3 backdrop-blur-sm sm:px-4">
+    <header
+      className="relative z-20 flex h-16 shrink-0 items-center justify-between gap-2 px-3 text-white sm:px-5"
+      style={{
+        background:
+          "radial-gradient(600px 160px at 100% 0%, rgba(14,165,233,0.35), transparent 60%), radial-gradient(400px 140px at 0% 100%, rgba(20,184,166,0.18), transparent 60%), #07233a",
+        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.08)",
+      }}
+    >
       <div className="flex min-w-0 items-center gap-2">
         <Link
           href="/patient/ai"
           aria-label="Back to AI workspace"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-text-soft transition-colors hover:bg-surface-2 hover:text-text"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-white/15 bg-white/[0.06] text-white/80 transition-colors hover:bg-white/[0.12] hover:text-white"
         >
           <ChevronLeft size={18} aria-hidden />
         </Link>
 
         <span
           aria-hidden
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-indigo-400 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-1 ring-inset ring-white/20"
         >
-          <Sparkles size={14} />
+          <Sparkles size={16} />
         </span>
         <div className="hidden min-w-0 leading-tight sm:block">
-          <p className="truncate text-[13px] font-bold text-text">Care Chat</p>
-          <p className="truncate text-[10.5px] text-text-muted">
+          <p className="truncate text-[14px] font-semibold tracking-[-0.01em] text-white">Care Chat</p>
+          <p className="truncate font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300">
             Grounded in your EMR
           </p>
         </div>
@@ -98,10 +105,10 @@ export function ChatShellHeader({
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           className={cn(
-            "ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold transition-colors",
+            "ml-1 inline-flex h-9 items-center gap-1.5 rounded-[10px] border px-3 text-[12px] font-semibold transition-colors",
             menuOpen
-              ? "border-brand/40 bg-brand-soft text-brand"
-              : "border-border text-text-soft hover:bg-surface-2",
+              ? "border-white/30 bg-white/[0.14] text-white"
+              : "border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/[0.12]",
           )}
         >
           <ActiveIcon size={13} aria-hidden />
@@ -117,7 +124,7 @@ export function ChatShellHeader({
           <div
             id="model-menu"
             role="menu"
-            className="absolute left-12 top-[52px] z-30 w-72 rounded-xl border border-border bg-surface p-1.5 shadow-[var(--shadow-float)]"
+            className="absolute left-12 top-[60px] z-30 w-72 rounded-2xl bg-white p-1.5 text-slate-900 shadow-[0_24px_52px_-18px_rgba(15,23,42,0.35),inset_0_0_0_1px_rgba(15,23,42,0.07)]"
           >
             {CHAT_MODELS.map((m) => {
               const Icon = m.icon;
@@ -134,33 +141,33 @@ export function ChatShellHeader({
                   }}
                   className={cn(
                     "flex w-full items-start gap-3 rounded-xl px-2.5 py-2 text-left transition-colors",
-                    isActive ? "bg-brand-soft" : "hover:bg-surface-2",
+                    isActive ? "bg-sky-50" : "hover:bg-slate-50",
                   )}
                 >
                   <span
                     className={cn(
-                      "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border",
+                      "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg",
                       isActive
-                        ? "border-brand/30 bg-white text-brand"
-                        : "border-border bg-surface-2 text-text-soft",
+                        ? "bg-sky-600 text-white"
+                        : "bg-slate-100 text-slate-500",
                     )}
                   >
                     <Icon size={14} aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] font-semibold text-text">
+                      <span className="text-[13px] font-semibold text-slate-900">
                         {m.name}
                       </span>
                       {isActive ? (
                         <Check
                           size={14}
                           aria-hidden
-                          className="shrink-0 text-brand"
+                          className="shrink-0 text-sky-600"
                         />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-text-muted">
+                    <span className="mt-0.5 block text-[11px] leading-snug text-slate-400">
                       {m.blurb}
                     </span>
                   </span>
@@ -177,7 +184,7 @@ export function ChatShellHeader({
             type="button"
             onClick={onNewChat}
             title="Start a new conversation"
-            className="inline-flex h-8 items-center gap-1.5 rounded-xl px-2.5 text-[12px] font-medium text-text-soft transition-colors hover:bg-surface-2 hover:text-text"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-white/15 bg-white/[0.06] px-3 text-[12px] font-semibold text-white transition-colors hover:bg-white/[0.12]"
           >
             <RotateCcw size={13} aria-hidden />
             <span className="hidden sm:inline">New chat</span>
@@ -185,7 +192,7 @@ export function ChatShellHeader({
         ) : null}
         <Link
           href="/patient/ai/lab-explain"
-          className="hidden h-8 items-center gap-1.5 rounded-xl px-2.5 text-[12px] font-medium text-text-soft transition-colors hover:bg-surface-2 hover:text-text sm:inline-flex"
+          className="hidden h-9 items-center gap-1.5 rounded-[10px] bg-white px-3 text-[12px] font-semibold text-[#07233a] transition-all hover:-translate-y-px hover:bg-sky-50 sm:inline-flex"
         >
           <FlaskConical size={13} aria-hidden />
           <span>Lab explainer</span>

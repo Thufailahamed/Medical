@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  CalendarClock,
+  CalendarDays,
   Check,
-  ChevronLeft,
+  Clock,
   Copy,
   FlaskConical,
   Info,
@@ -19,7 +21,21 @@ import {
 import { api, ApiError } from "@/portal/lib/api";
 import { usePatientProfile } from "@/patient/hooks";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import { AiToolHero } from "@/patient/components/ai/AiToolHero";
+import { AiSafetyNotice } from "@/patient/components/ai/AiSafetyNotice";
+import {
+  FIELD_INPUT,
+  FIELD_LABEL,
+  GROUP_LABEL,
+  HERO_PRIMARY,
+  MetricTile,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientPage,
+  PRIMARY_BTN,
+  SECONDARY_BTN,
+} from "@/patient/components/workspace";
 
 const TEST_CATEGORIES = [
   {
@@ -104,275 +120,217 @@ export default function AiLabTrendPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const known = TEST_CATEGORIES.flatMap((c) => c.tests);
+
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
+    <PatientPage>
+      <AiToolHero
         icon={<TrendingUp size={13} aria-hidden />}
-        kicker="Longitudinal Biomarker Intelligence"
-        title="Lab Trend Narrative"
-        description="See how a biomarker value has moved over time across your medical history and what the clinical trajectory means for your health."
+        badge="Health trends"
+        title="Lab trend narrative"
+        description="See how a marker has moved across your history — and what the direction means for your health."
+        trust={["Last 24 months", "Non-diagnostic"]}
         actions={
-          <>
-            <Link href="/patient/ai" className={heroSecondaryAction}>
-              <ChevronLeft size={13} aria-hidden />
-              AI Workspace
-            </Link>
-            <Link href="/patient/ai/lab-explain" className={heroPrimaryAction}>
-              <FlaskConical size={14} aria-hidden />
-              Lab Explainer
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Biomarker Scope · Longitudinal EHR</span>
-            <span>Data Security · HIPAA Zero-Log</span>
-            <span>Trajectory AI · Clinical Bio-LLM</span>
-            <span>Physician Oversight · Target Baselines</span>
-          </>
+          <Link href="/patient/ai/lab-explain" className={HERO_PRIMARY}>
+            <FlaskConical size={15} className="text-emerald-600" aria-hidden />
+            Lab explainer
+          </Link>
         }
       />
 
-      {/* ── 2. Biomarker Selection & Input Stage ────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-7 shadow-card flex flex-col gap-6">
-        <div className="border-b border-border pb-3.5">
-          <h2 className="t-card-title text-text flex items-center gap-2">
-            <FlaskConical size={18} className="text-brand" aria-hidden />
-            <span>Select or Search Laboratory Biomarker</span>
-          </h2>
-          <p className="text-xs text-text-soft mt-0.5">
-            Choose from common diagnostic tests or enter any biomarker from your clinical records.
-          </p>
-        </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          <section className={PANEL} aria-labelledby="lt-pick">
+            <PanelHeader
+              id="lt-pick"
+              icon={<FlaskConical size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title="Pick a marker"
+              caption="Common tests, or type any marker from your records"
+            />
 
-        {/* Categorized Test Selection Chips */}
-        <div className="flex flex-col gap-4">
-          {TEST_CATEGORIES.map((cat) => (
-            <div key={cat.category} className="flex flex-col gap-2">
-              <span className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-                {cat.category}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {cat.tests.map((t) => {
-                  const isSelected = selectedTest === t && !customInput;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setTest(t);
-                        setCustomInput("");
-                      }}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:-translate-y-0.5",
-                        isSelected
-                          ? "bg-ink text-white border-ink shadow-xs font-bold"
-                          : "bg-surface border-border text-text-soft hover:text-text hover:border-border-strong",
-                      )}
-                    >
-                      {isSelected && <Check size={11} strokeWidth={3} aria-hidden />}
-                      <span>{t}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-5 flex flex-col gap-4">
+              {TEST_CATEGORIES.map((cat) => (
+                <div key={cat.category}>
+                  <p className={GROUP_LABEL}>{cat.category}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {cat.tests.map((t) => {
+                      const on = selectedTest === t && !customInput;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setTest(t);
+                            setCustomInput("");
+                          }}
+                          className={cn(
+                            "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all",
+                            on
+                              ? "bg-[#07233a] text-white shadow-md shadow-slate-900/15"
+                              : "bg-slate-50 text-slate-600 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)] hover:bg-white hover:text-slate-900",
+                          )}
+                        >
+                          {on ? <Check size={12} strokeWidth={3} aria-hidden /> : null}
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Custom Test Name Input */}
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-border">
-          <label className="text-[11px] font-bold text-text-soft uppercase tracking-wider">
-            Or Type Any Specific Biomarker Name
-          </label>
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-              aria-hidden
-            />
-            <input
-              type="text"
-              value={customInput || (test && !TEST_CATEGORIES.flatMap((c) => c.tests).includes(test) ? test : "")}
-              onChange={(e) => {
-                setCustomInput(e.target.value);
-                setTest(e.target.value);
-              }}
-              placeholder="e.g. Uric Acid, Bilirubin, Vitamin B12, Platelet Count…"
-              className="pt-input pl-10 text-xs sm:text-sm"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="p-3.5 rounded-lg bg-danger-soft border border-danger/25 text-xs font-semibold text-danger flex items-center gap-2">
-            <AlertCircle size={15} className="shrink-0" aria-hidden />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Submit Action */}
-        <div className="pt-2 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={run}
-            disabled={!selectedTest.trim() || busy}
-            className="pt-btn pt-btn-primary h-11 px-6 text-xs sm:text-sm disabled:opacity-50"
-          >
-            {busy ? (
-              <>
-                <Loader2 size={15} className="animate-spin" aria-hidden />
-                Synthesizing Longitudinal Trend…
-              </>
-            ) : (
-              <>
-                <TrendingUp size={15} aria-hidden />
-                Show Trend Narrative for {selectedTest}
-              </>
-            )}
-          </button>
-
-          <span className="text-xs text-text-muted font-medium hidden sm:inline">
-            Analyzed against clinical target reference ranges
-          </span>
-        </div>
-      </section>
-
-      {/* ── 3. Generated Trend Narrative Card ──────────────────────────────── */}
-      {trend && (
-        <section className="rounded-xl border border-brand/25 bg-surface p-6 sm:p-7 shadow-card flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand" aria-hidden>
-                <Sparkles size={18} />
-              </div>
-              <div>
-                <h3 className="t-card-title text-text">
-                  {trend.type} — Clinical Trajectory Analysis
-                </h3>
-                <p className="text-xs text-text-soft">
-                  AI-synthesized longitudinal interpretation
-                </p>
+            <div className="mt-5 border-t border-slate-100 pt-5">
+              <label htmlFor="lt-custom" className={FIELD_LABEL}>Or type any marker</label>
+              <div className="relative">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 mt-[3px] -translate-y-1/2 text-slate-400" aria-hidden />
+                <input
+                  id="lt-custom"
+                  type="text"
+                  value={customInput || (test && !known.includes(test) ? test : "")}
+                  onChange={(e) => {
+                    setCustomInput(e.target.value);
+                    setTest(e.target.value);
+                  }}
+                  placeholder="e.g. Uric acid, Bilirubin, Vitamin B12…"
+                  className={cn(FIELD_INPUT, "pl-9")}
+                />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {trend.overdue === true ? (
-                <span className="inline-flex items-center gap-1 rounded-md bg-warn-soft px-2.5 py-1 text-[11px] font-semibold text-warn">
-                  Overdue — schedule soon
-                </span>
-              ) : null}
+            {error ? (
+              <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                <AlertCircle size={14} className="shrink-0" aria-hidden />
+                {error}
+              </div>
+            ) : null}
+
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <span className="hidden text-[11px] text-slate-400 sm:inline">Compared against clinical reference ranges</span>
               <button
                 type="button"
-                onClick={handleCopy}
-                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
+                onClick={run}
+                disabled={!selectedTest.trim() || busy}
+                className="inline-flex h-10 min-w-0 items-center gap-1.5 rounded-xl bg-[#07233a] px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-px hover:bg-sky-700 disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none"
               >
-                {copied ? (
-                  <>
-                    <Check size={12} className="text-success" aria-hidden />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={12} aria-hidden />
-                    Copy Narrative
-                  </>
-                )}
+                {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <TrendingUp size={15} aria-hidden />}
+                <span className="truncate">{busy ? "Building trend…" : `Show ${selectedTest || "trend"}`}</span>
               </button>
+            </div>
+          </section>
 
-              <Link
-                href={`/patient/ai/chat?prompt=${encodeURIComponent(
-                  `Help me understand my ${trend.type} trend over time: ` +
-                    trend.narrative.slice(0, 150),
-                )}`}
-                className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-              >
-                <MessageSquare size={12} aria-hidden />
-                Discuss in AI Chat
-              </Link>
-            </div>
-          </div>
-
-          {/* Real report stats */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-                Reports on file
-              </p>
-              <p className="mt-0.5 pt-metric text-lg text-text">
-                {trend.count}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-                Last done
-              </p>
-              <p className="mt-0.5 pt-metric text-lg text-text">
-                {trend.lastDate ?? "—"}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-                Usual interval
-              </p>
-              <p className="mt-0.5 pt-metric text-lg text-text">
-                {trend.intervalMonths ? `~${trend.intervalMonths} mo` : "—"}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted">
-                Next suggested
-              </p>
-              <p className="mt-0.5 pt-metric text-lg text-text">
-                {trend.nextSuggestedDate ?? "—"}
-              </p>
-            </div>
-          </div>
-
-          <div className="prose prose-sm max-w-none text-text text-xs sm:text-sm leading-relaxed p-4 rounded-lg bg-surface-2 font-normal">
-            <div className="whitespace-pre-wrap">{trend.narrative}</div>
-          </div>
-
-          {trend.series.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-text-soft">
-                Report history — last 24 months
-              </span>
-              <ul className="flex flex-wrap gap-1.5">
-                {trend.series.map((s, i) => (
-                  <li
-                    key={`${s.date}-${i}`}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                      s.status === "completed"
-                        ? "border-success/25 bg-success-soft text-success"
-                        : "border-warn/25 bg-warn-soft text-warn",
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        s.status === "completed" ? "bg-success" : "bg-warn",
-                      )}
-                    />
-                    {s.date}
-                    <span className="font-normal opacity-70">· {s.status}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {busy && !trend ? (
+            <section className={PANEL} aria-busy>
+              <PanelSkeleton rows={4} className="mt-0" />
+            </section>
           ) : null}
 
-          <div className="p-3 rounded-lg bg-surface-2 border border-border flex items-start gap-2.5 text-[11px] text-text-soft">
-            <Info size={14} className="text-text-muted shrink-0 mt-0.5" aria-hidden />
-            <span>
-              Longitudinal analysis highlights trends and shifts across historical lab encounters. It is intended to assist medical discussions with your physician, not to replace formal diagnostic consultation.
-            </span>
-          </div>
-        </section>
-      )}
-    </div>
+          {trend ? (
+            <section className={PANEL} aria-labelledby="lt-result">
+              <PanelHeader
+                id="lt-result"
+                icon={<Sparkles size={16} />}
+                tone="bg-indigo-50 text-indigo-600"
+                title={`${trend.type} over time`}
+                caption="AI-written summary of your history"
+                action={
+                  <button type="button" onClick={handleCopy} className={cn(SECONDARY_BTN, "h-8 px-3")}>
+                    {copied ? <Check size={12} className="text-emerald-600" aria-hidden /> : <Copy size={12} aria-hidden />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                }
+              />
+
+              {trend.overdue === true ? (
+                <div className="relative mt-4 flex items-center gap-3 rounded-xl bg-white p-3.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+                  <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-amber-400" aria-hidden />
+                  <span className="ml-1.5 grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-amber-50 text-amber-600" aria-hidden>
+                    <CalendarClock size={16} />
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
+                    This test is overdue
+                    <span className="block text-xs font-normal text-slate-400">Consider booking it soon</span>
+                  </span>
+                  <Link href="/patient/diagnostic-tests" className={cn(PRIMARY_BTN, "h-8 px-3")}>
+                    Book test
+                  </Link>
+                </div>
+              ) : null}
+
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <MetricTile icon={<FlaskConical size={16} />} tone="bg-sky-50 text-sky-600" label="Reports on file" value={trend.count} />
+                <MetricTile icon={<CalendarDays size={16} />} tone="bg-emerald-50 text-emerald-600" label="Last done" value={<span className="text-base">{trend.lastDate ?? "—"}</span>} />
+                <MetricTile icon={<Clock size={16} />} tone="bg-violet-50 text-violet-600" label="Usual interval" value={<span className="text-base">{trend.intervalMonths ? `~${trend.intervalMonths} mo` : "—"}</span>} />
+                <MetricTile icon={<CalendarClock size={16} />} tone="bg-amber-50 text-amber-600" label="Next suggested" value={<span className="text-base">{trend.nextSuggestedDate ?? "—"}</span>} />
+              </div>
+
+              <div className="mt-4 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">{trend.narrative}</div>
+
+              {trend.series.length > 0 ? (
+                <div className="mt-5">
+                  <p className={GROUP_LABEL}>Report history · last 24 months</p>
+                  <ol className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {trend.series.map((pt, i) => {
+                      const done = pt.status === "completed";
+                      return (
+                        <li
+                          key={`${pt.date}-${i}`}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold tabular-nums",
+                            done ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700",
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", done ? "bg-emerald-500" : "bg-amber-500")} aria-hidden />
+                          {pt.date}
+                          <span className="font-normal opacity-70">· {pt.status}</span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-400">
+                  <Info size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  Highlights direction over time to help you talk to your doctor — not a diagnosis.
+                </p>
+                <Link
+                  href={`/patient/ai/chat?prompt=${encodeURIComponent(`Help me understand my ${trend.type} trend over time: ` + trend.narrative.slice(0, 150))}`}
+                  className={cn(PRIMARY_BTN, "shrink-0")}
+                >
+                  <MessageSquare size={13} aria-hidden />
+                  Discuss in chat
+                </Link>
+              </div>
+            </section>
+          ) : null}
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="About trends">
+          <section className={PANEL} aria-labelledby="lt-why">
+            <PanelHeader id="lt-why" icon={<TrendingUp size={16} />} tone="bg-sky-50 text-sky-600" title="Why trends matter" caption="One result is a snapshot" />
+            <ul className="mt-4 flex flex-col gap-3">
+              {[
+                { title: "Direction beats a single value", body: "A slowly rising HbA1c can matter more than one borderline reading." },
+                { title: "Spot overdue tests", body: "We compare how often you've had a test with how often it's usually repeated." },
+                { title: "Better conversations", body: "Bring the summary to your next visit to talk it through." },
+              ].map((r, i) => (
+                <li key={r.title} className="flex items-start gap-3">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-xs font-bold tabular-nums text-slate-600">{i + 1}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-slate-900">{r.title}</span>
+                    <span className="block text-xs leading-relaxed text-slate-500">{r.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <AiSafetyNotice />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

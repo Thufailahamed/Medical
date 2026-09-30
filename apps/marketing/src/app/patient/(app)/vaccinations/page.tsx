@@ -3,17 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Calendar,
+  AlertTriangle,
+  CalendarDays,
   Camera,
-  Check,
   CheckCircle2,
-  Clock,
+  Clock3,
+  FolderOpen,
   Plus,
-  Search,
+  ScanLine,
   ShieldCheck,
-  Sparkles,
   Syringe,
-  X,
 } from "lucide-react";
 
 import { VaccinationFormSheet } from "@/patient/components/vaccinations/VaccinationFormSheet";
@@ -24,8 +23,36 @@ import {
 } from "@/patient/hooks";
 import { formatDate } from "@/portal/lib/format";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import {
+  Badge,
+  EmptyBlock,
+  GROUP_LABEL,
+  HERO_ATTENTION_CHIP,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  RailRow,
+  SECONDARY_BTN,
+  Segmented,
+  StatTile,
+} from "@/patient/components/workspace";
+
+type Tab = "all" | "administered" | "due";
+
+const DUE_STYLE: Record<string, { tone: "rose" | "amber" | "sky"; icon: typeof Clock3; label: string }> = {
+  overdue: { tone: "rose", icon: AlertTriangle, label: "Overdue" },
+  upcoming: { tone: "sky", icon: CalendarDays, label: "Upcoming" },
+};
 
 export default function VaccinationsPage() {
   const administered = useVaccinations();
@@ -33,13 +60,16 @@ export default function VaccinationsPage() {
   const add = useAddVaccination();
 
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "administered" | "due">("all");
+  const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
-  const administeredList = administered.data?.administered ?? [];
-  const dueSlots = due.data?.due ?? [];
-  const overdueSlots = due.data?.overdue ?? [];
-  const upcomingSlots = due.data?.upcoming ?? [];
+  const administeredList = useMemo(
+    () => administered.data?.administered ?? [],
+    [administered.data],
+  );
+  const dueSlots = useMemo(() => due.data?.due ?? [], [due.data]);
+  const overdueSlots = useMemo(() => due.data?.overdue ?? [], [due.data]);
+  const upcomingSlots = useMemo(() => due.data?.upcoming ?? [], [due.data]);
   const allDue = useMemo(
     () => [...overdueSlots, ...dueSlots, ...upcomingSlots],
     [overdueSlots, dueSlots, upcomingSlots],
@@ -74,323 +104,250 @@ export default function VaccinationsPage() {
     return list;
   }, [allDue, activeTab, search]);
 
-  return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Syringe size={13} aria-hidden />}
-        kicker="WHO Immunisation Schedule"
-        title="Vaccinations & Immunisation History"
-        description="Log administered immunisations, track booster timelines, and monitor WHO/EPI schedule compliance."
-        status={
-          totalDue > 0 ? (
-            <HeroStatusPill label={`${totalDue} due`} tone="warn" />
-          ) : (
-            <HeroStatusPill label="Up to date" tone="success" />
-          )
-        }
-        actions={
-          <>
-            <Link href="/patient/ai/vaccination-card" className={heroSecondaryAction}>
-              <Camera size={13} aria-hidden />
-              Scan Card OCR
-            </Link>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className={heroPrimaryAction}
-            >
-              <Plus size={14} aria-hidden />
-              Record Vaccine
-            </button>
-          </>
-        }
-        footer={
-          <>
-            <span>Administered · {totalAdministered} Doses</span>
-            <span>Due / Overdue · {totalDue} Pending</span>
-            <span>Upcoming · {totalUpcoming} Scheduled</span>
-            <span>Standard · EPI Compliant</span>
-          </>
-        }
-      />
+  const loading = administered.isLoading || due.isLoading;
+  const nothingShown =
+    !loading && filteredAdministered.length === 0 && filteredDue.length === 0;
 
-      {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
-        {/* Filter Tabs */}
-        <SegmentedTabs
-          ariaLabel="Vaccination filters"
-          activeId={activeTab}
-          onChange={(id) => setActiveTab(id as "all" | "administered" | "due")}
-          tabs={[
-            { id: "all", label: <>All ({totalAdministered + allDue.length})</> },
-            { id: "administered", label: <>Administered ({totalAdministered})</> },
-            {
-              id: "due",
-              label: (
-                <>
-                  <span>Due / Upcoming</span>
-                  {totalDue > 0 ? (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                      {totalDue}
-                    </span>
-                  ) : null}
-                </>
-              ),
-            },
-          ]}
+  return (
+    <PatientPage>
+      <div>
+        <PatientHero
+          kickerIcon={<Syringe size={13} aria-hidden />}
+          kicker="Records & Labs"
+          kickerMeta="WHO immunisation schedule"
+          title={
+            <>
+              Vaccinations &amp; <HeroAccent>immunisation</HeroAccent>
+            </>
+          }
+          description="Log administered immunisations, track booster timelines, and monitor WHO/EPI schedule compliance."
+          chips={
+            <>
+              {totalDue > 0 ? (
+                <span className={HERO_ATTENTION_CHIP}>
+                  <Clock3 size={12} aria-hidden />
+                  {totalDue} dose{totalDue === 1 ? "" : "s"} due or overdue
+                </span>
+              ) : (
+                <span className={HERO_CHIP}>
+                  <CheckCircle2 size={12} className="text-emerald-300" aria-hidden />
+                  Up to date
+                </span>
+              )}
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-sky-300" aria-hidden />
+                EPI schedule compliant
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <Link href="/patient/ai/vaccination-card" className={HERO_GHOST}>
+                <Camera size={15} aria-hidden />
+                Scan card
+              </Link>
+              <button type="button" onClick={() => setOpen(true)} className={HERO_PRIMARY}>
+                <Plus size={15} className="text-sky-600" aria-hidden />
+                Record vaccine
+              </button>
+            </>
+          }
         />
 
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StatTile
+            label="Administered"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(totalAdministered)}
+            sub="Doses on record"
+            active={activeTab === "administered"}
+            onClick={() => setActiveTab("administered")}
           />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search vaccine, disease, or provider..."
-            className="pt-input pl-9 pr-8 !h-9 text-xs"
+          <StatTile
+            label="Due or overdue"
+            icon={<Clock3 size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(totalDue)}
+            sub={totalDue ? "Needs a booking" : "Nothing pending"}
+            pulse={totalDue > 0}
+            badge={totalDue > 0 ? { text: "Action", tone: "bg-amber-50 text-amber-700" } : undefined}
+            active={activeTab === "due"}
+            onClick={() => setActiveTab("due")}
           />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-            >
-              <X size={13} />
-            </button>
-          ) : null}
-        </div>
+          <StatTile
+            label="Upcoming"
+            icon={<CalendarDays size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(totalUpcoming)}
+            sub="Scheduled ahead"
+            onClick={() => setActiveTab("due")}
+          />
+          <StatTile
+            label="Total tracked"
+            icon={<Syringe size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(totalAdministered + allDue.length)}
+            sub="Across all statuses"
+            active={activeTab === "all"}
+            onClick={() => setActiveTab("all")}
+          />
+        </HeroOverlap>
       </div>
 
-      {/* ── 3. Vaccinations Content ────────────────────────────────────────── */}
-      <div className="flex flex-col gap-6">
-        {/* Section: Administered Vaccinations */}
-        {activeTab !== "due" && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="pt-kicker flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-success" aria-hidden />
-                <span>Administered Vaccinations</span>
-                <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-success">
-                  {filteredAdministered.length}
-                </span>
-              </h2>
-            </div>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <section className={cn(PANEL, "min-w-0 xl:col-span-8")} aria-labelledby="vx-list">
+          <PanelHeader
+            id="vx-list"
+            icon={<Syringe size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            title="Immunisation record"
+            caption={
+              loading
+                ? "Loading…"
+                : `${filteredAdministered.length + filteredDue.length} shown · ${totalAdministered} administered`
+            }
+            action={
+              <button type="button" onClick={() => setOpen(true)} className={SECONDARY_BTN}>
+                <Plus size={13} aria-hidden />
+                <span className="hidden sm:inline">Record vaccine</span>
+              </button>
+            }
+          />
 
-            {administered.isLoading ? (
-              <div className="flex flex-col gap-2.5">
-                {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
-                  />
-                ))}
-              </div>
-            ) : filteredAdministered.length === 0 ? (
-              <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-muted shrink-0" aria-hidden>
-                    <Syringe size={20} />
-                  </div>
-                  <div>
-                    <h3 className="t-card-title text-text">
-                      No Administered Vaccinations Recorded
-                    </h3>
-                    <p className="text-xs text-text-soft mt-0.5">
-                      Log childhood immunisations, travel shots, or COVID-19 boosters for your personal medical record.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-                >
-                  + Add First Vaccine
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredAdministered.map((v) => (
-                  <article
-                    key={v.id}
-                    className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-start justify-between gap-3.5"
+          <div className="mt-5 flex flex-col gap-3">
+            <PanelSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Search vaccine, disease, or provider…"
+              ariaLabel="Search vaccinations"
+            />
+            <Segmented<Tab>
+              ariaLabel="Vaccination filters"
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                { value: "all", label: "All", count: totalAdministered + allDue.length },
+                { value: "administered", label: "Administered", count: totalAdministered },
+                { value: "due", label: "Due / upcoming", count: allDue.length },
+              ]}
+            />
+          </div>
+
+          {loading ? (
+            <PanelSkeleton rows={4} />
+          ) : nothingShown ? (
+            <EmptyBlock
+              icon={<Syringe size={19} />}
+              title={search ? "No vaccinations match your search" : "No vaccinations recorded"}
+              body={
+                search
+                  ? `Nothing found for “${search}” — clear the search or pick another filter.`
+                  : "Log childhood immunisations, travel shots, or COVID-19 boosters for your personal medical record."
+              }
+              actions={
+                search ? (
+                  <button type="button" onClick={() => setSearch("")} className={SECONDARY_BTN}>
+                    Clear search
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
                   >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="grid h-10 w-10 place-items-center rounded-md bg-success-soft text-success shrink-0 mt-0.5" aria-hidden>
-                        <CheckCircle2 size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-text text-sm truncate">
-                          {v.vaccineName}
-                        </h4>
-                        {v.dose ? (
-                          <span className="inline-block text-[11px] font-semibold text-success bg-success-soft px-2 py-0.5 rounded-md mt-1">
-                            {v.dose}
-                          </span>
-                        ) : null}
-                        <div className="flex items-center gap-2 mt-1 text-xs text-text-soft font-medium">
-                          <Calendar size={12} className="text-text-muted" />
-                          <span>{formatDate(v.administeredAt)}</span>
-                          {v.provider ? (
-                            <>
-                              <span>·</span>
-                              <span className="truncate">{v.provider}</span>
-                            </>
-                          ) : null}
-                        </div>
-                        {v.notes ? (
-                          <p className="text-[11px] text-text-muted mt-1 line-clamp-1">
-                            {v.notes}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-success-soft text-success shrink-0">
-                      Administered
-                    </span>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Section: Due / Overdue Vaccinations */}
-        {activeTab !== "administered" && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="pt-kicker flex items-center gap-2">
-                <Clock size={16} className="text-warn" aria-hidden />
-                <span>Due, Overdue &amp; Upcoming</span>
-                <span className="rounded-md bg-warn-soft px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-warn">
-                  {filteredDue.length}
-                </span>
-              </h2>
-            </div>
-
-            {due.isLoading ? (
-              <div className="flex flex-col gap-2.5">
-                {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
-                  />
-                ))}
-              </div>
-            ) : filteredDue.length === 0 ? (
-              <div className="p-6 rounded-xl bg-surface border border-border shadow-card flex items-center gap-3.5">
-                <div className="grid h-10 w-10 place-items-center rounded-md bg-success-soft text-success shrink-0" aria-hidden>
-                  <Check size={18} />
-                </div>
+                    <Plus size={13} aria-hidden />
+                    Add first vaccine
+                  </button>
+                )
+              }
+            />
+          ) : (
+            <div className="mt-5 flex flex-col gap-6">
+              {filteredAdministered.length ? (
                 <div>
-                  <h3 className="t-card-title text-text">
-                    No Vaccines Due or Overdue
-                  </h3>
-                  <p className="text-xs text-text-soft mt-0.5">
-                    You are up to date on standard adult immunization and scheduled boosters.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredDue.map((slot) => {
-                  const isOverdue = slot.status === "overdue";
-                  const isUpcoming = slot.status === "upcoming";
-
-                  return (
-                    <article
-                      key={slot.id}
-                      className={cn(
-                        "p-4 rounded-xl bg-surface border shadow-card transition-all flex items-start justify-between gap-3.5",
-                        isOverdue
-                          ? "border-danger/40 bg-danger-soft/20"
-                          : isUpcoming
-                          ? "border-border"
-                          : "border-warn/40 bg-warn-soft/20",
-                      )}
-                    >
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div
-                          className={cn(
-                            "grid h-10 w-10 place-items-center rounded-md shrink-0 mt-0.5",
-                            isOverdue
-                              ? "bg-danger-soft text-danger"
-                              : isUpcoming
-                              ? "bg-brand-soft text-brand"
-                              : "bg-warn-soft text-warn",
-                          )}
-                          aria-hidden
-                        >
-                          <Clock size={18} />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-text text-sm truncate">
-                            {slot.vaccineName}
-                          </h4>
-                          {slot.doseNumber ? (
-                            <span className="inline-block text-[11px] font-semibold text-text-soft bg-surface-2 px-2 py-0.5 rounded-md mt-1">
-                              Dose #{slot.doseNumber}
-                            </span>
-                          ) : null}
-                          <div className="flex items-center gap-2 mt-1 text-xs text-text-soft font-medium">
-                            <Calendar size={12} className="text-text-muted" />
-                            <span>Due: {formatDate(slot.dueAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <span
-                        className={cn(
-                          "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider shrink-0",
-                          isOverdue
-                            ? "bg-danger-soft text-danger"
-                            : isUpcoming
-                            ? "bg-surface-2 text-text-soft"
-                            : "bg-warn-soft text-warn",
-                        )}
+                  <p className={GROUP_LABEL}>Administered · {filteredAdministered.length}</p>
+                  <div className="mt-2.5 space-y-2">
+                    {filteredAdministered.map((v) => (
+                      <RailRow
+                        key={v.id}
+                        tone="emerald"
+                        icon={<CheckCircle2 size={17} />}
+                        title={v.vaccineName}
+                        meta={[v.dose, formatDate(v.administeredAt), v.provider].filter(Boolean).join(" · ")}
+                        trailing={<Badge tone="emerald">Administered</Badge>}
                       >
-                        {slot.status}
+                        {v.notes ? (
+                          <span className="mt-0.5 block truncate text-[11px] text-slate-400">{v.notes}</span>
+                        ) : null}
+                      </RailRow>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab !== "administered" ? (
+                <div>
+                  <p className={GROUP_LABEL}>Due &amp; upcoming · {filteredDue.length}</p>
+                  {filteredDue.length ? (
+                    <div className="mt-2.5 space-y-2">
+                      {filteredDue.map((slot) => {
+                        const s = DUE_STYLE[slot.status] ?? { tone: "amber" as const, icon: Clock3, label: "Due" };
+                        const Icon = s.icon;
+                        return (
+                          <RailRow
+                            key={slot.id}
+                            tone={s.tone}
+                            icon={<Icon size={17} />}
+                            title={slot.vaccineName}
+                            meta={[
+                              slot.doseNumber ? `Dose #${slot.doseNumber}` : null,
+                              `Due ${formatDate(slot.dueAt)}`,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                            trailing={<Badge tone={s.tone}>{s.label}</Badge>}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-2.5 flex items-center gap-3 rounded-xl bg-slate-50 p-4 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.05)]">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-emerald-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.07)]" aria-hidden>
+                        <CheckCircle2 size={15} />
                       </span>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
+                      <span>
+                        <span className="block text-xs font-semibold text-slate-800">Nothing due right now</span>
+                        <span className="block text-[11px] text-slate-400">You&rsquo;re up to date on standard boosters.</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </section>
+
+        <aside className="flex min-w-0 flex-col gap-6 xl:col-span-4" aria-label="Vaccination tools">
+          <QuickToolsPanel
+            id="vx-tools"
+            tools={[
+              { href: "/patient/ai/vaccination-card", label: "Scan card", hint: "AI card reader", icon: Camera, tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+              { href: "/patient/records", label: "Records", hint: "Full file", icon: FolderOpen, tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+              { href: "/patient/imaging", label: "Imaging", hint: "Scans & DICOM", icon: ScanLine, tone: "from-slate-600 to-slate-800 shadow-slate-500/30" },
+              { href: "/patient/timeline", label: "Timeline", hint: "In context", icon: CalendarDays, tone: "from-teal-500 to-emerald-600 shadow-teal-500/30" },
+            ]}
+          />
+          <PromoCard
+            href="/patient/ai/vaccination-card"
+            kicker="AI card scanner"
+            icon={<Camera size={21} aria-hidden />}
+            title="Have a physical vaccination card?"
+            body="Take a photo — the assistant extracts doses and batch numbers"
+          />
+        </aside>
       </div>
 
-      {/* ── 4. Smart Vaccination Card Scanner Callout ──────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-brand-soft text-brand shrink-0" aria-hidden>
-            <Camera size={22} />
-          </div>
-          <div>
-            <h4 className="t-card-title text-text">
-              Have a Physical Vaccination Card?
-            </h4>
-            <p className="text-xs text-text-soft mt-0.5">
-              Take a photo of your immunization card or certificate. HealthHub AI will automatically extract doses and batch numbers.
-            </p>
-          </div>
-        </div>
-
-        <Link
-          href="/patient/ai/vaccination-card"
-          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-        >
-          <Sparkles size={13} aria-hidden />
-          Launch AI Card Scanner
-        </Link>
-      </section>
-
-      {/* ── 5. Record Form Sheet ───────────────────────────────────────────── */}
       <VaccinationFormSheet
         open={open}
         onClose={() => setOpen(false)}
@@ -398,6 +355,6 @@ export default function VaccinationsPage() {
           await add.mutateAsync(input);
         }}
       />
-    </div>
+    </PatientPage>
   );
 }

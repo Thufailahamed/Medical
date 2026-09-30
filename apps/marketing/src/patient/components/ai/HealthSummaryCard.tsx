@@ -11,7 +11,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
+import { cn } from "@/portal/lib/utils";
+import { PANEL } from "@/portal/components/doctor/Workspace";
 import { Pill } from "@/patient/components/primitives/Pill";
 import { Skeleton } from "@/patient/components/primitives/Skeleton";
 import { useGenerateSummary, type StructuredSummary } from "@/patient/hooks";
@@ -68,20 +69,20 @@ export const HealthSummaryCard = forwardRef<
   }
 
   return (
-    <Card accent="brand" className="flex h-full flex-col">
+    <section className={cn(PANEL, "flex h-full flex-col")}>
       <div className="flex items-start gap-3">
         <span
           aria-hidden
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-sky-50 text-sky-600"
         >
           <FileText size={18} />
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="t-card-title text-text">Health record summary</h2>
+            <h2 className="text-[15.5px] font-semibold leading-tight tracking-[-0.01em] text-slate-900">Health record summary</h2>
             <Pill tone="brand">EMR</Pill>
           </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-text-soft">
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
             AI synthesizes visits, conditions and trends into plain language you
             can read in 30 seconds.
           </p>
@@ -184,7 +185,7 @@ export const HealthSummaryCard = forwardRef<
           type="button"
           onClick={() => void run()}
           disabled={generateSummary.isPending || profileLoading}
-          className="pt-btn pt-btn-primary h-9 px-3.5 text-xs disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
         >
           {generateSummary.isPending ? (
             <>
@@ -199,6 +200,6 @@ export const HealthSummaryCard = forwardRef<
           )}
         </button>
       </div>
-    </Card>
+    </section>
   );
 });
