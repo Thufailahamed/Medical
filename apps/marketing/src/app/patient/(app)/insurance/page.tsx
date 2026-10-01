@@ -16,7 +16,6 @@ import {
   Shield,
   ShieldCheck,
   Star,
-  Wallet,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
@@ -40,8 +39,6 @@ import {
   RailRow,
   StatTile,
   TONE_BADGE,
-  TONE_RAIL,
-  TONE_TILE,
   type Tone,
 } from "@/patient/components/workspace";
 

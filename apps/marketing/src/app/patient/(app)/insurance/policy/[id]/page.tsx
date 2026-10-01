@@ -21,7 +21,6 @@ import {
 import { api } from "@/portal/lib/api";
 import { formatDate, formatLkr } from "@/portal/lib/format";
 import {
-  Badge,
   EmptyBlock,
   HERO_CHIP,
   HERO_DANGER_CHIP,
@@ -37,7 +36,6 @@ import {
   PatientPage,
   QuickToolsPanel,
   StatTile,
-  type Tone,
 } from "@/patient/components/workspace";
 
 interface EnrollmentDetail {
@@ -62,15 +60,6 @@ interface EnrollmentDetail {
     providerName?: string;
   };
 }
-
-const STATUS_TONE: Record<string, Tone> = {
-  active: "emerald",
-  payment_pending: "amber",
-  grace: "amber",
-  lapsed: "rose",
-  cancelled: "slate",
-  expired: "slate",
-};
 
 export default function PolicyPage({
   params,

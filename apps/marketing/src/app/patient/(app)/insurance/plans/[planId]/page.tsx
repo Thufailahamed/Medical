@@ -16,7 +16,6 @@ import {
   Hospital,
   ShieldCheck,
   Sparkles,
-  TrendingDown,
   Wallet,
   X,
   Zap,
@@ -79,13 +78,13 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const PLAN_TYPE_IMAGE: Record<string, string> = {
-  individual: "/assets/insurance/plan-types/insurance-individual.jpg?v=2",
-  family_floater: "/assets/insurance/plan-types/insurance-family.jpg?v=2",
-  senior: "/assets/insurance/plan-types/insurance-senior.jpg?v=2",
-  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg?v=2",
-  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg?v=2",
-  dental: "/assets/insurance/plan-types/insurance-dental.jpg?v=2",
-  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg?v=2",
+  individual: "/assets/insurance/plan-types/insurance-individual.jpg",
+  family_floater: "/assets/insurance/plan-types/insurance-family.jpg",
+  senior: "/assets/insurance/plan-types/insurance-senior.jpg",
+  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg",
+  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg",
+  dental: "/assets/insurance/plan-types/insurance-dental.jpg",
+  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg",
 };
 
 export default function PlanDetailPage({

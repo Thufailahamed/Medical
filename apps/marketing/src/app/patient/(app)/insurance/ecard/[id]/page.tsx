@@ -59,7 +59,8 @@ export default function EcardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [qrUrl, setQrUrl] = useState<string>("");
+  const [now] = useState(() => Date.now());
+  const [qr, setQr] = useState<{ key: string; url: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const q = useQuery({
@@ -70,15 +71,17 @@ export default function EcardPage({
 
   const card = q.data?.ecard;
   const valid = card
-    ? new Date(card.validUntil).getTime() > Date.now()
+    ? new Date(card.validUntil).getTime() > now
     : false;
+
+  const qrKey = card
+    ? `${card.qrToken}:${card.policyNumber}:${card.cardNumber}`
+    : "";
+  const qrUrl = qr && qr.key === qrKey ? qr.url : "";
 
   // Generate a data-URL QR client-side so we never depend on a third party.
   useEffect(() => {
-    if (!card?.qrToken) {
-      setQrUrl("");
-      return;
-    }
+    if (!card?.qrToken || !qrKey) return;
     const payload = JSON.stringify({
       t: card.qrToken,
       p: card.policyNumber,
@@ -90,9 +93,9 @@ export default function EcardPage({
       width: 240,
       color: { dark: "#0B1F3A", light: "#FFFFFF" },
     })
-      .then(setQrUrl)
-      .catch(() => setQrUrl(""));
-  }, [card?.qrToken, card?.policyNumber, card?.cardNumber]);
+      .then((url) => setQr({ key: qrKey, url }))
+      .catch(() => {});
+  }, [card?.qrToken, card?.policyNumber, card?.cardNumber, qrKey]);
 
   const copyNumber = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard && card) {

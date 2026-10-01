@@ -43,7 +43,6 @@ import {
   PatientPage,
   QuickToolsPanel,
   StatTile,
-  type Tone,
 } from "@/patient/components/workspace";
 
 interface ClaimDetail {
@@ -83,15 +82,6 @@ interface ClaimDetail {
   };
 }
 
-const STATUS_TONE: Record<string, Tone> = {
-  submitted: "sky",
-  under_review: "amber",
-  more_info_needed: "amber",
-  approved: "emerald",
-  rejected: "rose",
-  paid: "emerald",
-};
-
 const STAGES = ["submitted", "under_review", "approved", "paid"];
 
 export default function ClaimDetailPage({
@@ -121,7 +111,6 @@ export default function ClaimDetailPage({
   });
 
   const c = q.data?.claim;
-  const tone = c ? (STATUS_TONE[c.status] ?? "sky") : "sky";
   const stageIdx = c ? STAGES.indexOf(c.status) : -1;
 
   return (

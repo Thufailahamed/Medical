@@ -8,7 +8,6 @@ import {
   Activity,
   ArrowRight,
   Building2,
-  ChevronRight,
   Filter,
   Percent,
   Shield,
@@ -35,12 +34,10 @@ import {
   PANEL,
   PanelHeader,
   PanelSearch,
-  PanelSkeleton,
   PatientHero,
   PatientPage,
   PromoCard,
   StatTile,
-  Segmented,
 } from "@/patient/components/workspace";
 
 interface Provider {
@@ -99,13 +96,13 @@ const TYPE_LABEL: Record<string, string> = {
 
 // Map plan type → on-brand illustration used in hero & plan cards.
 const PLAN_TYPE_IMAGE: Record<string, string> = {
-  individual: "/assets/insurance/plan-types/insurance-individual.jpg?v=2",
-  family_floater: "/assets/insurance/plan-types/insurance-family.jpg?v=2",
-  senior: "/assets/insurance/plan-types/insurance-senior.jpg?v=2",
-  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg?v=2",
-  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg?v=2",
-  dental: "/assets/insurance/plan-types/insurance-dental.jpg?v=2",
-  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg?v=2",
+  individual: "/assets/insurance/plan-types/insurance-individual.jpg",
+  family_floater: "/assets/insurance/plan-types/insurance-family.jpg",
+  senior: "/assets/insurance/plan-types/insurance-senior.jpg",
+  critical_illness: "/assets/insurance/plan-types/insurance-critical-illness.jpg",
+  cancer: "/assets/insurance/plan-types/insurance-cancer.jpg",
+  dental: "/assets/insurance/plan-types/insurance-dental.jpg",
+  maternity: "/assets/insurance/plan-types/insurance-maternity.jpg",
 };
 
 function planImageFor(planType: string): string | undefined {
@@ -130,8 +127,8 @@ export default function PatientMarketplace() {
     },
   });
 
-  const providers = data?.providers ?? [];
-  const plans = data?.plans ?? [];
+  const providers = useMemo(() => data?.providers ?? [], [data?.providers]);
+  const plans = useMemo(() => data?.plans ?? [], [data?.plans]);
   const featured = plans.filter((p) => p.isFeatured).slice(0, 4);
 
   const providerById = useMemo(() => {

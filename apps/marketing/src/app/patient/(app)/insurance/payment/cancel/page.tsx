@@ -4,11 +4,16 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, XCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, RefreshCw, XCircle } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { Button } from "@/portal/components/ui/Button";
+import {
+  HERO_CHIP,
+  HeroAccent,
+  PANEL,
+  PatientHero,
+  PatientPage,
+} from "@/patient/components/workspace";
 
 interface EnrollmentsResponse {
   enrollments: Array<{
@@ -21,7 +26,13 @@ interface EnrollmentsResponse {
 
 export default function InsurancePaymentCancelPage() {
   return (
-    <Suspense fallback={<Card><div className="h-48 animate-pulse" /></Card>}>
+    <Suspense
+      fallback={
+        <PatientPage>
+          <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+        </PatientPage>
+      }
+    >
       <CancelInner />
     </Suspense>
   );
@@ -43,37 +54,59 @@ function CancelInner() {
   );
 
   return (
-    <div className="space-y-5 max-w-xl">
-      <Link
-        href="/patient/insurance"
-        className="text-xs text-brand hover:text-brand-strong font-semibold inline-flex items-center gap-1"
-      >
-        <ArrowLeft size={12} />
-        Back to Insurance
-      </Link>
+    <PatientPage>
+      <div className="-mb-1">
+        <Link
+          href="/patient/insurance"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-sky-700"
+        >
+          <ArrowLeft size={14} /> Insurance hub
+        </Link>
+      </div>
 
-      <Card className="text-center py-10">
-        <XCircle size={28} className="mx-auto text-text-muted" />
-        <h1 className="text-xl font-bold text-text mt-3">Payment cancelled</h1>
-        <p className="text-sm text-text-soft mt-1">
-          {order
-            ? `Order ${order} was cancelled before completion. No amount was charged.`
-            : "Payment was cancelled before completion. No amount was charged."}
-        </p>
-        {pending.length > 0 && pending[0] ? (
-          <div className="mt-5">
-            <Link href={`/patient/insurance/payment/${pending[0].id}`}>
-              <Button>Retry payment</Button>
+      <PatientHero
+        overlap={false}
+        kickerIcon={<CreditCard size={13} aria-hidden />}
+        kicker="Insurance"
+        kickerMeta="Checkout"
+        title={
+          <>
+            Payment <HeroAccent>cancelled</HeroAccent>
+          </>
+        }
+        description="The checkout was cancelled before completion. No amount was charged."
+        chips={<span className={HERO_CHIP}>No charge made</span>}
+      />
+
+      <div className="mx-auto w-full max-w-2xl">
+        <section className={`${PANEL} py-10 text-center`}>
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+            <XCircle size={26} />
+          </div>
+          <h2 className="mt-4 text-xl font-bold text-slate-900">Payment cancelled</h2>
+          <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-500">
+            {order
+              ? `Order ${order} was cancelled before completion. No amount was charged — you can retry whenever you're ready.`
+              : "Payment was cancelled before completion. No amount was charged — you can retry whenever you're ready."}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {pending.length > 0 && pending[0] ? (
+              <Link
+                href={`/patient/insurance/payment/${pending[0].id}`}
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-sky-600 px-5 text-xs font-bold text-white transition hover:bg-sky-500"
+              >
+                <RefreshCw size={13} /> Retry payment
+              </Link>
+            ) : null}
+            <Link
+              href="/patient/insurance"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-100 px-5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+            >
+              Back to Insurance Hub
             </Link>
           </div>
-        ) : (
-          <div className="mt-5">
-            <Link href="/patient/insurance">
-              <Button variant="secondary">Back to Insurance Hub</Button>
-            </Link>
-          </div>
-        )}
-      </Card>
-    </div>
+        </section>
+      </div>
+    </PatientPage>
   );
 }

@@ -279,12 +279,13 @@ export default function RecordsListPage() {
   const loading = searching ? fts.isLoading : query.isLoading;
   const errored = searching ? fts.isError : query.isError;
 
-  const breakdown = KINDS.filter((k) => k.id).map((k) => ({
-    key: k.id,
-    label: k.label,
-    count: countFor(byType, k.id),
-    color: KIND_COLOR[k.id] ?? "bg-slate-300",
-  }));
+  const breakdown: Array<{ key: string; label: string; count: number; color: string }> =
+    KINDS.filter((k) => k.id).map((k) => ({
+      key: k.id,
+      label: k.label,
+      count: countFor(byType, k.id),
+      color: KIND_COLOR[k.id] ?? "bg-slate-300",
+    }));
   const breakdownKnown = breakdown.reduce((s, b) => s + b.count, 0);
   if (totalCount > breakdownKnown) {
     breakdown.push({ key: "other", label: "Other", count: totalCount - breakdownKnown, color: "bg-slate-300" });

@@ -89,7 +89,7 @@ export default function ClaimsListPage() {
     queryFn: () => api<{ claims: Claim[] }>("/insurance-marketplace/claims/me"),
   });
 
-  const rawClaims = q.data?.claims ?? [];
+  const rawClaims = useMemo(() => q.data?.claims ?? [], [q.data?.claims]);
 
   const { pendingCount, approvedCount, rejectedCount } = useMemo(() => {
     let pending = 0;

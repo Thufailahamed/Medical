@@ -253,10 +253,7 @@ export default function TestBookingDetailPage({
     try {
       const res = await pay.mutateAsync({ bookingId: id });
       if (res.checkoutUrl) {
-        const url = `${res.checkoutUrl}?${new URLSearchParams(
-          res.fields as Record<string, string>,
-        ).toString()}`;
-        window.open(url, "_blank", "noopener");
+        window.open(res.checkoutUrl, "_blank", "noopener");
       }
     } catch (e) {
       setMsg({

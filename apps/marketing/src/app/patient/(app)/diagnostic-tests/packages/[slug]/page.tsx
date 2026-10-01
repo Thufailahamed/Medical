@@ -189,21 +189,21 @@ const CURATED_PACKAGES: Record<string, CuratedPackageInfo> = {
 
 
 const PACKAGE_IMAGE: Record<string, string> = {
-  "full-body-health-checkup": "/assets/lab/packages/lab-full-body.jpg?v=2",
-  "comprehensive-diabetic-screen": "/assets/lab/packages/lab-diabetic.jpg?v=2",
-  "cardiac-wellness-profile": "/assets/lab/packages/lab-cardiac.jpg?v=2",
-  "senior-citizen-wellness": "/assets/lab/packages/lab-senior.jpg?v=2",
-  "essential-health-checkup": "/assets/lab/packages/lab-essential.jpg?v=2",
+  "full-body-health-checkup": "/assets/lab/packages/lab-full-body.jpg",
+  "comprehensive-diabetic-screen": "/assets/lab/packages/lab-diabetic.jpg",
+  "cardiac-wellness-profile": "/assets/lab/packages/lab-cardiac.jpg",
+  "senior-citizen-wellness": "/assets/lab/packages/lab-senior.jpg",
+  "essential-health-checkup": "/assets/lab/packages/lab-essential.jpg",
 };
 
 function packageImage(slug: string, name?: string): string {
   if (PACKAGE_IMAGE[slug]) return PACKAGE_IMAGE[slug];
   const text = `${slug} ${name ?? ""}`.toLowerCase();
-  if (text.includes("diabet") || text.includes("sugar")) return "/assets/lab/packages/lab-diabetic.jpg?v=2";
-  if (text.includes("cardiac") || text.includes("heart")) return "/assets/lab/packages/lab-cardiac.jpg?v=2";
-  if (text.includes("senior")) return "/assets/lab/packages/lab-senior.jpg?v=2";
-  if (text.includes("essential")) return "/assets/lab/packages/lab-essential.jpg?v=2";
-  return "/assets/lab/packages/lab-full-body.jpg?v=2";
+  if (text.includes("diabet") || text.includes("sugar")) return "/assets/lab/packages/lab-diabetic.jpg";
+  if (text.includes("cardiac") || text.includes("heart")) return "/assets/lab/packages/lab-cardiac.jpg";
+  if (text.includes("senior")) return "/assets/lab/packages/lab-senior.jpg";
+  if (text.includes("essential")) return "/assets/lab/packages/lab-essential.jpg";
+  return "/assets/lab/packages/lab-full-body.jpg";
 }
 
 export default function TestPackageDetailPage({
