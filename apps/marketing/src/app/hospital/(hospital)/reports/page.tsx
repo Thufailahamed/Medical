@@ -1,41 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   BarChart3,
   Bed,
+  BedDouble,
   CalendarDays,
+  CircleDollarSign,
   Download,
+  Receipt,
   Stethoscope,
   TrendingUp,
 } from "lucide-react";
 import { api } from "@/hospital/lib/api";
-import { Card, CardHeader } from "@/portal/components/ui/Card";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { useT } from "@/hospital/i18n";
 import { formatLkr } from "@/hospital/lib/format";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  BreakdownBar,
+  FIELD_INPUT,
+  HeroPulse,
+  QuickToolsPanel,
+} from "@/patient/components/workspace";
+import { cn } from "@/portal/lib/utils";
+
+interface ReportTile {
+  key: string;
+  value: number;
+  total?: number;
+}
+interface RevenuePoint {
+  bucket: string;
+  total: number;
+}
+interface OpdDay {
+  date: string;
+  count: number;
+}
+interface WardOcc {
+  id: string;
+  name: string;
+  occupied: number;
+  total: number;
+}
+interface CountRow {
+  doctorId?: string;
+  diagnosis?: string;
+  count: number;
+}
+
+const OCC_COLORS = ["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-violet-500", "bg-rose-500", "bg-teal-500"];
 
 export default function ReportsPage() {
   const t = useT();
   const locale = useAuthStore((s) => s.locale);
-  const today = new Date().toISOString().slice(0, 10);
-  const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(thirtyAgo);
-  const [to, setTo] = useState(today);
+  const [from, setFrom] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   const tiles = useQuery({
     queryKey: ["reportTiles"],
-    queryFn: () => api<{ tiles: any[] }>("/hospital-portal/reports/dashboard-tiles"),
+    queryFn: () => api<{ tiles: ReportTile[] }>("/hospital-portal/reports/dashboard-tiles"),
     refetchInterval: 60_000,
   });
 
   const revenue = useQuery({
     queryKey: ["reportRevenue", from, to],
     queryFn: () =>
-      api<{ series: any[]; total: number }>(
+      api<{ series: RevenuePoint[]; total: number }>(
         `/hospital-portal/reports/revenue?from=${from}&to=${to}`
       ),
   });
@@ -43,42 +88,61 @@ export default function ReportsPage() {
   const opd = useQuery({
     queryKey: ["reportOpd", from, to],
     queryFn: () =>
-      api<{ days: any[] }>(`/hospital-portal/reports/opd?from=${from}&to=${to}`),
+      api<{ days: OpdDay[] }>(`/hospital-portal/reports/opd?from=${from}&to=${to}`),
   });
 
   const ipd = useQuery({
     queryKey: ["reportIpd", from, to],
     queryFn: () =>
-      api<{ admitted: any[]; discharged: any[]; transferred: any[] }>(
+      api<{ admitted: unknown[]; discharged: unknown[]; transferred: unknown[] }>(
         `/hospital-portal/reports/ipd?from=${from}&to=${to}`
       ),
   });
 
   const occ = useQuery({
     queryKey: ["reportOcc"],
-    queryFn: () => api<{ wards: any[] }>("/hospital-portal/reports/occupancy"),
+    queryFn: () => api<{ wards: WardOcc[] }>("/hospital-portal/reports/occupancy"),
   });
 
   const doctor = useQuery({
     queryKey: ["reportDoctor", from, to],
     queryFn: () =>
-      api<{ rows: any[] }>(`/hospital-portal/reports/doctor-utilization?from=${from}&to=${to}`),
+      api<{ rows: CountRow[] }>(`/hospital-portal/reports/doctor-utilization?from=${from}&to=${to}`),
   });
 
   const topDiag = useQuery({
     queryKey: ["reportTopDiag", from, to],
     queryFn: () =>
-      api<{ rows: any[] }>(`/hospital-portal/reports/top-diagnoses?from=${from}&to=${to}`),
+      api<{ rows: CountRow[] }>(`/hospital-portal/reports/top-diagnoses?from=${from}&to=${to}`),
   });
 
-  const tileMap = Object.fromEntries(
-    (tiles.data?.tiles ?? []).map((t: any) => [t.key, t])
+  const tileMap = useMemo(
+    () => Object.fromEntries((tiles.data?.tiles ?? []).map((tl) => [tl.key, tl])),
+    [tiles.data]
   );
+
+  const revenueMax = Math.max(1, ...(revenue.data?.series ?? []).map((s) => Number(s.total)));
+  const opdMax = Math.max(1, ...(opd.data?.days ?? []).map((d) => d.count));
+  const doctorMax = Math.max(1, ...(doctor.data?.rows ?? []).map((d) => d.count));
+
+  const occupancyItems = (occ.data?.wards ?? []).map((w, i) => ({
+    key: w.id,
+    label: `${w.name} · ${w.occupied}/${w.total}`,
+    count: w.occupied,
+    color: OCC_COLORS[i % OCC_COLORS.length],
+  }));
+
+  const diagItems = (topDiag.data?.rows ?? []).map((d, i) => ({
+    key: d.diagnosis ?? String(i),
+    label: d.diagnosis ?? "—",
+    count: d.count,
+    color: OCC_COLORS[i % OCC_COLORS.length],
+  }));
 
   function exportCsv() {
     const rows = [
       ["metric", "value"],
-      ...(tiles.data?.tiles ?? []).map((t: any) => [t.key, String(t.value)]),
+      ...(tiles.data?.tiles ?? []).map((tl) => [tl.key, String(tl.value)]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -89,179 +153,273 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   }
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("nav.reports")}
-        subtitle={t("reports.subtitle")}
-        actions={
-          <button
-            onClick={exportCsv}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-surface-2 transition-colors"
-          >
-            <Download size={14} />
+  const hero = (
+    <DoctorHero
+      kickerIcon={<BarChart3 size={13} aria-hidden />}
+      kicker={t("nav.reports")}
+      kickerMeta={`${from} → ${to}`}
+      title={
+        <>
+          {t("nav.reportsOverview")}{" "}
+          <span className="bg-gradient-to-r from-emerald-200 via-white to-teal-200 bg-clip-text text-transparent">
+            · analytics
+          </span>
+        </>
+      }
+      description={t("reports.subtitle")}
+      chips={
+        <>
+          <span className={HERO_CHIP}>
+            <CalendarDays size={12} className="text-sky-300" />
+            {from} → {to}
+          </span>
+          <span className={HERO_CHIP}>
+            <TrendingUp size={12} className="text-emerald-300" />
+            {formatLkr(revenue.data?.total ?? 0, locale)} {t("reports.revenue").toLowerCase()}
+          </span>
+        </>
+      }
+      aside={
+        <HeroPulse
+          icon={<TrendingUp size={18} />}
+          label={t("reports.revenue")}
+          value={revenue.isLoading ? "…" : formatLkr(revenue.data?.total ?? 0, locale)}
+          sub={`${from} → ${to}`}
+        />
+      }
+      actions={
+        <>
+          <Link href="/hospital/billing" className={HERO_GHOST}>
+            <Receipt size={14} />
+            {t("nav.billing")}
+          </Link>
+          <button onClick={exportCsv} className={HERO_PRIMARY}>
+            <Download size={14} className="text-emerald-600" />
             {t("common.export")} CSV
           </button>
-        }
-      />
+        </>
+      }
+    />
+  );
 
-      <Card>
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="flex items-center gap-2">
-            <CalendarDays size={14} className="text-text-muted" />
-            <span className="text-sm font-medium">{t("common.from")}</span>
-            <input
-              type="date"
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <CalendarDays size={14} className="text-text-muted" />
-            <span className="text-sm font-medium">{t("common.to")}</span>
-            <input
-              type="date"
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </label>
-        </div>
-      </Card>
+  return (
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {hero}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <KpiCard
-          icon={<Activity size={14} />}
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Activity size={16} />}
+          tone="bg-sky-50 text-sky-600"
           label={t("dashboard.opdToday")}
-          value={tileMap.opdToday?.value ?? 0}
+          value={tiles.isLoading ? "…" : String(tileMap.opdToday?.value ?? 0)}
+          sub={t("common.today")}
         />
-        <KpiCard
-          icon={<Bed size={14} />}
+        <StatTile
+          icon={<BedDouble size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
           label={t("dashboard.ipdCensus")}
-          value={tileMap.ipdCensus?.value ?? 0}
+          value={tiles.isLoading ? "…" : String(tileMap.ipdCensus?.value ?? 0)}
+          sub={t("nav.inpatient")}
         />
-        <KpiCard
-          icon={<Bed size={14} />}
+        <StatTile
+          icon={<Bed size={16} />}
+          tone="bg-amber-50 text-amber-600"
           label={t("dashboard.bedsOccupied")}
-          value={`${tileMap.beds?.value ?? 0}/${tileMap.beds?.total ?? 0}`}
+          value={tiles.isLoading ? "…" : `${tileMap.beds?.value ?? 0}/${tileMap.beds?.total ?? 0}`}
+          sub={t("nav.beds")}
         />
-        <KpiCard
-          icon={<TrendingUp size={14} />}
+        <StatTile
+          icon={<TrendingUp size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
           label={t("dashboard.revenueToday")}
-          value={formatLkr(tileMap.revenueToday?.value ?? 0, locale)}
+          value={tiles.isLoading ? "…" : formatLkr(tileMap.revenueToday?.value ?? 0, locale)}
+          sub={t("common.today")}
         />
-      </div>
+      </HeroOverlap>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader title={t("reports.revenue")} icon={<TrendingUp size={15} className="text-brand" />} />
-          <p className="mt-3 mb-3 text-sm text-text-muted">
-            {t("reports.total")}: <span className="font-bold text-text">{formatLkr(revenue.data?.total ?? 0, locale)}</span>
-          </p>
-          {revenue.data?.series?.length ? (
-            <div className="space-y-1">
-              {revenue.data.series.map((s: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between border-b border-border/40 last:border-0 py-1.5 text-xs"
-                >
-                  <span className="text-text-muted">{s.bucket}</span>
-                  <span className="font-mono font-semibold text-text">
-                    {formatLkr(Number(s.total), locale)}
-                  </span>
+      <section className={cn(PANEL, "flex flex-wrap items-center gap-4")}>
+        <span className="inline-flex items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <CalendarDays size={14} />
+          {t("common.filter")}
+        </span>
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500">{t("common.from")}</span>
+          <input
+            type="date"
+            className={cn(FIELD_INPUT, "w-auto py-1.5")}
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500">{t("common.to")}</span>
+          <input
+            type="date"
+            className={cn(FIELD_INPUT, "w-auto py-1.5")}
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </label>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-8">
+          <div className="grid gap-5 md:grid-cols-2">
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<TrendingUp size={16} />}
+                tone="bg-emerald-50 text-emerald-600"
+                title={t("reports.revenue")}
+                caption={formatLkr(revenue.data?.total ?? 0, locale)}
+              />
+              {revenue.data?.series?.length ? (
+                <div className="mt-4 space-y-2.5">
+                  {revenue.data.series.map((s, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">{s.bucket}</span>
+                        <span className="font-semibold tabular-nums text-slate-900">{formatLkr(Number(s.total), locale)}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                          style={{ width: `${(Number(s.total) / revenueMax) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-muted">—</p>
-          )}
-        </Card>
+              ) : (
+                <EmptyBlock icon={<TrendingUp size={19} />} title={t("reports.revenue")} body="—" />
+              )}
+            </section>
 
-        <Card>
-          <CardHeader title={t("reports.occupancy")} icon={<BarChart3 size={15} className="text-brand" />} />
-          <div className="mt-3 space-y-2">
-            {occ.data?.wards?.map((w: any) => (
-              <div key={w.id} className="flex items-center justify-between text-sm">
-                <span className="font-medium">{w.name}</span>
-                <span className="text-text-muted">
-                  {w.occupied}/{w.total}
-                </span>
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<BarChart3 size={16} />}
+                tone="bg-sky-50 text-sky-600"
+                title={t("reports.occupancy")}
+                caption={`${occ.data?.wards?.length ?? 0} ${t("nav.wards").toLowerCase()}`}
+              />
+              {occupancyItems.length ? (
+                <BreakdownBar items={occupancyItems} total={occupancyItems.reduce((a, i) => a + i.count, 0)} />
+              ) : (
+                <EmptyBlock icon={<BarChart3 size={19} />} title={t("reports.occupancy")} body="—" />
+              )}
+            </section>
+
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Activity size={16} />}
+                tone="bg-sky-50 text-sky-600"
+                title={t("reports.opd")}
+                caption={`${opd.data?.days?.length ?? 0} days`}
+              />
+              {opd.data?.days?.length ? (
+                <div className="mt-4 space-y-2.5">
+                  {opd.data.days.slice(0, 14).map((d, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">{d.date}</span>
+                        <span className="font-semibold tabular-nums text-slate-900">{d.count}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-400"
+                          style={{ width: `${(d.count / opdMax) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyBlock icon={<Activity size={19} />} title={t("reports.opd")} body="—" />
+              )}
+            </section>
+
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<BedDouble size={16} />}
+                tone="bg-amber-50 text-amber-600"
+                title={t("reports.ipd")}
+                caption={`${from} → ${to}`}
+              />
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-amber-50 p-3 text-center">
+                  <p className="text-2xl font-extrabold tabular-nums text-amber-700">{ipd.data?.admitted?.length ?? 0}</p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-600">{t("reports.admitted")}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 p-3 text-center">
+                  <p className="text-2xl font-extrabold tabular-nums text-emerald-700">{ipd.data?.discharged?.length ?? 0}</p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600">{t("reports.discharged")}</p>
+                </div>
+                <div className="rounded-xl bg-sky-50 p-3 text-center">
+                  <p className="text-2xl font-extrabold tabular-nums text-sky-700">{ipd.data?.transferred?.length ?? 0}</p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-sky-600">{t("reports.transferred")}</p>
+                </div>
               </div>
-            ))}
+            </section>
           </div>
-        </Card>
 
-        <Card>
-          <CardHeader title={t("reports.opd")} icon={<Activity size={15} className="text-brand" />} />
-          {opd.data?.days?.length ? (
-            <ul className="mt-3 space-y-1 text-sm">
-              {opd.data.days.slice(0, 14).map((d: any, i: number) => (
-                <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
-                  <span className="text-text-muted">{d.date}</span>
-                  <span className="font-semibold">{d.count}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-text-muted">—</p>
-          )}
-        </Card>
+          <div className="grid gap-5 md:grid-cols-2">
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Stethoscope size={16} />}
+                tone="bg-violet-50 text-violet-600"
+                title={t("reports.doctorUtilization")}
+                caption={String(doctor.data?.rows?.length ?? 0)}
+              />
+              {doctor.data?.rows?.length ? (
+                <div className="mt-4 space-y-2.5">
+                  {doctor.data.rows.slice(0, 10).map((d, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="truncate font-mono text-slate-500">{d.doctorId?.slice(0, 8)}…</span>
+                        <span className="font-semibold tabular-nums text-slate-900">{d.count}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-violet-400"
+                          style={{ width: `${(d.count / doctorMax) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyBlock icon={<Stethoscope size={19} />} title={t("reports.doctorUtilization")} body="—" />
+              )}
+            </section>
 
-        <Card>
-          <CardHeader title={t("reports.ipd")} icon={<Bed size={15} className="text-brand" />} />
-          <div className="mt-3 space-y-1.5 text-sm">
-            <p>
-              <span className="text-text-muted">{t("reports.admitted")}: </span>
-              <span className="font-bold text-warn">{ipd.data?.admitted?.length ?? 0}</span>
-            </p>
-            <p>
-              <span className="text-text-muted">{t("reports.discharged")}: </span>
-              <span className="font-bold text-emerald-700">{ipd.data?.discharged?.length ?? 0}</span>
-            </p>
-            <p>
-              <span className="text-text-muted">{t("reports.transferred")}: </span>
-              <span className="font-bold text-sky-700">{ipd.data?.transferred?.length ?? 0}</span>
-            </p>
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<BarChart3 size={16} />}
+                tone="bg-rose-50 text-rose-600"
+                title={t("reports.topDiagnoses")}
+                caption={String(topDiag.data?.rows?.length ?? 0)}
+              />
+              {diagItems.length ? (
+                <BreakdownBar items={diagItems} total={diagItems.reduce((a, i) => a + i.count, 0)} max={10} />
+              ) : (
+                <EmptyBlock icon={<BarChart3 size={19} />} title={t("reports.topDiagnoses")} body="—" />
+              )}
+            </section>
           </div>
-        </Card>
+        </div>
 
-        <Card>
-          <CardHeader title={t("reports.doctorUtilization")} icon={<Stethoscope size={15} className="text-brand" />} />
-          <ul className="mt-3 space-y-1 text-sm">
-            {doctor.data?.rows?.slice(0, 10).map((d: any, i: number) => (
-              <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
-                <span className="truncate text-text-muted">{d.doctorId?.slice(0, 8)}…</span>
-                <span className="font-semibold">{d.count}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card>
-          <CardHeader title={t("reports.topDiagnoses")} icon={<BarChart3 size={15} className="text-brand" />} />
-          <ul className="mt-3 space-y-1 text-sm">
-            {topDiag.data?.rows?.slice(0, 10).map((d: any, i: number) => (
-              <li key={i} className="flex justify-between border-b border-border/40 last:border-0 py-1.5">
-                <span className="truncate text-text-muted">{d.diagnosis ?? "—"}</span>
-                <span className="font-semibold">{d.count}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <QuickToolsPanel
+            id="reports-quick-actions"
+            title={t("dashboard.quickActions")}
+            tools={[
+              { icon: Activity, label: t("nav.dashboard"), hint: t("common.today"), href: "/hospital/dashboard", tone: "from-sky-500 to-blue-600 shadow-sky-500/30" },
+              { icon: Receipt, label: t("nav.billing"), hint: "Invoices", href: "/hospital/billing", tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30" },
+              { icon: CircleDollarSign, label: t("nav.billingOutstanding"), hint: "Balances", href: "/hospital/billing/outstanding", tone: "from-amber-500 to-orange-600 shadow-amber-500/30" },
+              { icon: BedDouble, label: t("nav.inpatient"), hint: "Admissions", href: "/hospital/ipd", tone: "from-violet-500 to-purple-600 shadow-violet-500/30" },
+            ]}
+          />
+        </aside>
       </div>
     </div>
-  );
-}
-
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: any }) {
-  return (
-    <Card>
-      <div className="flex items-center gap-2 text-text-muted">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
-      </div>
-      <p className="mt-2 text-2xl font-extrabold tracking-tight text-text">{value}</p>
-    </Card>
   );
 }

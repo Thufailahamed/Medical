@@ -158,7 +158,7 @@
 
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(125,211,252,0.1) transparent;
+  scrollbar-color: rgba(110,231,183,0.1) transparent;
 }
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
@@ -167,11 +167,11 @@
   background: transparent;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(125,211,252,0.12);
+  background: rgba(110,231,183,0.12);
   border-radius: 999px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(125,211,252,0.22);
+  background: rgba(110,231,183,0.22);
 }
 
 .sidebar-group-label {
@@ -884,4 +884,133 @@
   [data-app="hospital"] .hospital-detail-grid.cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ─── Shared Modal/Drawer overlays ────────────────────────────────────────
+   portal/components/ui/Modal.tsx portals to <body> and relies on these
+   classes. They previously only existed in portal/globals.css — which the
+   hospital app never loads — so modals rendered completely unstyled
+   (buttons "did nothing"). The overlay root re-tags itself
+   data-app="hospital", so the [data-app="hospital"] .portal-btn overrides
+   above still apply inside overlays. */
+.portal-overlay-root {
+  color: var(--text, #0f172a);
+  font-family: var(--font-sans, "Outfit", ui-sans-serif, system-ui, sans-serif);
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --text: #0f172a;
+  --text-soft: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --brand: #059669;
+}
+
+.portal-overlay-host {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.portal-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.portal-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #0f172a;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.12);
+}
+.portal-drawer-sm { max-width: 24rem; }
+.portal-drawer-md { max-width: 32rem; }
+.portal-drawer-lg { max-width: 42rem; }
+.portal-drawer-xl { max-width: 56rem; }
+
+.portal-modal-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 2rem);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+.portal-modal-sm { max-width: 28rem; }
+.portal-modal-md { max-width: 32rem; }
+.portal-modal-lg { max-width: 42rem; }
+.portal-modal-xl { max-width: 56rem; }
+
+.portal-overlay-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+.portal-overlay-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+.portal-overlay-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+  line-height: 1.4;
+}
+.portal-overlay-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.portal-overlay-close:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+.portal-overlay-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+}
+.portal-overlay-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }

@@ -90,6 +90,8 @@
     "staff": "Staff",
     "staffInvites": "Staff Invites",
     "departments": "Departments",
+    "settings": "Settings",
+    "pacsIntegrations": "PACS Integrations",
     "billing": "Billing",
     "billingOutstanding": "Outstanding",
     "reportsOverview": "Reports",
@@ -115,7 +117,17 @@
     "admitted": "Currently admitted",
     "noAdmissions": "No active admissions",
     "todayAppointments": "Today's appointments",
-    "noAppointments": "No appointments booked today"
+    "noAppointments": "No appointments booked today",
+    "command": "Facility command center",
+    "staffOnShift": "Staff on shift",
+    "bedOccupancy": "Bed occupancy",
+    "quickActions": "Quick actions",
+    "occupied": "Occupied",
+    "available": "Available",
+    "cleaning": "Cleaning",
+    "maintenance": "Maintenance",
+    "viewAll": "View all",
+    "onDuty": "on duty"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -459,8 +471,20 @@
         "ttl168": "7 days",
         "submit": "Send request"
       },
-      "status": { "pending": "Pending", "approved": "Approved", "declined": "Declined", "expired": "Expired", "revoked": "Revoked" },
-      "actions": { "viewBundle": "View chart", "revoke": "Revoke access", "approve": "Approve", "decline": "Decline", "cancel": "Cancel" },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "declined": "Declined",
+        "expired": "Expired",
+        "revoked": "Revoked"
+      },
+      "actions": {
+        "viewBundle": "View chart",
+        "revoke": "Revoke access",
+        "approve": "Approve",
+        "decline": "Decline",
+        "cancel": "Cancel"
+      },
       "banner": "Viewing chart via share request. Expires {{when}}.",
       "declinedReason": "Decline reason"
     },
@@ -483,7 +507,13 @@
         "summary": "Clinical summary",
         "submit": "Send referral"
       },
-      "status": { "pending": "Awaiting acceptance", "accepted": "Accepted", "declined": "Declined", "completed": "Completed", "cancelled": "Cancelled" }
+      "status": {
+        "pending": "Awaiting acceptance",
+        "accepted": "Accepted",
+        "declined": "Declined",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     },
     "labRouting": {
       "title": "Lab order routing",
@@ -498,7 +528,12 @@
         "reason": "Routing reason",
         "submit": "Route order"
       },
-      "status": { "pending": "Pending acceptance", "accepted": "Accepted", "completed": "Completed", "cancelled": "Cancelled" }
+      "status": {
+        "pending": "Pending acceptance",
+        "accepted": "Accepted",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     },
     "consults": {
       "title": "Doctor consults",

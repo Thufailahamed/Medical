@@ -1,41 +1,79 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Search,
-  LogOut,
-  Settings as SettingsIcon,
+  ArrowRight,
   Bell,
+  Building2,
   ChevronDown,
-  X,
+  ChevronRight,
+  CornerDownLeft,
+  DoorOpen,
+  Inbox,
+  LogOut,
+  Menu,
+  Search,
+  Settings as SettingsIcon,
+  Users,
 } from "lucide-react";
 
 import { useAuthStore } from "@/hospital/stores/auth";
+import { useUiStore } from "@/hospital/stores/ui";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { logout } from "@/hospital/lib/auth";
 import { loginHref } from "@/portal/lib/login";
 import { api, qk } from "@/hospital/lib/api";
+import { relativeTime } from "@/hospital/lib/format";
 import { useT } from "@/hospital/i18n";
 import { cn } from "@/hospital/lib/utils";
+import { findNavItem, navLabel, visibleNavGroups } from "./nav";
+import type { HospitalRole } from "@/hospital/stores/auth";
 
-/**
- * Hospital portal topbar — search, locale, tenant switcher, notification
- * bell, user menu. Mirrors the portal layout so staff migrating from
- * the doctor/pharmacy portal recognise it immediately.
- */
+type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  read?: boolean;
+  createdAt: string;
+};
+
+/** Close a popover when clicking outside it or pressing Escape. */
+function useDismiss(open: boolean, close: () => void) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, close]);
+  return ref;
+}
+
 export function HospitalTopbar() {
+  const pathname = usePathname() || "";
   const router = useRouter();
   const t = useT();
   const user = useAuthStore((s) => s.user);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [search, setSearch] = useState("");
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const searchRef = useRef<HTMLInputElement | null>(null);
+  const toggleMobileNav = useUiStore((s) => s.toggleMobileNav);
+  const role = (user?.role as HospitalRole | undefined) ?? "hospital_staff";
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
 
   const { data: unread } = useQuery<{ count: number }>({
     queryKey: qk.unreadCount,
@@ -45,228 +83,466 @@ export function HospitalTopbar() {
   });
   const unreadCount = unread?.count ?? 0;
 
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  const { data: notes } = useQuery({
+    queryKey: ["notifications", "me"],
+    queryFn: () => api<{ notifications: Notification[] }>("/notifications/me"),
+    enabled: bellOpen,
+  });
 
+  // Reception queue chip — only for roles that can see the reception group.
+  const canSeeReception = !["pharmacy", "laboratory"].includes(role);
+  const { data: walkIns } = useQuery({
+    queryKey: ["walk-ins"],
+    queryFn: () => api<{ walkIns: { id: string; status?: string }[] }>("/walk-ins"),
+    enabled: canSeeReception,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const waiting = (walkIns?.walkIns ?? []).filter((w) => w.status === "waiting").length;
+
+  // ⌘K / Ctrl+K opens the jump palette from anywhere.
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        searchRef.current?.blur();
-        setSearchFocused(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
       }
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function onSubmitSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const q = search.trim();
-    if (!q) return;
-    router.push(`/hospital/reception/patients?q=${encodeURIComponent(q)}`);
-  }
+  const bellRef = useDismiss(bellOpen, () => setBellOpen(false));
+  const userRef = useDismiss(userOpen, () => setUserOpen(false));
+
+  const match = findNavItem(pathname);
+  const groupLabel = match ? navLabel(t, match.group.labelKey) : null;
+  const pageLabel = match ? navLabel(t, match.item.labelKey) : null;
+  const PageIcon = match?.item.icon;
+
+  const visibleGroups = useMemo(
+    () =>
+      visibleNavGroups(role).map((g) => ({
+        key: g.labelKey,
+        label: navLabel(t, g.labelKey),
+        items: g.items.map((i) => ({ ...i, label: navLabel(t, i.labelKey) })),
+      })),
+    [t, role],
+  );
 
   async function onLogout() {
     await logout();
     router.replace(loginHref({ port: "facility" }));
   }
 
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "HS";
+  const initial = (user?.name || "S").slice(0, 1).toUpperCase();
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-20 h-[var(--topbar-h,64px)] flex items-center justify-between gap-4 px-6 md:px-8 lg:px-10 transition-shadow duration-300 no-print",
-        "bg-surface border-b border-border",
-        searchFocused && "shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
-      )}
-    >
-      <form onSubmit={onSubmitSearch} className="flex-1 max-w-xl relative">
-        <div
-          className={cn(
-            "relative flex items-center rounded-xl transition-all duration-200 border",
-            searchFocused
-              ? "ring-2 ring-brand/20 border-brand/40 bg-white shadow-sm"
-              : "border-border/80 bg-surface-2/50 hover:bg-surface-2/80 hover:border-border"
-          )}
+    <>
+      <header className="no-print sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-slate-900/[0.06] bg-white/75 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-white/65 md:px-6 [&_a:hover]:no-underline">
+        {/* Mobile menu */}
+        <button
+          type="button"
+          onClick={toggleMobileNav}
+          aria-label="Open navigation"
+          className="grid h-9 w-9 place-items-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 lg:hidden"
         >
-          <Search
-            size={15}
-            className={cn(
-              "absolute left-3.5 transition-colors duration-200",
-              searchFocused ? "text-brand" : "text-text-muted"
-            )}
-            aria-hidden="true"
-          />
-          <input
-            ref={searchRef}
-            type="search"
-            placeholder="Search patients, NIC, MRN…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            className="w-full h-10 pl-10 pr-12 bg-transparent text-sm text-text placeholder:text-text-muted outline-none"
-            aria-label="Search"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                searchRef.current?.focus();
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
-              aria-label="Clear search"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      </form>
+          <Menu size={18} />
+        </button>
 
-      <div className="flex items-center gap-2.5">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+          <Link
+            href="/hospital/dashboard"
+            className="hidden items-center gap-1.5 rounded-lg px-1.5 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 transition-colors hover:text-emerald-700 sm:inline-flex"
+          >
+            <Building2 size={13} className="text-emerald-600" aria-hidden />
+            {t("shell.wordmarkSubtitle")}
+          </Link>
+          {groupLabel ? (
+            <>
+              <ChevronRight size={13} className="hidden shrink-0 text-slate-300 sm:block" aria-hidden />
+              <span className="hidden font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 lg:inline">
+                {groupLabel}
+              </span>
+              <ChevronRight size={13} className="hidden shrink-0 text-slate-300 lg:block" aria-hidden />
+            </>
+          ) : null}
+          {pageLabel && match ? (
+            match.isDetail ? (
+              <>
+                <Link
+                  href={match.item.href}
+                  className="inline-flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {PageIcon ? <PageIcon size={14} className="shrink-0 text-slate-400" /> : null}
+                  <span className="truncate">{pageLabel}</span>
+                </Link>
+                <ChevronRight size={13} className="shrink-0 text-slate-300" aria-hidden />
+                <span className="truncate font-semibold text-slate-900" aria-current="page">
+                  Details
+                </span>
+              </>
+            ) : (
+              <span className="inline-flex min-w-0 items-center gap-2 px-1.5 font-semibold text-slate-900" aria-current="page">
+                {PageIcon ? (
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-600">
+                    <PageIcon size={14} />
+                  </span>
+                ) : null}
+                <span className="truncate">{pageLabel}</span>
+              </span>
+            )
+          ) : null}
+        </nav>
+
+        <div className="flex-1" />
+
+        {/* Jump / search trigger */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="group hidden h-9 w-64 items-center gap-2 rounded-xl bg-slate-100/80 px-3 text-left text-[13px] text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04)] transition-all hover:bg-white hover:shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] md:flex lg:w-72"
+        >
+          <Search size={14} className="shrink-0" aria-hidden />
+          <span className="flex-1 truncate">Jump to a page…</span>
+          <kbd className="rounded-md bg-white px-1.5 py-0.5 font-sans text-[10.5px] font-semibold text-slate-400 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08)]">⌘K</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Jump to a page"
+          className="grid h-9 w-9 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 md:hidden"
+        >
+          <Search size={17} />
+        </button>
+
+        {/* Reception queue chip */}
+        {canSeeReception && waiting > 0 ? (
+          <Link
+            href="/hospital/reception/walk-ins"
+            className="hidden h-9 items-center gap-2 rounded-xl bg-amber-50 px-3 text-xs font-semibold text-amber-800 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.18)] transition-colors hover:bg-amber-100 lg:inline-flex"
+          >
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+            </span>
+            <DoorOpen size={13} aria-hidden />
+            {waiting} waiting
+          </Link>
+        ) : null}
+
         <LocaleSwitcher />
         <TenantSwitcher />
 
-        <Link
-          href="/hospital/notifications"
-          className="relative h-10 w-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2/60 border border-transparent hover:border-border/40 transition-all duration-200"
-          aria-label={t("notifications.bell.aria", { count: unreadCount }) || "Notifications"}
-          title={
-            unreadCount > 0
-              ? t("shell.unreadBadge", { count: unreadCount })
-              : t("shell.noUnread")
-          }
-        >
-          <Bell size={17} strokeWidth={1.8} />
-          {unreadCount > 0 ? (
-            <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white inline-flex items-center justify-center border-[1.5px] border-surface">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
+        {/* Notifications */}
+        <div className="relative" ref={bellRef}>
+          <button
+            type="button"
+            onClick={() => {
+              setBellOpen((o) => !o);
+              setUserOpen(false);
+            }}
+            aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
+            aria-expanded={bellOpen}
+            className={cn(
+              "relative grid h-9 w-9 place-items-center rounded-xl transition-all",
+              bellOpen ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
+            )}
+          >
+            <Bell size={17} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </button>
+          {bellOpen ? (
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35),inset_0_0_0_1px_rgba(15,23,42,0.08)]">
+              <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
+                <p className="text-sm font-semibold text-slate-900">{t("notifications.title")}</p>
+                {unreadCount ? (
+                  <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    {t("shell.unreadBadge", { count: unreadCount })}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-slate-400">{t("notifications.noUnread")}</span>
+                )}
+              </div>
+              <ul className="max-h-[340px] overflow-y-auto px-2 pb-2">
+                {!notes ? (
+                  [0, 1, 2].map((i) => <li key={i} className="mx-2 my-1.5 h-12 animate-pulse rounded-xl bg-slate-100" />)
+                ) : notes.notifications.length === 0 ? (
+                  <li className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+                    <Inbox size={20} className="text-slate-300" />
+                    <span className="text-xs text-slate-400">{t("notifications.noneYet")}</span>
+                  </li>
+                ) : (
+                  notes.notifications.slice(0, 6).map((n) => (
+                    <li key={n.id}>
+                      <Link
+                        href="/hospital/notifications"
+                        onClick={() => setBellOpen(false)}
+                        className={cn(
+                          "flex items-start gap-3 rounded-xl px-2.5 py-2.5 transition-colors hover:bg-slate-50",
+                          !n.read && "bg-emerald-50/50",
+                        )}
+                      >
+                        <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", n.read ? "bg-slate-200" : "bg-emerald-500")} aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className={cn("block truncate text-[13px]", n.read ? "text-slate-600" : "font-semibold text-slate-900")}>{n.title}</span>
+                          {n.body ? <span className="mt-0.5 line-clamp-1 block text-xs text-slate-400">{n.body}</span> : null}
+                        </span>
+                        <span className="shrink-0 text-[10.5px] tabular-nums text-slate-400">{relativeTime(n.createdAt)}</span>
+                      </Link>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <Link
+                href="/hospital/notifications"
+                onClick={() => setBellOpen(false)}
+                className="flex items-center justify-center gap-1.5 border-t border-slate-100 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
+              >
+                {t("notifications.title")}
+                <ArrowRight size={13} />
+              </Link>
+            </div>
           ) : null}
-        </Link>
+        </div>
 
         <div className="h-5 w-px bg-border mx-1 hidden md:block" />
 
-        <div className="relative" ref={menuRef}>
+        {/* Account */}
+        <div className="relative" ref={userRef}>
           <button
             type="button"
-            onClick={() => setMenuOpen((o) => !o)}
+            onClick={() => {
+              setUserOpen((o) => !o);
+              setBellOpen(false);
+            }}
+            aria-expanded={userOpen}
+            aria-label="Account menu"
             className={cn(
-              "flex items-center gap-2 h-10 pl-1.5 pr-2.5 rounded-xl transition-all duration-200 border border-transparent",
-              menuOpen
-                ? "bg-surface-2 border-border shadow-sm"
-                : "hover:bg-surface-2/60 hover:border-border/40"
+              "flex h-9 items-center gap-2 rounded-xl pl-1 pr-2 transition-colors",
+              userOpen ? "bg-slate-100" : "hover:bg-slate-100",
             )}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
           >
-            <div className="relative">
-              <div
-                className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                style={{
-                  background: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
-                }}
-              >
-                {initials}
-              </div>
-              <span
-                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white"
-                style={{
-                  background: "linear-gradient(135deg, #34D399, #10B981)",
-                  boxShadow: "0 0 6px rgba(52,211,153,0.5)",
-                }}
-              />
-            </div>
-
-            <div className="hidden sm:flex flex-col items-start leading-tight">
-              <span className="text-[13px] font-semibold text-text truncate max-w-[140px]">
-                {user?.name ?? "Staff"}
-              </span>
-              <span className="text-[10px] text-text-muted capitalize font-medium">
-                {user?.role ?? "hospital_staff"}
-              </span>
-            </div>
-
-            <ChevronDown
-              size={13}
-              className={cn(
-                "hidden sm:block text-text-muted transition-transform duration-200",
-                menuOpen && "rotate-180"
-              )}
-            />
+            <span className="relative grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-xs font-semibold text-white">
+              {initial}
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-400" aria-hidden />
+            </span>
+            <span className="hidden max-w-[140px] truncate text-[13px] font-semibold text-slate-800 xl:block">{user?.name ?? "Staff"}</span>
+            <ChevronDown size={14} className={cn("hidden text-slate-400 transition-transform sm:block", userOpen && "rotate-180")} />
           </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 mt-1.5 w-64 rounded-xl border border-border/80 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] z-30 overflow-hidden animate-in">
-              <div
-                className="px-4 py-3 border-b border-border/60"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(14,165,233,0.04) 0%, rgba(2,132,199,0.02) 100%)",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md flex-shrink-0"
-                    style={{
-                      background: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
-                      boxShadow: "0 4px 12px rgba(14,165,233,0.25)",
-                    }}
-                  >
-                    {initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-text truncate">
-                      {user?.name ?? "Staff"}
-                    </div>
-                    <div className="text-[11px] text-text-muted truncate mt-0.5">
-                      {user?.email ?? user?.phone ?? ""}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="py-1.5">
-                <Link
-                  href="/hospital/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className="w-full text-left px-4 py-2.5 text-[13px] font-medium hover:bg-surface-2/60 flex items-center gap-2.5 transition-colors group"
-                >
-                  <span className="h-7 w-7 rounded-lg bg-surface-2 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
-                    <SettingsIcon size={14} className="text-text-muted group-hover:text-sky-600 transition-colors" />
+          {userOpen ? (
+            <div className="absolute right-0 top-[calc(100%+8px)] w-64 overflow-hidden rounded-2xl bg-white p-1.5 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.35),inset_0_0_0_1px_rgba(15,23,42,0.08)]">
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-sm font-semibold text-white">{initial}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-semibold text-slate-900">{user?.name ?? "Staff"}</span>
+                  <span className="block truncate text-[11px] text-slate-400">{user?.email ?? user?.phone ?? ""}</span>
+                  <span className="mt-1 inline-block rounded-md bg-emerald-50 px-1.5 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-emerald-700">
+                    {(role ?? "").replace(/_/g, " ")}
                   </span>
-                  <span className="text-text">{t("shell.settings")}</span>
-                </Link>
-
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-col">
+                <MenuLink href="/hospital/settings" icon={<SettingsIcon size={15} />} onClick={() => setUserOpen(false)}>
+                  {t("shell.settings")}
+                </MenuLink>
+                <MenuLink href="/hospital/notifications" icon={<Inbox size={15} />} onClick={() => setUserOpen(false)}>
+                  {t("notifications.title")}
+                  {unreadCount ? <span className="ml-auto rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white">{unreadCount}</span> : null}
+                </MenuLink>
+              </div>
+              <div className="mt-1.5 border-t border-slate-100 pt-1.5">
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="w-full text-left px-4 py-2.5 text-[13px] font-medium hover:bg-red-50/60 flex items-center gap-2.5 transition-colors group"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
                 >
-                  <span className="h-7 w-7 rounded-lg bg-surface-2 flex items-center justify-center group-hover:bg-red-50 transition-colors">
-                    <LogOut size={14} className="text-text-muted group-hover:text-red-500 transition-colors" />
-                  </span>
-                  <span className="text-red-600">{t("shell.logout")}</span>
+                  <LogOut size={15} />
+                  {t("shell.logout")}
                 </button>
               </div>
             </div>
+          ) : null}
+        </div>
+      </header>
+
+      {paletteOpen ? (
+        <JumpPalette
+          groups={visibleGroups}
+          waiting={waiting}
+          canSeeReception={canSeeReception}
+          onClose={() => setPaletteOpen(false)}
+          onGo={(href) => {
+            setPaletteOpen(false);
+            router.push(href);
+          }}
+          onSearchPatients={(q) => {
+            setPaletteOpen(false);
+            router.push(`/hospital/reception/patients?q=${encodeURIComponent(q)}`);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function MenuLink({
+  href,
+  icon,
+  children,
+  onClick,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+    >
+      <span className="text-slate-400">{icon}</span>
+      {children}
+    </Link>
+  );
+}
+
+type PaletteGroup = {
+  label: string;
+  key: string;
+  items: Array<{ href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }>;
+};
+
+/** ⌘K jump-to-page palette over the hospital nav, with patient search fallback. */
+function JumpPalette({
+  groups,
+  waiting,
+  canSeeReception,
+  onClose,
+  onGo,
+  onSearchPatients,
+}: {
+  groups: PaletteGroup[];
+  waiting: number;
+  canSeeReception: boolean;
+  onClose: () => void;
+  onGo: (href: string) => void;
+  onSearchPatients: (q: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [index, setIndex] = useState(0);
+  const term = q.trim();
+  const lower = term.toLowerCase();
+  const results = groups.flatMap((g) =>
+    g.items
+      .filter((i) => !lower || i.label.toLowerCase().includes(lower) || g.label.toLowerCase().includes(lower))
+      .map((i) => ({ ...i, group: g.label })),
+  );
+  const safeIndex = Math.min(index, Math.max(0, results.length - 1));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Jump to a page">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" />
+      <div className="relative w-full max-w-[560px] overflow-hidden rounded-2xl bg-white shadow-[0_40px_100px_-30px_rgba(15,23,42,0.6),inset_0_0_0_1px_rgba(15,23,42,0.08)]">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-4">
+          <Search size={17} className="shrink-0 text-slate-400" aria-hidden />
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setIndex((i) => Math.min(i + 1, results.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setIndex((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter") {
+                if (results[safeIndex]) onGo(results[safeIndex].href);
+                else if (term) onSearchPatients(term);
+              } else if (e.key === "Escape") {
+                onClose();
+              }
+            }}
+            placeholder="Jump to a page, or type a patient name…"
+            aria-label="Search pages"
+            className="h-14 flex-1 border-0 bg-transparent text-[15px] text-slate-900 shadow-none outline-none ring-0 placeholder:text-slate-400 focus:shadow-none focus:outline-none focus:ring-0"
+          />
+          <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-400">Esc</kbd>
+        </div>
+
+        {term ? (
+          <button
+            type="button"
+            onClick={() => onSearchPatients(term)}
+            className="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-xl bg-emerald-50 px-3 py-2.5 text-left text-[13px] font-semibold text-emerald-900 transition-colors hover:bg-emerald-100"
+          >
+            <Users size={15} className="text-emerald-600" />
+            Search patients for “{term}”
+            <ArrowRight size={14} className="ml-auto text-emerald-600" />
+          </button>
+        ) : null}
+
+        {waiting > 0 && canSeeReception && !term ? (
+          <button
+            type="button"
+            onClick={() => onGo("/hospital/reception/walk-ins")}
+            className="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-xl bg-amber-50 px-3 py-2.5 text-left text-[13px] font-semibold text-amber-900 transition-colors hover:bg-amber-100"
+          >
+            <DoorOpen size={15} className="text-amber-600" />
+            {waiting} walk-in{waiting === 1 ? "" : "s"} waiting
+            <ArrowRight size={14} className="ml-auto text-amber-600" />
+          </button>
+        ) : null}
+
+        <ul className="max-h-[50vh] overflow-y-auto p-2">
+          {results.length === 0 ? (
+            <li className="px-4 py-10 text-center text-sm text-slate-400">No pages match “{q}” — press Enter to search patients.</li>
+          ) : (
+            results.map((r, i) => {
+              const Icon = r.icon;
+              const on = i === safeIndex;
+              return (
+                <li key={r.href}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setIndex(i)}
+                    onClick={() => onGo(r.href)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                      on ? "bg-emerald-50" : "hover:bg-slate-50",
+                    )}
+                  >
+                    <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", on ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500")}>
+                      <Icon size={15} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block truncate text-[13.5px] font-medium", on ? "text-emerald-900" : "text-slate-800")}>{r.label}</span>
+                      <span className="block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-slate-400">{r.group}</span>
+                    </span>
+                    {on ? <CornerDownLeft size={14} className="shrink-0 text-emerald-500" /> : null}
+                  </button>
+                </li>
+              );
+            })
           )}
+        </ul>
+        <div className="flex items-center gap-4 border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400">
+          <span><kbd className="font-sans font-semibold">↑↓</kbd> navigate</span>
+          <span><kbd className="font-sans font-semibold">↵</kbd> open</span>
+          <span className="ml-auto">{results.length} page{results.length === 1 ? "" : "s"}</span>
         </div>
       </div>
-    </header>
+    </div>
   );
 }

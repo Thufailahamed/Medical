@@ -9,24 +9,27 @@
 
 const DEFAULT_LOCALE = "en";
 
-export function formatDate(input: string | Date | null | undefined, locale = DEFAULT_LOCALE) {
-  if (!input) return "—";
-  const d = typeof input === "string" ? new Date(input) : input;
-  if (isNaN(d.getTime())) return "—";
+function toDate(input: string | number | Date | null | undefined): Date | null {
+  if (input == null || input === "") return null;
+  const d = input instanceof Date ? input : new Date(input);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatDate(input: string | number | Date | null | undefined, locale = DEFAULT_LOCALE) {
+  const d = toDate(input);
+  if (!d) return "—";
   return d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "2-digit" });
 }
 
-export function formatTime(input: string | Date | null | undefined, locale = DEFAULT_LOCALE) {
-  if (!input) return "—";
-  const d = typeof input === "string" ? new Date(input) : input;
-  if (isNaN(d.getTime())) return "—";
+export function formatTime(input: string | number | Date | null | undefined, locale = DEFAULT_LOCALE) {
+  const d = toDate(input);
+  if (!d) return "—";
   return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatDateTime(input: string | Date | null | undefined, locale = DEFAULT_LOCALE) {
-  if (!input) return "—";
-  const d = typeof input === "string" ? new Date(input) : input;
-  if (isNaN(d.getTime())) return "—";
+export function formatDateTime(input: string | number | Date | null | undefined, locale = DEFAULT_LOCALE) {
+  const d = toDate(input);
+  if (!d) return "—";
   return d.toLocaleString(locale, {
     year: "numeric",
     month: "short",
@@ -36,10 +39,9 @@ export function formatDateTime(input: string | Date | null | undefined, locale =
   });
 }
 
-export function relativeTime(input: string | Date | null | undefined, locale = DEFAULT_LOCALE) {
-  if (!input) return "—";
-  const d = typeof input === "string" ? new Date(input) : input;
-  if (isNaN(d.getTime())) return "—";
+export function relativeTime(input: string | number | Date | null | undefined, locale = DEFAULT_LOCALE) {
+  const d = toDate(input);
+  if (!d) return "—";
   const diff = d.getTime() - Date.now();
   const abs = Math.abs(diff);
   const minutes = Math.round(abs / 60_000);

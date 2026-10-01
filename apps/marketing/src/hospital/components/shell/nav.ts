@@ -41,7 +41,7 @@ export interface NavItem {
   href: string;
   /** Translation key under nav.* in the i18n dict. */
   labelKey: string;
-  icon: any;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   /** Roles that may see this item. Omit = visible to every portal role. */
   roles?: PortalRole[];
 }
@@ -133,4 +133,50 @@ export function visibleNavGroups(role: PortalRole | undefined): NavGroup[] {
       ),
     }))
     .filter((g) => g.items.length > 0);
+}
+
+/**
+ * Resolve a nav label key (`nav.foo` or a leaf key like `staffInvites`),
+ * falling back to a humanised key when the translation is missing.
+ */
+export function navLabel(t: (k: string) => string, key: string): string {
+  const fullKey = `nav.${key}`;
+  const direct = t(fullKey);
+  if (direct && direct !== fullKey) return direct;
+  return (key.split(".").pop() ?? key)
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[-_]/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim();
+}
+
+/**
+ * Find the nav item (and its group) for a pathname. Uses the longest
+ * matching href so nested routes like `/hospital/billing/outstanding`
+ * resolve to their own item before `/hospital/billing`. Collab subpages
+ * (`/hospital/collab/*`) resolve to the requests item — the collab group
+ * exposes a single nav entry over five routes.
+ */
+export function findNavItem(pathname: string) {
+  let best: { group: NavGroup; item: NavItem; href: string } | null = null;
+  for (const group of NAV_GROUPS) {
+    for (const item of group.items) {
+      if (pathname === item.href || pathname.startsWith(`${item.href}/`)) {
+        if (!best || item.href.length > best.href.length) {
+          best = { group, item, href: item.href };
+        }
+      }
+    }
+  }
+  if (!best && pathname.startsWith("/hospital/collab")) {
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        if (item.href === "/hospital/collab/requests") {
+          best = { group, item, href: item.href };
+        }
+      }
+    }
+  }
+  if (!best) return null;
+  return { group: best.group, item: best.item, isDetail: pathname !== best.href };
 }

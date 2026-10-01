@@ -1,12 +1,21 @@
 "use client";
 
 import { use, useState } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  ArrowRightLeft,
+  BedDouble,
+  ClipboardPlus,
+  FileText,
+  Heart,
+  Hospital,
+  LogOut,
+  StickyNote,
+  User,
+} from "lucide-react";
 import { api } from "@/hospital/lib/api";
-import { Card } from "@/portal/components/ui/Card";
-import { Pill } from "@/portal/components/ui/Pill";
-import { PageHeader } from "@/portal/components/ui/PageHeader";
-import { Button } from "@/portal/components/ui/Button";
 import { Modal } from "@/portal/components/ui/Modal";
 import { Form, FormField } from "@/hospital/components/ui/LocalForm";
 import { useAuthStore } from "@/hospital/stores/auth";
@@ -14,6 +23,28 @@ import { useT } from "@/hospital/i18n";
 import { toast } from "@/portal/components/ui/Toast";
 import { formatDate } from "@/hospital/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PRIMARY_BTN,
+  SECONDARY_BTN,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  FIELD_INPUT,
+  FIELD_TEXTAREA,
+  HERO_DANGER_CHIP,
+  HeroPulse,
+  HeroTile,
+  RailRow,
+  TONE_BADGE,
+} from "@/patient/components/workspace";
 
 type HandoffType = "none" | "hospital" | "clinic";
 
@@ -27,6 +58,46 @@ const EMPTY_DISCHARGE_FORM = {
   handoffFollowUpPlan: "",
 };
 
+type Admission = {
+  id: string;
+  status?: string;
+  reason?: string | null;
+  wardName?: string | null;
+  bedNumber?: string | null;
+  admittedAt?: string | null;
+  dischargedAt?: string | null;
+  diagnosisAtAdmission?: string | null;
+  admissionType?: string | null;
+};
+
+type AdmissionNote = {
+  id: string;
+  kind?: string;
+  body?: string;
+  recordedAt?: string | null;
+};
+
+type AdmissionDetail = {
+  admission: Admission;
+  patient: { id?: string; name?: string | null } | null;
+  notes: AdmissionNote[];
+};
+
+type Facility = { id: string; name: string; address?: string | null };
+
+const NOTE_BADGE: Record<string, string> = {
+  progress: TONE_BADGE.sky,
+  vitals: TONE_BADGE.emerald,
+  medication: TONE_BADGE.violet,
+  other: TONE_BADGE.slate,
+};
+
+function initials(name?: string | null) {
+  const parts = (name ?? "?").trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0]?.slice(0, 2) ?? "?").toUpperCase();
+}
+
 export default function AdmissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useT();
   const { id } = use(params);
@@ -36,7 +107,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
 
   const admission = useQuery({
     queryKey: ["admission", id],
-    queryFn: () => api<{ admission: any; patient: any; notes: any[] }>(`/hospital-portal/admissions/${id}`),
+    queryFn: () => api<AdmissionDetail>(`/hospital-portal/admissions/${id}`),
   });
 
   const [dischargeOpen, setDischargeOpen] = useState(false);
@@ -48,12 +119,12 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
 
   const hospitalsQ = useQuery({
     queryKey: ["hospitals", "handoff"],
-    queryFn: () => api<{ hospitals: any[] }>("/hospitals"),
+    queryFn: () => api<{ hospitals: Facility[] }>("/hospitals"),
     enabled: dischargeOpen && dischargeForm.handoffType === "hospital",
   });
   const clinicsQ = useQuery({
     queryKey: ["clinics", "handoff-directory"],
-    queryFn: () => api<{ clinics: any[] }>("/clinics?directory=1"),
+    queryFn: () => api<{ clinics: Facility[] }>("/clinics?directory=1"),
     enabled: dischargeOpen && dischargeForm.handoffType === "clinic",
   });
 
@@ -85,7 +156,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
   };
 
   const discharge = useMutation({
-    mutationFn: (body: any) =>
+    mutationFn: (body: Record<string, unknown>) =>
       api<{ ok: boolean; handoffId?: string | null; shareRequestId?: string | null }>(
         `/hospital-portal/admissions/${id}/discharge`,
         { method: "POST", json: body }
@@ -99,11 +170,11 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
         toast.success("Patient discharged");
       }
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: Error) => toast.error(e.message ?? "Failed"),
   });
 
   const addNote = useMutation({
-    mutationFn: (body: any) =>
+    mutationFn: (body: { kind: string; body: string }) =>
       api(`/hospital-portal/admissions/${id}/notes`, { method: "POST", json: body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admission", id] });
@@ -111,94 +182,290 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
       setNoteForm({ kind: "progress", body: "" });
       toast.success("Note added");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: Error) => toast.error(e.message ?? "Failed"),
   });
 
   const transfer = useMutation({
-    mutationFn: (body: any) =>
+    mutationFn: (body: { wardId: string | null; bedId: string | null }) =>
       api(`/hospital-portal/admissions/${id}/transfer`, { method: "POST", json: body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admission", id] });
       setTransferOpen(false);
       toast.success("Transferred");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: Error) => toast.error(e.message ?? "Failed"),
   });
 
   const a = admission.data?.admission;
   const patient = admission.data?.patient;
   const notes = admission.data?.notes ?? [];
+  const isAdmitted = a?.status === "admitted";
+
+  const hero = (
+    <DoctorHero
+      kickerIcon={<BedDouble size={13} aria-hidden />}
+      kicker={t("nav.ipd")}
+      kickerMeta={t("ipd.admission")}
+      leading={
+        <HeroTile tone="from-amber-400 to-orange-600">
+          <span className="text-2xl font-bold">{initials(patient?.name)}</span>
+        </HeroTile>
+      }
+      title={
+        <>
+          {patient?.name ?? t("ipd.admission")}{" "}
+          {a?.status ? (
+            <span className="bg-gradient-to-r from-emerald-200 via-white to-teal-200 bg-clip-text text-transparent">
+              · {a.status}
+            </span>
+          ) : null}
+        </>
+      }
+      description={a?.reason ?? t("ipd.subtitle")}
+      chips={
+        <>
+          <span className={HERO_CHIP}>
+            <Hospital size={12} className="text-sky-300" />
+            {a?.wardName ?? "—"}
+            {a?.bedNumber ? ` / ${t("ipd.bed")} ${a.bedNumber}` : ""}
+          </span>
+          <span className={HERO_CHIP}>
+            <ClipboardPlus size={12} className="text-emerald-300" />
+            {t("common.from")}: {a?.admittedAt ? formatDate(a.admittedAt, locale) : "—"}
+          </span>
+          {a?.status && a.status !== "admitted" ? (
+            <span className={HERO_DANGER_CHIP}>
+              <LogOut size={12} />
+              {a.status}
+            </span>
+          ) : null}
+        </>
+      }
+      aside={
+        a ? (
+          <HeroPulse
+            icon={<StickyNote size={18} />}
+            label={t("ipd.notes")}
+            value={notes.length}
+            sub={isAdmitted ? "Active admission" : t("ipd.status.discharged")}
+          />
+        ) : undefined
+      }
+      actions={
+        <>
+          <Link href="/hospital/ipd" className={HERO_GHOST}>
+            <ArrowLeft size={13} /> {t("common.back")}
+          </Link>
+          {isAdmitted ? (
+            <>
+              <button type="button" onClick={() => setNoteOpen(true)} className={HERO_GHOST}>
+                <StickyNote size={13} /> {t("ipd.addNote")}
+              </button>
+              <button type="button" onClick={() => setTransferOpen(true)} className={HERO_GHOST}>
+                <ArrowRightLeft size={13} /> {t("ipd.transfer")}
+              </button>
+              <button type="button" onClick={() => setDischargeOpen(true)} className={HERO_PRIMARY}>
+                <LogOut size={14} className="text-emerald-600" /> {t("ipd.discharge")}
+              </button>
+            </>
+          ) : null}
+        </>
+      }
+    />
+  );
+
+  if (admission.isLoading) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+        {hero}
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-white shadow-sm" />
+          ))}
+        </HeroOverlap>
+      </div>
+    );
+  }
+
+  if (admission.isError || !a) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+        {hero}
+        <section className={PANEL}>
+          <EmptyBlock
+            icon={<BedDouble size={19} />}
+            title={t("errors.notFound")}
+            body="This admission could not be loaded — it may have been discharged or belongs to another facility."
+            actions={
+              <Link
+                href="/hospital/ipd"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+              >
+                <ArrowLeft size={13} /> {t("common.back")}
+              </Link>
+            }
+          />
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={patient?.name ?? t("ipd.admission")}
-        subtitle={a?.reason ?? ""}
-        actions={
-          a?.status === "admitted" ? (
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setNoteOpen(true)}>
-                + {t("ipd.addNote")}
-              </Button>
-              <Button variant="ghost" onClick={() => setTransferOpen(true)}>
-                {t("ipd.transfer")}
-              </Button>
-              <Button onClick={() => setDischargeOpen(true)}>
-                {t("ipd.discharge")}
-              </Button>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {hero}
+
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Heart size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label={t("common.status")}
+          value={a.status ?? "—"}
+          sub={`${t("common.from")} ${a.admittedAt ? formatDate(a.admittedAt, locale) : "—"}`}
+          pulse={isAdmitted}
+        />
+        <StatTile
+          icon={<Hospital size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label={t("ipd.ward")}
+          value={a.wardName ?? "—"}
+          sub={`${t("ipd.bed")} ${a.bedNumber ?? "—"}`}
+          href="/hospital/wards"
+        />
+        <StatTile
+          icon={<StickyNote size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label={t("ipd.notes")}
+          value={String(notes.length)}
+          sub={notes.length ? "Clinical notes on this stay" : t("ipd.noNotes")}
+        />
+        <StatTile
+          icon={<User size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label={t("nav.patients")}
+          value="→"
+          sub={t("patients.directory")}
+          href={patient?.id ? `/hospital/reception/patients/${patient.id}` : "/hospital/reception/patients"}
+        />
+      </HeroOverlap>
+
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-8">
+          {/* Admission summary */}
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<BedDouble size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title={t("ipd.admission")}
+              caption={a.reason ?? t("ipd.subtitle")}
+            />
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <DetailField label={t("common.status")} value={a.status} />
+              <DetailField label={t("ipd.ward")} value={a.wardName} />
+              <DetailField label={t("ipd.bed")} value={a.bedNumber} />
+              <DetailField label={t("ipd.admission")} value={a.admissionType} />
+              <DetailField
+                label={t("common.from")}
+                value={a.admittedAt ? formatDate(a.admittedAt, locale) : null}
+              />
+              <DetailField
+                label={t("ipd.discharged")}
+                value={a.dischargedAt ? formatDate(a.dischargedAt, locale) : null}
+              />
+              <DetailField
+                label={t("ipd.diagnosis")}
+                value={a.diagnosisAtAdmission}
+                span2
+              />
             </div>
-          ) : (
-            <Pill tone="success">{a?.status}</Pill>
-          )
-        }
-      />
+          </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <h3 className="text-sm font-medium text-text-muted">
-            {t("common.status")}
-          </h3>
-          <p className="mt-2 text-2xl font-semibold">{a?.status}</p>
-          <p className="mt-1 text-xs text-text-muted">
-            {t("common.from")}: {a?.admittedAt ? formatDate(a.admittedAt, locale) : "—"}
-          </p>
-          {a?.dischargedAt && (
-            <p className="text-xs text-text-muted">
-              {t("ipd.discharged")}: {formatDate(a.dischargedAt, locale)}
+          {/* Notes timeline */}
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<StickyNote size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title={t("ipd.notes")}
+              caption={`${notes.length} ${t("common.notes").toLowerCase()}`}
+              action={
+                isAdmitted ? (
+                  <button
+                    type="button"
+                    onClick={() => setNoteOpen(true)}
+                    className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50"
+                  >
+                    <StickyNote size={13} /> {t("ipd.addNote")}
+                  </button>
+                ) : null
+              }
+            />
+            {notes.length === 0 ? (
+              <EmptyBlock
+                icon={<FileText size={19} />}
+                title={t("ipd.noNotes")}
+                body="Progress, vitals and medication notes recorded during this stay will appear here."
+              />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-2">
+                {notes.map((n) => (
+                  <li key={n.id}>
+                    <RailRow
+                      tone={n.kind === "vitals" ? "emerald" : n.kind === "medication" ? "violet" : "sky"}
+                      icon={<StickyNote size={16} />}
+                      title={
+                        <span
+                          className={cn(
+                            "mr-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold capitalize",
+                            NOTE_BADGE[n.kind ?? ""] ?? TONE_BADGE.slate,
+                          )}
+                        >
+                          {n.kind ?? "note"}
+                        </span>
+                      }
+                      meta={n.recordedAt ? formatDate(n.recordedAt, locale) : undefined}
+                    >
+                      <span className="mt-1.5 block whitespace-pre-wrap text-[13px] font-normal text-slate-600">
+                        {n.body}
+                      </span>
+                    </RailRow>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<User size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title={t("nav.patients")}
+              caption={patient?.name ?? t("patients.directory")}
+              href={patient?.id ? `/hospital/reception/patients/${patient.id}` : "/hospital/reception/patients"}
+              linkLabel={t("patients.actions.view")}
+            />
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">
+              Open the patient 360 view for full history — admissions, records,
+              prescriptions, labs and vitals across facilities.
             </p>
-          )}
-        </Card>
-        <Card>
-          <h3 className="text-sm font-medium text-text-muted">{t("ipd.ward")}</h3>
-          <p className="mt-2 text-2xl font-semibold">{a?.wardName ?? "—"}</p>
-          <p className="mt-1 text-xs text-text-muted">
-            {t("ipd.bed")}: {a?.bedNumber ?? "—"}
-          </p>
-        </Card>
-        <Card>
-          <h3 className="text-sm font-medium text-text-muted">{t("ipd.diagnosis")}</h3>
-          <p className="mt-2 text-sm">{a?.diagnosisAtAdmission ?? "—"}</p>
-        </Card>
-      </div>
+          </section>
 
-      <Card>
-        <h3 className="mb-3 text-lg font-semibold">{t("ipd.notes")}</h3>
-        {notes.length === 0 ? (
-          <p className="text-sm text-text-muted">{t("ipd.noNotes")}</p>
-        ) : (
-          <ul className="space-y-3">
-            {notes.map((n: any) => (
-              <li key={n.id} className="border-l-2 border-emerald-300 pl-3">
-                <div className="flex items-center gap-2 text-xs text-text-muted">
-                  <Pill tone="neutral">{n.kind}</Pill>
-                  <span>{formatDate(n.recordedAt, locale)}</span>
-                </div>
-                <p className="mt-1 text-sm">{n.body}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Hospital size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title={t("nav.wards")}
+              caption="Move to another ward or free the bed"
+              href="/hospital/wards"
+              linkLabel={t("dashboard.viewAll")}
+            />
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">
+              Use Transfer to move this admission to a different ward or bed —
+              capacity is visible on the beds board.
+            </p>
+          </section>
+        </aside>
+      </div>
 
       {/* Discharge modal */}
       <Modal
@@ -230,7 +497,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           <FormField label={t("ipd.dischargeDiagnosis")}>
             <textarea
               rows={2}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_TEXTAREA}
               value={dischargeForm.dischargeDiagnosis}
               onChange={(e) =>
                 setDischargeForm({ ...dischargeForm, dischargeDiagnosis: e.target.value })
@@ -240,7 +507,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           <FormField label={t("ipd.instructions")}>
             <textarea
               rows={3}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_TEXTAREA}
               value={dischargeForm.dischargeInstructions}
               onChange={(e) =>
                 setDischargeForm({
@@ -253,7 +520,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           <FormField label={t("ipd.followUpDate")}>
             <input
               type="date"
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_INPUT}
               value={dischargeForm.followUpDate}
               onChange={(e) =>
                 setDischargeForm({ ...dischargeForm, followUpDate: e.target.value })
@@ -261,10 +528,10 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             />
           </FormField>
 
-          <div className="mt-4 space-y-3 rounded-xl border border-border/70 bg-surface-2/40 p-4">
+          <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-4 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]">
             <div>
-              <p className="text-sm font-semibold text-text">{t("ipd.handoffSection")}</p>
-              <p className="mt-1 text-xs text-text-muted">
+              <p className="text-sm font-semibold text-slate-900">{t("ipd.handoffSection")}</p>
+              <p className="mt-1 text-xs text-slate-400">
                 {dischargeForm.handoffType === "hospital"
                   ? t("ipd.handoffHint")
                   : dischargeForm.handoffType === "clinic"
@@ -293,10 +560,10 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
                     })
                   }
                   className={cn(
-                    "rounded-md px-3 py-1.5 text-xs font-medium border transition-colors",
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
                     dischargeForm.handoffType === value
-                      ? "bg-brand text-white border-brand"
-                      : "bg-surface text-text-muted border-border hover:text-text"
+                      ? "bg-[#07233a] text-white"
+                      : "bg-white text-slate-500 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.1)] hover:text-slate-900"
                   )}
                 >
                   {label}
@@ -307,7 +574,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             {dischargeForm.handoffType === "hospital" ? (
               <FormField label={t("ipd.handoffTarget")}>
                 <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  className={FIELD_INPUT}
                   value={dischargeForm.handoffHospitalId}
                   onChange={(e) =>
                     setDischargeForm({
@@ -318,8 +585,8 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
                 >
                   <option value="">Select hospital…</option>
                   {hospitalsQ.data?.hospitals
-                    ?.filter((h: any) => h.id !== activeHospitalId)
-                    .map((h: any) => (
+                    ?.filter((h) => h.id !== activeHospitalId)
+                    .map((h) => (
                       <option key={h.id} value={h.id}>
                         {h.name}
                       </option>
@@ -331,7 +598,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             {dischargeForm.handoffType === "clinic" ? (
               <FormField label={t("ipd.handoffTarget")}>
                 <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  className={FIELD_INPUT}
                   value={dischargeForm.handoffClinicId}
                   onChange={(e) =>
                     setDischargeForm({
@@ -341,7 +608,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
                   }
                 >
                   <option value="">Select clinic…</option>
-                  {clinicsQ.data?.clinics?.map((cl: any) => (
+                  {clinicsQ.data?.clinics?.map((cl) => (
                     <option key={cl.id} value={cl.id}>
                       {cl.name}
                       {cl.address ? ` — ${cl.address}` : ""}
@@ -355,7 +622,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
               <FormField label={t("ipd.handoffFollowUpPlan")}>
                 <textarea
                   rows={2}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+                  className={FIELD_TEXTAREA}
                   placeholder={t("ipd.handoffFollowUpPlanPlaceholder")}
                   value={dischargeForm.handoffFollowUpPlan}
                   onChange={(e) =>
@@ -370,12 +637,12 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={closeDischargeModal}>
+            <button type="button" onClick={closeDischargeModal} className={SECONDARY_BTN}>
               {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={discharge.isPending}>
+            </button>
+            <button type="submit" disabled={discharge.isPending} className={PRIMARY_BTN}>
               {t("ipd.confirmDischarge")}
-            </Button>
+            </button>
           </div>
         </Form>
       </Modal>
@@ -390,7 +657,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
         >
           <FormField label={t("ipd.noteKind")}>
             <select
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_INPUT}
               value={noteForm.kind}
               onChange={(e) => setNoteForm({ ...noteForm, kind: e.target.value })}
             >
@@ -404,16 +671,16 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
             <textarea
               required
               rows={4}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_TEXTAREA}
               value={noteForm.body}
               onChange={(e) => setNoteForm({ ...noteForm, body: e.target.value })}
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setNoteOpen(false)}>
+            <button type="button" onClick={() => setNoteOpen(false)} className={SECONDARY_BTN}>
               {t("common.cancel")}
-            </Button>
-            <Button type="submit">{t("common.save")}</Button>
+            </button>
+            <button type="submit" className={PRIMARY_BTN}>{t("common.save")}</button>
           </div>
         </Form>
       </Modal>
@@ -431,7 +698,7 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
         >
           <FormField label={t("ipd.ward")}>
             <input
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_INPUT}
               value={transferForm.wardId}
               onChange={(e) => setTransferForm({ ...transferForm, wardId: e.target.value })}
               placeholder="ward id (UUID)"
@@ -439,20 +706,39 @@ export default function AdmissionDetailPage({ params }: { params: Promise<{ id: 
           </FormField>
           <FormField label={t("ipd.bed")}>
             <input
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              className={FIELD_INPUT}
               value={transferForm.bedId}
               onChange={(e) => setTransferForm({ ...transferForm, bedId: e.target.value })}
               placeholder="bed id (UUID)"
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setTransferOpen(false)}>
+            <button type="button" onClick={() => setTransferOpen(false)} className={SECONDARY_BTN}>
               {t("common.cancel")}
-            </Button>
-            <Button type="submit">{t("common.save")}</Button>
+            </button>
+            <button type="submit" className={PRIMARY_BTN}>{t("common.save")}</button>
           </div>
         </Form>
       </Modal>
+    </div>
+  );
+}
+
+function DetailField({
+  label,
+  value,
+  span2,
+}: {
+  label: string;
+  value: React.ReactNode;
+  span2?: boolean;
+}) {
+  return (
+    <div className={cn("rounded-xl bg-slate-50 p-3.5", span2 && "sm:col-span-2")}>
+      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-medium capitalize text-slate-900">
+        {value || "—"}
+      </p>
     </div>
   );
 }

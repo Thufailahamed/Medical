@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { X } from "lucide-react";
 
 import { useAuthStore } from "@/hospital/stores/auth";
+import { useUiStore } from "@/hospital/stores/ui";
 import { HospitalSidebar } from "@/hospital/components/shell/HospitalSidebar";
 import { HospitalTopbar } from "@/hospital/components/shell/HospitalTopbar";
 import { useRealtime } from "@/portal/hooks/useRealtime";
@@ -35,9 +37,17 @@ export default function HospitalGroupLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
+  const mobileNavOpen = useUiStore((s) => s.mobileNavOpen);
+  const setMobileNavOpen = useUiStore((s) => s.setMobileNavOpen);
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname, setMobileNavOpen]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -50,7 +60,7 @@ export default function HospitalGroupLayout({
     if (
       user &&
       user.role &&
-      !HOSPITAL_PORTAL_ROLES.includes(user.role as any)
+      !HOSPITAL_PORTAL_ROLES.includes(user.role as (typeof HOSPITAL_PORTAL_ROLES)[number])
     ) {
       router.replace("/hospital/403");
     }
@@ -88,7 +98,34 @@ export default function HospitalGroupLayout({
 
   return (
     <div className="h-screen flex bg-bg overflow-hidden">
-      <HospitalSidebar />
+      {/* Desktop rail */}
+      <div className="hidden h-full lg:block">
+        <HospitalSidebar />
+      </div>
+
+      {/* Mobile drawer */}
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 w-[272px] max-w-[85vw] shadow-2xl">
+            <HospitalSidebar forceExpanded />
+          </div>
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileNavOpen(false)}
+            className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+          >
+            <X size={17} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-y-auto">
         <HospitalTopbar />
         <main className="flex-1 min-w-0 px-4 md:px-6 py-5 max-w-[1600px] w-full mx-auto">

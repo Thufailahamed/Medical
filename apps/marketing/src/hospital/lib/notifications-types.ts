@@ -83,9 +83,8 @@ export function resolveHref(notificationType: string, data: NotificationData): s
     case "prescription_dispensed":
     case "prescription_rejected":
     case "prescription_signed":
-      return typeof data?.prescriptionId === "string"
-        ? `/portal/prescriptions/${data.prescriptionId}`
-        : null;
+      // Hospital portal has no per-prescription page — land on the queue.
+      return "/hospital/pharmacy";
     case "admission_created":
     case "admission_discharged":
       return typeof data?.admissionId === "string" ? `/hospital/ipd/${data.admissionId}` : null;

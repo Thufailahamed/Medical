@@ -6,12 +6,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
+  BedDouble,
   Building2,
-  ChevronLeft,
   FileText,
+  FlaskConical,
   Heart,
   Pill as PillIcon,
+  Printer,
+  ShieldAlert,
   Stethoscope,
   TestTube,
   User,
@@ -19,54 +23,165 @@ import {
 } from "lucide-react";
 import { api } from "@/hospital/lib/api";
 import { Pill as PillBadge } from "@/portal/components/ui/Pill";
-import { Empty, Skeleton } from "@/portal/components/ui/Empty";
 import { useAuthStore } from "@/hospital/stores/auth";
 import { useT } from "@/hospital/i18n";
 import { formatDate, formatDateTime } from "@/hospital/lib/format";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  Segmented,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  HERO_DANGER_CHIP,
+  HeroPulse,
+  HeroTile,
+  TONE_BADGE,
+} from "@/patient/components/workspace";
 
 type Tab = "overview" | "admissions" | "records" | "prescriptions" | "lab" | "vitals";
 
 const TABS: Tab[] = ["overview", "admissions", "records", "prescriptions", "lab", "vitals"];
 
-const RECORD_TONE: Record<string, any> = {
-  hospital_visit: "info",
-  discharge_summary: "success",
-  clinical_note: "neutral",
-  lab_report: "violet",
-  imaging: "accent",
-  prescription: "brand",
-  vaccination: "success",
-  surgery: "warn",
-  operation_note: "warn",
-  insurance: "neutral",
-  allergy: "danger",
-  follow_up: "info",
-  medical_certificate: "neutral",
-  other: "neutral",
+const ADM_BADGE: Record<string, string> = {
+  admitted: TONE_BADGE.amber,
+  discharged: TONE_BADGE.emerald,
+  transferred: TONE_BADGE.slate,
+  dama: TONE_BADGE.slate,
+  deceased: TONE_BADGE.rose,
 };
 
-const RX_TONE: Record<string, any> = {
-  draft: "neutral",
-  signed: "info",
-  dispensed: "success",
-  cancelled: "danger",
+const RX_BADGE: Record<string, string> = {
+  draft: TONE_BADGE.slate,
+  signed: TONE_BADGE.sky,
+  dispensed: TONE_BADGE.emerald,
+  cancelled: TONE_BADGE.rose,
 };
 
-const LAB_TONE: Record<string, any> = {
-  ordered: "info",
-  sample_collected: "warn",
-  in_progress: "warn",
-  completed: "success",
-  cancelled: "danger",
+const LAB_BADGE: Record<string, string> = {
+  ordered: TONE_BADGE.sky,
+  sample_collected: TONE_BADGE.amber,
+  in_progress: TONE_BADGE.amber,
+  completed: TONE_BADGE.emerald,
+  cancelled: TONE_BADGE.rose,
 };
 
-const ADM_TONE: Record<string, any> = {
-  admitted: "warn",
-  discharged: "success",
-  transferred: "neutral",
-  dama: "neutral",
-  deceased: "danger",
+const RECORD_BADGE: Record<string, string> = {
+  hospital_visit: TONE_BADGE.sky,
+  discharge_summary: TONE_BADGE.emerald,
+  clinical_note: TONE_BADGE.slate,
+  lab_report: TONE_BADGE.violet,
+  imaging: TONE_BADGE.sky,
+  prescription: TONE_BADGE.emerald,
+  vaccination: TONE_BADGE.emerald,
+  surgery: TONE_BADGE.amber,
+  operation_note: TONE_BADGE.amber,
+  insurance: TONE_BADGE.slate,
+  allergy: TONE_BADGE.rose,
+  follow_up: TONE_BADGE.sky,
+  medical_certificate: TONE_BADGE.slate,
+  other: TONE_BADGE.slate,
+};
+
+type AdmissionRow = {
+  id: string;
+  wardName?: string | null;
+  reason?: string | null;
+  admittedAt?: string | null;
+  admissionType?: string | null;
+  status?: string;
+  hospitalName?: string | null;
+  hospitalId?: string | null;
+};
+
+type RecordRow = {
+  id: string;
+  date?: string | null;
+  recordType?: string;
+  title?: string;
+  doctorName?: string | null;
+  hospitalName?: string | null;
+  hospitalId?: string | null;
+};
+
+type RxMedicine = {
+  id: string;
+  name: string;
+  dosage?: string;
+  frequency?: string;
+  timing?: string;
+};
+
+type RxRow = {
+  id: string;
+  date?: string | null;
+  doctorName?: string | null;
+  hospitalName?: string | null;
+  hospitalId?: string | null;
+  diagnosis?: string | null;
+  notes?: string | null;
+  status?: string;
+  medicines?: RxMedicine[];
+};
+
+type LabOrderRow = {
+  id: string;
+  orderedAt?: string | null;
+  completedAt?: string | null;
+  tests?: string | null;
+  doctorName?: string | null;
+  hospitalName?: string | null;
+  hospitalId?: string | null;
+  status?: string;
+};
+
+type VitalRow = {
+  type?: string;
+  value?: string | number;
+  unit?: string;
+  recordedAt?: string | null;
+};
+
+type VitalsAlert = { message?: string; type?: string };
+
+type DoctorLink = {
+  id: string;
+  doctorName?: string | null;
+  isPrimary?: boolean;
+  hospitalName?: string | null;
+  contextId?: string | null;
+  relationshipKind?: string;
+};
+
+type Patient360 = {
+  patient: {
+    gender?: string | null;
+    dateOfBirth?: string | null;
+    bloodGroup?: string | null;
+    emergencyContacts?: string | null;
+  } | null;
+  user: { name?: string | null; phone?: string | null; email?: string | null } | null;
+  registration: {
+    mrn?: string | null;
+    status?: string;
+    registeredAt?: string | null;
+    dischargedAt?: string | null;
+  } | null;
+  admission: AdmissionRow | null;
+  admissions: AdmissionRow[];
+  records: RecordRow[];
+  prescriptions: RxRow[];
+  labOrders: LabOrderRow[];
+  vitals: VitalRow[];
+  latestVitals: VitalRow[];
+  vitalsAlerts: { count: number; items: VitalsAlert[] };
+  doctors: DoctorLink[];
 };
 
 function patientInitials(name?: string | null) {
@@ -94,21 +209,7 @@ export default function PatientDetailPage({
 
   const q = useQuery({
     queryKey: ["hospital-portal", "patient-360", id],
-    queryFn: () =>
-      api<{
-        patient: any;
-        user: any;
-        registration: any;
-        admission: any | null;
-        admissions: any[];
-        records: any[];
-        prescriptions: any[];
-        labOrders: any[];
-        vitals: any[];
-        latestVitals: any[];
-        vitalsAlerts: { count: number; items: any[] };
-        doctors: any[];
-      }>(`/hospital-portal/patients/${id}`),
+    queryFn: () => api<Patient360>(`/hospital-portal/patients/${id}`),
   });
 
   const data = q.data;
@@ -134,142 +235,216 @@ export default function PatientDetailPage({
       }
     : {};
 
-  return (
-    <div className="flex flex-col gap-4">
-      <Link href="/hospital/reception/patients" className="hospital-back-link no-print">
-        <ChevronLeft size={14} />
-        {t("common.back")}
-      </Link>
-
-      {q.isLoading ? (
-        <PatientDetailSkeleton />
-      ) : q.isError ? (
-        <Empty title={t("errors.notFound")} />
-      ) : (
+  const hero = (
+    <DoctorHero
+      kickerIcon={<User size={13} aria-hidden />}
+      kicker={t("patients.directory")}
+      kickerMeta="Patient 360"
+      leading={
+        <HeroTile tone="from-emerald-400 to-teal-600">
+          <span className="text-2xl font-bold">{patientInitials(user?.name)}</span>
+        </HeroTile>
+      }
+      title={
         <>
-          <header className="hospital-patient-hero">
-            <div className="hospital-patient-hero-main">
-              <div className="hospital-patient-avatar hospital-patient-avatar-lg">
-                {patientInitials(user?.name)}
-              </div>
-              <div className="hospital-patient-hero-info">
-                <h1 className="hospital-patient-hero-name">{user?.name ?? "—"}</h1>
-                <div className="hospital-patient-hero-meta">
-                  {reg?.mrn ? <span className="hospital-mrn">{reg.mrn}</span> : null}
-                  {reg ? (
-                    <PillBadge
-                      tone={reg.status === "registered" ? "info" : "neutral"}
-                      className="text-[10px]"
-                    >
-                      {regStatusLabel(reg.status, t)}
-                    </PillBadge>
-                  ) : null}
-                  {data?.admission ? (
-                    <PillBadge tone="warn" className="text-[10px]">
-                      {t("patients.admitted")}
-                    </PillBadge>
-                  ) : null}
-                </div>
-              </div>
-              <div className="hospital-patient-hero-actions no-print">
-                <button
-                  type="button"
-                  className="portal-btn portal-btn-secondary portal-btn-sm"
-                  onClick={() => window.print()}
-                >
-                  <FileText size={14} />
-                  {t("patients.actions.print")}
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <nav className="hospital-detail-tabs no-print" role="tablist">
-            {TABS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={tab === key}
-                data-active={tab === key ? "true" : "false"}
-                className="hospital-detail-tab"
-                onClick={() => setTab(key)}
-              >
-                {tabLabels[key]}
-                {key !== "overview" && tabCounts[key] != null && tabCounts[key]! > 0 ? (
-                  <span className="hospital-detail-tab-count">{tabCounts[key]}</span>
-                ) : null}
-              </button>
-            ))}
-          </nav>
-
-          <div role="tabpanel">
-            {tab === "overview" && (
-              <OverviewTab data={data!} locale={locale} currentHospitalId={activeHospitalId ?? null} />
-            )}
-            {tab === "admissions" && (
-              <AdmissionsTab data={data!} locale={locale} currentHospitalId={activeHospitalId ?? null} />
-            )}
-            {tab === "records" && (
-              <RecordsTab data={data!} locale={locale} currentHospitalId={activeHospitalId ?? null} />
-            )}
-            {tab === "prescriptions" && (
-              <PrescriptionsTab data={data!} locale={locale} currentHospitalId={activeHospitalId ?? null} />
-            )}
-            {tab === "lab" && (
-              <LabTab data={data!} locale={locale} currentHospitalId={activeHospitalId ?? null} />
-            )}
-            {tab === "vitals" && <VitalsTab data={data!} locale={locale} />}
-          </div>
+          {user?.name ?? (q.isLoading ? "…" : "—")}{" "}
+          {reg?.mrn ? (
+            <span className="bg-gradient-to-r from-emerald-200 via-white to-teal-200 bg-clip-text font-mono text-[0.6em] text-transparent">
+              · {reg.mrn}
+            </span>
+          ) : null}
         </>
-      )}
+      }
+      description={
+        user?.phone || user?.email
+          ? [user?.phone, user?.email].filter(Boolean).join(" · ")
+          : t("reception.patientsSubtitle")
+      }
+      chips={
+        <>
+          {reg ? (
+            <span className={HERO_CHIP}>
+              <Building2 size={12} className="text-sky-300" />
+              {regStatusLabel(reg.status, t)}
+            </span>
+          ) : null}
+          {data?.admission ? (
+            <span className={HERO_CHIP}>
+              <BedDouble size={12} className="text-amber-300" />
+              {t("patients.admitted")} · {data.admission.wardName ?? ""}
+            </span>
+          ) : null}
+          {data?.vitalsAlerts?.count ? (
+            <span className={HERO_DANGER_CHIP}>
+              <ShieldAlert size={12} />
+              {data.vitalsAlerts.count} {t("patients.vitals.alerts").toLowerCase()}
+            </span>
+          ) : null}
+        </>
+      }
+      aside={
+        data ? (
+          <HeroPulse
+            icon={<Heart size={18} />}
+            label={t("patients.overview.admission")}
+            value={data.admission ? t("patients.admitted") : t("patients.notAdmitted")}
+            sub={data.admission?.wardName ?? regStatusLabel(reg?.status, t)}
+          />
+        ) : undefined
+      }
+      actions={
+        <>
+          <Link href="/hospital/reception/patients" className={HERO_GHOST}>
+            <ArrowLeft size={13} /> {t("common.back")}
+          </Link>
+          <button
+            type="button"
+            className={HERO_GHOST}
+            onClick={() => window.print()}
+          >
+            <Printer size={13} /> {t("patients.actions.print")}
+          </button>
+        </>
+      }
+    />
+  );
+
+  if (q.isLoading) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+        {hero}
+        <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-white shadow-sm" />
+          ))}
+        </HeroOverlap>
+      </div>
+    );
+  }
+
+  if (q.isError || !data) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+        {hero}
+        <section className={PANEL}>
+          <EmptyBlock
+            icon={<User size={19} />}
+            title={t("errors.notFound")}
+            body="This patient record could not be loaded — it may belong to another facility."
+            actions={
+              <Link
+                href="/hospital/reception/patients"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+              >
+                <ArrowLeft size={13} /> {t("common.back")}
+              </Link>
+            }
+          />
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-10">
+      {hero}
+
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<BedDouble size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label={t("patients.tabs.admissions")}
+          value={String(tabCounts.admissions ?? 0)}
+          sub={data.admission ? data.admission.wardName ?? t("patients.admitted") : t("patients.notAdmitted")}
+          active={tab === "admissions"}
+          onClick={() => setTab("admissions")}
+        />
+        <StatTile
+          icon={<FileText size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label={t("patients.tabs.records")}
+          value={String(tabCounts.records ?? 0)}
+          sub="Clinical documents"
+          active={tab === "records"}
+          onClick={() => setTab("records")}
+        />
+        <StatTile
+          icon={<PillIcon size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label={t("patients.tabs.prescriptions")}
+          value={String(tabCounts.prescriptions ?? 0)}
+          sub="Issued at facilities"
+          active={tab === "prescriptions"}
+          onClick={() => setTab("prescriptions")}
+        />
+        <StatTile
+          icon={<FlaskConical size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label={t("patients.tabs.lab")}
+          value={String(tabCounts.lab ?? 0)}
+          sub="Orders & results"
+          active={tab === "lab"}
+          onClick={() => setTab("lab")}
+          pulse={(data.vitalsAlerts?.count ?? 0) > 0}
+        />
+      </HeroOverlap>
+
+      <div className="flex flex-col gap-5">
+        <div className="no-print">
+          <Segmented<Tab>
+            ariaLabel="Patient record sections"
+            value={tab}
+            onChange={setTab}
+            options={TABS.map((key) => ({
+              value: key,
+              label: tabLabels[key],
+              count: key === "overview" ? undefined : tabCounts[key],
+            }))}
+          />
+        </div>
+
+        <div role="tabpanel">
+          {tab === "overview" && (
+            <OverviewTab data={data} locale={locale} currentHospitalId={activeHospitalId ?? null} />
+          )}
+          {tab === "admissions" && (
+            <AdmissionsTab data={data} locale={locale} currentHospitalId={activeHospitalId ?? null} />
+          )}
+          {tab === "records" && (
+            <RecordsTab data={data} locale={locale} currentHospitalId={activeHospitalId ?? null} />
+          )}
+          {tab === "prescriptions" && (
+            <PrescriptionsTab data={data} locale={locale} currentHospitalId={activeHospitalId ?? null} />
+          )}
+          {tab === "lab" && (
+            <LabTab data={data} locale={locale} currentHospitalId={activeHospitalId ?? null} />
+          )}
+          {tab === "vitals" && <VitalsTab data={data} locale={locale} />}
+        </div>
+      </div>
     </div>
   );
 }
 
-function PatientDetailSkeleton() {
-  return (
-    <>
-      <div className="hospital-patient-hero">
-        <div className="hospital-patient-hero-main">
-          <Skeleton className="h-14 w-14 rounded-full shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-        </div>
-      </div>
-      <Skeleton className="h-11 w-full rounded-xl" />
-      <div className="hospital-detail-grid cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-44 w-full rounded-2xl" />
-        ))}
-      </div>
-    </>
-  );
-}
+/* ─── Shared pieces ────────────────────────────────────── */
 
 function DetailCard({
   title,
   icon,
+  tone = "bg-sky-50 text-sky-600",
   action,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
+  tone?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="hospital-detail-card">
-      <header className="hospital-detail-card-header">
-        <div className="hospital-detail-card-heading">
-          <div className="hospital-detail-card-icon">{icon}</div>
-          <h2 className="hospital-detail-card-title">{title}</h2>
-        </div>
-        {action}
-      </header>
-      <div className="hospital-detail-card-body">{children}</div>
+    <section className={PANEL}>
+      <PanelHeader icon={icon} tone={tone} title={title} action={action} />
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
@@ -281,29 +456,29 @@ function DetailField({
   span2,
 }: {
   label: string;
-  value: any;
+  value: React.ReactNode;
   mono?: boolean;
   span2?: boolean;
 }) {
   return (
-    <div className={span2 ? "hospital-detail-field-span-2" : undefined}>
-      <dl className="hospital-detail-field">
-        <dt>{label}</dt>
-        <dd className={mono ? "mono" : undefined}>{value || "—"}</dd>
-      </dl>
+    <div className={cn("rounded-xl bg-slate-50 p-3.5", span2 && "sm:col-span-2")}>
+      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+      <p className={cn("mt-0.5 truncate text-sm font-medium text-slate-900", mono && "font-mono text-[13px]")}>
+        {value || "—"}
+      </p>
     </div>
   );
 }
 
 function SourceBadge({ name, isCurrent }: { name?: string | null; isCurrent?: boolean }) {
-  if (!name) return <span className="text-xs text-text-muted">—</span>;
+  if (!name) return <span className="text-xs text-slate-400">—</span>;
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
         isCurrent
-          ? "bg-brand-soft text-brand"
-          : "bg-surface-2 text-text-muted border border-border/60"
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-slate-100 text-slate-500",
       )}
       title={isCurrent ? "From this hospital" : `From ${name}`}
     >
@@ -321,12 +496,14 @@ function DetailTable({
   rows: React.ReactNode;
 }) {
   return (
-    <div className="hospital-data-table-wrap">
-      <table className="hospital-data-table">
+    <div className="-mx-5 overflow-x-auto px-5 sm:-mx-6 sm:px-6">
+      <table className="w-full text-left text-sm">
         <thead>
-          <tr>{columns}</tr>
+          <tr className="border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            {columns}
+          </tr>
         </thead>
-        <tbody>{rows}</tbody>
+        <tbody className="divide-y divide-slate-100">{rows}</tbody>
       </table>
     </div>
   );
@@ -334,7 +511,7 @@ function DetailTable({
 
 function Th({ children, align }: { children: React.ReactNode; align?: "right" }) {
   return (
-    <th className={align === "right" ? "text-right" : undefined} style={{ textAlign: align }}>
+    <th className={cn("py-2.5 pr-4 last:pr-0", align === "right" && "text-right")}>
       {children}
     </th>
   );
@@ -351,8 +528,11 @@ function Td({
 }) {
   return (
     <td
-      className={muted ? "text-text-muted" : undefined}
-      style={{ textAlign: align }}
+      className={cn(
+        "py-3 pr-4 align-middle last:pr-0",
+        muted ? "text-slate-400" : "text-slate-700",
+        align === "right" && "text-right",
+      )}
     >
       {children}
     </td>
@@ -361,7 +541,7 @@ function Td({
 
 /* ─── Overview ─────────────────────────────────────────── */
 
-function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: string; currentHospitalId: string | null }) {
+function OverviewTab({ data, locale, currentHospitalId }: { data: Patient360; locale: string; currentHospitalId: string | null }) {
   const t = useT();
   const p = data.patient;
   const u = data.user;
@@ -372,7 +552,7 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
   const address = (() => {
     try {
       const ec = p?.emergencyContacts ? JSON.parse(p.emergencyContacts) : null;
-      const note = Array.isArray(ec) ? ec.find((x: any) => x?.type === "note") : null;
+      const note = Array.isArray(ec) ? ec.find((x: { type?: string; value?: string }) => x?.type === "note") : null;
       return note?.value ?? null;
     } catch {
       return null;
@@ -380,12 +560,13 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
   })();
 
   return (
-    <div className="hospital-detail-grid cols-2">
+    <div className="grid gap-5 xl:grid-cols-2">
       <DetailCard
         title={t("patients.overview.profile")}
-        icon={<User size={15} />}
+        icon={<User size={16} />}
+        tone="bg-sky-50 text-sky-600"
       >
-        <div className="hospital-detail-fields">
+        <div className="grid gap-2 sm:grid-cols-2">
           <DetailField label={t("common.name")} value={u?.name} />
           <DetailField label={t("patients.overview.gender")} value={p?.gender} />
           <DetailField
@@ -401,9 +582,10 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
 
       <DetailCard
         title={t("patients.overview.registration")}
-        icon={<Building2 size={15} />}
+        icon={<Building2 size={16} />}
+        tone="bg-violet-50 text-violet-600"
       >
-        <div className="hospital-detail-fields">
+        <div className="grid gap-2 sm:grid-cols-2">
           <DetailField label={t("patients.mrn")} value={reg?.mrn} mono />
           <DetailField label={t("common.status")} value={regStatusLabel(reg?.status, t)} />
           <DetailField
@@ -419,21 +601,22 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
 
       <DetailCard
         title={t("patients.overview.admission")}
-        icon={<Heart size={15} />}
+        icon={<Heart size={16} />}
+        tone="bg-amber-50 text-amber-600"
         action={
           adm ? (
             <Link
               href={`/hospital/ipd/${adm.id}`}
-              className="portal-btn portal-btn-ghost portal-btn-sm"
+              className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50"
             >
               {t("patients.admissions.view")}
-              <ArrowRight size={13} />
+              <ArrowRight size={13} aria-hidden />
             </Link>
           ) : null
         }
       >
         {adm ? (
-          <div className="hospital-detail-fields">
+          <div className="grid gap-2 sm:grid-cols-2">
             <DetailField label={t("patients.admissions.ward")} value={adm.wardName} />
             <DetailField label={t("patients.admissions.reason")} value={adm.reason} />
             <DetailField
@@ -443,33 +626,43 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
             <DetailField label={t("common.status")} value={adm.admissionType} />
           </div>
         ) : (
-          <p className="hospital-detail-empty">{t("patients.overview.noAdmission")}</p>
+          <p className="rounded-xl bg-slate-50 px-4 py-5 text-center text-xs text-slate-400">
+            {t("patients.overview.noAdmission")}
+          </p>
         )}
       </DetailCard>
 
       <DetailCard
         title={t("patients.overview.doctors")}
-        icon={<Stethoscope size={15} />}
+        icon={<Stethoscope size={16} />}
+        tone="bg-emerald-50 text-emerald-600"
       >
         {docs.length === 0 ? (
-          <p className="hospital-detail-empty">{t("patients.overview.noDoctors")}</p>
+          <p className="rounded-xl bg-slate-50 px-4 py-5 text-center text-xs text-slate-400">
+            {t("patients.overview.noDoctors")}
+          </p>
         ) : (
-          <ul>
-            {docs.map((d: any) => (
-              <li key={d.id} className="hospital-detail-list-item">
-                <div className="flex items-center gap-2 min-w-0">
-                  <UserCheck size={14} className="text-brand shrink-0" />
-                  <span className="font-semibold text-sm truncate">{d.doctorName ?? "—"}</span>
+          <ul className="flex flex-col gap-2">
+            {docs.map((d) => (
+              <li
+                key={d.id}
+                className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <UserCheck size={14} className="shrink-0 text-emerald-600" />
+                  <span className="truncate text-sm font-semibold text-slate-900">
+                    {d.doctorName ?? "—"}
+                  </span>
                   {d.isPrimary ? (
-                    <PillBadge tone="brand" className="text-[10px] shrink-0">
+                    <PillBadge tone="brand" className="shrink-0 text-[10px]">
                       {t("patients.overview.primary")}
                     </PillBadge>
                   ) : null}
                   <SourceBadge name={d.hospitalName} isCurrent={d.contextId === currentHospitalId} />
                 </div>
-                <PillBadge tone="neutral" className="text-[10px] shrink-0">
+                <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold capitalize text-slate-500">
                   {d.relationshipKind}
-                </PillBadge>
+                </span>
               </li>
             ))}
           </ul>
@@ -481,32 +674,41 @@ function OverviewTab({ data, locale, currentHospitalId }: { data: any; locale: s
 
 /* ─── Admissions ───────────────────────────────────────── */
 
-function AdmissionsTab({ data, locale, currentHospitalId }: { data: any; locale: string; currentHospitalId: string | null }) {
+function AdmissionsTab({ data, locale, currentHospitalId }: { data: Patient360; locale: string; currentHospitalId: string | null }) {
   const t = useT();
   const adm = data.admission;
   const past = data.admissions ?? [];
 
   if (!adm && past.length === 0) {
-    return <Empty title={t("patients.admissions.noAdmissions")} className="py-12" />;
+    return (
+      <section className={PANEL}>
+        <EmptyBlock
+          icon={<BedDouble size={19} />}
+          title={t("patients.admissions.noAdmissions")}
+          body="Ward admissions at this facility will appear here."
+        />
+      </section>
+    );
   }
 
   return (
-    <div className="hospital-detail-panel">
+    <div className="flex flex-col gap-5">
       {adm ? (
         <DetailCard
           title={t("patients.overview.admission")}
-          icon={<Heart size={15} />}
+          icon={<Heart size={16} />}
+          tone="bg-amber-50 text-amber-600"
           action={
             <Link
               href={`/hospital/ipd/${adm.id}`}
-              className="portal-btn portal-btn-ghost portal-btn-sm"
+              className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50"
             >
               {t("patients.admissions.view")}
-              <ArrowRight size={13} />
+              <ArrowRight size={13} aria-hidden />
             </Link>
           }
         >
-          <div className="hospital-detail-fields">
+          <div className="grid gap-2 sm:grid-cols-2">
             <DetailField label={t("patients.admissions.ward")} value={adm.wardName} />
             <DetailField label={t("patients.admissions.reason")} value={adm.reason} />
             <DetailField
@@ -519,7 +721,11 @@ function AdmissionsTab({ data, locale, currentHospitalId }: { data: any; locale:
       ) : null}
 
       {past.length > 0 ? (
-        <DetailCard title={t("patients.tabs.admissions")} icon={<FileText size={15} />}>
+        <DetailCard
+          title={t("patients.tabs.admissions")}
+          icon={<FileText size={16} />}
+          tone="bg-sky-50 text-sky-600"
+        >
           <DetailTable
             columns={
               <>
@@ -531,7 +737,7 @@ function AdmissionsTab({ data, locale, currentHospitalId }: { data: any; locale:
                 <Th align="right">{t("common.actions")}</Th>
               </>
             }
-            rows={past.map((a: any) => (
+            rows={past.map((a) => (
               <tr key={a.id}>
                 <Td muted>{a.admittedAt ? formatDateTime(a.admittedAt, locale) : "—"}</Td>
                 <Td>{a.reason ?? "—"}</Td>
@@ -540,17 +746,22 @@ function AdmissionsTab({ data, locale, currentHospitalId }: { data: any; locale:
                   <SourceBadge name={a.hospitalName} isCurrent={a.hospitalId === currentHospitalId} />
                 </Td>
                 <Td>
-                  <PillBadge tone={ADM_TONE[a.status] ?? "neutral"} className="text-[10px]">
+                  <span
+                    className={cn(
+                      "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
+                      ADM_BADGE[a.status ?? ""] ?? TONE_BADGE.slate,
+                    )}
+                  >
                     {a.status}
-                  </PillBadge>
+                  </span>
                 </Td>
                 <Td align="right">
                   <Link
                     href={`/hospital/ipd/${a.id}`}
-                    className="portal-btn portal-btn-ghost portal-btn-sm"
+                    className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50"
                   >
                     {t("patients.admissions.view")}
-                    <ArrowRight size={13} />
+                    <ArrowRight size={13} aria-hidden />
                   </Link>
                 </Td>
               </tr>
@@ -564,16 +775,28 @@ function AdmissionsTab({ data, locale, currentHospitalId }: { data: any; locale:
 
 /* ─── Records ──────────────────────────────────────────── */
 
-function RecordsTab({ data, locale, currentHospitalId }: { data: any; locale: string; currentHospitalId: string | null }) {
+function RecordsTab({ data, locale, currentHospitalId }: { data: Patient360; locale: string; currentHospitalId: string | null }) {
   const t = useT();
   const records = data.records ?? [];
 
   if (records.length === 0) {
-    return <Empty title={t("patients.records.noRecords")} className="py-12" />;
+    return (
+      <section className={PANEL}>
+        <EmptyBlock
+          icon={<FileText size={19} />}
+          title={t("patients.records.noRecords")}
+          body="Clinical documents filed for this patient will appear here."
+        />
+      </section>
+    );
   }
 
   return (
-    <DetailCard title={t("patients.tabs.records")} icon={<FileText size={15} />}>
+    <DetailCard
+      title={t("patients.tabs.records")}
+      icon={<FileText size={16} />}
+      tone="bg-sky-50 text-sky-600"
+    >
       <DetailTable
         columns={
           <>
@@ -584,16 +807,21 @@ function RecordsTab({ data, locale, currentHospitalId }: { data: any; locale: st
             <Th>Hospital</Th>
           </>
         }
-        rows={records.map((r: any) => (
+        rows={records.map((r) => (
           <tr key={r.id}>
             <Td muted>{r.date ? formatDate(r.date, locale) : "—"}</Td>
             <Td>
-              <PillBadge tone={RECORD_TONE[r.recordType] ?? "neutral"} className="text-[10px]">
-                {r.recordType.replace(/_/g, " ")}
-              </PillBadge>
+              <span
+                className={cn(
+                  "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
+                  RECORD_BADGE[r.recordType ?? ""] ?? TONE_BADGE.slate,
+                )}
+              >
+                {(r.recordType ?? "other").replace(/_/g, " ")}
+              </span>
             </Td>
             <Td>
-              <span className="font-semibold">{r.title}</span>
+              <span className="font-semibold text-slate-900">{r.title}</span>
             </Td>
             <Td muted>{r.doctorName ?? "—"}</Td>
             <Td>
@@ -608,43 +836,59 @@ function RecordsTab({ data, locale, currentHospitalId }: { data: any; locale: st
 
 /* ─── Prescriptions ────────────────────────────────────── */
 
-function PrescriptionsTab({ data, locale, currentHospitalId }: { data: any; locale: string; currentHospitalId: string | null }) {
+function PrescriptionsTab({ data, locale, currentHospitalId }: { data: Patient360; locale: string; currentHospitalId: string | null }) {
   const t = useT();
   const list = data.prescriptions ?? [];
 
   if (list.length === 0) {
-    return <Empty title={t("patients.prescriptions.noPrescriptions")} className="py-12" />;
+    return (
+      <section className={PANEL}>
+        <EmptyBlock
+          icon={<PillIcon size={19} />}
+          title={t("patients.prescriptions.noPrescriptions")}
+          body="Prescriptions issued for this patient will appear here."
+        />
+      </section>
+    );
   }
 
   return (
-    <div className="hospital-detail-panel">
-      {list.map((p: any) => (
-        <article key={p.id} className="hospital-rx-card">
+    <div className="flex flex-col gap-4">
+      {list.map((p) => (
+        <section key={p.id} className={PANEL}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
                 <span>{p.date ? formatDate(p.date, locale) : "—"}</span>
                 <span>·</span>
                 <span>{p.doctorName ?? "—"}</span>
                 <span>·</span>
                 <SourceBadge name={p.hospitalName} isCurrent={p.hospitalId === currentHospitalId} />
               </div>
-              <h3 className="mt-1 text-sm font-bold text-text">
+              <h3 className="mt-1 text-sm font-semibold text-slate-900">
                 {p.diagnosis ?? t("patients.tabs.prescriptions")}
               </h3>
-              {p.notes ? <p className="mt-1 text-xs text-text-muted">{p.notes}</p> : null}
+              {p.notes ? <p className="mt-1 text-xs text-slate-400">{p.notes}</p> : null}
             </div>
-            <PillBadge tone={RX_TONE[p.status] ?? "neutral"} className="text-[10px] shrink-0">
+            <span
+              className={cn(
+                "shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
+                RX_BADGE[p.status ?? ""] ?? TONE_BADGE.slate,
+              )}
+            >
               {p.status}
-            </PillBadge>
+            </span>
           </div>
-          {p.medicines?.length > 0 ? (
-            <ul className="hospital-rx-med-list">
-              {p.medicines.map((m: any) => (
-                <li key={m.id} className="hospital-rx-med-item">
-                  <PillIcon size={12} className="text-brand shrink-0" />
-                  <span className="font-semibold">{m.name}</span>
-                  <span className="text-xs text-text-muted truncate">
+          {(p.medicines?.length ?? 0) > 0 ? (
+            <ul className="mt-4 flex flex-col gap-1.5">
+              {(p.medicines ?? []).map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2 text-sm"
+                >
+                  <PillIcon size={12} className="shrink-0 text-emerald-600" />
+                  <span className="font-semibold text-slate-900">{m.name}</span>
+                  <span className="truncate text-xs text-slate-400">
                     {m.dosage}
                     {m.frequency ? ` · ${m.frequency}` : ""}
                     {m.timing ? ` · ${m.timing}` : ""}
@@ -653,7 +897,7 @@ function PrescriptionsTab({ data, locale, currentHospitalId }: { data: any; loca
               ))}
             </ul>
           ) : null}
-        </article>
+        </section>
       ))}
     </div>
   );
@@ -661,16 +905,28 @@ function PrescriptionsTab({ data, locale, currentHospitalId }: { data: any; loca
 
 /* ─── Lab ──────────────────────────────────────────────── */
 
-function LabTab({ data, locale, currentHospitalId }: { data: any; locale: string; currentHospitalId: string | null }) {
+function LabTab({ data, locale, currentHospitalId }: { data: Patient360; locale: string; currentHospitalId: string | null }) {
   const t = useT();
   const list = data.labOrders ?? [];
 
   if (list.length === 0) {
-    return <Empty title={t("patients.lab.noOrders")} className="py-12" />;
+    return (
+      <section className={PANEL}>
+        <EmptyBlock
+          icon={<TestTube size={19} />}
+          title={t("patients.lab.noOrders")}
+          body="Lab orders for this patient will appear here."
+        />
+      </section>
+    );
   }
 
   return (
-    <DetailCard title={t("patients.tabs.lab")} icon={<TestTube size={15} />}>
+    <DetailCard
+      title={t("patients.tabs.lab")}
+      icon={<TestTube size={16} />}
+      tone="bg-violet-50 text-violet-600"
+    >
       <DetailTable
         columns={
           <>
@@ -682,27 +938,32 @@ function LabTab({ data, locale, currentHospitalId }: { data: any; locale: string
             <Th>{t("patients.lab.completedAt")}</Th>
           </>
         }
-        rows={list.map((o: any) => {
+        rows={list.map((o) => {
           let tests: string[] = [];
           try {
             tests = o.tests ? JSON.parse(o.tests) : [];
           } catch {
-            tests = [o.tests];
+            tests = typeof o.tests === "string" ? [o.tests] : [];
           }
           return (
             <tr key={o.id}>
               <Td muted>{o.orderedAt ? formatDate(o.orderedAt, locale) : "—"}</Td>
               <Td>
-                <span className="font-semibold">{tests.join(", ") || "—"}</span>
+                <span className="font-semibold text-slate-900">{tests.join(", ") || "—"}</span>
               </Td>
               <Td muted>{o.doctorName ?? "—"}</Td>
               <Td>
                 <SourceBadge name={o.hospitalName} isCurrent={o.hospitalId === currentHospitalId} />
               </Td>
               <Td>
-                <PillBadge tone={LAB_TONE[o.status] ?? "neutral"} className="text-[10px]">
-                  {o.status.replace(/_/g, " ")}
-                </PillBadge>
+                <span
+                  className={cn(
+                    "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
+                    LAB_BADGE[o.status ?? ""] ?? TONE_BADGE.slate,
+                  )}
+                >
+                  {(o.status ?? "ordered").replace(/_/g, " ")}
+                </span>
               </Td>
               <Td muted>{o.completedAt ? formatDate(o.completedAt, locale) : "—"}</Td>
             </tr>
@@ -715,26 +976,38 @@ function LabTab({ data, locale, currentHospitalId }: { data: any; locale: string
 
 /* ─── Vitals ───────────────────────────────────────────── */
 
-function VitalsTab({ data, locale }: { data: any; locale: string }) {
+function VitalsTab({ data, locale }: { data: Patient360; locale: string }) {
   const t = useT();
   const latest = data.latestVitals ?? [];
   const alerts = data.vitalsAlerts ?? { count: 0, items: [] };
 
   if (latest.length === 0 && alerts.count === 0) {
-    return <Empty title={t("patients.vitals.noVitals")} className="py-12" />;
+    return (
+      <section className={PANEL}>
+        <EmptyBlock
+          icon={<Activity size={19} />}
+          title={t("patients.vitals.noVitals")}
+          body="Vital signs captured during visits will appear here."
+        />
+      </section>
+    );
   }
 
   return (
-    <div className="hospital-detail-panel">
+    <div className="flex flex-col gap-5">
       {alerts.count > 0 ? (
         <DetailCard
           title={`${t("patients.vitals.alerts")} (${alerts.count})`}
-          icon={<AlertCircle size={15} className="text-danger" />}
+          icon={<AlertCircle size={16} />}
+          tone="bg-rose-50 text-rose-600"
         >
-          <ul>
-            {alerts.items.map((a: any, i: number) => (
-              <li key={i} className="hospital-alert-item">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <ul className="flex flex-col gap-2">
+            {alerts.items.map((a, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2.5 rounded-xl bg-rose-50/70 px-3.5 py-2.5 text-sm text-rose-800"
+              >
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
                 <span>{a.message ?? a.type ?? JSON.stringify(a)}</span>
               </li>
             ))}
@@ -745,20 +1018,23 @@ function VitalsTab({ data, locale }: { data: any; locale: string }) {
       {latest.length > 0 ? (
         <DetailCard
           title={t("patients.vitals.latestByType")}
-          icon={<Activity size={15} />}
+          icon={<Activity size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
         >
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {latest.map((v: any, i: number) => (
-              <div key={i} className="hospital-vital-tile">
-                <div className="hospital-vital-tile-label">{v.type}</div>
-                <div className="hospital-vital-tile-value">
+            {latest.map((v, i) => (
+              <div key={i} className="rounded-xl bg-slate-50 p-3.5">
+                <div className="text-[11px] font-medium capitalize text-slate-400">
+                  {(v.type ?? "vital").replace(/_/g, " ")}
+                </div>
+                <div className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
                   {v.value}
                   {v.unit ? (
-                    <span className="text-xs font-semibold text-text-muted ml-1">{v.unit}</span>
+                    <span className="ml-1 text-xs font-semibold text-slate-400">{v.unit}</span>
                   ) : null}
                 </div>
                 {v.recordedAt ? (
-                  <div className="text-[10px] text-text-muted mt-1">
+                  <div className="mt-1 text-[10px] text-slate-400">
                     {formatDateTime(v.recordedAt, locale)}
                   </div>
                 ) : null}
