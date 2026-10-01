@@ -19,7 +19,7 @@ echo "✅ Build completed."
 echo ""
 
 echo "🌐 Step 2: Deploying to Cloudflare Workers & Assets..."
-bunx wrangler deploy
+bunx opennextjs-cloudflare deploy
 echo "✅ Frontend deployed to Cloudflare."
 echo ""
 

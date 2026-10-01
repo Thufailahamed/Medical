@@ -22,9 +22,12 @@ type LabAuthState = {
 // store ("healthcare-portal-auth"). The lab portal therefore treats
 // the main session as authoritative and keeps its own store only as
 // a legacy fallback — otherwise labs loop login → wrong portal.
-function mainSession(): { token: string | null; user: any | null } {
+function mainSession(): { token: string | null; user: LabUser | null } {
   try {
-    const s = useAuthStore.getState() as any;
+    const s = useAuthStore.getState() as {
+      token?: string | null;
+      user?: LabUser | null;
+    };
     return { token: s?.token ?? null, user: s?.user ?? null };
   } catch {
     return { token: null, user: null };
@@ -53,7 +56,7 @@ export const useLabAuthStore = create<LabAuthState>()(
       clearAuth: () => {
         set({ token: null, user: null });
         try {
-          (useAuthStore.getState() as any)?.logout?.();
+          (useAuthStore.getState() as { logout?: () => void })?.logout?.();
         } catch {
           /* main session already gone */
         }

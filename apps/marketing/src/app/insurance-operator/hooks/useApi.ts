@@ -1,49 +1,78 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, qk } from "../lib/api";
 
+export type InsuranceOperatorClaimDoc = {
+  id: string;
+  kind: string;
+  fileKey: string;
+  uploadedAt?: string;
+  createdAt?: string;
+};
+
+export type InsuranceOperatorClaimMessage = {
+  id: string;
+  senderUserId: string;
+  senderRole: "patient" | "operator" | string;
+  body: string;
+  attachmentFileKey?: string | null;
+  createdAt: string;
+};
+
+/** Matches the real /insurance-operator/claims row shape (raw claims table row
+ *  + joined documents/messages). Claimant name & policy number are NOT on the
+ *  claim — resolve them from the enrollments list via `enrollmentId`. */
 export type InsuranceOperatorClaim = {
   id: string;
   enrollmentId: string;
-  patientName: string;
-  policyNumber: string;
+  userId?: string;
+  providerId?: string;
   treatmentType: string;
+  incurringFacility?: string | null;
   facility?: string | null;
+  admissionDate?: string | null;
+  dischargeDate?: string | null;
   diagnosis?: string | null;
   amountRequestedLkr: number;
   amountApprovedLkr?: number | null;
   status: string;
   insurerRemarks?: string | null;
   patientRemarks?: string | null;
-  submittedAt?: string | null;
+  reviewedByUserId?: string | null;
   reviewedAt?: string | null;
-  documents: Array<{
-    id: string;
-    kind: string;
-    fileKey: string;
-    uploadedAt: string;
-  }>;
-  messages: Array<{
-    id: string;
-    senderRole: string;
-    senderName: string;
-    body: string;
-    createdAt: string;
-  }>;
+  paidAt?: string | null;
+  transactionRef?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  documents?: InsuranceOperatorClaimDoc[];
+  messages?: InsuranceOperatorClaimMessage[];
+};
+
+export type InsuranceOperatorDependent = {
+  id: string;
+  name: string;
+  relation: string;
+  dob?: string | null;
 };
 
 export type InsuranceOperatorEnrollment = {
   id: string;
   userId: string;
   userName: string;
+  planId?: string;
   planName: string;
+  providerId?: string;
   policyNumber: string;
   status: string;
+  kycStatus?: string | null;
   billingCycle: string;
   premiumAmountLkr: number;
   coverageAmountLkr: number;
   startDate: string;
   endDate?: string | null;
   nextPremiumDueAt?: string | null;
+  nomineeName?: string | null;
+  dependents?: InsuranceOperatorDependent[];
+  createdAt?: string;
 };
 
 export type InsuranceOperatorStats = {
@@ -52,12 +81,36 @@ export type InsuranceOperatorStats = {
   pendingClaims: number;
   approvedClaimsMtd: number;
   premiumCollectedMtd: number;
+  totalProviders?: number;
+};
+
+/** Raw API shape is `{ org, activePolicies, pendingClaims, approvedThisMonth,
+ *  totalProviders, providers }` — normalize it onto the `stats` object the
+ *  UI consumes (and accept a legacy `{ stats: … }` shape if it ever returns). */
+type DashboardResponse = {
+  stats?: InsuranceOperatorStats;
+  org?: { id: string; name?: string };
+  activePolicies?: number;
+  pendingClaims?: number;
+  approvedThisMonth?: number;
+  totalProviders?: number;
 };
 
 export function useInsuranceOperatorDashboard() {
   return useQuery({
     queryKey: qk.dashboard,
-    queryFn: () => api<{ stats: InsuranceOperatorStats }>("/insurance-operator/dashboard"),
+    queryFn: () => api<DashboardResponse>("/insurance-operator/dashboard"),
+    select: (d): { stats: InsuranceOperatorStats; org?: { id: string; name?: string } } => ({
+      org: d.org,
+      stats: {
+        totalEnrollments: d.stats?.totalEnrollments ?? 0,
+        activeEnrollments: d.stats?.activeEnrollments ?? d.activePolicies ?? 0,
+        pendingClaims: d.stats?.pendingClaims ?? d.pendingClaims ?? 0,
+        approvedClaimsMtd: d.stats?.approvedClaimsMtd ?? d.approvedThisMonth ?? 0,
+        premiumCollectedMtd: d.stats?.premiumCollectedMtd ?? 0,
+        totalProviders: d.stats?.totalProviders ?? d.totalProviders ?? 0,
+      },
+    }),
   });
 }
 
@@ -90,6 +143,12 @@ export function useInsuranceOperatorEnrollments() {
   });
 }
 
+function invalidateClaimQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["insurance-operator-claim"] });
+  qc.invalidateQueries({ queryKey: ["insurance-operator-claims"] });
+  qc.invalidateQueries({ queryKey: qk.dashboard });
+}
+
 export function useDecideClaim() {
   const qc = useQueryClient();
   return useMutation({
@@ -111,9 +170,54 @@ export function useDecideClaim() {
           body: { decision, amountApprovedLkr, remarks },
         },
       ),
+    onSuccess: () => invalidateClaimQueries(qc),
+  });
+}
+
+/** Record a payout on an approved claim → status becomes `paid`. */
+export function usePayClaim() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      transactionRef,
+      amountApprovedLkr,
+    }: {
+      id: string;
+      transactionRef: string;
+      amountApprovedLkr?: number;
+    }) =>
+      api<{ claim: InsuranceOperatorClaim }>(
+        `/insurance-operator/claims/${id}/pay`,
+        {
+          method: "POST",
+          body: { transactionRef, amountApprovedLkr },
+        },
+      ),
+    onSuccess: () => invalidateClaimQueries(qc),
+  });
+}
+
+/** KYC verify/reject decision on an enrollment. */
+export function useKycDecision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      decision,
+    }: {
+      id: string;
+      decision: "verified" | "rejected";
+    }) =>
+      api<{ enrollment: InsuranceOperatorEnrollment }>(
+        `/insurance-operator/enrollments/${id}/kyc`,
+        {
+          method: "POST",
+          body: { decision },
+        },
+      ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["insurance-operator-claim"] });
-      qc.invalidateQueries({ queryKey: ["insurance-operator-claims"] });
+      qc.invalidateQueries({ queryKey: qk.enrollments });
       qc.invalidateQueries({ queryKey: qk.dashboard });
     },
   });

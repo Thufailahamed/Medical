@@ -214,6 +214,7 @@ operatorRouter.get("/enrollments", async (c) => {
       providerId: r.enrollment.providerId,
       policyNumber: r.enrollment.policyNumber,
       status: r.enrollment.status,
+      kycStatus: r.enrollment.kycStatus,
       billingCycle: r.enrollment.billingCycle,
       premiumAmountLkr: r.enrollment.premiumAmountLkr,
       coverageAmountLkr: r.enrollment.coverageAmountLkr,

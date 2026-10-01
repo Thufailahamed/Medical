@@ -19,12 +19,14 @@
   --lab-ink-soft: #4A5D78;
   --lab-ink-faint: #7D8FA8;
 
-  /* Surfaces */
-  --lab-bg: #F6F3EA;
+  /* Surfaces — aligned with the admin/hospital dashboard canvas so the
+     shared workspace components (PANEL, StatTile, RailRow) sit on the
+     same light-emerald field. */
+  --lab-bg: #F0FDF4;
   --lab-surface: #ffffff;
-  --lab-surface-2: #FAFAF6;
-  --lab-border: #E5E0D4;
-  --lab-border-strong: #D2CCB9;
+  --lab-surface-2: #F8FAFC;
+  --lab-border: #E2E8F0;
+  --lab-border-strong: #CBD5E1;
 
   /* Brand: emerald identity for laboratories */
   --lab-brand: #059669;
@@ -428,7 +430,7 @@
 [data-app="lab-portal"] .lab-topbar-search input {
   width: 100%;
   height: 40px;
-  padding: 0 14px 0 40px;
+  padding: 0 46px 0 40px;
   border-radius: 10px;
   border: 1px solid var(--lab-border);
   background: var(--lab-surface);
@@ -1432,12 +1434,11 @@
   flex-shrink: 0;
 }
 [data-app="lab-portal"] .lab-modal-title {
-  font-family: var(--lab-font-display);
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-family: var(--lab-font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--lab-night);
-  font-style: italic;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1694,6 +1695,35 @@
 /* ============================================================
    Reduced motion
    ============================================================ */
+/* ── Responsive shell ──────────────────────────────────────────────
+ * Below lg the desktop rail gives way to a slide-over drawer rendered
+ * by the (portal) layout; the topbar keeps a compact breadcrumb and
+ * collapses the search field behind the page content.
+ */
+@media (max-width: 1023px) {
+  [data-app="lab-portal"] .lab-sidebar { display: none; }
+  [data-app="lab-portal"] .lab-sidebar.lab-sidebar-drawer {
+    display: flex;
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100dvh;
+    z-index: 60;
+    box-shadow: 24px 0 60px rgba(2, 6, 23, 0.45);
+  }
+  [data-app="lab-portal"] .lab-topbar { padding: 0 14px; gap: 10px; }
+  [data-app="lab-portal"] .lab-topbar-search { display: none; }
+  [data-app="lab-portal"] .lab-topbar-search.lab-topbar-search-open {
+    display: block;
+    position: absolute;
+    top: calc(var(--lab-topbar-h) + 8px);
+    left: 14px;
+    right: 14px;
+    max-width: none;
+    z-index: 30;
+  }
+  [data-app="lab-portal"] .lab-page { padding: 16px 14px 48px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-app="lab-portal"] *,
   [data-app="lab-portal"] *::before,

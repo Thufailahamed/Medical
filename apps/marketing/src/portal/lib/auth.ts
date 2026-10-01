@@ -16,6 +16,7 @@ import {
   useAuthStore as useHospitalAuthStore,
   HOSPITAL_ROLES,
 } from "@/hospital/stores/auth";
+import { useInsuranceOperatorAuthStore } from "@/app/insurance-operator/stores/auth";
 
 export interface LoginInput {
   email?: string;
@@ -93,6 +94,15 @@ export async function login(input: LoginInput): Promise<AuthUser> {
       user: ok.user as any,
     });
   }
+  if (ok.user.role === "insurance") {
+    useInsuranceOperatorAuthStore.getState().setAuth(ok.session.access_token, {
+      id: ok.user.id,
+      name: ok.user.name,
+      email: ok.user.email,
+      role: ok.user.role,
+      operatorOrgId: (ok.user as any).operatorOrgId ?? (ok.user as any).operator_org_id,
+    });
+  }
   return ok.user;
 }
 
@@ -120,6 +130,15 @@ export async function verifyMfaChallenge(input: {
     useHospitalAuthStore.getState().setSession({
       token: res.token,
       user: res.user as any,
+    });
+  }
+  if (res.user.role === "insurance") {
+    useInsuranceOperatorAuthStore.getState().setAuth(res.token, {
+      id: res.user.id,
+      name: res.user.name,
+      email: res.user.email,
+      role: res.user.role,
+      operatorOrgId: (res.user as any).operatorOrgId ?? (res.user as any).operator_org_id,
     });
   }
   return res.user;
@@ -231,6 +250,11 @@ export async function logout() {
   useAuthStore.getState().logout();
   try {
     useHospitalAuthStore.getState().logout();
+  } catch {
+    // ignore
+  }
+  try {
+    useInsuranceOperatorAuthStore.getState().clearAuth();
   } catch {
     // ignore
   }

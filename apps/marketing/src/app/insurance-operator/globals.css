@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   Insurance Operator — Premium Enterprise Theme
+   Inherits Harbor Lapis brand kit; sky accent = insurer identity.
+   Scoped under [data-app="insurance-operator"] so styles never bleed.
+   ============================================================ */
+:root {
+  --ins-night: #06101C;
+  --ins-navy: #0B1F3A;
+  --ins-navy-2: #12345E;
+  --ins-sky: #38BDF8;
+  --ins-paper: #F4F0E8;
+  --ins-ivory: #FBF8F2;
+  --ins-line: #E2E8F0;
+  --ins-ink: #0E1A2B;
+  --ins-ink-soft: #4A5D78;
+  --ins-ink-faint: #7D8FA8;
+
+  /* Surfaces — aligned with the admin/lab dashboard canvas so the
+     shared workspace components (PANEL, StatTile, RailRow) sit on the
+     same light-sky field. */
+  --ins-bg: #F0F9FF;
+  --ins-surface: #ffffff;
+  --ins-surface-2: #F8FAFC;
+  --ins-border: #E2E8F0;
+  --ins-border-strong: #CBD5E1;
+
+  /* Brand: sky identity for the insurer console */
+  --ins-brand: #0284C7;
+  --ins-brand-soft: #E0F2FE;
+  --ins-brand-strong: #0369A1;
+  --ins-brand-deep: #0C4A6E;
+
+  /* Semantic */
+  --ins-success: #059669;
+  --ins-success-soft: #ECFDF5;
+  --ins-warn: #D97706;
+  --ins-warn-soft: #FFFBEB;
+  --ins-danger: #DC2626;
+  --ins-danger-soft: #FEF2F2;
+  --ins-info: #0284C7;
+  --ins-info-soft: #E0F2FE;
+
+  /* Type */
+  --ins-font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --ins-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Motion */
+  --ins-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ins-ease-spring: cubic-bezier(0.34, 1.35, 0.4, 1);
+
+  /* Map Tailwind v4 utility classes → insurer tokens */
+  --color-bg: var(--ins-bg);
+  --color-surface: var(--ins-surface);
+  --color-surface-2: var(--ins-surface-2);
+  --color-border: var(--ins-border);
+  --color-border-strong: var(--ins-border-strong);
+  --color-text: var(--ins-ink);
+  --color-text-soft: var(--ins-ink-soft);
+  --color-text-muted: var(--ins-ink-faint);
+  --color-brand: var(--ins-brand);
+  --color-brand-soft: var(--ins-brand-soft);
+  --color-brand-strong: var(--ins-brand-strong);
+}
+
+/* Base resets */
+[data-app="insurance-operator"],
+[data-app="insurance-operator"] * {
+  box-sizing: border-box;
+}
+[data-app="insurance-operator"] {
+  font-family: var(--ins-font-sans);
+  background: var(--ins-bg);
+  color: var(--ins-ink);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "ss03";
+}
+[data-app="insurance-operator"] button {
+  font-family: inherit;
+}
+[data-app="insurance-operator"] h1,
+[data-app="insurance-operator"] h2,
+[data-app="insurance-operator"] h3,
+[data-app="insurance-operator"] h4 {
+  letter-spacing: -0.02em;
+}
+[data-app="insurance-operator"] ::selection {
+  background: rgba(2, 132, 199, 0.16);
+  color: var(--ins-ink);
+}
+[data-app="insurance-operator"] .font-mono,
+[data-app="insurance-operator"] code,
+[data-app="insurance-operator"] kbd {
+  font-family: var(--ins-font-mono);
+}
+
+/* Scrollbar — slim, tinted to the ink-navy rail */
+[data-app="insurance-operator"] *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+[data-app="insurance-operator"] *::-webkit-scrollbar-thumb {
+  background: rgba(2, 132, 199, 0.28);
+  border-radius: 8px;
+}
+[data-app="insurance-operator"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(2, 132, 199, 0.45);
+}
+[data-app="insurance-operator"] *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Focus visibility — consistent sky ring */
+[data-app="insurance-operator"] :focus-visible {
+  outline: 2px solid var(--ins-brand);
+  outline-offset: 2px;
+}

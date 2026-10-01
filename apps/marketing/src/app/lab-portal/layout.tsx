@@ -1,8 +1,13 @@
 "use client";
 
 import "./globals.css";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { useState } from "react";
+import { toast, ToastHost } from "@/portal/components/ui/Toast";
 
 export default function LabPortalLayout({
   children,
@@ -12,6 +17,14 @@ export default function LabPortalLayout({
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        mutationCache: new MutationCache({
+          onError: (err, _vars, _ctx, mutation) => {
+            // Mutations with their own onError already surface a tailored message.
+            if (mutation.options.onError) return;
+            const msg = err instanceof Error ? err.message : "Something went wrong";
+            toast.error("Action failed", msg);
+          },
+        }),
         defaultOptions: {
           queries: { staleTime: 30_000, retry: 1 },
         },
@@ -20,8 +33,9 @@ export default function LabPortalLayout({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div data-app="lab-portal" className="min-h-screen bg-gray-50">
+      <div data-app="lab-portal" className="min-h-screen bg-[var(--lab-bg)]">
         {children}
+        <ToastHost />
       </div>
     </QueryClientProvider>
   );

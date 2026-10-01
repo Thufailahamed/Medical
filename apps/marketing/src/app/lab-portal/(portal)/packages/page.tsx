@@ -8,7 +8,6 @@ import {
   Edit3,
   CheckCircle2,
   Layers,
-  Search,
   X,
   AlertTriangle,
   TestTube2,
@@ -17,6 +16,22 @@ import {
 } from "lucide-react";
 import { useLabPackages, useLabCatalog } from "../../hooks/useApi";
 import { api } from "../../lib/api";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  HeroPulse,
+  Badge,
+  PanelSkeleton,
+} from "@/patient/components/workspace";
 
 type Pkg = {
   id: string;
@@ -151,225 +166,195 @@ export default function PackagesPage() {
   }, [catalog, search]);
 
   return (
-    <div className="lab-page">
-      {/* ── Page head ── */}
-      <div className="lab-page-head">
-        <div>
-          <span className="lab-page-eyebrow">
-            <PackageOpen size={10} />
-            Bundle Marketplace
-          </span>
-          <h1 className="lab-page-title">
-            Test <strong>packages</strong>
-          </h1>
-          <p className="lab-page-sub">
-            Curate grouped test bundles for screening programs, employer
-            checkups, and wellness cohorts.
-          </p>
-        </div>
-        <div className="lab-page-actions">
-          <button
-            type="button"
-            className="lab-btn lab-btn-primary"
-            onClick={openCreate}
-          >
-            <Plus size={14} />
-            Create package
+    <div className="lab-page flex flex-col gap-6">
+      <DoctorHero
+        kicker="Bundle marketplace"
+        kickerIcon={<PackageOpen size={12} />}
+        kickerMeta={`${totals.count} packages`}
+        title="Test packages"
+        description="Curate grouped test bundles for screening programs, employer checkups, and wellness cohorts."
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <CheckCircle2 size={12} /> {totals.active} live
+            </span>
+            <span className={HERO_CHIP}>
+              <Sparkles size={12} /> LKR {(totals.totalRevenue / 1000).toFixed(0)}k combined value
+            </span>
+          </>
+        }
+        aside={
+          <HeroPulse
+            icon={<PackageOpen size={18} />}
+            label="Live packages"
+            value={totals.active}
+            sub={totals.active ? "Listed to patients" : "Create your first bundle"}
+          />
+        }
+        actions={
+          <button type="button" className={HERO_PRIMARY} onClick={openCreate}>
+            <Plus size={14} /> Create package
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* ── KPI row ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#1D4ED8", "--lab-stat-soft": "#DBEAFE" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><PackageOpen size={19} strokeWidth={2.1} /></div>
-          </div>
-          <div className="lab-stat-label">Total packages</div>
-          <div className="lab-stat-value mt-2">{totals.count}</div>
-          <div className="lab-stat-foot">Across all tiers</div>
-        </div>
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#059669", "--lab-stat-soft": "#D1FAE5" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><CheckCircle2 size={19} strokeWidth={2.2} /></div>
-          </div>
-          <div className="lab-stat-label">Active in catalog</div>
-          <div className="lab-stat-value mt-2">{totals.active}</div>
-          <div className="lab-stat-foot">Listed to patients</div>
-        </div>
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#7C3AED", "--lab-stat-soft": "#EDE9FE" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><Sparkles size={18} strokeWidth={2.2} /></div>
-          </div>
-          <div className="lab-stat-label">Catalogue value</div>
-          <div className="lab-stat-value mt-2 text-[26px] lab-mono">
-            {(totals.totalRevenue / 1000).toFixed(0)}k
-          </div>
-          <div className="lab-stat-foot">LKR combined pricing</div>
-        </div>
-      </section>
-
-      {/* ── Toolbar ── */}
-      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <div className="lab-section-title flex items-center gap-2">
-          <Layers size={14} className="text-[var(--lab-brand)]" />
-          Bundled offerings
-        </div>
-        <div className="lab-topbar-search !max-w-[280px]">
-          <Search size={14} className="lab-topbar-search-icon" />
-          <input
-            type="search"
-            placeholder="Filter packages…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+      <HeroOverlap>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatTile
+            label="Total packages"
+            icon={<PackageOpen size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(totals.count)}
+            sub="Across all tiers"
+          />
+          <StatTile
+            label="Active in catalog"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(totals.active)}
+            sub="Listed to patients"
+          />
+          <StatTile
+            label="Catalogue value"
+            icon={<Sparkles size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={`${(totals.totalRevenue / 1000).toFixed(0)}k`}
+            sub="LKR combined pricing"
           />
         </div>
-      </div>
+      </HeroOverlap>
 
-      {/* ── Grid ── */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="lab-card lab-card-pad">
-              <div className="lab-skel h-5 w-2/3 mb-3" />
-              <div className="lab-skel h-3 w-full mb-2" />
-              <div className="lab-skel h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="lab-empty">
-          <div className="lab-empty-icon">
-            <PackageOpen size={26} strokeWidth={1.8} />
-          </div>
-          <div className="lab-empty-title">
-            {search ? "No packages match" : "No packages yet"}
-          </div>
-          <p className="lab-empty-msg">
-            {search
-              ? `Nothing matches "${search}".`
-              : "Group complementary tests into discounted bundles for screening cohorts."}
-          </p>
-          {!search && (
-            <button
-              type="button"
-              className="lab-btn lab-btn-primary mt-5"
-              onClick={openCreate}
-            >
-              <Plus size={14} />
-              Create your first package
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((pkg) => {
-            const savings =
-              pkg.discountPrice != null
-                ? Math.round(((pkg.price - pkg.discountPrice) / pkg.price) * 100)
-                : 0;
-            return (
-              <article key={pkg.id} className="lab-card overflow-hidden group">
-                <div
-                  className="px-5 py-4 flex items-start justify-between gap-4 border-b border-[var(--lab-border)]"
-                  style={{
-                    background:
-                      "linear-gradient(120deg, rgba(5,150,105,0.06) 0%, rgba(29,78,216,0.04) 100%)",
-                  }}
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Layers size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          title="Bundled offerings"
+          caption={`${filtered.length} shown`}
+          action={
+            <PanelSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Filter packages…"
+              ariaLabel="Filter packages"
+            />
+          }
+        />
+
+        {isLoading ? (
+          <PanelSkeleton rows={4} />
+        ) : filtered.length === 0 ? (
+          <EmptyBlock
+            icon={<PackageOpen size={19} />}
+            title={search ? "No packages match" : "No packages yet"}
+            body={
+              search
+                ? `Nothing matches "${search}".`
+                : "Group complementary tests into discounted bundles for screening cohorts."
+            }
+            actions={
+              !search ? (
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-4 text-xs font-semibold text-white transition-colors hover:bg-sky-800"
+                  onClick={openCreate}
                 >
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] grid place-content-center shrink-0">
-                      <PackageOpen size={20} strokeWidth={2} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10.5px] tracking-[0.14em] uppercase text-[var(--lab-ink-faint)] lab-mono">
-                        /{pkg.slug}
+                  <Plus size={14} /> Create your first package
+                </button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {filtered.map((pkg) => {
+              const savings =
+                pkg.discountPrice != null
+                  ? Math.round(((pkg.price - pkg.discountPrice) / pkg.price) * 100)
+                  : 0;
+              return (
+                <article
+                  key={pkg.id}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-br from-emerald-50/80 via-white to-sky-50/50 px-5 py-4">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="grid h-11 w-11 shrink-0 place-content-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                        <PackageOpen size={20} strokeWidth={2} />
                       </div>
-                      <h3 className="text-[16px] font-bold text-[var(--lab-night)] tracking-tight leading-snug mt-0.5">
-                        {pkg.name}
-                      </h3>
-                    </div>
-                  </div>
-                  <span className="lab-pill" data-status={pkg.isActive ? "active" : "inactive"}>
-                    {pkg.isActive ? "Active" : "Inactive"}
-                  </span>
-                </div>
-
-                <div className="lab-card-pad space-y-3">
-                  {pkg.description && (
-                    <p className="text-[13px] text-[var(--lab-ink-soft)] leading-relaxed line-clamp-2">
-                      {pkg.description}
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg bg-[var(--lab-surface-2)] border border-[var(--lab-border)] py-2">
-                      <div className="text-[9.5px] tracking-[0.14em] uppercase text-[var(--lab-ink-faint)] lab-mono">
-                        Tests
-                      </div>
-                      <div className="mt-0.5 text-[14px] font-bold text-[var(--lab-night)]">
-                        {pkg.testCount ?? 0}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-[var(--lab-surface-2)] border border-[var(--lab-border)] py-2">
-                      <div className="text-[9.5px] tracking-[0.14em] uppercase text-[var(--lab-ink-faint)] lab-mono">
-                        TAT
-                      </div>
-                      <div className="mt-0.5 text-[14px] font-bold text-[var(--lab-night)] lab-mono">
-                        {pkg.turnaroundHours}h
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-[var(--lab-surface-2)] border border-[var(--lab-border)] py-2">
-                      <div className="text-[9.5px] tracking-[0.14em] uppercase text-[var(--lab-ink-faint)] lab-mono">
-                        Save
-                      </div>
-                      <div className="mt-0.5 text-[14px] font-bold text-emerald-600 lab-mono">
-                        {savings > 0 ? `${savings}%` : "—"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-end justify-between pt-3 border-t border-[var(--lab-border)]">
-                    <div>
-                      {pkg.discountPrice != null && (
-                        <div className="text-[11.5px] text-[var(--lab-ink-faint)] line-through lab-mono">
-                          Rs. {pkg.price.toLocaleString("en-LK")}
+                      <div className="min-w-0">
+                        <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-slate-400">
+                          /{pkg.slug}
                         </div>
-                      )}
-                      <div className="font-display text-[26px] font-medium text-[var(--lab-night)] lab-mono">
-                        Rs. {(pkg.discountPrice ?? pkg.price).toLocaleString("en-LK")}
+                        <h3 className="mt-0.5 text-[15px] font-bold leading-snug tracking-tight text-slate-900">
+                          {pkg.name}
+                        </h3>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="lab-btn lab-btn-secondary lab-btn-sm"
-                      onClick={() => openEdit(pkg as Pkg)}
-                    >
-                      <Edit3 size={12} />
-                      Edit
-                    </button>
+                    <Badge tone={pkg.isActive ? "emerald" : "slate"}>
+                      {pkg.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+
+                  <div className="space-y-3 p-5">
+                    {pkg.description && (
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-slate-500">
+                        {pkg.description}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 py-2">
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-slate-400">
+                          Tests
+                        </div>
+                        <div className="mt-0.5 text-[14px] font-bold text-slate-900">
+                          {pkg.testCount ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 py-2">
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-slate-400">
+                          TAT
+                        </div>
+                        <div className="mt-0.5 font-mono text-[14px] font-bold text-slate-900">
+                          {pkg.turnaroundHours}h
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/60 py-2">
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-slate-400">
+                          Save
+                        </div>
+                        <div className="mt-0.5 font-mono text-[14px] font-bold text-emerald-600">
+                          {savings > 0 ? `${savings}%` : "—"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-end justify-between border-t border-slate-100 pt-3">
+                      <div>
+                        {pkg.discountPrice != null && (
+                          <div className="font-mono text-[11.5px] text-slate-400 line-through">
+                            Rs. {pkg.price.toLocaleString("en-LK")}
+                          </div>
+                        )}
+                        <div className="font-mono text-[24px] font-bold tracking-tight text-slate-900">
+                          Rs. {(pkg.discountPrice ?? pkg.price).toLocaleString("en-LK")}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                        onClick={() => openEdit(pkg as Pkg)}
+                      >
+                        <Edit3 size={12} />
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* ── Create / edit modal ── */}
       {showModal && (
@@ -408,7 +393,7 @@ export default function PackagesPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="lab-modal-body space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="lab-field md:col-span-2">
                     <label className="lab-label">
                       Package name <span className="lab-label-req">*</span>
@@ -498,33 +483,33 @@ export default function PackagesPage() {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2 flex items-center justify-between">
                     <label className="lab-label !mb-0">
                       Tests in package
                     </label>
-                    <span className="lab-mono text-[11px] text-[var(--lab-ink-faint)]">
+                    <span className="font-mono text-[11px] text-slate-400">
                       {form.testIds.length} selected ·{" "}
                       {catalog?.tests.length ?? 0} available
                     </span>
                   </div>
-                  <div className="rounded-xl border border-[var(--lab-border)] max-h-56 overflow-y-auto bg-[var(--lab-surface-2)]">
+                  <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60">
                     {filteredCatalog.length === 0 ? (
-                      <div className="p-4 text-center text-[12.5px] text-[var(--lab-ink-faint)]">
+                      <div className="p-4 text-center text-[12.5px] text-slate-400">
                         <TestTube2 size={18} className="mx-auto mb-1.5 opacity-50" />
                         {search
                           ? `No catalog tests match "${search}"`
                           : "No tests in your catalog yet."}
                       </div>
                     ) : (
-                      <div className="divide-y divide-[var(--lab-border)]">
+                      <div className="divide-y divide-slate-100">
                         {filteredCatalog.map((t) => {
                           const checked = form.testIds.includes(t.id);
                           return (
                             <label
                               key={t.id}
-                              className={`flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors ${
+                              className={`flex cursor-pointer items-center gap-3 px-3.5 py-2.5 transition-colors ${
                                 checked
-                                  ? "bg-[var(--lab-brand-soft)]/40"
+                                  ? "bg-emerald-50/60"
                                   : "hover:bg-white"
                               }`}
                             >
@@ -534,18 +519,18 @@ export default function PackagesPage() {
                                 checked={checked}
                                 onChange={() => toggleTest(t.id)}
                               />
-                              <div className="w-7 h-7 rounded-lg bg-white border border-[var(--lab-border)] grid place-content-center text-[var(--lab-brand)]">
+                              <div className="grid h-7 w-7 place-content-center rounded-lg border border-slate-200 bg-white text-emerald-600">
                                 <TestTube2 size={13} strokeWidth={2.2} />
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[12.5px] font-semibold text-[var(--lab-night)] truncate">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[12.5px] font-semibold text-slate-900">
                                   {t.name}
                                 </div>
-                                <div className="text-[10.5px] text-[var(--lab-ink-faint)] lab-mono">
+                                <div className="font-mono text-[10.5px] text-slate-400">
                                   /{t.slug}
                                 </div>
                               </div>
-                              <div className="text-[12px] font-bold lab-mono text-[var(--lab-night)]">
+                              <div className="font-mono text-[12px] font-bold text-slate-900">
                                 Rs. {t.price.toLocaleString("en-LK")}
                               </div>
                             </label>

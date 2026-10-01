@@ -7,7 +7,6 @@ import {
   Phone,
   Mail,
   Trash2,
-  Search,
   CheckCircle2,
   XCircle,
   UserPlus,
@@ -21,6 +20,23 @@ import {
   useCreatePhlebotomist,
   useDeletePhlebotomist,
 } from "../../hooks/useApi";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  HeroPulse,
+  RailRow,
+  Badge,
+  PanelSkeleton,
+} from "@/patient/components/workspace";
 
 export default function PhlebotomistsPage() {
   const { data, isLoading } = usePhlebotomists();
@@ -73,114 +89,93 @@ export default function PhlebotomistsPage() {
   }
 
   return (
-    <div className="lab-page">
-      {/* ── Page head ── */}
-      <div className="lab-page-head">
-        <div>
-          <span className="lab-page-eyebrow">
-            <Users size={10} />
-            Field Operations
-          </span>
-          <h1 className="lab-page-title">
-            Phlebotomy <strong>team</strong>
-          </h1>
-          <p className="lab-page-sub">
-            Manage sample-collection technicians, credentials, and on-call
-            dispatching for inbound requisitions.
-          </p>
-        </div>
-        <div className="lab-page-actions">
+    <div className="lab-page flex flex-col gap-6">
+      <DoctorHero
+        kicker="Field operations"
+        kickerIcon={<Users size={12} />}
+        kickerMeta={`${totals.total} registered`}
+        title="Phlebotomy team"
+        description="Manage sample-collection technicians, credentials, and on-call dispatching for inbound requisitions."
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <CheckCircle2 size={12} /> {totals.active} active
+            </span>
+            <span className={HERO_CHIP}>
+              <XCircle size={12} /> {totals.inactive} off roster
+            </span>
+          </>
+        }
+        aside={
+          <HeroPulse
+            icon={<UserPlus size={18} />}
+            label="Dispatch-ready"
+            value={totals.active}
+            sub="Eligible for collection jobs"
+          />
+        }
+        actions={
           <button
             type="button"
-            className="lab-btn lab-btn-primary"
+            className={HERO_PRIMARY}
             onClick={() => {
               setError(null);
               setShowForm(true);
             }}
           >
-            <Plus size={14} />
-            Add phlebotomist
+            <Plus size={14} /> Add phlebotomist
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* ── KPI row ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#1D4ED8", "--lab-stat-soft": "#DBEAFE" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><Users size={19} strokeWidth={2.1} /></div>
-          </div>
-          <div className="lab-stat-label">Team size</div>
-          <div className="lab-stat-value mt-2">{totals.total}</div>
-          <div className="lab-stat-foot">Registered staff</div>
+      <HeroOverlap>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatTile
+            label="Team size"
+            icon={<Users size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(totals.total)}
+            sub="Registered staff"
+          />
+          <StatTile
+            label="Active"
+            icon={<CheckCircle2 size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(totals.active)}
+            sub="Eligible for dispatch"
+          />
+          <StatTile
+            label="Inactive"
+            icon={<XCircle size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(totals.inactive)}
+            sub="Off roster"
+            pulse={totals.inactive > 0}
+          />
         </div>
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#059669", "--lab-stat-soft": "#D1FAE5" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><CheckCircle2 size={19} strokeWidth={2.2} /></div>
-          </div>
-          <div className="lab-stat-label">Active</div>
-          <div className="lab-stat-value mt-2">{totals.active}</div>
-          <div className="lab-stat-foot">Eligible for dispatch</div>
-        </div>
-        <div
-          className="lab-stat"
-          style={
-            { "--lab-stat-accent": "#D97706", "--lab-stat-soft": "#FEF3C7" } as React.CSSProperties
-          }
-        >
-          <div className="lab-stat-row">
-            <div className="lab-stat-icon"><XCircle size={19} strokeWidth={2.2} /></div>
-          </div>
-          <div className="lab-stat-label">Inactive</div>
-          <div className="lab-stat-value mt-2">{totals.inactive}</div>
-          <div className="lab-stat-foot">Off roster</div>
-        </div>
-      </section>
+      </HeroOverlap>
 
       {/* ── Inline add form ── */}
       {showForm && (
-        <div className="lab-card mb-6 overflow-hidden">
-          <div
-            className="px-5 py-3.5 flex items-center justify-between border-b border-[var(--lab-border)]"
-            style={{
-              background:
-                "linear-gradient(120deg, rgba(5,150,105,0.06) 0%, rgba(29,78,216,0.04) 100%)",
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] grid place-content-center">
-                <UserPlus size={14} strokeWidth={2.2} />
-              </div>
-              <div>
-                <div className="text-[14px] font-bold text-[var(--lab-night)]">
-                  Register new phlebotomist
-                </div>
-                <div className="text-[11.5px] text-[var(--lab-ink-soft)]">
-                  They will be available for dispatch immediately.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="lab-modal-close"
-              aria-label="Close"
-              onClick={() => !submitting && setShowForm(false)}
-            >
-              ✕
-            </button>
-          </div>
-          <form onSubmit={handleSubmit} className="lab-card-pad space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <section className={`${PANEL} overflow-hidden`}>
+          <PanelHeader
+            icon={<UserPlus size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            title="Register new phlebotomist"
+            caption="They will be available for dispatch immediately."
+            action={
+              <button
+                type="button"
+                className="lab-modal-close"
+                aria-label="Close"
+                onClick={() => !submitting && setShowForm(false)}
+              >
+                ✕
+              </button>
+            }
+          />
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="lab-field">
                 <label className="lab-label">
                   Full name <span className="lab-label-req">*</span>
@@ -218,9 +213,9 @@ export default function PhlebotomistsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-[var(--lab-surface-2)] border border-[var(--lab-border)] px-4 py-3 flex items-start gap-3">
-              <ShieldCheck size={16} className="text-[var(--lab-brand)] shrink-0 mt-0.5" />
-              <div className="text-[12px] text-[var(--lab-ink-soft)] leading-relaxed">
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+              <div className="text-[12px] leading-relaxed text-slate-500">
                 All phlebotomists are bound by your facility&rsquo;s MOH credentialing
                 protocol. Cross-checks against the national registry run nightly.
               </div>
@@ -235,7 +230,7 @@ export default function PhlebotomistsPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--lab-border)]">
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
               <button
                 type="button"
                 className="lab-btn lab-btn-secondary"
@@ -254,130 +249,108 @@ export default function PhlebotomistsPage() {
               </button>
             </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* ── Toolbar ── */}
-      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <div className="lab-section-title flex items-center gap-2">
-          <Award size={14} className="text-[var(--lab-brand)]" />
-          Roster
-        </div>
-        <div className="lab-topbar-search !max-w-[280px]">
-          <Search size={14} className="lab-topbar-search-icon" />
-          <input
-            type="search"
-            placeholder="Filter team members…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Award size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          title="Roster"
+          caption={`${filtered.length} shown`}
+          action={
+            <PanelSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Filter team members…"
+              ariaLabel="Filter team members"
+            />
+          }
+        />
 
-      {/* ── List ── */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="lab-card lab-card-pad">
-              <div className="flex items-center gap-3">
-                <div className="lab-skel w-11 h-11 rounded-full" />
-                <div className="flex-1">
-                  <div className="lab-skel h-4 w-2/3 mb-2" />
-                  <div className="lab-skel h-3 w-1/2" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="lab-empty">
-          <div className="lab-empty-icon">
-            <Users size={26} strokeWidth={1.8} />
-          </div>
-          <div className="lab-empty-title">
-            {search ? "No team members match" : "No phlebotomists yet"}
-          </div>
-          <p className="lab-empty-msg">
-            {search
-              ? `Nothing matches "${search}".`
-              : "Add your first phlebotomist to start dispatching collection jobs."}
-          </p>
-          {!search && (
-            <button
-              type="button"
-              className="lab-btn lab-btn-primary mt-5"
-              onClick={() => setShowForm(true)}
-            >
-              <Plus size={14} />
-              Add phlebotomist
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((phleb) => {
-            const initials = phleb.name
-              .split(/\s+/)
-              .map((p) => p[0])
-              .filter(Boolean)
-              .slice(0, 2)
-              .join("")
-              .toUpperCase();
-            return (
-              <article
-                key={phleb.id}
-                className="lab-card lab-card-pad flex items-center justify-between gap-4 group"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white grid place-content-center font-bold text-[14px] tracking-tight shadow-[0_4px_12px_-4px_rgba(5,150,105,0.45)]">
-                      {initials || "P"}
-                    </div>
-                    {phleb.isActive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-[14.5px] font-bold text-[var(--lab-night)] tracking-tight truncate">
-                        {phleb.name}
-                      </h3>
-                      <span
-                        className="lab-pill"
-                        data-status={phleb.isActive ? "active" : "inactive"}
-                      >
-                        {phleb.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--lab-ink-soft)]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Phone size={11} className="text-[var(--lab-ink-faint)]" />
-                        <span className="lab-mono">{phleb.phone}</span>
-                      </span>
-                      {phleb.email && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <Mail size={11} className="text-[var(--lab-ink-faint)]" />
-                          {phleb.email}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
+        {isLoading ? (
+          <PanelSkeleton rows={4} />
+        ) : filtered.length === 0 ? (
+          <EmptyBlock
+            icon={<Users size={19} />}
+            title={search ? "No team members match" : "No phlebotomists yet"}
+            body={
+              search
+                ? `Nothing matches "${search}".`
+                : "Add your first phlebotomist to start dispatching collection jobs."
+            }
+            actions={
+              !search ? (
                 <button
                   type="button"
-                  className="lab-btn lab-btn-ghost lab-btn-sm !text-[var(--lab-danger)] hover:!bg-[var(--lab-danger-soft)] opacity-70 group-hover:opacity-100"
-                  onClick={() => deletePhleb.mutate(phleb.id)}
-                  aria-label={`Deactivate ${phleb.name}`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-4 text-xs font-semibold text-white transition-colors hover:bg-sky-800"
+                  onClick={() => setShowForm(true)}
                 >
-                  <Trash2 size={12} />
-                  Deactivate
+                  <Plus size={14} /> Add phlebotomist
                 </button>
-              </article>
-            );
-          })}
-        </div>
-      )}
+              ) : undefined
+            }
+          />
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {filtered.map((phleb) => {
+              const initials = phleb.name
+                .split(/\s+/)
+                .map((p) => p[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
+              return (
+                <li key={phleb.id}>
+                  <RailRow
+                    tone={phleb.isActive ? "emerald" : "slate"}
+                    active={phleb.isActive}
+                    icon={
+                      <div className="grid h-9 w-9 place-content-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-[12px] font-bold text-white shadow-sm">
+                        {initials || "P"}
+                      </div>
+                    }
+                    title={
+                      <span className="flex items-center gap-2">
+                        {phleb.name}
+                        <Badge tone={phleb.isActive ? "emerald" : "slate"}>
+                          {phleb.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </span>
+                    }
+                    meta={
+                      <>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Phone size={11} className="text-slate-400" />
+                          <span className="font-mono">{phleb.phone}</span>
+                        </span>
+                        {phleb.email ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail size={11} className="text-slate-400" />
+                            {phleb.email}
+                          </span>
+                        ) : null}
+                      </>
+                    }
+                    trailing={
+                      <button
+                        type="button"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                        onClick={() => deletePhleb.mutate(phleb.id)}
+                        aria-label={`Deactivate ${phleb.name}`}
+                      >
+                        <Trash2 size={12} />
+                        Deactivate
+                      </button>
+                    }
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

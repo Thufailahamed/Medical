@@ -25,7 +25,7 @@ export function getLabToken(): string | null {
 
 export async function api<T>(
   path: string,
-  init?: Omit<RequestInit, "body"> & { body?: any }
+  init?: Omit<RequestInit, "body"> & { body?: unknown }
 ): Promise<T> {
   const token = getLabToken();
 

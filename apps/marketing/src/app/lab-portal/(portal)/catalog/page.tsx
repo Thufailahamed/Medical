@@ -12,7 +12,6 @@ import {
   Tag,
   Layers,
   TestTube2,
-  Search,
   Check,
   ToggleLeft,
   ToggleRight,
@@ -29,6 +28,23 @@ import {
 } from "../../hooks/useApi";
 import { api, getLabToken } from "../../lib/api";
 import { cn } from "@/portal/lib/utils";
+import {
+  DoctorHero,
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  StatTile,
+} from "@/portal/components/doctor/Workspace";
+import {
+  HeroPulse,
+  Badge,
+  PanelSkeleton,
+} from "@/patient/components/workspace";
 
 function slugify(text: string): string {
   return text
@@ -231,78 +247,119 @@ export default function CatalogPage() {
     return t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q);
   });
 
-  return (
-    <div className="lab-page">
-      {/* ── Page head ── */}
-      <div className="lab-page-head">
-        <div>
-          <span className="lab-page-eyebrow">
-            <FlaskConical size={10} />
-            Service Catalog
-          </span>
-          <h1 className="lab-page-title">
-            Test <strong>catalog</strong>
-          </h1>
-          <p className="lab-page-sub">
-            Activate canonical diagnostic tests, set your pricing, and curate
-            the patient-facing catalog.
-          </p>
-        </div>
-        <div className="lab-page-actions">
-          <button
-            type="button"
-            className="lab-btn lab-btn-secondary"
-            onClick={() => setShowAvailabilityForm(true)}
-          >
-            <Plus size={14} />
-            Enable canonical test
-          </button>
-          <button
-            type="button"
-            className="lab-btn lab-btn-primary"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus size={14} />
-            Create custom test
-          </button>
-        </div>
-      </div>
+  const canonicalCount = availability.data?.items.length ?? 0;
+  const customCount = data?.tests.length ?? 0;
+  const activeCustom = (data?.tests ?? []).filter((t) => t.isActive).length;
 
-      {/* ── Availability (canonical) ── */}
-      <div className="lab-card mb-6">
-        <div className="lab-card-head">
-          <div>
-            <div className="lab-card-title">
-              <Layers size={15} />
-              Facility availability
-            </div>
-            <div className="lab-card-sub">
-              Pulled from GET /lab-portal/diagnostic-tests-availability.
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11.5px] text-[var(--lab-ink-soft)] lab-mono">
-              {availability.data?.items.length ?? 0} active
+  return (
+    <div className="lab-page flex flex-col gap-6">
+      <DoctorHero
+        kicker="Service catalog"
+        kickerIcon={<FlaskConical size={12} />}
+        kickerMeta={`${canonicalCount + customCount} total`}
+        title="Diagnostic test catalog"
+        description="Activate canonical diagnostic tests, set your pricing, and curate the patient-facing catalog."
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <Layers size={12} /> {canonicalCount} canonical bindings
             </span>
+            <span className={HERO_CHIP}>
+              <Tag size={12} /> {customCount} custom tests
+            </span>
+          </>
+        }
+        aside={
+          <HeroPulse
+            icon={<FlaskConical size={18} />}
+            label="Live for patients"
+            value={canonicalCount + activeCustom}
+            sub="Bookable right now"
+          />
+        }
+        actions={
+          <>
             <button
               type="button"
-              className="lab-btn lab-btn-ghost lab-btn-sm"
-              onClick={() => refreshAvailability()}
+              className={HERO_GHOST}
+              onClick={() => setShowAvailabilityForm(true)}
             >
-              <RefreshCw size={12} />
-              Refresh
+              <Layers size={14} /> Enable canonical test
             </button>
-          </div>
-        </div>
+            <button
+              type="button"
+              className={HERO_PRIMARY}
+              onClick={() => setShowForm(true)}
+            >
+              <Plus size={14} /> Create custom test
+            </button>
+          </>
+        }
+      />
 
-        <div className="lab-card-pad space-y-4">
+      <HeroOverlap>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile
+            label="Canonical bindings"
+            icon={<Layers size={16} />}
+            tone="bg-sky-50 text-sky-600"
+            value={String(canonicalCount)}
+            sub="Facility availability rows"
+          />
+          <StatTile
+            label="Custom tests"
+            icon={<Tag size={16} />}
+            tone="bg-violet-50 text-violet-600"
+            value={String(customCount)}
+            sub="Lab-authored entries"
+          />
+          <StatTile
+            label="Active customs"
+            icon={<Check size={16} />}
+            tone="bg-emerald-50 text-emerald-600"
+            value={String(activeCustom)}
+            sub="Visible to patients"
+          />
+          <StatTile
+            label="Selected rows"
+            icon={<ToggleRight size={16} />}
+            tone="bg-amber-50 text-amber-600"
+            value={String(selected.size)}
+            sub="For bulk toggle"
+            pulse={selected.size > 0}
+          />
+        </div>
+      </HeroOverlap>
+
+      {/* ── Availability (canonical) ── */}
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Layers size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Facility availability"
+          caption="Canonical tests bound to this facility with local pricing"
+          action={
+            <span className="flex items-center gap-2">
+              <Badge tone="sky">{canonicalCount} rows</Badge>
+              <button
+                type="button"
+                onClick={() => refreshAvailability()}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
+              >
+                <RefreshCw size={12} /> Refresh
+              </button>
+            </span>
+          }
+        />
+
+        <div className="mt-4 space-y-4">
           {/* Bulk controls */}
-          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--lab-surface-2)] border border-[var(--lab-border)] p-3">
-            <span className="text-[10.5px] tracking-[0.14em] uppercase text-[var(--lab-ink-faint)] lab-mono">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-slate-400">
               Bulk toggle
             </span>
-            <div className="flex items-center gap-2 ml-auto">
-              <label className="text-[11.5px] text-[var(--lab-ink-soft)]">
+            <div className="ml-auto flex items-center gap-2">
+              <label className="text-[11.5px] text-slate-500">
                 Price (LKR)
               </label>
               <input
@@ -314,7 +371,7 @@ export default function CatalogPage() {
               />
               <button
                 type="button"
-                className="lab-btn lab-btn-soft lab-btn-sm"
+                className="inline-flex h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 onClick={() => handleBulkToggle(true)}
                 disabled={selected.size === 0}
               >
@@ -323,7 +380,7 @@ export default function CatalogPage() {
               </button>
               <button
                 type="button"
-                className="lab-btn lab-btn-secondary lab-btn-sm"
+                className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
                 onClick={() => handleBulkToggle(false)}
                 disabled={selected.size === 0}
               >
@@ -342,7 +399,7 @@ export default function CatalogPage() {
             </div>
           )}
 
-          <div className="lab-card !border !border-[var(--lab-border)] !shadow-none overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-slate-200">
             <table className="lab-table">
               <thead>
                 <tr>
@@ -366,7 +423,7 @@ export default function CatalogPage() {
                 ) : (availability.data?.items.length ?? 0) === 0 ? (
                   <tr>
                     <td colSpan={6}>
-                      <div className="py-10 text-center text-[13px] text-[var(--lab-ink-soft)]">
+                      <div className="py-10 text-center text-[13px] text-slate-500">
                         No availability rows yet. Click <strong>Enable canonical test</strong> above to add one.
                       </div>
                     </td>
@@ -385,13 +442,13 @@ export default function CatalogPage() {
                       </td>
                       <td>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] grid place-content-center">
+                          <div className="grid h-8 w-8 place-content-center rounded-lg bg-emerald-50 text-emerald-600">
                             <TestTube2 size={14} strokeWidth={2.2} />
                           </div>
                           <div>
-                            <div className="font-semibold text-[var(--lab-night)]">{row.testName}</div>
+                            <div className="font-semibold text-slate-900">{row.testName}</div>
                             {row.testCode && (
-                              <div className="text-[11px] text-[var(--lab-ink-faint)] lab-mono">
+                              <div className="font-mono text-[11px] text-slate-400">
                                 {row.testCode}
                               </div>
                             )}
@@ -399,7 +456,7 @@ export default function CatalogPage() {
                         </div>
                       </td>
                       <td>
-                        <span className="lab-mono text-[11.5px] text-[var(--lab-ink-soft)]">
+                        <span className="font-mono text-[11.5px] text-slate-500">
                           {row.testSlug}
                         </span>
                       </td>
@@ -409,14 +466,14 @@ export default function CatalogPage() {
                             {row.price.toLocaleString("en-LK")}
                           </span>
                           {row.discountPrice ? (
-                            <span className="text-[11.5px] text-emerald-600 font-semibold">
+                            <span className="text-[11.5px] font-semibold text-emerald-600">
                               → {row.discountPrice.toLocaleString("en-LK")}
                             </span>
                           ) : null}
                         </div>
                       </td>
                       <td>
-                        <span className="lab-mono text-[11.5px] text-[var(--lab-ink-soft)]">
+                        <span className="font-mono text-[11.5px] text-slate-500">
                           {row.turnaroundHours ? `${row.turnaroundHours}h` : "—"}
                         </span>
                       </td>
@@ -424,7 +481,7 @@ export default function CatalogPage() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             type="button"
-                            className="lab-btn lab-btn-ghost lab-btn-sm"
+                            className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
                             onClick={() => handleToggleActive(row, false)}
                           >
                             <Power size={12} />
@@ -432,7 +489,7 @@ export default function CatalogPage() {
                           </button>
                           <button
                             type="button"
-                            className="lab-btn lab-btn-ghost lab-btn-sm !text-[var(--lab-danger)] hover:!bg-[var(--lab-danger-soft)]"
+                            className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
                             onClick={() => handleDelete(row)}
                           >
                             <Trash2 size={12} />
@@ -447,53 +504,39 @@ export default function CatalogPage() {
             </table>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Custom catalog ── */}
-      <div className="lab-card">
-        <div className="lab-card-head">
-          <div>
-            <div className="lab-card-title">
-              <Tag size={15} />
-              Custom tests
-            </div>
-            <div className="lab-card-sub">
-              Lab-authored tests pushed via POST /lab-portal/catalog.
-            </div>
-          </div>
-          <div className="lab-topbar-search !max-w-[260px]">
-            <Search size={14} className="lab-topbar-search-icon" />
-            <input
-              type="search"
-              placeholder="Filter custom tests…"
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Tag size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          title="Custom tests"
+          caption="Lab-authored tests pushed via POST /lab-portal/catalog"
+          action={
+            <PanelSearch
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={setSearch}
+              placeholder="Filter custom tests…"
+              ariaLabel="Filter custom tests"
             />
-          </div>
-        </div>
+          }
+        />
 
-        <div>
-          {isLoading ? (
-            <div className="p-4 space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="lab-skel h-12 w-full" />
-              ))}
-            </div>
-          ) : filteredTests.length === 0 ? (
-            <div className="lab-empty !border-0 !bg-transparent">
-              <div className="lab-empty-icon">
-                <FlaskConical size={26} strokeWidth={1.8} />
-              </div>
-              <div className="lab-empty-title">
-                {search ? "No tests match" : "No custom tests yet"}
-              </div>
-              <p className="lab-empty-msg">
-                {search
-                  ? `Nothing matches "${search}".`
-                  : "Add lab-authored tests for specialized panels."}
-              </p>
-            </div>
-          ) : (
+        {isLoading ? (
+          <PanelSkeleton rows={3} />
+        ) : filteredTests.length === 0 ? (
+          <EmptyBlock
+            icon={<FlaskConical size={19} />}
+            title={search ? "No tests match" : "No custom tests yet"}
+            body={
+              search
+                ? `Nothing matches "${search}".`
+                : "Add lab-authored tests for specialized panels."
+            }
+          />
+        ) : (
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
             <table className="lab-table">
               <thead>
                 <tr>
@@ -512,44 +555,44 @@ export default function CatalogPage() {
                       <div className="flex items-center gap-2.5">
                         <TestImage r2Key={test.imageR2Key} alt={test.name} />
                         <div className="min-w-0">
-                          <div className="font-semibold text-[var(--lab-night)] truncate">{test.name}</div>
-                          <div className="text-[11px] text-[var(--lab-ink-faint)] lab-mono mt-0.5 truncate">
+                          <div className="truncate font-semibold text-slate-900">{test.name}</div>
+                          <div className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
                             {test.slug}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div className="text-[12.5px] text-[var(--lab-ink-soft)]">
+                      <div className="text-[12.5px] text-slate-500">
                         <span className="capitalize">{test.category.replace(/_/g, " ")}</span>
                         {" · "}
                         <span className="capitalize">{test.sampleType}</span>
                       </div>
                       {test.fastingRequired && (
-                        <div className="text-[11px] text-[var(--lab-warn)] mt-0.5">
+                        <div className="mt-0.5 text-[11px] text-amber-600">
                           Fasting required ({test.fastingHours}h)
                         </div>
                       )}
                     </td>
                     <td>
-                      <span className="font-semibold lab-mono">
+                      <span className="font-mono font-semibold">
                         {test.price.toLocaleString("en-LK")}
                       </span>
                     </td>
                     <td>
-                      <span className="lab-mono text-[11.5px] text-[var(--lab-ink-soft)]">
+                      <span className="font-mono text-[11.5px] text-slate-500">
                         {test.turnaroundHours}h
                       </span>
                     </td>
                     <td>
-                      <span className="lab-pill" data-status={test.isActive ? "active" : "inactive"}>
+                      <Badge tone={test.isActive ? "emerald" : "slate"}>
                         {test.isActive ? "Active" : "Inactive"}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="text-right">
                       <button
                         type="button"
-                        className="lab-btn lab-btn-ghost lab-btn-sm !text-[var(--lab-danger)]"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
                         onClick={() => deleteTest.mutate(test.id)}
                       >
                         <Trash2 size={12} />
@@ -560,9 +603,9 @@ export default function CatalogPage() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </section>
 
       {/* ── Add custom test modal ── */}
       {showForm && (
@@ -610,7 +653,7 @@ export default function CatalogPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">Could not create test</div>
-                  <div className="text-[11.5px] mt-0.5 break-words">
+                  <div className="mt-0.5 break-words text-[11.5px]">
                     {submitError}
                   </div>
                 </div>
@@ -626,10 +669,10 @@ export default function CatalogPage() {
             )}
             {/* Section 1: Identification */}
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-[var(--lab-ink-faint)] mb-2.5">
+              <div className="mb-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 1. Test Identification
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                 <div className="lab-field md:col-span-2">
                   <label className="lab-label">
                     Test name <span className="lab-label-req">*</span>
@@ -682,11 +725,11 @@ export default function CatalogPage() {
             </div>
 
             {/* Section 2: Clinical & Pricing Parameters */}
-            <div className="pt-2 border-t border-[var(--lab-border)]/60">
-              <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-[var(--lab-ink-faint)] mb-2.5">
+            <div className="border-t border-slate-200/60 pt-2">
+              <div className="mb-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 2. Clinical & Pricing Parameters
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
                 <div className="lab-field">
                   <label className="lab-label">Sample type</label>
                   <select
@@ -707,7 +750,7 @@ export default function CatalogPage() {
                     Price (LKR) <span className="lab-label-req">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold font-mono text-[var(--lab-ink-faint)]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-bold text-slate-400">
                       LKR
                     </span>
                     <input
@@ -733,7 +776,7 @@ export default function CatalogPage() {
                       className="lab-input lab-mono !pr-14"
                       placeholder="24"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11.5px] font-medium text-[var(--lab-ink-faint)]">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11.5px] font-medium text-slate-400">
                       hours
                     </span>
                   </div>
@@ -741,16 +784,16 @@ export default function CatalogPage() {
               </div>
 
               {/* Toggles: Fasting & Home Collection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3.5">
+              <div className="mt-3.5 grid grid-cols-1 gap-3 md:grid-cols-2">
                 {/* Fasting Requirement */}
-                <div className="p-3.5 rounded-xl border border-[var(--lab-border)] bg-[var(--lab-surface-2)] flex flex-col justify-between gap-2.5">
+                <div className="flex flex-col justify-between gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-[13px] font-bold text-[var(--lab-night)] flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 text-[13px] font-bold text-slate-900">
                         <Clock size={14} className="text-amber-600" />
                         Fasting Required
                       </div>
-                      <div className="text-[11.5px] text-[var(--lab-ink-soft)]">
+                      <div className="text-[11.5px] text-slate-500">
                         Patient must fast prior to collection
                       </div>
                     </div>
@@ -773,8 +816,8 @@ export default function CatalogPage() {
                     </button>
                   </div>
                   {form.fastingRequired && (
-                    <div className="pt-2 border-t border-[var(--lab-border)]/60 flex items-center justify-between gap-3">
-                      <span className="text-[12px] font-medium text-[var(--lab-night)]">
+                    <div className="flex items-center justify-between gap-3 border-t border-slate-200/60 pt-2">
+                      <span className="text-[12px] font-medium text-slate-900">
                         Duration (hours):
                       </span>
                       <input
@@ -783,7 +826,7 @@ export default function CatalogPage() {
                         max={48}
                         value={form.fastingHours}
                         onChange={(e) => setForm({ ...form, fastingHours: e.target.value })}
-                        className="lab-input lab-mono !w-20 !h-8 text-xs text-center"
+                        className="lab-input lab-mono !h-8 !w-20 text-center text-xs"
                         placeholder="10"
                       />
                     </div>
@@ -791,13 +834,13 @@ export default function CatalogPage() {
                 </div>
 
                 {/* Home Collection */}
-                <div className="p-3.5 rounded-xl border border-[var(--lab-border)] bg-[var(--lab-surface-2)] flex items-center justify-between">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
                   <div>
-                    <div className="text-[13px] font-bold text-[var(--lab-night)] flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 text-[13px] font-bold text-slate-900">
                       <TestTube2 size={14} className="text-emerald-600" />
                       Home Collection
                     </div>
-                    <div className="text-[11.5px] text-[var(--lab-ink-soft)]">
+                    <div className="text-[11.5px] text-slate-500">
                       Available for doorstep specimen pickup
                     </div>
                   </div>
@@ -823,8 +866,8 @@ export default function CatalogPage() {
             </div>
 
             {/* Section 3: Clinical Notes */}
-            <div className="pt-2 border-t border-[var(--lab-border)]/60">
-              <div className="text-[11px] font-bold uppercase tracking-wider font-mono text-[var(--lab-ink-faint)] mb-2.5">
+            <div className="border-t border-slate-200/60 pt-2">
+              <div className="mb-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 3. Clinical Scope & Instructions
               </div>
               <div className="space-y-3">
@@ -851,24 +894,24 @@ export default function CatalogPage() {
             </div>
 
             {/* Section 4: Image Dropzone */}
-            <div className="pt-2 border-t border-[var(--lab-border)]/60">
-              <label className="lab-label flex items-center gap-1.5 mb-2">
+            <div className="border-t border-slate-200/60 pt-2">
+              <label className="lab-label mb-2 flex items-center gap-1.5">
                 <ImageIcon size={12} />
-                Test Cover Image <span className="text-[var(--lab-ink-faint)] font-normal normal-case">(optional)</span>
+                Test Cover Image <span className="font-normal normal-case text-slate-400">(optional)</span>
               </label>
 
               {imageFile && imagePreview ? (
-                <div className="flex items-center gap-4 p-3 rounded-xl border border-[var(--lab-border)] bg-white shadow-xs">
+                <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
                   <img
                     src={imagePreview}
                     alt="Test preview"
-                    className="w-14 h-14 rounded-lg object-cover border border-[var(--lab-border)] shrink-0"
+                    className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 object-cover"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold text-[var(--lab-night)] truncate">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-bold text-slate-900">
                       {imageFile.name}
                     </div>
-                    <div className="text-[11px] text-[var(--lab-ink-faint)] font-mono">
+                    <div className="font-mono text-[11px] text-slate-400">
                       {(imageFile.size / 1024).toFixed(0)} KB · Ready to persist
                     </div>
                   </div>
@@ -883,7 +926,7 @@ export default function CatalogPage() {
                     <button
                       type="button"
                       onClick={resetImageState}
-                      className="lab-btn lab-btn-secondary lab-btn-sm text-red-600 hover:text-red-700 hover:border-red-200"
+                      className="lab-btn lab-btn-secondary lab-btn-sm text-red-600 hover:border-red-200 hover:text-red-700"
                     >
                       Remove
                     </button>
@@ -892,16 +935,16 @@ export default function CatalogPage() {
               ) : (
                 <div
                   onClick={() => imageInputRef.current?.click()}
-                  className="lab-dropzone p-5 flex flex-col items-center justify-center text-center gap-2"
+                  className="lab-dropzone flex flex-col items-center justify-center gap-2 p-5 text-center"
                 >
-                  <div className="w-10 h-10 rounded-full bg-white border border-[var(--lab-border)] flex items-center justify-center text-[var(--lab-brand-strong)] shadow-xs">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-emerald-700 shadow-xs">
                     <Upload size={18} />
                   </div>
                   <div>
-                    <div className="text-[13px] font-semibold text-[var(--lab-night)]">
-                      <span className="text-[var(--lab-brand-strong)] underline underline-offset-2">Click to upload</span> or drag and drop
+                    <div className="text-[13px] font-semibold text-slate-900">
+                      <span className="text-emerald-700 underline underline-offset-2">Click to upload</span> or drag and drop
                     </div>
-                    <div className="text-[11px] text-[var(--lab-ink-faint)] mt-0.5 font-mono">
+                    <div className="mt-0.5 font-mono text-[11px] text-slate-400">
                       PNG, JPEG, WebP · Max 50 MB · Displayed in patient directory
                     </div>
                   </div>
@@ -923,7 +966,7 @@ export default function CatalogPage() {
               />
 
               {imageError && (
-                <p className="mt-1.5 text-[11px] font-semibold text-[var(--lab-danger)]">
+                <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
                   {imageError}
                 </p>
               )}
@@ -975,7 +1018,7 @@ export default function CatalogPage() {
               <div className="lab-field">
                 <label className="lab-label">Price (LKR) <span className="lab-label-req">*</span></label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold font-mono text-[var(--lab-ink-faint)]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-bold text-slate-400">
                     LKR
                   </span>
                   <input
@@ -992,7 +1035,7 @@ export default function CatalogPage() {
               <div className="lab-field">
                 <label className="lab-label">Discount Price (optional)</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold font-mono text-[var(--lab-ink-faint)]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-bold text-slate-400">
                     LKR
                   </span>
                   <input
@@ -1042,7 +1085,7 @@ function ModalShell({
         <div className="lab-modal-head">
           <div className="flex items-start gap-3">
             {icon ? (
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 grid place-content-center shrink-0">
+              <div className="grid h-10 w-10 shrink-0 place-content-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700">
                 {icon}
               </div>
             ) : null}
@@ -1149,7 +1192,7 @@ function TestImage({
       <span
         className={
           className ||
-          "w-9 h-9 rounded-lg bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] grid place-content-center shrink-0"
+          "grid h-9 w-9 shrink-0 place-content-center rounded-lg bg-emerald-50 text-emerald-600"
         }
         aria-hidden
       >
@@ -1163,7 +1206,7 @@ function TestImage({
       <span
         className={
           (className ||
-            "w-9 h-9 rounded-lg bg-[var(--lab-brand-soft)] text-[var(--lab-brand)] grid place-content-center shrink-0") +
+            "grid h-9 w-9 shrink-0 place-content-center rounded-lg bg-emerald-50 text-emerald-600") +
           " animate-pulse"
         }
         aria-label={`${alt} (loading)`}
@@ -1177,7 +1220,7 @@ function TestImage({
       alt={alt}
       className={
         className ||
-        "w-9 h-9 rounded-lg object-cover border border-[var(--lab-border)] bg-white shrink-0"
+        "h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-white object-cover"
       }
     />
   );

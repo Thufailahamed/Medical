@@ -4,7 +4,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.healthhub.app";
 
 export async function api<T>(
   path: string,
-  init?: Omit<RequestInit, "body"> & { body?: any },
+  init?: Omit<RequestInit, "body"> & { body?: Record<string, unknown> },
 ): Promise<T> {
   const token =
     typeof window !== "undefined"

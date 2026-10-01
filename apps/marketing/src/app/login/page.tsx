@@ -100,7 +100,7 @@ const PORTS: PortSpec[] = [
     icon: Truck,
     roles: ["insurance", "ambulance", "super_admin"],
     landingFor: {
-      insurance: "/admin/insurance-claims",
+      insurance: "/insurance-operator/dashboard",
       ambulance: "/admin/ambulances",
       super_admin: "/admin/dashboard",
     },
@@ -456,6 +456,42 @@ function UnifiedLoginForm() {
     }
   }
 
+  async function devLoginAsLab() {
+    setPort("facility");
+    setError(null);
+    setValue("identifier", "lab@devhospital.lk");
+    setValue("password", "DevPass#1234");
+    setSubmitting(true);
+    try {
+      const user = await login({
+        email: "lab@devhospital.lk",
+        password: "DevPass#1234",
+      });
+      land(String(user.role));
+    } catch (err: unknown) {
+      setError(friendlyError(err));
+      setSubmitting(false);
+    }
+  }
+
+  async function devLoginAsInsurer() {
+    setPort("operator");
+    setError(null);
+    setValue("identifier", "operator@insurance.lk");
+    setValue("password", "DevPass#1234");
+    setSubmitting(true);
+    try {
+      const user = await login({
+        email: "operator@insurance.lk",
+        password: "DevPass#1234",
+      });
+      land(String(user.role));
+    } catch (err: unknown) {
+      setError(friendlyError(err));
+      setSubmitting(false);
+    }
+  }
+
   function switchPort(next: Port) {
     setPort(next);
     setError(null);
@@ -700,6 +736,12 @@ function UnifiedLoginForm() {
                 </button>
                 <button type="button" onClick={devLoginAsAdmin} disabled={submitting}>
                   As Admin
+                </button>
+                <button type="button" onClick={devLoginAsLab} disabled={submitting}>
+                  As Lab
+                </button>
+                <button type="button" onClick={devLoginAsInsurer} disabled={submitting}>
+                  As Insurer
                 </button>
               </div>
             </div>
