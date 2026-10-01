@@ -108,7 +108,13 @@ export const patientKeys = {
   marketplace: (params: Record<string, unknown>) =>
     ["patient", "marketplace", params] as const,
   marketplaceCaretaker: (id: string) => ["patient", "marketplace", id] as const,
-  marketplaceInquiries: () => ["patient", "marketplace", "inquiries"] as const,
+  marketplaceInquiries: (status?: string) =>
+    [
+      "patient",
+      "marketplace",
+      "inquiries",
+      ...(status ? [status] : []),
+    ] as const,
 
   tenants: () => ["patient", "tenants"] as const,
   activeTenant: () => ["patient", "tenants", "active"] as const,

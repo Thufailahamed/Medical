@@ -2,13 +2,62 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Star, MapPin, BadgeCheck, Send, Loader2, Check } from "lucide-react";
+import {
+  AlertCircle,
+  BadgeCheck,
+  Briefcase,
+  CheckCircle2,
+  ChevronLeft,
+  FileText,
+  HeartHandshake,
+  Inbox,
+  Languages,
+  Loader2,
+  MapPin,
+  Send,
+  ShieldCheck,
+  UserSearch,
+} from "lucide-react";
 
-import { Card } from "@/patient/components/primitives/Card";
-import { Pill as StatusPill } from "@/patient/components/primitives/Pill";
-import { QueryBoundary } from "@/patient/components/primitives/QueryBoundary";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import { useCaretaker, useSendCaretakerInquiry } from "@/patient/hooks/marketplace";
+import {
+  Badge,
+  EmptyBlock,
+  FIELD_TEXTAREA,
+  GROUP_LABEL,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  HeroTile,
+  PANEL,
+  PRIMARY_BTN,
+  PanelError,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  StatTile,
+} from "@/patient/components/workspace";
+import {
+  useCaretaker,
+  useSendCaretakerInquiry,
+} from "@/patient/hooks/marketplace";
+import { humanize } from "@/patient/lib/format";
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  si: "Sinhala",
+  ta: "Tamil",
+};
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function CaretakerDetailPage({
   params,
@@ -25,154 +74,336 @@ export default function CaretakerDetailPage({
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    if (message.trim().length < 10) {
+      setError("Please describe what you need in at least 10 characters.");
+      return;
+    }
     try {
-      await send.mutateAsync({ id: caretakerId, message });
+      await send.mutateAsync({ id: caretakerId, patientMessage: message.trim() });
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send your message.");
+      setError(
+        err instanceof Error ? err.message : "Couldn't send your message.",
+      );
     }
   }
 
+  const c = query.data?.caretaker;
+
+  if (!c) {
+    return (
+      <PatientPage>
+        <PatientHero
+          overlap={false}
+          kickerIcon={<HeartHandshake size={13} aria-hidden />}
+          kicker="Caretaker marketplace"
+          title={query.isLoading ? "Loading profile…" : "Caretaker not found"}
+          description={
+            query.isLoading
+              ? "Fetching this caretaker's marketplace profile."
+              : "This listing may be unavailable or no longer verified."
+          }
+          actions={
+            <Link href="/patient/marketplace" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              Marketplace
+            </Link>
+          }
+        />
+        <section className={PANEL}>
+          {query.isLoading ? (
+            <PanelSkeleton rows={3} className="mt-0" />
+          ) : query.isError ? (
+            <PanelError onRetry={() => void query.refetch()} />
+          ) : (
+            <EmptyBlock
+              className="mt-0"
+              icon={<UserSearch size={19} />}
+              title="No such listing"
+              body="The caretaker may have paused their listing or failed re-verification."
+            />
+          )}
+        </section>
+      </PatientPage>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-      <Link
-        href="/patient/marketplace"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft transition-colors hover:text-brand"
-      >
-        <ChevronLeft size={14} aria-hidden /> Back to marketplace
-      </Link>
+    <PatientPage>
+      <PatientHero
+        leading={
+          <HeroTile tone="from-teal-400 to-emerald-600">
+            {c.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={c.photo}
+                alt={`${c.name} portrait`}
+                className="h-full w-full rounded-[20px] object-cover"
+              />
+            ) : (
+              <span className="text-2xl font-bold">{getInitials(c.name)}</span>
+            )}
+          </HeroTile>
+        }
+        kickerIcon={<HeartHandshake size={13} aria-hidden />}
+        kicker="Caretaker marketplace"
+        kickerMeta={c.district ?? "Home care"}
+        title={
+          <>
+            {c.name} <HeroAccent>· care at home</HeroAccent>
+          </>
+        }
+        description={c.bio ?? "Verified caretaker available for home visits."}
+        chips={
+          <>
+            {c.verified ? (
+              <span className={HERO_CHIP}>
+                <BadgeCheck size={12} className="text-emerald-300" aria-hidden />
+                Identity verified
+              </span>
+            ) : null}
+            {c.district ? (
+              <span className={HERO_CHIP}>
+                <MapPin size={12} className="text-sky-300" aria-hidden />
+                {c.district}
+              </span>
+            ) : null}
+            {c.hourlyRateLkr ? (
+              <span className={HERO_CHIP}>
+                LKR {c.hourlyRateLkr.toLocaleString()}/hour
+              </span>
+            ) : null}
+            {c.experienceYears > 0 ? (
+              <span className={HERO_CHIP}>
+                <Briefcase size={12} className="text-amber-300" aria-hidden />
+                {c.experienceYears} yrs experience
+              </span>
+            ) : null}
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/marketplace" className={HERO_GHOST}>
+              <ChevronLeft size={15} aria-hidden />
+              Marketplace
+            </Link>
+            <a href="#send-inquiry" className={HERO_PRIMARY}>
+              <Send size={14} className="text-sky-600" aria-hidden />
+              Send inquiry
+            </a>
+          </>
+        }
+      />
 
-      <QueryBoundary
-        query={query}
-        loadingCount={2}
-        emptyTitle="Caretaker not found"
-      >
-        {(data) => {
-          const c = data.caretaker;
-          return (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-              <div className="flex flex-col gap-5 lg:col-span-8">
-                <Card>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                    {c.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={c.photoUrl}
-                        alt={`${c.name} portrait`}
-                        className="h-20 w-20 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="grid h-20 w-20 place-items-center rounded-lg bg-ink text-brand-soft font-mono text-2xl font-bold"
-                        aria-hidden
-                      >
-                        {c.name?.[0]?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h1 className="text-xl font-bold text-text">{c.name}</h1>
-                        {c.verified ? (
-                          <BadgeCheck size={16} aria-hidden className="text-success" />
-                        ) : null}
-                      </div>
-                      {c.city ? (
-                        <p className="mt-1 inline-flex items-center gap-1 text-sm text-text-soft">
-                          <MapPin size={12} aria-hidden /> {c.city}
-                        </p>
-                      ) : null}
-                      {c.rating ? (
-                        <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-warn">
-                          <Star size={12} aria-hidden /> {c.rating.toFixed(1)} · {c.reviewCount} reviews
-                        </p>
-                      ) : null}
-                      {c.hourlyRate ? (
-                        <p className="mt-2 text-base font-extrabold text-text">
-                          <span className="pt-metric">LKR {c.hourlyRate.toLocaleString()}</span>
-                          <span className="t-micro">/hour</span>
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </Card>
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Briefcase size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Hourly rate"
+          value={c.hourlyRateLkr ? `LKR ${c.hourlyRateLkr.toLocaleString()}` : "—"}
+          sub={c.hourlyRateLkr ? "Per hour, negotiable" : "On request"}
+        />
+        <StatTile
+          icon={<BadgeCheck size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Experience"
+          value={c.experienceYears > 0 ? String(c.experienceYears) : "—"}
+          unit={c.experienceYears > 0 ? "yrs" : undefined}
+          sub="Providing home care"
+        />
+        <StatTile
+          icon={<Languages size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Languages"
+          value={String(c.languages.length)}
+          sub={
+            c.languages.length > 0
+              ? c.languages
+                  .map((l) => LANGUAGE_NAMES[l] ?? l.toUpperCase())
+                  .join(", ")
+              : "Not specified"
+          }
+        />
+        <StatTile
+          icon={<HeartHandshake size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Care roles"
+          value={String(c.careRolesOffered.length)}
+          sub={c.isAvailable === false ? "Currently unavailable" : "Open to inquiries"}
+        />
+      </HeroOverlap>
 
-                {c.services.length > 0 ? (
-                  <Card>
-                    <h2 className="text-sm font-bold text-text">Services</h2>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {c.services.map((s) => (
-                        <StatusPill key={s} tone="brand">
-                          {s.replace(/_/g, " ")}
-                        </StatusPill>
-                      ))}
-                    </div>
-                  </Card>
-                ) : null}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+          <section className={PANEL} aria-labelledby="cd-about">
+            <PanelHeader
+              id="cd-about"
+              icon={<FileText size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="About"
+              caption="From the caretaker's marketplace listing"
+            />
+            {c.bio ? (
+              <p className="mt-5 whitespace-pre-line rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+                {c.bio}
+              </p>
+            ) : (
+              <p className="mt-5 text-sm text-slate-500">
+                This caretaker has not added a bio yet — send an inquiry to
+                learn more about their experience.
+              </p>
+            )}
+          </section>
 
-                {c.bio ? (
-                  <Card>
-                    <h2 className="text-sm font-bold text-text">About</h2>
-                    <p className="mt-2 text-sm text-text-soft">{c.bio}</p>
-                  </Card>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-5 lg:col-span-4">
-                <Card accent="brand">
-                  {sent ? (
-                    <div className="flex flex-col items-center gap-2 py-4 text-center">
-                      <div className="grid h-12 w-12 place-items-center rounded-full bg-success-soft text-success">
-                        <Check size={20} aria-hidden />
-                      </div>
-                      <p className="text-sm font-semibold text-text">Inquiry sent</p>
-                      <p className="text-xs text-text-soft">
-                        They'll reach out to you soon.
-                      </p>
-                    </div>
-                  ) : (
-                    <form onSubmit={onSubmit} className="flex flex-col gap-3">
-                      <h3 className="text-sm font-bold text-text">Send inquiry</h3>
-                      <p className="text-xs text-text-soft">
-                        Describe what you need. The caretaker will reply via the
-                        app.
-                      </p>
-                      <textarea
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        rows={5}
-                        required
-                        placeholder="Hi, I'm looking for help with…"
-                        className="w-full rounded-inner border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none focus:border-brand"
-                      />
-                      {error ? (
-                        <p role="alert" className="text-sm text-danger">
-                          {error}
-                        </p>
-                      ) : null}
-                      <button
-                        type="submit"
-                        disabled={send.isPending || !message.trim()}
-                        className="pt-btn pt-btn-primary h-9 px-4 text-sm disabled:opacity-60"
-                      >
-                        {send.isPending ? (
-                          <>
-                            <Loader2 size={14} className="animate-spin" />
-                            Sending…
-                          </>
-                        ) : (
-                          <>
-                            <Send size={14} aria-hidden /> Send
-                          </>
-                        )}
-                      </button>
-                    </form>
-                  )}
-                </Card>
+          <section className={PANEL} aria-labelledby="cd-roles">
+            <PanelHeader
+              id="cd-roles"
+              icon={<HeartHandshake size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title="Care roles & languages"
+              caption="What this caretaker offers"
+            />
+            <div className="mt-5">
+              <p className={GROUP_LABEL}>Care roles</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {c.careRolesOffered.length > 0 ? (
+                  c.careRolesOffered.map((r) => (
+                    <Badge key={r} tone="emerald">
+                      {humanize(r)}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-400">Not specified</span>
+                )}
               </div>
             </div>
-          );
-        }}
-      </QueryBoundary>
-    </div>
+            <div className="mt-5">
+              <p className={GROUP_LABEL}>Languages</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {c.languages.length > 0 ? (
+                  c.languages.map((l) => (
+                    <Badge key={l} tone="violet">
+                      {LANGUAGE_NAMES[l] ?? l.toUpperCase()}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-400">Not specified</span>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside
+          className="flex min-w-0 flex-col gap-6 xl:col-span-4"
+          aria-label="Contact caretaker"
+        >
+          <section className={PANEL} id="send-inquiry" aria-labelledby="cd-inquiry">
+            <PanelHeader
+              id="cd-inquiry"
+              icon={<Send size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Send an inquiry"
+              caption="The caretaker replies via the app"
+            />
+            {sent ? (
+              <div className="mt-5 flex flex-col items-center rounded-xl bg-emerald-50/60 px-6 py-7 text-center">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-emerald-600 shadow-[0_1px_2px_rgba(15,23,42,0.05),inset_0_0_0_1px_rgba(15,23,42,0.07)]">
+                  <CheckCircle2 size={19} aria-hidden />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-slate-900">
+                  Inquiry sent
+                </p>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
+                  The caretaker will review your request and respond shortly.
+                </p>
+                <Link
+                  href="/patient/marketplace/inquiries"
+                  className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#07233a] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-sky-700"
+                >
+                  <Inbox size={13} aria-hidden />
+                  View my inquiries
+                </Link>
+              </div>
+            ) : (
+              <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-3">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={6}
+                  required
+                  minLength={10}
+                  maxLength={500}
+                  placeholder="Hi, I'm looking for help with…"
+                  aria-label="Message to caretaker"
+                  className={FIELD_TEXTAREA}
+                />
+                <p className="text-[11px] text-slate-400">
+                  Describe the care needed, schedule, and location. 10–500
+                  characters.
+                </p>
+                {error ? (
+                  <div
+                    role="alert"
+                    className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-600"
+                  >
+                    <AlertCircle size={14} className="shrink-0" />
+                    {error}
+                  </div>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={send.isPending || message.trim().length < 10}
+                  className={PRIMARY_BTN}
+                >
+                  {send.isPending ? (
+                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                  ) : (
+                    <Send size={13} aria-hidden />
+                  )}
+                  {send.isPending ? "Sending…" : "Send inquiry"}
+                </button>
+              </form>
+            )}
+          </section>
+
+          <QuickToolsPanel
+            id="cd-tools"
+            title="Marketplace"
+            tools={[
+              {
+                icon: HeartHandshake,
+                label: "Browse",
+                hint: "All caretakers",
+                href: "/patient/marketplace",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: Inbox,
+                label: "Inquiries",
+                hint: "Your requests",
+                href: "/patient/marketplace/inquiries",
+                tone: "from-amber-500 to-orange-600 shadow-amber-500/30",
+              },
+              {
+                icon: ShieldCheck,
+                label: "Caretakers",
+                hint: "Shared access",
+                href: "/patient/caretakers",
+                tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
+              },
+            ]}
+          />
+
+          <PromoCard
+            icon={<ShieldCheck size={21} aria-hidden />}
+            kicker="Verified only"
+            title="Identity-checked"
+            body="Only caretakers who cleared verification appear in the marketplace."
+            href="/patient/caretakers"
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

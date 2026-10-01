@@ -244,11 +244,19 @@ export const patientPaths = {
   },
 
   marketplace: {
-    caretakers: (q: { search?: string; service?: string } = {}) =>
-      `/marketplace/caretakers${qs({ search: q.search, service: q.service })}`,
+    caretakers: (
+      q: { district?: string; role?: string; language?: string } = {}
+    ) =>
+      `/marketplace/caretakers${qs({
+        district: q.district,
+        role: q.role,
+        language: q.language,
+      })}`,
     caretakerDetail: (id: string) => `/marketplace/caretakers/${id}`,
-    inquiries: () => "/marketplace/caretakers/inquiries",
+    inquiries: (status?: string) =>
+      `/marketplace/inquiries/mine${qs({ status })}`,
     inquire: (id: string) => `/marketplace/caretakers/${id}/inquire`,
+    withdrawInquiry: (id: string) => `/marketplace/inquiries/${id}/withdraw`,
   },
 
   tenants: {

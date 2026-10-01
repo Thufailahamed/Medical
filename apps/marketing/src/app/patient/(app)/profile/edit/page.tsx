@@ -1,28 +1,82 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Save, Mail, Phone, User, MapPin, Heart, Calendar } from "lucide-react";
-
-import { Card } from "@/patient/components/primitives/Card";
-import { SectionHeader } from "@/patient/components/primitives/SectionHeader";
-import { useProfile, usePatientProfile } from "@/patient/hooks";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronLeft,
+  Heart,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  User,
+  UserCheck,
+} from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { useProfile, usePatientProfile } from "@/patient/hooks";
+import type { PatientProfileResponse } from "@/patient/hooks/profile";
+import type { AuthUser } from "@/portal/stores/auth";
 import { api } from "@/portal/lib/api";
 import { patientKeys, patientPaths } from "@healthcare/shared/contracts";
+import {
+  FIELD_INPUT,
+  FIELD_LABEL,
+  HERO_GHOST,
+  HeroAccent,
+  PANEL,
+  PanelHeader,
+  PanelSkeleton,
+  PatientHero,
+  PatientPage,
+} from "@/patient/components/workspace";
 
-export default function EditProfilePage() {
+function Field({
+  label,
+  htmlFor,
+  icon,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className={FIELD_LABEL}>
+        {label}
+      </label>
+      <div className="relative mt-1.5">
+        {icon ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            {icon}
+          </span>
+        ) : null}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EditProfileForm({
+  user,
+  patientRow,
+}: {
+  user: AuthUser | null;
+  patientRow?: PatientProfileResponse["patient"]["patients"];
+}) {
   const router = useRouter();
   const qc = useQueryClient();
-  const profile = useProfile();
-  const patient = usePatientProfile();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("");
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(patientRow?.dateOfBirth ?? "");
+  const [gender, setGender] = useState(patientRow?.gender ?? "");
   const [bloodGroup, setBloodGroup] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -31,24 +85,6 @@ export default function EditProfilePage() {
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [allergies, setAllergies] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (!hydrated && profile.data) {
-      setName(profile.data.name ?? "");
-      setEmail(profile.data.email ?? "");
-      setPhone(profile.data.phone ?? "");
-      setHydrated(true);
-    }
-  }, [profile.data, hydrated]);
-
-  useEffect(() => {
-    if (patient.data?.patient) {
-      const p = patient.data.patient.patients;
-      if (p.dateOfBirth) setDateOfBirth(p.dateOfBirth);
-      if (p.gender) setGender(p.gender);
-    }
-  }, [patient.data]);
 
   const update = useMutation({
     mutationFn: (input: Record<string, unknown>) =>
@@ -66,7 +102,7 @@ export default function EditProfilePage() {
     },
   });
 
-  async function onSubmit(event: React.FormEvent) {
+  function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     update.mutate({
@@ -85,251 +121,286 @@ export default function EditProfilePage() {
     });
   }
 
+  const iconInput = FIELD_INPUT + " pl-9";
+
   return (
-    <div className="flex flex-col gap-6 px-1 pb-4 pt-1 sm:px-2">
-      <Link
-        href="/patient/profile"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-text-soft transition-colors hover:text-brand"
-      >
-        <ChevronLeft size={14} aria-hidden /> Back to profile
-      </Link>
-
-      <SectionHeader
-        label="You"
-        title="Edit profile"
-        description="Keep your contact and demographic information up to date. Your care team relies on this for emergencies."
-      />
-
-      <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <Card>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-sm font-bold text-text">Personal</h2>
-
-            <div>
-              <label htmlFor="name" className="t-label block">
-                Full name
-              </label>
-              <div className="relative mt-2">
-                <User
-                  size={14}
-                  aria-hidden
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                />
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="email" className="t-label block">
-                  Email
-                </label>
-                <div className="relative mt-2">
-                  <Mail
-                    size={14}
-                    aria-hidden
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                  />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="phone" className="t-label block">
-                  Phone
-                </label>
-                <div className="relative mt-2">
-                  <Phone
-                    size={14}
-                    aria-hidden
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                  />
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="h-11 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-4 text-sm text-text outline-none focus:border-brand"
-                  />
-                </div>
-              </div>
-            </div>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<User size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          title="Personal"
+          caption="Name and primary contact channels."
+        />
+        <div className="mt-4 flex flex-col gap-4">
+          <Field label="Full name" htmlFor="name" icon={<User size={14} aria-hidden />}>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={iconInput}
+            />
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Email" htmlFor="email" icon={<Mail size={14} aria-hidden />}>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={iconInput}
+              />
+            </Field>
+            <Field label="Phone" htmlFor="phone" icon={<Phone size={14} aria-hidden />}>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={iconInput}
+              />
+            </Field>
           </div>
-        </Card>
+        </div>
+      </section>
 
-        <Card>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-sm font-bold text-text">Demographics</h2>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label htmlFor="dob" className="t-label block">
-                  Date of birth
-                </label>
-                <input
-                  id="dob"
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="gender" className="t-label block">
-                  Gender
-                </label>
-                <select
-                  id="gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                >
-                  <option value="">Select…</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="blood" className="t-label block">
-                  Blood group
-                </label>
-                <select
-                  id="blood"
-                  value={bloodGroup}
-                  onChange={(e) => setBloodGroup(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                >
-                  <option value="">Select…</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
-            </div>
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Heart size={16} />}
+          tone="bg-rose-50 text-rose-600"
+          title="Demographics"
+          caption="Used by your care team in emergencies."
+        />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="dob" className={FIELD_LABEL}>
+              Date of birth
+            </label>
+            <input
+              id="dob"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              className={FIELD_INPUT}
+            />
           </div>
-        </Card>
+          <div>
+            <label htmlFor="gender" className={FIELD_LABEL}>
+              Gender
+            </label>
+            <select
+              id="gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className={FIELD_INPUT}
+            >
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="blood" className={FIELD_LABEL}>
+              Blood group
+            </label>
+            <select
+              id="blood"
+              value={bloodGroup}
+              onChange={(e) => setBloodGroup(e.target.value)}
+              className={FIELD_INPUT}
+            >
+              <option value="">Select…</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="allergies" className={FIELD_LABEL}>
+            Allergies summary
+          </label>
+          <input
+            id="allergies"
+            type="text"
+            value={allergies}
+            onChange={(e) => setAllergies(e.target.value)}
+            placeholder="e.g. Penicillin, peanuts"
+            className={FIELD_INPUT}
+          />
+        </div>
+      </section>
 
-        <Card>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-sm font-bold text-text">Address</h2>
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<MapPin size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          title="Address"
+          caption="Residential address for correspondence."
+        />
+        <div className="mt-4 flex flex-col gap-4">
+          <div>
+            <label htmlFor="address" className={FIELD_LABEL}>
+              Street address
+            </label>
+            <input
+              id="address"
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="123 Main St, Apt 4B"
+              className={FIELD_INPUT}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="address" className="t-label block">
-                Street address
+              <label htmlFor="city" className={FIELD_LABEL}>
+                City
               </label>
               <input
-                id="address"
+                id="city"
                 type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="123 Main St, Apt 4B"
-                className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g. Colombo"
+                className={FIELD_INPUT}
               />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="city" className="t-label block">
-                  City
-                </label>
-                <input
-                  id="city"
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Colombo"
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="country" className="t-label block">
-                  Country
-                </label>
-                <input
-                  id="country"
-                  type="text"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
+            <div>
+              <label htmlFor="country" className={FIELD_LABEL}>
+                Country
+              </label>
+              <input
+                id="country"
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className={FIELD_INPUT}
+              />
             </div>
           </div>
-        </Card>
-
-        <Card>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-sm font-bold text-text">Emergency contact</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="emergency-name" className="t-label block">
-                  Name
-                </label>
-                <input
-                  id="emergency-name"
-                  type="text"
-                  value={emergencyContact}
-                  onChange={(e) => setEmergencyContact(e.target.value)}
-                  placeholder="e.g. Spouse, parent"
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-              <div>
-                <label htmlFor="emergency-phone" className="t-label block">
-                  Phone
-                </label>
-                <input
-                  id="emergency-phone"
-                  type="tel"
-                  value={emergencyPhone}
-                  onChange={(e) => setEmergencyPhone(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-inner border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-brand"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {error ? (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            disabled={update.isPending}
-            className="pt-btn pt-btn-primary h-11 px-5 text-sm disabled:opacity-60"
-          >
-            <Save size={14} aria-hidden />
-            {update.isPending ? "Saving…" : "Save changes"}
-          </button>
-          <Link
-            href="/patient/profile"
-            className="pt-btn pt-btn-secondary h-11 px-5 text-sm"
-          >
-            Cancel
-          </Link>
         </div>
-      </form>
-    </div>
+      </section>
+
+      <section className={PANEL}>
+        <PanelHeader
+          icon={<Phone size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          title="Emergency contact"
+          caption="Person contacted if you can't be reached."
+        />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="emergency-name" className={FIELD_LABEL}>
+              Name
+            </label>
+            <input
+              id="emergency-name"
+              type="text"
+              value={emergencyContact}
+              onChange={(e) => setEmergencyContact(e.target.value)}
+              placeholder="e.g. Spouse, parent"
+              className={FIELD_INPUT}
+            />
+          </div>
+          <div>
+            <label htmlFor="emergency-phone" className={FIELD_LABEL}>
+              Phone
+            </label>
+            <input
+              id="emergency-phone"
+              type="tel"
+              value={emergencyPhone}
+              onChange={(e) => setEmergencyPhone(e.target.value)}
+              className={FIELD_INPUT}
+            />
+          </div>
+        </div>
+      </section>
+
+      {error ? (
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700"
+        >
+          <AlertCircle size={14} className="shrink-0" aria-hidden />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={update.isPending}
+          className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-sky-600 px-5 text-sm font-bold text-white transition hover:bg-sky-500 disabled:opacity-60"
+        >
+          <Save size={14} aria-hidden />
+          {update.isPending ? "Saving…" : "Save changes"}
+        </button>
+        <Link
+          href="/patient/profile"
+          className="inline-flex h-11 items-center rounded-xl bg-slate-100 px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+        >
+          Cancel
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+export default function EditProfilePage() {
+  const profile = useProfile();
+  const patient = usePatientProfile();
+
+  const ready = Boolean(profile.data) && !patient.isLoading;
+
+  return (
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<UserCheck size={13} aria-hidden />}
+        kicker="Profile"
+        kickerMeta="Edit"
+        title={
+          <>
+            Edit <HeroAccent>profile</HeroAccent>
+          </>
+        }
+        description="Keep your contact and demographic information up to date — your care team relies on this in emergencies."
+        chips={
+          <>
+            <Link
+              href="/patient/profile"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 transition-colors hover:text-white"
+            >
+              <ChevronLeft size={14} aria-hidden /> Back to profile
+            </Link>
+          </>
+        }
+        actions={
+          <Link href="/patient/profile" className={HERO_GHOST}>
+            <Calendar size={13} /> View profile
+          </Link>
+        }
+        overlap={false}
+      />
+
+      {ready ? (
+        <EditProfileForm
+          user={profile.data ?? null}
+          patientRow={patient.data?.patient?.patients}
+        />
+      ) : (
+        <PanelSkeleton rows={4} />
+      )}
+    </PatientPage>
   );
 }

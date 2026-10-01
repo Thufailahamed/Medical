@@ -302,6 +302,10 @@
         "label": "ප්‍රවේශ සටහන",
         "subtitle": "මෑතකදී ඔබේ වාර්තා බැලූ අය"
       },
+      "consents": {
+        "label": "Consents & authorizations",
+        "subtitle": "Control who may access your records"
+      },
       "editProfile": {
         "label": "Edit profile",
         "subtitle": "Name, blood group, height, weight, allergies"
@@ -1564,6 +1568,41 @@
       "moveError": "Move failed"
     }
   },
+  "consents": {
+    "title": "Consents",
+    "subtitle": "Control who may access your records",
+    "issueTitle": "New authorization",
+    "purpose": "Purpose",
+    "duration": "Duration",
+    "labelHint": "Label (optional)",
+    "labelPlaceholder": "e.g. Second opinion with Dr Smith",
+    "grant": "Grant access",
+    "revoke": "Revoke",
+    "active": "Active grants",
+    "audit": "Audit trail",
+    "empty": "No authorizations yet",
+    "emptyBody": "Grant a provider, insurer, or researcher time-limited access to your records.",
+    "auditEmpty": "No consent activity recorded yet",
+    "granted": "Authorization granted",
+    "revoked": "Authorization revoked",
+    "revokeConfirmTitle": "Revoke authorization?",
+    "revokeConfirmBody": "This provider will immediately lose access to your records.",
+    "cancel": "Cancel",
+    "expiresOn": "Expires {{date}}",
+    "purposes": {
+      "care_coordination": "Care coordination",
+      "second_opinion": "Second opinion",
+      "insurance_claim": "Insurance claim",
+      "research": "Clinical research",
+      "other": "Other"
+    },
+    "durations": {
+      "7": "7 days",
+      "30": "30 days",
+      "90": "90 days",
+      "365": "1 year"
+    }
+  },
   "share": {
     "title": "වාර්තා බෙදාගැනීම",
     "subtitle": "වෛද්‍යවරුන් හෝ පවුලේ අය සමඟ සුරක්ෂිතව බෙදාගන්න",
@@ -2580,7 +2619,9 @@
       "doctorSchedule": "Schedule",
       "doctorInbox": "Inbox",
       "doctorPrescribe": "Prescribe",
-      "doctorProfile": "Profile"
+      "doctorProfile": "Profile",
+      "pharmacistQueue": "Queue",
+      "pharmacistScan": "Scan"
     }
   },
   "healthId": {
@@ -4213,6 +4254,62 @@
       "revoked": "අහෝසි කළ",
       "expired": "කල් ඉකුත් වූ"
     }
+  },
+  "walkIns": {
+    "title": "Walk-ins",
+    "subtitle": "Same-day arrivals without appointments",
+    "register": "Register walk-in",
+    "searchPatient": "Search patient (name, phone, NIC)",
+    "searchPlaceholder": "Type at least 2 characters…",
+    "noResults": "No patients found",
+    "selectPatient": "Select a patient first",
+    "changePatient": "Change",
+    "reason": "Reason for visit",
+    "reasonPlaceholder": "e.g. Fever and cough since yesterday",
+    "priority": "Priority",
+    "routine": "Routine",
+    "urgent": "Urgent",
+    "unknownPatient": "Walk-in patient",
+    "start": "Start consultation",
+    "complete": "Complete",
+    "markNoShow": "No-show",
+    "empty": "No walk-ins in this state",
+    "registered": "Walk-in registered",
+    "statuses": {
+      "waiting": "Waiting",
+      "in_consultation": "In consultation",
+      "completed": "Completed",
+      "no_show": "No-show",
+      "all": "All"
+    }
+  },
+  "pharmacy": {
+    "queueTitle": "Dispense queue",
+    "queueSubtitle": "Signed prescriptions awaiting dispense",
+    "filters": { "signed": "Awaiting", "dispensed": "Dispensed", "cancelled": "Rejected", "all": "All" },
+    "empty": "No prescriptions in this state",
+    "emptyBody": "Signed prescriptions for your facility will appear here.",
+    "patientFilter": "Showing prescriptions for one patient",
+    "clearFilter": "Clear",
+    "detailTitle": "Prescription",
+    "medicines": "Medicines",
+    "dispense": "Dispense",
+    "reject": "Reject",
+    "rejectReason": "Reason (optional)",
+    "rejectPlaceholder": "e.g. Out of stock — restocking Friday",
+    "dispensed": "Dispensed successfully",
+    "rejected": "Prescription rejected",
+    "tokenMissing": "Dispense token missing — this prescription was signed before redemption tokens were required. Ask the doctor to re-issue it.",
+    "scanTitle": "Scan patient QR",
+    "scanSubtitle": "Point the camera at the patient's QR code",
+    "scanHint": "The QR encodes a single-use token the server resolves to the patient.",
+    "manualTitle": "Or enter details manually",
+    "tokenPlaceholder": "Paste QR token…",
+    "patientPlaceholder": "Patient ID…",
+    "resolve": "Find prescriptions",
+    "noCamera": "Camera unavailable on this device — enter details manually.",
+    "requestCamera": "Enable camera",
+    "resolved": "Patient found — showing their prescriptions"
   },
   "doctorQueue": {
     "summary": {
@@ -6104,7 +6201,16 @@
       "orderLabel": "ඇණවුම",
       "amountLabel": "ගෙවිය යුතු මුදල",
       "completeOnReturn": "ගෙවීමෙන් පසු, ඔබගේ පොලිසි නැවුම් කිරීමට 'මම ගෙවා ඇත' තට්ටු කරන්න.",
-      "iHavePaid": "මම ගෙවා ඇත — සත්‍යාපනය කරන්න"
+      "iHavePaid": "මම ගෙවා ඇත — සත්‍යාපනය කරන්න",
+      "returnTitle": "Payment complete",
+      "returnPending": "Confirming your payment…",
+      "returnPendingBody": "payments.lk is confirming the transaction. This usually takes a few seconds.",
+      "returnSuccess": "Premium paid — policy is active",
+      "returnFailed": "We couldn't confirm this payment",
+      "cancelTitle": "Payment cancelled",
+      "cancelBody": "No amount was charged. You can retry when ready.",
+      "retry": "Try again",
+      "backToPlans": "Back to plans"
     },
     "policy": {
       "kicker": "Policy",

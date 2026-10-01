@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Heart,
   Stethoscope,
+  Pill as PillIcon,
   ChevronLeft,
   IdCard,
   Search,
@@ -70,7 +71,7 @@ function ageFromDob(dob: string | null | undefined): number | null {
 
 const schema = z
   .object({
-    role: z.enum(["patient", "doctor", "hospital_staff"]),
+    role: z.enum(["patient", "doctor", "hospital_staff", "pharmacy"]),
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
@@ -164,7 +165,7 @@ export default function RegisterScreen() {
   const inviteData = invitePreview.data;
   const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff">(
+  const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff" | "pharmacy">(
     inviteToken ? "hospital_staff" : "patient"
   );
   const [hospitalQuery, setHospitalQuery] = useState("");
@@ -298,7 +299,11 @@ export default function RegisterScreen() {
           return;
         }
         const home =
-          (data.role as string) === "doctor" ? "/(doctor)" : "/(app)";
+          (data.role as string) === "doctor"
+            ? "/(doctor)"
+            : (data.role as string) === "pharmacy"
+            ? "/(pharmacist)"
+            : "/(app)";
         router.replace(home as any);
       } else {
         toast.show(
@@ -461,6 +466,7 @@ export default function RegisterScreen() {
               [
                 { value: "patient", label: "Patient", hint: "Track my health", icon: User },
                 { value: "doctor", label: "Doctor", hint: "Run my practice", icon: Stethoscope },
+                { value: "pharmacy", label: "Pharmacy", hint: "Dispense prescriptions", icon: PillIcon },
               ] as const
             ).map(({ value, label, hint, icon: Icon }) => {
               const active = role === value;

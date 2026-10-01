@@ -83,6 +83,9 @@ export default {
       "expo-location",
       "expo-asset",
       "expo-localization",
+      // Pharmacist QR scan (vision-camera needs a dev build; Expo Go
+      // falls back to manual entry on the scan screen).
+      "react-native-vision-camera",
       [
         "expo-font",
         {

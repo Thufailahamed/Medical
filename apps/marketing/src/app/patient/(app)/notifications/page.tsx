@@ -11,10 +11,9 @@ import {
   Clock,
   FlaskConical,
   Pill,
-  Search,
+  Settings2,
   ShieldCheck,
   Video,
-  X,
 } from "lucide-react";
 
 import {
@@ -24,8 +23,24 @@ import {
 } from "@/patient/hooks";
 import { formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import {
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PatientHero,
+  PatientPage,
+  QuickToolsPanel,
+  RowAccent,
+  Segmented,
+  StatTile,
+} from "@/patient/components/workspace";
 
 function cleanNotificationBody(body: string | null | undefined): string {
   if (!body) return "";
@@ -53,7 +68,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "appointments",
       icon: Video,
-      bg: "bg-violet-50 text-violet-600",
+      tile: "bg-violet-50 text-violet-600",
       link: roomId ? `/patient/teleconsult/${roomId}` : "/patient/appointments",
     };
   }
@@ -61,7 +76,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "appointments",
       icon: Calendar,
-      bg: "bg-brand-soft text-brand",
+      tile: "bg-sky-50 text-sky-600",
       link: "/patient/appointments",
     };
   }
@@ -69,7 +84,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "medications",
       icon: Pill,
-      bg: "bg-success-soft text-success",
+      tile: "bg-emerald-50 text-emerald-600",
       link: "/patient/medications",
     };
   }
@@ -77,7 +92,7 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "labs",
       icon: FlaskConical,
-      bg: "bg-violet-50 text-violet-600",
+      tile: "bg-violet-50 text-violet-600",
       link: "/patient/records",
     };
   }
@@ -85,14 +100,14 @@ function getNotificationCategory(title: string, type: string, data?: unknown) {
     return {
       category: "insurance",
       icon: ShieldCheck,
-      bg: "bg-warn-soft text-warn",
+      tile: "bg-amber-50 text-amber-600",
       link: "/patient/insurance/claims",
     };
   }
   return {
     category: "general",
     icon: Bell,
-    bg: "bg-surface-2 text-text-soft",
+    tile: "bg-slate-100 text-slate-500",
     link: null,
   };
 }
@@ -105,7 +120,10 @@ export default function NotificationsPage() {
   const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "appointments" | "medications">("all");
   const [search, setSearch] = useState("");
 
-  const rawNotifications = query.data?.notifications ?? [];
+  const rawNotifications = useMemo(
+    () => query.data?.notifications ?? [],
+    [query.data?.notifications],
+  );
 
   const { unreadCount, appointmentCount, medCount } = useMemo(() => {
     let unread = 0;
@@ -145,229 +163,297 @@ export default function NotificationsPage() {
   }, [rawNotifications, activeFilter, search]);
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Bell size={13} aria-hidden />}
-        kicker="Live Care Alerts & Inbox"
-        title="Activity Notifications & Alerts"
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<Bell size={13} aria-hidden />}
+        kicker="Inbox"
+        kickerMeta="Live care alerts"
+        title={
+          <>
+            Notifications <HeroAccent>&amp; alerts</HeroAccent>
+          </>
+        }
         description="Stay updated on clinic visits, prescription refills, test results, and healthcare communications in real time."
-        status={
-          unreadCount > 0 ? (
-            <HeroStatusPill label={`${unreadCount} unread`} tone="warn" />
-          ) : (
-            <HeroStatusPill label="All caught up" tone="success" />
-          )
+        chips={
+          <>
+            <span className={HERO_CHIP}>{rawNotifications.length} alerts</span>
+            {unreadCount > 0 ? (
+              <span className={HERO_CHIP}>
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+                {unreadCount} unread
+              </span>
+            ) : (
+              <span className={HERO_CHIP}>
+                <CheckCheck size={12} className="text-emerald-300" />
+                All caught up
+              </span>
+            )}
+            <span className={HERO_CHIP}>
+              <Calendar size={12} className="text-sky-300" />
+              {appointmentCount} visits
+            </span>
+            <span className={HERO_CHIP}>
+              <Pill size={12} className="text-emerald-300" />
+              {medCount} meds
+            </span>
+          </>
         }
         actions={
           <>
+            <Link href="/patient/notifications/preferences" className={HERO_GHOST}>
+              <Settings2 size={13} /> Preferences
+            </Link>
             {unreadCount > 0 ? (
               <button
                 type="button"
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
-                className={heroSecondaryAction}
+                className={HERO_PRIMARY}
               >
-                <CheckCheck size={14} aria-hidden />
-                {markAllRead.isPending ? "Marking…" : "Mark All Read"}
+                <CheckCheck size={14} className="text-sky-600" />
+                {markAllRead.isPending ? "Marking…" : "Mark all read"}
               </button>
             ) : null}
-            <Link href="/patient/appointments" className={heroPrimaryAction}>
-              <Calendar size={14} aria-hidden />
-              My Schedule
-            </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Total Alerts · {rawNotifications.length}</span>
-            <span>Unread Alerts · {unreadCount}</span>
-            <span>Visits &amp; Queues · {appointmentCount}</span>
-            <span>Medications · {medCount}</span>
           </>
         }
       />
 
-      {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
-        {/* Filter Tabs */}
-        <SegmentedTabs
-          ariaLabel="Notification filters"
-          activeId={activeFilter}
-          onChange={(id) =>
-            setActiveFilter(id as "all" | "unread" | "appointments" | "medications")
-          }
-          tabs={[
-            { id: "all", label: <>All ({rawNotifications.length})</> },
-            {
-              id: "unread",
-              label: (
-                <>
-                  <span>Unread</span>
-                  {unreadCount > 0 ? (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
-                      {unreadCount}
-                    </span>
-                  ) : null}
-                </>
-              ),
-            },
-            { id: "appointments", label: <>Appointments ({appointmentCount})</> },
-            { id: "medications", label: <>Medications ({medCount})</> },
-          ]}
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Bell size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="All alerts"
+          value={String(rawNotifications.length)}
+          sub="Notification history"
+          active={activeFilter === "all"}
+          onClick={() => setActiveFilter("all")}
         />
+        <StatTile
+          icon={<CheckCheck size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Unread"
+          value={String(unreadCount)}
+          sub={unreadCount > 0 ? "Needs attention" : "All caught up"}
+          pulse={unreadCount > 0}
+          active={activeFilter === "unread"}
+          onClick={() => setActiveFilter("unread")}
+        />
+        <StatTile
+          icon={<Calendar size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Appointments"
+          value={String(appointmentCount)}
+          sub="Visits & queues"
+          active={activeFilter === "appointments"}
+          onClick={() => setActiveFilter("appointments")}
+        />
+        <StatTile
+          icon={<Pill size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Medications"
+          value={String(medCount)}
+          sub="Refills & doses"
+          active={activeFilter === "medications"}
+          onClick={() => setActiveFilter("medications")}
+        />
+      </HeroOverlap>
 
-        {/* Live Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search alerts by title or description..."
-            className="pt-input pl-9 pr-8 !h-9 text-xs"
-          />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-            >
-              <X size={13} />
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* ── 3. Notifications Feed ──────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        {query.isLoading ? (
-          <div className="flex flex-col gap-2.5">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Bell size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Activity feed"
+              caption={`${filteredNotifications.length} of ${rawNotifications.length} alerts`}
+              action={
+                unreadCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => markAllRead.mutate()}
+                    disabled={markAllRead.isPending}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-100 px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50"
+                  >
+                    <CheckCheck size={13} /> Mark all read
+                  </button>
+                ) : undefined
+              }
+            />
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Segmented
+                ariaLabel="Notification filters"
+                options={[
+                  { value: "all", label: "All", count: rawNotifications.length },
+                  { value: "unread", label: "Unread", count: unreadCount },
+                  { value: "appointments", label: "Appts", count: appointmentCount },
+                  { value: "medications", label: "Meds", count: medCount },
+                ]}
+                value={activeFilter}
+                onChange={(v) =>
+                  setActiveFilter(v as "all" | "unread" | "appointments" | "medications")
+                }
               />
-            ))}
-          </div>
-        ) : filteredNotifications.length === 0 ? (
-          <div className="rounded-xl border border-border bg-surface p-12 text-center flex flex-col items-center gap-3 shadow-card">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft" aria-hidden>
-              <CheckCheck size={24} />
+              <PanelSearch
+                value={search}
+                onChange={setSearch}
+                placeholder="Search alerts by title or description…"
+                className="flex-1 sm:max-w-xs"
+              />
             </div>
-            <div>
-              <h3 className="t-card-title text-text">
-                {search ? "No notifications match your search" : "You're all caught up"}
-              </h3>
-              <p className="text-xs text-text-soft max-w-sm mt-0.5">
-                {search
-                  ? `No alerts found for "${search}". Try clearing search.`
-                  : "There are no unread notifications or action items for your health account right now."}
-              </p>
-            </div>
-            {search ? (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="pt-btn pt-btn-secondary mt-1 h-8 px-4 text-xs"
-              >
-                Clear Search
-              </button>
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {filteredNotifications.map((n) => {
-              const meta = getNotificationCategory(n.title, n.type, n.data);
-              const CategoryIcon = meta.icon;
-              const formattedBody = cleanNotificationBody(n.body);
 
-              return (
-                <article
-                  key={n.id}
-                  className={cn(
-                    "group rounded-xl border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-start sm:items-center justify-between gap-4",
-                    !n.read
-                      ? "border-brand/40 bg-brand-soft/30"
-                      : "border-border",
-                  )}
-                >
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-                    {/* Category Icon Badge */}
-                    <div
-                      className={cn(
-                        "grid h-11 w-11 place-items-center rounded-md shrink-0 shadow-2xs group-hover:scale-105 transition-transform mt-0.5 sm:mt-0",
-                        meta.bg,
-                      )}
-                      aria-hidden
+            {query.isLoading ? (
+              <div className="mt-4 flex flex-col gap-2.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100" />
+                ))}
+              </div>
+            ) : filteredNotifications.length === 0 ? (
+              <EmptyBlock
+                icon={<CheckCheck size={19} />}
+                title={search ? "No notifications match your search" : "You're all caught up"}
+                body={
+                  search
+                    ? `No alerts found for "${search}". Try clearing search.`
+                    : "There are no unread notifications or action items for your health account right now."
+                }
+                actions={
+                  search ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      className="inline-flex h-9 items-center rounded-lg bg-slate-100 px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
                     >
-                      <CategoryIcon size={20} />
-                    </div>
+                      Clear search
+                    </button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-2">
+                {filteredNotifications.map((n) => {
+                  const meta = getNotificationCategory(n.title, n.type, n.data);
+                  const CategoryIcon = meta.icon;
+                  const formattedBody = cleanNotificationBody(n.body);
 
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
-                          {n.title}
-                        </h3>
-
-                        {!n.read ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand text-white shadow-2xs">
-                            New
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.2 rounded-full text-[10px] font-semibold bg-surface-2 text-text-muted">
-                            Read
-                          </span>
+                  return (
+                    <li key={n.id}>
+                      <article
+                        className={cn(
+                          LIST_ROW,
+                          "group",
+                          !n.read && "bg-sky-50/40 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.25)]",
                         )}
-                      </div>
-
-                      {formattedBody ? (
-                        <p className="text-xs text-text-soft font-medium mt-0.5 leading-relaxed">
-                          {formattedBody}
-                        </p>
-                      ) : null}
-
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted font-medium">
-                        <Clock size={11} />
-                        <span>{formatRelative(n.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions (Mark read & Jump to link) */}
-                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-                    {!n.read ? (
-                      <button
-                        type="button"
-                        onClick={() => markRead.mutate(n.id)}
-                        disabled={markRead.isPending}
-                        title="Mark as read"
-                        className="p-2 rounded-lg text-text-muted hover:text-success hover:bg-success-soft transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <Check size={16} />
-                      </button>
-                    ) : null}
+                        <RowAccent className={!n.read ? "bg-sky-500" : "bg-slate-200"} />
+                        <div
+                          className={cn(
+                            "grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-transform group-hover:scale-105",
+                            meta.tile,
+                          )}
+                          aria-hidden
+                        >
+                          <CategoryIcon size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-sky-700">
+                              {n.title}
+                            </h3>
+                            {!n.read ? (
+                              <span className="rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                                New
+                              </span>
+                            ) : null}
+                          </div>
+                          {formattedBody ? (
+                            <p className="mt-0.5 text-xs font-medium leading-relaxed text-slate-500">
+                              {formattedBody}
+                            </p>
+                          ) : null}
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+                            <Clock size={11} />
+                            <span>{formatRelative(n.createdAt)}</span>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+                          {!n.read ? (
+                            <button
+                              type="button"
+                              onClick={() => markRead.mutate(n.id)}
+                              disabled={markRead.isPending}
+                              title="Mark as read"
+                              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50"
+                            >
+                              <Check size={16} />
+                            </button>
+                          ) : null}
+                          {meta.link ? (
+                            <Link
+                              href={meta.link}
+                              className="inline-flex h-8 items-center gap-1 rounded-lg bg-slate-100 px-3 text-xs font-bold text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
+                            >
+                              View <ChevronRight size={13} aria-hidden />
+                            </Link>
+                          ) : null}
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
 
-                    {meta.link ? (
-                      <Link
-                        href={meta.link}
-                        className="pt-btn pt-btn-secondary h-8 px-3 text-xs"
-                      >
-                        <span>View</span>
-                        <ChevronRight size={13} aria-hidden />
-                      </Link>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </div>
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Settings2 size={16} />}
+              tone="bg-violet-50 text-violet-600"
+              title="Delivery preferences"
+              caption="Channels, topics & quiet hours."
+            />
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              Control push, email and SMS delivery — and pause non-urgent alerts
+              during quiet hours.
+            </p>
+            <Link
+              href="/patient/notifications/preferences"
+              className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-100 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+            >
+              <Settings2 size={14} /> Manage preferences
+            </Link>
+          </section>
+
+          <QuickToolsPanel
+            id="notif-tools"
+            title="Tools"
+            tools={[
+              {
+                icon: Calendar,
+                label: "Appointments",
+                hint: "Schedule",
+                href: "/patient/appointments",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: Pill,
+                label: "Medications",
+                hint: "Refills",
+                href: "/patient/medications",
+                tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
+              },
+              {
+                icon: ShieldCheck,
+                label: "Claims",
+                hint: "Insurance",
+                href: "/patient/insurance/claims",
+                tone: "from-amber-500 to-orange-500 shadow-amber-500/30",
+              },
+            ]}
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

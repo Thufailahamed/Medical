@@ -6,23 +6,36 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Bot,
   Calendar,
-  CheckCircle2,
   ChevronRight,
-  Clock,
   MessageCircle,
-  Search,
   ShieldCheck,
   Sparkles,
   Users,
-  X,
 } from "lucide-react";
 
 import { api } from "@/portal/lib/api";
 import { useConversations, usePatientProfile } from "@/patient/hooks";
 import { formatRelative } from "@/patient/lib/format";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
-import { SegmentedTabs } from "@/patient/components/primitives/SegmentedTabs";
+import {
+  EmptyBlock,
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  LIST_ROW,
+  PANEL,
+  PanelHeader,
+  PanelSearch,
+  PatientHero,
+  PatientPage,
+  PromoCard,
+  QuickToolsPanel,
+  RowAccent,
+  Segmented,
+  StatTile,
+} from "@/patient/components/workspace";
 
 interface CareTeamMember {
   id: string;
@@ -57,8 +70,14 @@ export default function MessagesPage() {
     enabled: Boolean(patientId),
   });
 
-  const rawConversations = query.data?.conversations ?? [];
-  const careTeamMembers = careTeamQ.data?.members?.filter((m) => m.status === "active") ?? [];
+  const rawConversations = useMemo(
+    () => query.data?.conversations ?? [],
+    [query.data?.conversations],
+  );
+  const careTeamMembers = useMemo(
+    () => careTeamQ.data?.members?.filter((m) => m.status === "active") ?? [],
+    [careTeamQ.data?.members],
+  );
 
   const unreadCount = useMemo(() => {
     return rawConversations.reduce((acc, c) => acc + (c.patientUnread || 0), 0);
@@ -81,269 +100,286 @@ export default function MessagesPage() {
   }, [rawConversations, activeFilter, search]);
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<ShieldCheck size={13} aria-hidden />}
-        kicker="Secure Clinical Messaging"
-        title="Messages & Care Team Communications"
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<ShieldCheck size={13} aria-hidden />}
+        kicker="Secure messaging"
+        kickerMeta="End-to-end encrypted"
+        title={
+          <>
+            Messages &amp; <HeroAccent>Care Team Communications</HeroAccent>
+          </>
+        }
         description="Direct, HIPAA-compliant messaging with your doctors, specialists, and care team coordinators."
-        status={
-          unreadCount > 0 ? (
-            <HeroStatusPill label={`${unreadCount} unread`} tone="warn" />
-          ) : (
-            <HeroStatusPill label="All caught up" tone="success" />
-          )
+        chips={
+          <>
+            <span className={HERO_CHIP}>
+              <MessageCircle size={12} className="text-sky-300" />
+              {rawConversations.length} threads
+            </span>
+            {unreadCount > 0 ? (
+              <span className={HERO_CHIP}>
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+                {unreadCount} unread
+              </span>
+            ) : (
+              <span className={HERO_CHIP}>
+                <ShieldCheck size={12} className="text-emerald-300" />
+                All caught up
+              </span>
+            )}
+            <span className={HERO_CHIP}>{careTeamMembers.length} clinicians linked</span>
+          </>
         }
         actions={
           <>
-            <Link href="/patient/care-team" className={heroSecondaryAction}>
-              <Users size={13} aria-hidden />
-              My Care Team
+            <Link href="/patient/care-team" className={HERO_GHOST}>
+              <Users size={13} /> My care team
             </Link>
-            <Link href="/patient/ai/chat" className={heroPrimaryAction}>
-              <Bot size={14} aria-hidden />
-              Ask AI Assistant
+            <Link href="/patient/ai/chat" className={HERO_PRIMARY}>
+              <Bot size={14} className="text-sky-600" /> Ask AI assistant
             </Link>
-          </>
-        }
-        footer={
-          <>
-            <span>Active Threads · {rawConversations.length}</span>
-            <span>Unread Messages · {unreadCount}</span>
-            <span>Connected Doctors · {careTeamMembers.length || 3} Clinicians</span>
-            <span>Encryption · End-to-End</span>
           </>
         }
       />
 
-      {/* ── 2. Filter & Live Search Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface p-3 rounded-xl border border-border shadow-card">
-        {/* Filter Tabs */}
-        <SegmentedTabs
-          ariaLabel="Message filters"
-          activeId={activeFilter}
-          onChange={(id) => setActiveFilter(id as "all" | "unread")}
-          tabs={[
-            { id: "all", label: <>All Messages ({rawConversations.length})</> },
-            {
-              id: "unread",
-              label: (
-                <>
-                  <span>Unread</span>
-                  {unreadCount > 0 ? (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-600 text-white">
-                      {unreadCount}
-                    </span>
-                  ) : null}
-                </>
-              ),
-            },
-          ]}
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<MessageCircle size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Threads"
+          value={String(rawConversations.length)}
+          sub="Active conversations"
+          active={activeFilter === "all"}
+          onClick={() => setActiveFilter("all")}
         />
+        <StatTile
+          icon={<ShieldCheck size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Unread"
+          value={String(unreadCount)}
+          sub={unreadCount > 0 ? "Needs your reply" : "All caught up"}
+          pulse={unreadCount > 0}
+          active={activeFilter === "unread"}
+          onClick={() => setActiveFilter("unread")}
+        />
+        <StatTile
+          icon={<Users size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Care team"
+          value={String(careTeamMembers.length)}
+          sub="Connected clinicians"
+          href="/patient/care-team"
+        />
+        <StatTile
+          icon={<Sparkles size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="AI triage"
+          value="24/7"
+          sub="Instant symptom checks"
+          href="/patient/ai/chat"
+        />
+      </HeroOverlap>
 
-        {/* Live Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search conversations by doctor or keyword..."
-            className="pt-input pl-9 pr-8 !h-9 text-xs"
-          />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-            >
-              <X size={13} />
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* ── 3. Conversations List or Rich Zero-State ───────────────────────── */}
-      <section className="flex flex-col gap-4">
-        {query.isLoading ? (
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-surface-2 animate-pulse border border-border"
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<MessageCircle size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Conversations"
+              caption={`${filteredConversations.length} of ${rawConversations.length} threads`}
+            />
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Segmented
+                ariaLabel="Message filters"
+                options={[
+                  { value: "all", label: "All", count: rawConversations.length },
+                  { value: "unread", label: "Unread", count: unreadCount },
+                ]}
+                value={activeFilter}
+                onChange={(v) => setActiveFilter(v as "all" | "unread")}
               />
-            ))}
-          </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className="rounded-xl border border-border bg-surface p-6 sm:p-8 shadow-card flex flex-col gap-6">
-            {/* Header notification */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-              <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-brand-soft shrink-0 shadow-2xs" aria-hidden>
-                <MessageCircle size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="t-card-title text-text">
-                  {search
-                    ? "No conversations match your search"
-                    : "No Active Care Team Conversations"}
-                </h3>
-                <p className="text-xs sm:text-sm text-text-soft mt-1 max-w-xl leading-relaxed">
-                  {search
-                    ? `No message threads found matching "${search}". Clear search or filter.`
-                    : "Doctors and clinical care teams open secure message channels for appointment follow-ups, diagnostic reviews, and prescription adjustments."}
-                </p>
-              </div>
-
-              <Link
-                href="/patient/appointments/book"
-                className="pt-btn pt-btn-primary h-10 px-5 text-xs shrink-0"
-              >
-                <Calendar size={14} aria-hidden />
-                Book Consultation
-              </Link>
+              <PanelSearch
+                value={search}
+                onChange={setSearch}
+                placeholder="Search conversations by doctor or keyword…"
+                className="flex-1 sm:max-w-xs"
+              />
             </div>
 
-            {/* Quick Reach Out to Care Team Doctors */}
-            {careTeamMembers.length > 0 ? (
-              <div className="pt-4 border-t border-border flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                    Your Connected Healthcare Providers
-                  </h4>
-                  <Link
-                    href="/patient/care-team"
-                    className="text-xs font-bold text-brand hover:underline"
-                  >
-                    View All
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {careTeamMembers.slice(0, 3).map((doctor) => {
-                    const initials = getDoctorInitials(doctor.doctorName);
-                    return (
-                      <div
-                        key={doctor.id}
-                        className="p-3.5 rounded-xl bg-surface-2 border border-border flex flex-col justify-between gap-3 shadow-2xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 place-items-center rounded-md bg-ink text-brand-soft font-mono text-xs font-bold shrink-0 shadow-2xs" aria-hidden>
-                            {initials}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-text truncate">
-                              {doctor.doctorName.startsWith("Dr.") ? doctor.doctorName : `Dr. ${doctor.doctorName}`}
-                            </p>
-                            <p className="text-[11px] text-text-soft truncate">
-                              {doctor.doctorSpecialization || "General Medicine"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Link
-                          href={`/patient/appointments/book?doctorId=${doctor.doctorId || ""}`}
-                          className="pt-btn pt-btn-secondary h-8 w-full text-xs"
-                        >
-                          Request Visit &amp; Message
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
+            {query.isLoading ? (
+              <div className="mt-4 flex flex-col gap-2.5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100" />
+                ))}
               </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {filteredConversations.map((c) => {
-              const initials = getDoctorInitials(c.doctor?.name ?? "Dr");
-              const hasUnread = (c.patientUnread || 0) > 0;
-
-              return (
-                <Link
-                  key={c.id}
-                  href={`/patient/messages/${c.id}`}
-                  className={cn(
-                    "group rounded-xl border bg-surface p-4 sm:p-5 shadow-card hover:shadow-md hover:border-border-strong transition-all flex items-center justify-between gap-4",
-                    hasUnread
-                      ? "border-brand/40 bg-brand-soft/30"
-                      : "border-border",
-                  )}
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    {/* Doctor Avatar */}
-                    <div className="grid h-12 w-12 place-items-center rounded-lg bg-ink text-brand-soft font-mono font-bold text-sm shrink-0 shadow-xs group-hover:scale-105 transition-transform overflow-hidden" aria-hidden>
-                      {c.doctor?.photo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={c.doctor.photo}
-                          alt={c.doctor.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        initials
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-text text-sm sm:text-base group-hover:text-brand transition-colors truncate">
-                          {c.doctor?.name ?? "Attending Physician"}
-                        </h3>
-                        {hasUnread ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand text-white shadow-2xs">
-                            {c.patientUnread} new
+            ) : filteredConversations.length === 0 ? (
+              <EmptyBlock
+                icon={<MessageCircle size={19} />}
+                title={search ? "No conversations match your search" : "No care team conversations"}
+                body={
+                  search
+                    ? `No threads found matching "${search}". Clear search or filter.`
+                    : "Doctors and care teams open secure channels for follow-ups, reviews, and prescription adjustments."
+                }
+                actions={
+                  !search ? (
+                    <Link
+                      href="/patient/appointments/book"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-500"
+                    >
+                      <Calendar size={14} /> Book consultation
+                    </Link>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <ul className="mt-4 flex flex-col gap-2">
+                {filteredConversations.map((c) => {
+                  const initials = getDoctorInitials(c.doctor?.name ?? "Dr");
+                  const hasUnread = (c.patientUnread || 0) > 0;
+                  return (
+                    <li key={c.id}>
+                      <Link
+                        href={`/patient/messages/${c.id}`}
+                        className={cn(
+                          LIST_ROW,
+                          "group",
+                          hasUnread && "bg-sky-50/40 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.25)]",
+                        )}
+                      >
+                        <RowAccent className={hasUnread ? "bg-sky-500" : "bg-slate-200"} />
+                        <div
+                          className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#0B1F3A] font-mono text-sm font-bold text-sky-200 transition-transform group-hover:scale-105"
+                          aria-hidden
+                        >
+                          {c.doctor?.photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={c.doctor.photo}
+                              alt={c.doctor.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            initials
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-sky-700 sm:text-base">
+                              {c.doctor?.name ?? "Attending Physician"}
+                            </h3>
+                            {hasUnread ? (
+                              <span className="rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                                {c.patientUnread} new
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 max-w-md truncate text-xs font-medium text-slate-500">
+                            {c.lastMessagePreview || "No messages in thread yet."}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="text-[11px] font-medium text-slate-400">
+                            {formatRelative(c.lastMessageAt)}
                           </span>
-                        ) : null}
-                      </div>
-
-                      <p className="text-xs text-text-soft truncate mt-0.5 max-w-md font-medium">
-                        {c.lastMessagePreview || "No messages in thread yet."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[11px] text-text-muted font-medium">
-                      {formatRelative(c.lastMessageAt)}
-                    </span>
-                    <ChevronRight size={16} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ── 4. Clinical Assistance Callout ──────────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-violet-50 text-violet-600 shrink-0" aria-hidden>
-            <Bot size={22} />
-          </div>
-          <div>
-            <h4 className="t-card-title text-text">
-              Need Instant Clinical Insights?
-            </h4>
-            <p className="text-xs text-text-soft mt-0.5">
-              Ask HealthHub AI about symptoms, drug interactions, or preparation for doctor consultations.
-            </p>
-          </div>
+                          <ChevronRight
+                            size={16}
+                            className="text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-sky-600"
+                          />
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
         </div>
 
-        <Link
-          href="/patient/ai/chat"
-          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-        >
-          <Sparkles size={13} aria-hidden />
-          Launch AI Triage Chat
-        </Link>
-      </section>
-    </div>
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          {careTeamMembers.length > 0 ? (
+            <section className={PANEL}>
+              <PanelHeader
+                icon={<Users size={16} />}
+                tone="bg-violet-50 text-violet-600"
+                title="Your care team"
+                caption="Message via a new consultation."
+                href="/patient/care-team"
+                linkLabel="View all"
+              />
+              <div className="mt-4 flex flex-col gap-2">
+                {careTeamMembers.slice(0, 3).map((doctor) => (
+                  <div
+                    key={doctor.id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3"
+                  >
+                    <div
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#0B1F3A] font-mono text-[11px] font-bold text-sky-200"
+                      aria-hidden
+                    >
+                      {getDoctorInitials(doctor.doctorName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-slate-900">
+                        {doctor.doctorName.startsWith("Dr.")
+                          ? doctor.doctorName
+                          : `Dr. ${doctor.doctorName}`}
+                      </p>
+                      <p className="truncate text-[11px] text-slate-400">
+                        {doctor.doctorSpecialization || "General Medicine"}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/patient/appointments/book?doctorId=${doctor.doctorId || ""}`}
+                      className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
+                    >
+                      Visit
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <PromoCard
+            icon={<Bot size={21} aria-hidden />}
+            kicker="Instant insights"
+            title="Ask HealthHub AI"
+            body="Symptoms, drug interactions, or prep for your next consult — answered in seconds."
+            href="/patient/ai/chat"
+          />
+
+          <QuickToolsPanel
+            id="msg-tools"
+            title="Tools"
+            tools={[
+              {
+                icon: Calendar,
+                label: "Appointments",
+                hint: "Book a visit",
+                href: "/patient/appointments",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: ShieldCheck,
+                label: "Notifications",
+                hint: "Alerts & updates",
+                href: "/patient/notifications",
+                tone: "from-amber-500 to-orange-500 shadow-amber-500/30",
+              },
+              {
+                icon: Users,
+                label: "Care team",
+                hint: "Clinicians",
+                href: "/patient/care-team",
+                tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+            ]}
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

@@ -27,6 +27,7 @@ import {
   Bell,
   StickyNote,
   Share2,
+  Store,
   Download,
   Clock3,
   ChevronLeft,
@@ -93,6 +94,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/patient/family", label: "Family Members", icon: UserPlus, testId: "nav-family" },
       { href: "/patient/caretakers", label: "Caretakers", icon: HeartHandshake, testId: "nav-caretakers" },
+      { href: "/patient/marketplace", label: "Find a Caretaker", icon: Store, testId: "nav-caretaker-marketplace" },
       { href: "/patient/emergency", label: "Emergency Card", icon: ShieldAlert, testId: "nav-emergency" },
       { href: "/patient/health-id", label: "Health ID (QR)", icon: QrCode, testId: "nav-health-id" },
     ],

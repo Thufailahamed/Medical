@@ -5001,3 +5001,78 @@ export function useReExtractRecord() {
     },
   });
 }
+
+// ─── Pharmacy dispense queue ────────────────────────────────
+export type PharmacyRxFilter = "signed" | "dispensed" | "cancelled" | "all";
+
+export function usePharmacyPrescriptions(opts?: {
+  status?: PharmacyRxFilter;
+  patientId?: string | null;
+}) {
+  const params = new URLSearchParams();
+  params.set("limit", "200");
+  if (opts?.status && opts.status !== "all") params.set("status", opts.status);
+  // Backend reads the patient filter as `patient`, NOT `patientId`.
+  if (opts?.patientId) params.set("patient", opts.patientId);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["pharmacy", "prescriptions", opts?.status || "signed", opts?.patientId || ""],
+    queryFn: () => api<{ prescriptions: any[]; count: number }>(`/pharmacy/prescriptions?${qs}`),
+    staleTime: 15_000,
+  });
+}
+
+export function usePharmacyPrescription(id: string | undefined) {
+  return useQuery({
+    queryKey: ["pharmacy", "prescription", id],
+    queryFn: () => api<{ prescription: any }>(`/pharmacy/prescriptions/${id}`),
+    enabled: !!id,
+    staleTime: 15_000,
+  });
+}
+
+export function usePharmacyDispense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dispenseToken }: { id: string; dispenseToken: string | null | undefined }) => {
+      // Backend 400s without the single-use token (migration 0059).
+      // NULL token = legacy pre-0059 Rx → surface re-issue message, never POST.
+      if (!dispenseToken) throw new Error("TOKEN_MISSING");
+      return api<{ ok: true; prescriptionId: string; status: string; dispensedAt: string }>(
+        `/pharmacy/prescriptions/${id}/dispense`,
+        { method: "POST", body: {}, headers: { "x-dispense-token": dispenseToken } },
+      );
+    },
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescriptions"] });
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescription", id] });
+    },
+  });
+}
+
+export function usePharmacyReject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api<{ ok: true }>(`/pharmacy/prescriptions/${id}/reject`, {
+        method: "POST",
+        body: { reason },
+      }),
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescriptions"] });
+      qc.invalidateQueries({ queryKey: ["pharmacy", "prescription", id] });
+    },
+  });
+}
+
+export function useResolveScanToken() {
+  return useMutation({
+    // QR encodes JSON { t: token, p: purpose }. Server resolves it to
+    // { purpose, patient: { id, ... } }.
+    mutationFn: ({ token, purpose }: { token: string; purpose: string }) =>
+      api<{ purpose: string; patient: { id: string; name?: string | null } }>("/portal/scan/resolve", {
+        method: "POST",
+        body: { token, purpose },
+      }),
+  });
+}

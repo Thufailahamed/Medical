@@ -44,6 +44,7 @@ const PAGE_TITLES: { match: string; title: string; subtitle?: string }[] = [
   { match: "/patient/allergies", title: "Allergies", subtitle: "Known reactions" },
   { match: "/patient/family", title: "Family", subtitle: "Linked members" },
   { match: "/patient/caretakers", title: "Caretakers", subtitle: "Access sharing" },
+  { match: "/patient/marketplace", title: "Caretaker Marketplace", subtitle: "Care at home" },
   { match: "/patient/emergency", title: "Emergency Card", subtitle: "Critical info" },
   { match: "/patient/health-id", title: "Health ID", subtitle: "QR identity" },
   { match: "/patient/insurance", title: "Insurance", subtitle: "Cover & claims" },

@@ -1581,3 +1581,112 @@ body {
   .hero__edition > div { justify-content: flex-start; }
   .hero-journal__photo::before { display: none; }
 }
+
+/* ============================================================
+   System controls — dropdowns & calendar/time pickers
+   Shared chrome for native <select> and date/time inputs across
+   every surface — all six portal scopes (admin, portal/doctor,
+   patient, hospital, lab-portal, insurance-operator), overlay-
+   rooted modals, and unscoped pages (register, login, share).
+   Field classes (.pt-input / .portal-input / .lab-input) keep
+   their own chrome — this block themes the picker affordances
+   (chevron glyph, calendar indicator, focus halo) so nothing
+   falls back to raw OS styling.
+   ============================================================ */
+
+/* ── Dropdown selects: system chevron ───────────────────────── */
+select:not([multiple]):not([size]):not(.appearance-none) {
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: light;
+  padding-right: 2.25rem;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+select:not(.appearance-none):hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+select:disabled {
+  cursor: not-allowed;
+}
+select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+/* ── Focus halo for controls without a themed field class ───── */
+select:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible,
+input[type="date"]:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible,
+input[type="time"]:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible,
+input[type="datetime-local"]:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible,
+input[type="month"]:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible,
+input[type="week"]:not(.pt-input):not(.portal-input):not(.lab-input):focus-visible {
+  outline: none;
+  border-color: var(--color-brand, var(--brand, var(--lab-brand, #0284c7)));
+  box-shadow: 0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--color-brand, var(--brand, var(--lab-brand, #0284c7))) 18%,
+      transparent
+    );
+}
+
+/* ── Calendar / time picker indicator: system glyph ─────────── */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  color-scheme: light;
+}
+input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 6px;
+  opacity: 0.65;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 15px 15px;
+  transition: opacity 0.15s ease;
+}
+input:hover::-webkit-calendar-picker-indicator,
+input:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* Brand-tinted calendar glyph per portal scope */
+[data-app="admin"] input::-webkit-calendar-picker-indicator,
+[data-app="patient"] input::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%233B6FF5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+}
+[data-app="portal"] input::-webkit-calendar-picker-indicator,
+[data-app="insurance-operator"] input::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%230284C7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+}
+[data-app="hospital"] input::-webkit-calendar-picker-indicator,
+[data-app="lab-portal"] input::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+}
+
+/* Time inputs get a clock glyph instead of the calendar glyph */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+}
+[data-app="admin"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-app="patient"] input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%233B6FF5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+}
+[data-app="portal"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-app="insurance-operator"] input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%230284C7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+}
+[data-app="hospital"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-app="lab-portal"] input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 3'/%3E%3C/svg%3E");
+}

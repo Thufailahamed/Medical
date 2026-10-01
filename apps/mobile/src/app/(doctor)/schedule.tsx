@@ -21,6 +21,7 @@ import {
   Video,
   Sparkles,
   ArrowRight,
+  UserPlus,
 } from "lucide-react-native";
 import { useDoctorScheduleRange } from "@/hooks/useApi";
 import {
@@ -249,7 +250,14 @@ export default function ScheduleScreen() {
             variant="surface"
             size="sm"
             onPress={goNextWeek}
-            accessibilityLabel={t("schedule.nextWeek", "Next week")}
+            accessibilityLabel={t("schedule.previousWeek", "Previous week")}
+          />
+          <IconButton
+            icon={UserPlus}
+            variant="surface"
+            size="sm"
+            onPress={() => router.push("/(doctor)/walk-ins" as any)}
+            accessibilityLabel={t("walkIns.title", "Walk-ins")}
           />
             </>
           }

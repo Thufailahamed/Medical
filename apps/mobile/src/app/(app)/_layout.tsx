@@ -253,6 +253,10 @@ export default function AppLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="consents"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="timeline"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
@@ -450,6 +454,14 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="insurance/payment/[enrollmentId]"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/payment/return"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="insurance/payment/cancel"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen

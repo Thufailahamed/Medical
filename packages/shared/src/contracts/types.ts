@@ -427,30 +427,55 @@ export interface CareTeamMember {
   notes: string | null;
 }
 
-/** Marketplace caretaker listing */
+/** Care roles a marketplace caretaker can offer */
+export type CaretakerCareRole =
+  | "nurse"
+  | "caregiver"
+  | "home_aide"
+  | "companion"
+  | "parent"
+  | "guardian"
+  | "spouse_caregiver"
+  | "child_caregiver"
+  | "sibling_caregiver"
+  | "other";
+
+/** Marketplace caretaker listing (shape returned by GET /marketplace/caretakers) */
 export interface CaretakerListing {
   id: string;
+  caretakerUserId: string;
   name: string;
+  photo: string | null;
   bio: string | null;
-  services: string[];
-  hourlyRate: number | null;
-  rating: number | null;
-  reviewCount: number;
+  district: string | null;
+  careRolesOffered: string[];
+  languages: string[];
+  hourlyRateLkr: number | null;
+  experienceYears: number;
   verified: boolean;
-  city: string | null;
-  photoUrl: string | null;
-  availability: string | null;
+  isAvailable?: boolean;
+  createdAt?: string;
 }
 
-/** Caretaker inquiry */
+/** Caretaker inquiry lifecycle status */
+export type CaretakerInquiryStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "expired"
+  | "withdrawn";
+
+/** Caretaker inquiry (shape returned by GET /marketplace/inquiries/mine) */
 export interface CaretakerInquiry {
   id: string;
-  caretakerId: string;
+  caretakerUserId: string;
   caretakerName: string | null;
-  message: string;
-  status: "pending" | "responded" | "closed";
+  caretakerPhoto: string | null;
+  patientMessage: string;
+  status: CaretakerInquiryStatus;
   createdAt: string;
-  response: string | null;
+  decidedAt: string | null;
+  linkId: string | null;
 }
 
 /** Tenant (hospital/clinic) summary for the switcher */

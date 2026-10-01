@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 vi.mock("@/patient/hooks", () => ({
   useProfile: () => ({ data: null, isLoading: false, isError: false }),
+  usePatientProfile: () => ({ data: null, isLoading: false, isError: false }),
 }));
 
 vi.mock("next/navigation", () => ({

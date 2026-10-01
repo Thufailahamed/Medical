@@ -8,16 +8,27 @@ import {
   patientKeys,
   patientPaths,
 } from "@healthcare/shared/contracts";
-import type { CaretakerListing, CaretakerInquiry } from "@healthcare/shared/contracts";
+import type {
+  CaretakerListing,
+  CaretakerInquiry,
+  CaretakerInquiryStatus,
+} from "@healthcare/shared/contracts";
 
-export function useMarketplace(params: { search?: string; service?: string } = {}) {
+export type MarketplaceFilters = {
+  district?: string;
+  role?: string;
+  language?: string;
+};
+
+export function useMarketplace(params: MarketplaceFilters = {}) {
   return useQuery<{ caretakers: CaretakerListing[] }>({
     queryKey: patientKeys.marketplace(params),
     queryFn: () =>
       api<{ caretakers: CaretakerListing[] }>(
         patientPaths.marketplace.caretakers({
-          search: params.search,
-          service: params.service,
+          district: params.district,
+          role: params.role,
+          language: params.language,
         })
       ),
     ...PATIENT_QUERY_DEFAULTS,
@@ -36,11 +47,13 @@ export function useCaretaker(id: string) {
   });
 }
 
-export function useCaretakerInquiries() {
+export function useCaretakerInquiries(status?: CaretakerInquiryStatus) {
   return useQuery<{ inquiries: CaretakerInquiry[] }>({
-    queryKey: patientKeys.marketplaceInquiries(),
+    queryKey: patientKeys.marketplaceInquiries(status),
     queryFn: () =>
-      api<{ inquiries: CaretakerInquiry[] }>(patientPaths.marketplace.inquiries()),
+      api<{ inquiries: CaretakerInquiry[] }>(
+        patientPaths.marketplace.inquiries(status)
+      ),
     ...PATIENT_QUERY_DEFAULTS,
   });
 }
@@ -48,10 +61,29 @@ export function useCaretakerInquiries() {
 export function useSendCaretakerInquiry() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, message }: { id: string; message: string }) =>
-      api<{ inquiry: CaretakerInquiry }>(patientPaths.marketplace.inquire(id), {
+    mutationFn: ({ id, patientMessage }: { id: string; patientMessage: string }) =>
+      api<{
+        inquiry: {
+          id: string;
+          caretakerUserId: string;
+          status: CaretakerInquiryStatus;
+          createdAt: string;
+        };
+      }>(patientPaths.marketplace.inquire(id), {
         method: "POST",
-        json: { message },
+        json: { patientMessage },
+      }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: patientKeys.marketplaceInquiries() }),
+  });
+}
+
+export function useWithdrawCaretakerInquiry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean }>(patientPaths.marketplace.withdrawInquiry(id), {
+        method: "POST",
       }),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: patientKeys.marketplaceInquiries() }),

@@ -235,6 +235,13 @@ export default function ProfileScreen() {
       onPress: () => router.push("/(app)/audit" as any),
     },
     {
+      labelKey: "profile.item.consents.label",
+      subtitle: t("profile.item.consents.subtitle"),
+      icon: ShieldCheck,
+      tone: "accent" as const,
+      onPress: () => router.push("/(app)/consents" as any),
+    },
+    {
       labelKey: "profile.item.family.label",
       subtitle:
         familyCount === 0

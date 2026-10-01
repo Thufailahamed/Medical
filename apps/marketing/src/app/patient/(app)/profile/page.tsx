@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
-  ChevronRight,
   Download,
   Edit2,
   Heart,
@@ -26,7 +25,19 @@ import { usePatientProfile, useProfile } from "@/patient/hooks";
 import { logout } from "@/portal/lib/auth";
 import { loginHref } from "@/portal/lib/login";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, HeroStatusPill, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PatientHero,
+  PatientPage,
+  QuickToolsPanel,
+  StatTile,
+} from "@/patient/components/workspace";
 
 function initials(name: string | null | undefined) {
   return (name ?? "")
@@ -46,8 +57,9 @@ export default function ProfilePage() {
   const [copiedId, setCopiedId] = useState(false);
 
   const user = query.data;
-  const patientRow = (patientQuery.data as any)?.patient?.patients;
-  const bloodGroup = patientRow?.bloodGroup || "B+";
+  const patientRow = patientQuery.data?.patient?.patients;
+  const bloodGroup =
+    (patientRow as { bloodGroup?: string } | undefined)?.bloodGroup || "B+";
 
   async function onLogout() {
     if (signingOut) return;
@@ -71,297 +83,297 @@ export default function ProfilePage() {
     }
   };
 
+  const demographics = [
+    {
+      icon: <Mail size={12} className="text-slate-400" aria-hidden />,
+      label: "Email address",
+      value: <span className="truncate">{user?.email || "—"}</span>,
+    },
+    {
+      icon: <Phone size={12} className="text-slate-400" aria-hidden />,
+      label: "Primary phone",
+      value: <span className="truncate">{user?.phone || "—"}</span>,
+    },
+    {
+      icon: <Heart size={12} className="text-rose-500" aria-hidden />,
+      label: "Blood group",
+      value: <span className="font-bold text-rose-600">Type {bloodGroup}</span>,
+    },
+    {
+      icon: <User size={12} className="text-slate-400" aria-hidden />,
+      label: "Portal access role",
+      value: <span className="capitalize">{user?.role || "patient"}</span>,
+    },
+    {
+      icon: <CheckCircle2 size={12} className="text-emerald-500" aria-hidden />,
+      label: "Account status",
+      value: (
+        <span className="capitalize text-emerald-600">{user?.status || "active"}</span>
+      ),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<UserCheck size={13} aria-hidden />}
-        kicker="Verified Patient Identity"
-        title="My Health Profile & Account"
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<UserCheck size={13} aria-hidden />}
+        kicker="Profile"
+        kickerMeta="Verified identity"
+        title={
+          <>
+            My health <HeroAccent>Profile</HeroAccent>
+          </>
+        }
         description="Manage your clinical demographics, verified contact numbers, emergency identifiers, and account credentials."
-        status={
-          user?.verified ? (
-            <HeroStatusPill label="Verified" tone="success" />
-          ) : (
-            <HeroStatusPill label="Active" tone="paper" />
-          )
+        chips={
+          <>
+            {user?.verified ? (
+              <span className={HERO_CHIP}>
+                <CheckCircle2 size={12} className="text-emerald-300" />
+                Verified patient
+              </span>
+            ) : (
+              <span className={HERO_CHIP}>Active profile</span>
+            )}
+            <span className={HERO_CHIP}>
+              <Heart size={12} className="text-rose-300" />
+              Type {bloodGroup}
+            </span>
+          </>
         }
         actions={
           <>
-            <Link href="/patient/profile/edit" className={heroPrimaryAction}>
-              <Edit2 size={13} aria-hidden />
-              Edit Profile
+            <Link href="/patient/profile/edit" className={HERO_PRIMARY}>
+              <Edit2 size={13} className="text-sky-600" /> Edit profile
             </Link>
             <button
               type="button"
               onClick={onLogout}
               disabled={signingOut}
-              className={heroSecondaryAction}
+              className={HERO_GHOST}
             >
               {signingOut ? (
                 <Loader2 size={13} className="animate-spin" aria-hidden />
               ) : (
                 <LogOut size={13} aria-hidden />
               )}
-              Sign Out
+              Log out
             </button>
-          </>
-        }
-        footer={
-          <>
-            <span>EHR Identity · Primary Patient</span>
-            <span>Verification · {user?.verified ? "Verified" : "Active"}</span>
-            <span>Blood Group · Type {bloodGroup}</span>
-            <span>Security Model · EHR Protected</span>
           </>
         }
       />
 
-      {/* ── 2. Primary Patient Identification Card ─────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface shadow-card overflow-hidden">
-        {/* Identity Banner */}
-        <div className="p-6 sm:p-7 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 border-b border-border">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-            {/* Avatar */}
-            {user?.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.photo}
-                alt=""
-                width={72}
-                height={72}
-                className="h-18 w-18 rounded-lg object-cover shadow-md shrink-0"
-              />
-            ) : (
-              <div className="grid h-18 w-18 place-items-center rounded-lg bg-ink text-brand-soft font-mono text-2xl font-bold shadow-md shrink-0" aria-hidden>
-                {initials(user?.name) || "P"}
-              </div>
-            )}
-
-            <div>
-              <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                <h2 className="t-display text-xl sm:text-2xl text-text leading-tight">
-                  {user?.name || "Patient"}
-                </h2>
-                <span
-                  className={cn(
-                    "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
-                    user?.verified
-                      ? "bg-success-soft text-success"
-                      : "bg-brand-soft text-brand",
-                  )}
-                >
-                  {user?.verified ? "Verified Patient" : "Active Profile"}
-                </span>
-              </div>
-              <p className="text-xs text-text-soft font-medium mt-1">
-                {user?.email || "No email linked"} · {user?.phone || "No phone linked"}
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href="/patient/profile/edit"
-            className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-          >
-            <Edit2 size={13} aria-hidden />
-            Update Demographics
-          </Link>
-        </div>
-
-        {/* Detailed Demographics Data Grid */}
-        <div className="p-6 sm:p-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-              <Mail size={12} className="text-text-soft" aria-hidden />
-              Email Address
-            </span>
-            <p className="text-xs sm:text-sm font-semibold text-text truncate">
-              {user?.email || "—"}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-              <Phone size={12} className="text-text-soft" aria-hidden />
-              Primary Phone
-            </span>
-            <p className="text-xs sm:text-sm font-semibold text-text truncate">
-              {user?.phone || "—"}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-              <Heart size={12} className="text-danger" aria-hidden />
-              Blood Group
-            </span>
-            <p className="text-xs sm:text-sm font-bold text-danger">
-              Type {bloodGroup}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-              <User size={12} className="text-text-soft" aria-hidden />
-              Portal Access Role
-            </span>
-            <p className="text-xs sm:text-sm font-semibold text-text capitalize">
-              {user?.role || "patient"}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center gap-1">
-              <CheckCircle2 size={12} className="text-success" aria-hidden />
-              Account Status
-            </span>
-            <p className="text-xs sm:text-sm font-semibold text-success capitalize">
-              {user?.status || "active"}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex flex-col gap-1">
-            <span className="text-[10.5px] uppercase font-bold text-text-muted flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <Key size={12} className="text-text-soft" aria-hidden />
-                Patient ID
-              </span>
-              {user?.id ? (
-                <button
-                  type="button"
-                  onClick={() => handleCopyId(user.id)}
-                  className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                >
-                  {copiedId ? "Copied!" : "Copy"}
-                </button>
-              ) : null}
-            </span>
-            <p className="text-xs font-mono font-medium text-text-soft truncate select-all">
-              {user?.id || "—"}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. Quick Access Clinical Cards ─────────────────────────────────── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        <Link
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<UserCheck size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Identity"
+          value={user?.verified ? "Verified" : "Active"}
+          sub="Primary patient"
+        />
+        <StatTile
+          icon={<Heart size={16} />}
+          tone="bg-rose-50 text-rose-600"
+          label="Blood group"
+          value={bloodGroup}
+          sub="Emergency marker"
+        />
+        <StatTile
+          icon={<HeartPulse size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Emergency card"
+          value="ER"
+          sub="Trauma summary + QR"
           href="/patient/emergency"
-          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-danger-soft text-danger transition-transform group-hover:scale-105" aria-hidden>
-              <HeartPulse size={18} />
-            </div>
-            <ChevronRight size={15} className="text-text-muted group-hover:text-danger group-hover:translate-x-0.5 transition-all" aria-hidden />
-          </div>
-          <div>
-            <h3 className="font-bold text-text text-sm group-hover:text-danger transition-colors">
-              Emergency Card
-            </h3>
-            <p className="text-[11px] text-text-soft mt-0.5">
-              Life-saving ER trauma summary &amp; QR
-            </p>
-          </div>
-        </Link>
-
-        <Link
+        />
+        <StatTile
+          icon={<QrCode size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Health ID"
+          value="QR"
+          sub="Clinic check-in pass"
           href="/patient/health-id"
-          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-brand-soft text-brand transition-transform group-hover:scale-105" aria-hidden>
-              <QrCode size={18} />
-            </div>
-            <ChevronRight size={15} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" aria-hidden />
-          </div>
-          <div>
-            <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors">
-              Digital Health ID
-            </h3>
-            <p className="text-[11px] text-text-soft mt-0.5">
-              25s rotating pass for clinic check-in
-            </p>
-          </div>
-        </Link>
+        />
+      </HeroOverlap>
 
-        <Link
-          href="/patient/family"
-          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-success-soft text-success transition-transform group-hover:scale-105" aria-hidden>
-              <Users size={18} />
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-8">
+          {/* Identity card */}
+          <section className={cn(PANEL, "overflow-hidden")}>
+            <div className="flex flex-col items-center justify-between gap-5 border-b border-slate-100 pb-5 sm:flex-row sm:items-start">
+              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-left">
+                {user?.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.photo}
+                    alt=""
+                    width={72}
+                    height={72}
+                    className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover shadow-md"
+                  />
+                ) : (
+                  <div
+                    className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl bg-[#07233a] font-mono text-2xl font-bold text-sky-200 shadow-md"
+                    aria-hidden
+                  >
+                    {initials(user?.name) || "P"}
+                  </div>
+                )}
+                <div>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
+                    <h2 className="text-xl font-semibold leading-tight tracking-[-0.02em] text-slate-900 sm:text-2xl">
+                      {user?.name || "Patient"}
+                    </h2>
+                    <span
+                      className={cn(
+                        "rounded-md px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                        user?.verified
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-sky-50 text-sky-700",
+                      )}
+                    >
+                      {user?.verified ? "Verified patient" : "Active profile"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    {user?.email || "No email linked"} · {user?.phone || "No phone linked"}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/patient/profile/edit"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-slate-100 px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+              >
+                <Edit2 size={13} aria-hidden /> Update demographics
+              </Link>
             </div>
-            <ChevronRight size={15} className="text-text-muted group-hover:text-success group-hover:translate-x-0.5 transition-all" aria-hidden />
-          </div>
-          <div>
-            <h3 className="font-bold text-text text-sm group-hover:text-success transition-colors">
-              Family Locker
-            </h3>
-            <p className="text-[11px] text-text-soft mt-0.5">
-              Dependents, parents, &amp; care locks
-            </p>
-          </div>
-        </Link>
 
-        <Link
-          href="/patient/export"
-          className="p-4 rounded-xl bg-surface border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-violet-50 text-violet-600 transition-transform group-hover:scale-105" aria-hidden>
-              <Download size={18} />
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {demographics.map((d) => (
+                <div
+                  key={d.label}
+                  className="flex flex-col gap-1 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5"
+                >
+                  <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase text-slate-400">
+                    {d.icon}
+                    {d.label}
+                  </span>
+                  <p className="text-xs font-semibold text-slate-900 sm:text-sm">
+                    {d.value}
+                  </p>
+                </div>
+              ))}
+
+              <div className="flex flex-col gap-1 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
+                <span className="flex items-center justify-between text-[10.5px] font-bold uppercase text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Key size={12} className="text-slate-400" aria-hidden />
+                    Patient ID
+                  </span>
+                  {user?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyId(user.id)}
+                      className="cursor-pointer text-[10px] font-bold text-sky-700 hover:underline"
+                    >
+                      {copiedId ? "Copied!" : "Copy"}
+                    </button>
+                  ) : null}
+                </span>
+                <p className="select-all truncate font-mono text-xs font-medium text-slate-500">
+                  {user?.id || "—"}
+                </p>
+              </div>
             </div>
-            <ChevronRight size={15} className="text-text-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" aria-hidden />
-          </div>
-          <div>
-            <h3 className="font-bold text-text text-sm group-hover:text-brand transition-colors">
-              Export Records
-            </h3>
-            <p className="text-[11px] text-text-soft mt-0.5">
-              HL7 FHIR R4 &amp; JSON data archive
-            </p>
-          </div>
-        </Link>
-      </section>
+          </section>
 
-      {/* ── 4. Account Security & Session Controls ──────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0" aria-hidden>
-            <Lock size={20} />
-          </div>
-          <div>
-            <h4 className="t-card-title text-text">
-              Active Security Session
-            </h4>
-            <p className="text-xs text-text-soft mt-0.5">
-              Signed in as <span className="font-semibold text-text">{user?.email || "patient"}</span>. Terminating this session invalidates local cache tokens.
-            </p>
-          </div>
+          {/* Security session */}
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Lock size={16} />}
+              tone="bg-rose-50 text-rose-600"
+              title="Active security session"
+              caption={`Signed in as ${user?.email || "patient"}`}
+            />
+            <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-xl bg-slate-50 p-4 sm:flex-row">
+              <p className="text-xs leading-relaxed text-slate-500">
+                Terminating this session invalidates local cache tokens on this device
+                and any linked sessions.
+              </p>
+              <button
+                type="button"
+                onClick={onLogout}
+                disabled={signingOut}
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-rose-50 px-5 text-xs font-bold text-rose-600 transition hover:bg-rose-600 hover:text-white disabled:opacity-50"
+              >
+                {signingOut ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                    Signing out…
+                  </>
+                ) : (
+                  <>
+                    <LogOut size={13} aria-hidden />
+                    Sign out everywhere
+                  </>
+                )}
+              </button>
+            </div>
+          </section>
         </div>
 
-        <button
-          type="button"
-          onClick={onLogout}
-          disabled={signingOut}
-          className="pt-btn h-10 px-5 text-xs shrink-0 bg-danger-soft text-danger hover:bg-danger hover:text-white disabled:opacity-50"
-        >
-          {signingOut ? (
-            <>
-              <Loader2 size={13} className="animate-spin" aria-hidden />
-              Signing out…
-            </>
-          ) : (
-            <>
-              <LogOut size={13} aria-hidden />
-              Sign Out Everywhere
-            </>
-          )}
-        </button>
-      </section>
-    </div>
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <QuickToolsPanel
+            id="profile-tools"
+            title="Quick access"
+            tag="Clinical"
+            tools={[
+              {
+                icon: HeartPulse,
+                label: "Emergency card",
+                hint: "ER summary",
+                href: "/patient/emergency",
+                tone: "from-rose-500 to-red-600 shadow-rose-500/30",
+              },
+              {
+                icon: QrCode,
+                label: "Health ID",
+                hint: "25s QR pass",
+                href: "/patient/health-id",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: Users,
+                label: "Family locker",
+                hint: "Dependents",
+                href: "/patient/family",
+                tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
+              },
+              {
+                icon: Download,
+                label: "Export records",
+                hint: "FHIR / JSON",
+                href: "/patient/export",
+                tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+              {
+                icon: Edit2,
+                label: "Edit profile",
+                hint: "Demographics",
+                href: "/patient/profile/edit",
+                tone: "from-amber-500 to-orange-600 shadow-amber-500/30",
+              },
+              {
+                icon: Lock,
+                label: "Consents",
+                hint: "Grants",
+                href: "/patient/consents",
+                tone: "from-slate-500 to-slate-700 shadow-slate-500/30",
+              },
+            ]}
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }

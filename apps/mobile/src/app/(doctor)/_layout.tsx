@@ -160,6 +160,10 @@ export default function DoctorLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
+        name="walk-ins"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
         name="records-v2"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

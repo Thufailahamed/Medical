@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  ExternalLink,
-  FileCheck,
   FileCode2,
   FileLock2,
   FileText,
@@ -26,14 +24,26 @@ import {
 
 import { api } from "@/portal/lib/api";
 import { cn } from "@/portal/lib/utils";
-import { PageHero, heroPrimaryAction, heroSecondaryAction } from "@/patient/components/primitives/PageHero";
+import {
+  HERO_CHIP,
+  HERO_GHOST,
+  HERO_PRIMARY,
+  HeroAccent,
+  HeroOverlap,
+  PANEL,
+  PanelHeader,
+  PatientHero,
+  PatientPage,
+  QuickToolsPanel,
+  StatTile,
+} from "@/patient/components/workspace";
 
 const FORMATS = [
   {
     id: "fhir-bundle" as const,
     label: "HL7 FHIR R4 Bundle",
     badge: "Hospital Standard",
-    badgeTone: "bg-brand-soft text-brand",
+    badgeTone: "bg-sky-50 text-sky-700",
     desc: "Global interoperability format accepted by Epic, Cerner, Apple Health, and international hospitals.",
     icon: Hospital,
     ext: "json",
@@ -42,7 +52,7 @@ const FORMATS = [
     id: "json" as const,
     label: "Full JSON Archive",
     badge: "Complete Dataset",
-    badgeTone: "bg-success-soft text-success",
+    badgeTone: "bg-emerald-50 text-emerald-700",
     desc: "Comprehensive machine-readable dump including vitals, lab reports, prescriptions, notes, and audits.",
     icon: FileCode2,
     ext: "json",
@@ -51,7 +61,7 @@ const FORMATS = [
     id: "txt" as const,
     label: "Clinical Summary Text",
     badge: "Human-Readable",
-    badgeTone: "bg-violet-50 text-violet-600",
+    badgeTone: "bg-violet-50 text-violet-700",
     desc: "Formatted plain-text medical summary ideal for physical printing, offline viewing, or simple sharing.",
     icon: FileText,
     ext: "txt",
@@ -106,224 +116,284 @@ export default function ExportPage() {
   const selectedFormatObj = FORMATS.find((f) => f.id === format) ?? FORMATS[0];
 
   return (
-    <div className="flex flex-col gap-6 pb-16">
-      {/* ── 1. Page Hero ───────────────────────────────────────────────────── */}
-      <PageHero
-        icon={<Archive size={13} aria-hidden />}
-        kicker="Data Portability & Personal EHR Archives"
-        title="Export Health Records & Data Portability"
-        description="Download a complete, un-truncated copy of your medical records. Fully compatible with hospital EHR networks, overseas physicians, and personal backup drives."
-        actions={
+    <PatientPage>
+      <PatientHero
+        kickerIcon={<Archive size={13} aria-hidden />}
+        kicker="Tools"
+        kickerMeta="Data portability"
+        title={
           <>
-            <Link href="/patient/audit" className={heroSecondaryAction}>
-              <Clock size={13} aria-hidden />
-              Activity Audit
-            </Link>
-            <Link href="/patient/dsar" className={heroPrimaryAction}>
-              <FileLock2 size={14} aria-hidden />
-              Data Subject Requests
-            </Link>
+            Export your <HeroAccent>health records</HeroAccent>
           </>
         }
-        footer={
+        description="Download a complete, un-truncated copy of your medical records — compatible with hospital EHR networks, overseas physicians, and personal backup drives."
+        chips={
           <>
-            <span>Portability · HL7 FHIR R4</span>
-            <span>Completeness · 100% Full EHR</span>
-            <span>Encryption · AES-256 GCM</span>
-            <span>Regulation · GDPR Article 20</span>
+            <span className={HERO_CHIP}>
+              <Hospital size={12} className="text-sky-300" />
+              HL7 FHIR R4
+            </span>
+            <span className={HERO_CHIP}>
+              <ShieldCheck size={12} className="text-emerald-300" />
+              GDPR Article 20
+            </span>
+            <span className={HERO_CHIP}>AES-256 GCM</span>
+          </>
+        }
+        actions={
+          <>
+            <Link href="/patient/audit" className={HERO_GHOST}>
+              <Clock size={13} /> Activity audit
+            </Link>
+            <Link href="/patient/dsar" className={HERO_PRIMARY}>
+              <FileLock2 size={14} className="text-sky-600" /> Data requests
+            </Link>
           </>
         }
       />
 
-      {/* ── 2. Format Selection Cards ───────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div>
-          <h2 className="pt-kicker">
-            Choose Export Format
-          </h2>
-        </div>
+      <HeroOverlap className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <StatTile
+          icon={<Layers size={16} />}
+          tone="bg-sky-50 text-sky-600"
+          label="Categories"
+          value={String(INCLUDED_CATEGORIES.length)}
+          sub="Record domains included"
+        />
+        <StatTile
+          icon={<Hospital size={16} />}
+          tone="bg-emerald-50 text-emerald-600"
+          label="Formats"
+          value={String(FORMATS.length)}
+          sub="FHIR · JSON · TXT"
+        />
+        <StatTile
+          icon={<ShieldCheck size={16} />}
+          tone="bg-violet-50 text-violet-600"
+          label="Completeness"
+          value="100%"
+          sub="Full EHR, no truncation"
+        />
+        <StatTile
+          icon={<FileLock2 size={16} />}
+          tone="bg-amber-50 text-amber-600"
+          label="Data rights"
+          value="DSAR"
+          sub="Erasure & rectification"
+          href="/patient/dsar"
+        />
+      </HeroOverlap>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {FORMATS.map((f) => {
-            const Icon = f.icon;
-            const isSelected = format === f.id;
-
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFormat(f.id)}
-                className={cn(
-                  "p-5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-4",
-                  isSelected
-                    ? "bg-brand-soft/40 border-brand shadow-card"
-                    : "bg-surface border-border hover:border-border-strong",
-                )}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div
-                      className={cn(
-                        "grid h-10 w-10 place-items-center rounded-md shrink-0 shadow-2xs",
-                        isSelected
-                          ? "bg-ink text-white"
-                          : "bg-surface-2 text-text-soft",
-                      )}
-                      aria-hidden
-                    >
-                      <Icon size={18} />
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-8">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Archive size={16} />}
+              tone="bg-sky-50 text-sky-600"
+              title="Choose export format"
+              caption="Pick the structure that fits where the archive is going."
+            />
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              {FORMATS.map((f) => {
+                const Icon = f.icon;
+                const isSelected = format === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFormat(f.id)}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "flex cursor-pointer flex-col justify-between gap-4 rounded-2xl border p-5 text-left transition-all",
+                      isSelected
+                        ? "border-sky-300 bg-sky-50/60 shadow-sm"
+                        : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-md",
+                    )}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={cn(
+                            "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+                            isSelected
+                              ? "bg-[#07233a] text-white"
+                              : "bg-slate-100 text-slate-500",
+                          )}
+                          aria-hidden
+                        >
+                          <Icon size={18} />
+                        </div>
+                        <span
+                          className={cn(
+                            "rounded-md px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                            f.badgeTone,
+                          )}
+                        >
+                          {f.badge}
+                        </span>
+                      </div>
+                      <h3 className="mt-1 text-sm font-bold text-slate-900">{f.label}</h3>
+                      <p className="text-xs font-medium leading-relaxed text-slate-500">
+                        {f.desc}
+                      </p>
                     </div>
-
-                    <span
-                      className={cn(
-                        "px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider",
-                        f.badgeTone,
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+                      <span className="font-mono font-bold uppercase text-slate-400">
+                        .{f.ext}
+                      </span>
+                      {isSelected ? (
+                        <span className="flex items-center gap-1 font-bold text-sky-700">
+                          <CheckCircle2 size={13} aria-hidden />
+                          Selected
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-slate-400">Select</span>
                       )}
-                    >
-                      {f.badge}
-                    </span>
-                  </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-                  <h3 className="t-card-title text-text mt-1">
-                    {f.label}
+            {/* Download trigger */}
+            <div className="mt-4 flex flex-col items-center justify-between gap-5 rounded-2xl border border-sky-100 bg-sky-50/50 p-6 sm:flex-row">
+              <div className="flex items-center gap-4">
+                <div
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#07233a] text-white shadow-md"
+                  aria-hidden
+                >
+                  <Download size={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Ready to download: {selectedFormatObj.label}
                   </h3>
-
-                  <p className="text-xs text-text-soft font-medium leading-relaxed">
-                    {f.desc}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
-                  <span className="font-bold text-text-muted font-mono uppercase">
-                    .{f.ext}
-                  </span>
-                  {isSelected ? (
-                    <span className="font-bold text-brand flex items-center gap-1">
-                      <CheckCircle2 size={13} aria-hidden />
-                      Selected
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-text-muted">Select →</span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── 3. What Is Included in Your Export ──────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-card flex flex-col gap-4">
-        <div>
-          <h2 className="pt-kicker flex items-center gap-2">
-            <Layers size={16} className="text-brand" aria-hidden />
-            <span>Contents of Your Complete Medical Export</span>
-          </h2>
-          <p className="text-xs text-text-soft mt-0.5">
-            Every record stored on HealthHub is compiled in full directly from the clinical database without truncation.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {INCLUDED_CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <div
-                key={cat.label}
-                className="p-3.5 rounded-lg bg-surface-2 border border-border flex items-start gap-3"
-              >
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-surface text-brand shrink-0 shadow-2xs mt-0.5" aria-hidden>
-                  <Icon size={15} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-text">{cat.label}</p>
-                  <p className="text-[11px] text-text-soft leading-snug mt-0.5">
-                    {cat.desc}
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Downloaded over encrypted HTTPS directly to your device storage.
                   </p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <button
+                type="button"
+                onClick={download}
+                disabled={loading}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-sky-600 px-6 text-xs font-bold text-white transition hover:bg-sky-500 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" aria-hidden />
+                    Generating archive…
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} aria-hidden />
+                    Download (.{selectedFormatObj.ext})
+                  </>
+                )}
+              </button>
+            </div>
 
-      {/* ── 4. Download Trigger & Execution Box ─────────────────────────────── */}
-      <section className="rounded-xl border border-brand/25 bg-brand-soft/30 p-6 shadow-card flex flex-col sm:flex-row items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          <div className="grid h-12 w-12 place-items-center rounded-md bg-ink text-white shrink-0 shadow-md" aria-hidden>
-            <Download size={24} />
-          </div>
-          <div>
-            <h3 className="t-card-title text-text">
-              Ready to Download: {selectedFormatObj.label}
-            </h3>
-            <p className="text-xs text-text-soft mt-0.5">
-              Downloaded over encrypted HTTPS directly to your device storage.
+            {error ? (
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
+                <AlertCircle size={18} className="shrink-0" aria-hidden />
+                <span>{error}</span>
+              </div>
+            ) : null}
+
+            {downloadSuccess ? (
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-700">
+                <CheckCircle2 size={18} className="shrink-0" aria-hidden />
+                <span>
+                  Your medical record archive has been prepared and downloaded to your computer.
+                </span>
+              </div>
+            ) : null}
+          </section>
+
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<Layers size={16} />}
+              tone="bg-emerald-50 text-emerald-600"
+              title="What's inside your export"
+              caption="Every record on HealthHub is compiled in full — no truncation."
+            />
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {INCLUDED_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <div
+                    key={cat.label}
+                    className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5"
+                  >
+                    <div
+                      className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-sky-600 shadow-sm"
+                      aria-hidden
+                    >
+                      <Icon size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900">{cat.label}</p>
+                      <p className="mt-0.5 text-[11px] leading-snug text-slate-500">
+                        {cat.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <section className={PANEL}>
+            <PanelHeader
+              icon={<FileLock2 size={16} />}
+              tone="bg-amber-50 text-amber-600"
+              title="Formal privacy requests"
+              caption="Erasure or rectification."
+            />
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              Submit a Data Subject Access Request (DSAR) to rectify erroneous lab
+              results or request permanent file erasure under applicable
+              regulations.
             </p>
-          </div>
-        </div>
+            <Link
+              href="/patient/dsar"
+              className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-100 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+            >
+              <FileLock2 size={13} /> Data subject requests
+            </Link>
+          </section>
 
-        <button
-          type="button"
-          onClick={download}
-          disabled={loading}
-          className="pt-btn pt-btn-primary h-11 px-6 text-xs disabled:opacity-50 shrink-0"
-        >
-          {loading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" aria-hidden />
-              Generating Secure Archive…
-            </>
-          ) : (
-            <>
-              <Download size={16} aria-hidden />
-              Download Health Archive (.{selectedFormatObj.ext})
-            </>
-          )}
-        </button>
-      </section>
-
-      {/* Status Alerts */}
-      {error && (
-        <div className="p-4 rounded-xl bg-danger-soft border border-danger/25 text-xs font-bold text-danger flex items-center gap-3 shadow-xs">
-          <AlertCircle size={18} className="shrink-0" aria-hidden />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {downloadSuccess && (
-        <div className="p-4 rounded-xl bg-success-soft border border-success/25 text-xs font-bold text-success flex items-center gap-3 shadow-xs">
-          <CheckCircle2 size={18} className="shrink-0" aria-hidden />
-          <span>
-            Your medical record archive has been prepared and downloaded to your computer.
-          </span>
-        </div>
-      )}
-
-      {/* ── 5. GDPR & DSAR Legal Rights Notice ──────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-surface-2 text-text-soft shrink-0" aria-hidden>
-            <FileLock2 size={22} />
-          </div>
-          <div>
-            <h4 className="t-card-title text-text">
-              Need a Formal Privacy Request (Erasure or Rectification)?
-            </h4>
-            <p className="text-xs text-text-soft mt-0.5">
-              Submit a Data Subject Access Request (DSAR) to rectify erroneous lab results or request permanent file erasure under applicable regulations.
-            </p>
-          </div>
-        </div>
-
-        <Link
-          href="/patient/dsar"
-          className="pt-btn pt-btn-secondary h-9 px-4 text-xs shrink-0"
-        >
-          <ExternalLink size={13} aria-hidden />
-          Data Subject Requests
-        </Link>
-      </section>
-    </div>
+          <QuickToolsPanel
+            id="export-tools"
+            title="Tools"
+            tools={[
+              {
+                icon: FileText,
+                label: "Records",
+                hint: "Documents",
+                href: "/patient/records",
+                tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
+              },
+              {
+                icon: Clock,
+                label: "Audit",
+                hint: "Activity",
+                href: "/patient/audit",
+                tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+              {
+                icon: ShieldCheck,
+                label: "Consents",
+                hint: "Grants",
+                href: "/patient/consents",
+                tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
+              },
+            ]}
+          />
+        </aside>
+      </div>
+    </PatientPage>
   );
 }
