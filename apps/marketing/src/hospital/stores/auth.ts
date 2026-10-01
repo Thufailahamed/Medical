@@ -59,6 +59,40 @@ interface AuthState {
   markHydrated: () => void;
 }
 
+/** Roles allowed inside the hospital portal surface. */
+export const HOSPITAL_ROLES: UserRole[] = [
+  "hospital_admin",
+  "hospital_staff",
+  "pharmacy",
+  "laboratory",
+  "super_admin",
+];
+
+function readPortalSession(): {
+  token: string | null;
+  user: AuthUser | null;
+  activeTenant?: ActiveTenant;
+  activeHospitalId?: string | null;
+  activeClinicId?: string | null;
+} {
+  try {
+    if (typeof window === "undefined") return { token: null, user: null };
+    const raw = window.localStorage.getItem("healthcare-portal-auth");
+    if (!raw) return { token: null, user: null };
+    const s = JSON.parse(raw)?.state;
+    if (!s?.token) return { token: null, user: null };
+    return {
+      token: s.token ?? null,
+      user: s.user ?? null,
+      activeTenant: s.activeTenant ?? null,
+      activeHospitalId: s.activeHospitalId ?? null,
+      activeClinicId: s.activeClinicId ?? null,
+    };
+  } catch {
+    return { token: null, user: null };
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -70,7 +104,21 @@ export const useAuthStore = create<AuthState>()(
       locale: (process.env.NEXT_PUBLIC_DEFAULT_LOCALE as Locale) || "en",
       hydrated: false,
 
-      setSession: ({ token, user }) => set({ token, user }),
+      setSession: ({ token, user }) => {
+        const tenantType = (user as any)?.activeTenantType;
+        const tenantId = (user as any)?.activeTenantId;
+        const activeTenant =
+          tenantType && tenantId ? { type: tenantType, id: tenantId } : null;
+        set((prev) => ({
+          token,
+          user,
+          activeTenant: prev.activeTenant ?? activeTenant,
+          activeHospitalId:
+            prev.activeHospitalId ?? (tenantType === "hospital" ? tenantId : null),
+          activeClinicId:
+            prev.activeClinicId ?? (tenantType === "clinic" ? tenantId : null),
+        }));
+      },
       setUser: (user) => set({ user }),
 
       setActiveTenant: (t) =>
@@ -108,20 +156,25 @@ export const useAuthStore = create<AuthState>()(
         locale: s.locale,
       }),
       onRehydrateStorage: () => (state) => {
+        if (state && !state.token) {
+          const portal = readPortalSession();
+          if (
+            portal.token &&
+            portal.user &&
+            HOSPITAL_ROLES.includes(portal.user.role as any)
+          ) {
+            state.token = portal.token;
+            state.user = portal.user;
+            if (portal.activeTenant) state.activeTenant = portal.activeTenant;
+            if (portal.activeHospitalId) state.activeHospitalId = portal.activeHospitalId;
+            if (portal.activeClinicId) state.activeClinicId = portal.activeClinicId;
+          }
+        }
         state?.markHydrated();
       },
     }
   )
 );
-
-/** Roles allowed inside the hospital portal surface. */
-export const HOSPITAL_ROLES: UserRole[] = [
-  "hospital_admin",
-  "hospital_staff",
-  "pharmacy",
-  "laboratory",
-  "super_admin",
-];
 
 /** Subset of UserRole accepted on the hospital portal surface. */
 export type HospitalRole = Extract<

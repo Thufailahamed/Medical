@@ -9,6 +9,7 @@
 
 import { api, ApiError } from "./api";
 import { useAuthStore, type AuthUser, type Locale } from "@/hospital/stores/auth";
+import { useAuthStore as usePortalAuthStore } from "@/portal/stores/auth";
 
 export interface LoginInput {
   email?: string;
@@ -57,6 +58,11 @@ export async function logout() {
     // Best-effort — clear local regardless.
   }
   useAuthStore.getState().logout();
+  try {
+    usePortalAuthStore.getState().logout();
+  } catch {
+    // Best-effort
+  }
 }
 
 /** Push a new locale into the store + persist + tell the API. */

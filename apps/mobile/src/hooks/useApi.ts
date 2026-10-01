@@ -5076,3 +5076,177 @@ export function useResolveScanToken() {
       }),
   });
 }
+
+// ─── Lab partner portal ────────────────────────────────
+export type LabBookingFilter = "pending" | "confirmed" | "phlebotomist_assigned" | "sample_collection_en_route" | "sample_collected" | "in_progress" | "completed" | "cancelled" | "all";
+
+export function useLabStats() {
+  return useQuery({
+    queryKey: ["lab-portal", "stats"],
+    queryFn: () => api<{ stats: any }>("/lab-portal/stats"),
+    staleTime: 30_000,
+  });
+}
+
+export function useLabBookings(status?: string) {
+  return useQuery({
+    queryKey: ["lab-portal", "bookings", status || ""],
+    queryFn: () => api<{ bookings: any[] }>(`/lab-portal/bookings${status ? `?status=${status}` : ""}`),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useLabBookingDetail(id: string | undefined) {
+  return useQuery({
+    queryKey: ["lab-portal", "booking", id],
+    queryFn: () => api<{ booking: any }>(`/lab-portal/bookings/${id}`),
+    enabled: !!id,
+  });
+}
+
+// One hook per stage (server enforces order; 400 otherwise).
+function useLabStage(action: string, body?: (vars: any) => any) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string } & Record<string, any>) =>
+      api<{ booking: any }>(`/lab-portal/bookings/${vars.id}/${action}`, {
+        method: "PATCH",
+        body: body ? body(vars) : {},
+      }),
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["lab-portal", "bookings"] });
+      qc.invalidateQueries({ queryKey: ["lab-portal", "booking", id] });
+      qc.invalidateQueries({ queryKey: ["lab-portal", "stats"] });
+    },
+  });
+}
+export function useLabConfirmBooking() { return useLabStage("confirm"); }
+export function useLabMarkEnRoute() { return useLabStage("en-route"); }
+export function useLabCollectSample() { return useLabStage("collect-sample"); }
+export function useLabMarkInProgress() { return useLabStage("in-progress"); }
+export function useLabAssignPhlebotomist() {
+  return useLabStage("assign-phlebotomist", (v) => ({
+    phlebotomistId: v.phlebotomistId,
+    phlebotomistName: v.phlebotomistName,
+    phlebotomistPhone: v.phlebotomistPhone,
+  }));
+}
+export function useLabCompleteBooking() {
+  return useLabStage("complete", (v) => ({
+    resultPdfUrl: v.resultPdfUrl, resultSummary: v.resultSummary, notes: v.notes,
+  }));
+}
+export function useLabCancelBooking() {
+  return useLabStage("cancel", (v) => ({ reason: v.reason }));
+}
+
+export function useLabCatalog() {
+  return useQuery({
+    queryKey: ["lab-portal", "catalog"],
+    queryFn: () => api<{ tests: any[] }>("/lab-portal/catalog"),
+  });
+}
+export function useLabPackages() {
+  return useQuery({
+    queryKey: ["lab-portal", "packages"],
+    queryFn: () => api<{ packages: any[] }>("/lab-portal/packages"),
+  });
+}
+export function useLabSaveTest() {
+  const qc = useQueryClient();
+  return useMutation({
+    // { id? } → PUT /catalog/:id else POST /catalog.
+    mutationFn: (input: any) =>
+      api<{ test: any }>(input.id ? `/lab-portal/catalog/${input.id}` : "/lab-portal/catalog", {
+        method: input.id ? "PUT" : "POST",
+        body: input,
+      }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lab-portal", "catalog"] }); },
+  });
+}
+export function useLabSavePackage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: any) =>
+      api<{ package: any }>(input.id ? `/lab-portal/packages/${input.id}` : "/lab-portal/packages", {
+        method: input.id ? "PUT" : "POST",
+        body: input,
+      }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lab-portal", "packages"] }); },
+  });
+}
+export function useLabPhlebotomists() {
+  return useQuery({
+    queryKey: ["lab-portal", "phlebotomists"],
+    queryFn: () => api<{ phlebotomists: any[] }>("/lab-portal/phlebotomists"),
+  });
+}
+export function useLabAddPhlebotomist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; phone: string; email?: string }) =>
+      api<{ phlebotomist: any }>("/lab-portal/phlebotomists", { method: "POST", body: input }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["lab-portal", "phlebotomists"] }); },
+  });
+}
+
+// ─── Insurance operator portal ────────────────────────────────
+export function useOperatorDashboard() {
+  return useQuery({
+    queryKey: ["insurance-operator", "dashboard"],
+    queryFn: () => api<{ stats: any }>("/insurance-operator/dashboard"),
+    staleTime: 30_000,
+  });
+}
+export function useOperatorClaims(status?: string) {
+  return useQuery({
+    queryKey: ["insurance-operator", "claims", status || ""],
+    queryFn: () => api<{ claims: any[] }>(`/insurance-operator/claims${status ? `?status=${status}` : ""}`),
+  });
+}
+export function useOperatorClaim(id: string | undefined) {
+  return useQuery({
+    queryKey: ["insurance-operator", "claim", id],
+    queryFn: () => api<{ claim: any }>(`/insurance-operator/claims/${id}`),
+    enabled: !!id,
+  });
+}
+export function useOperatorEnrollments() {
+  return useQuery({
+    queryKey: ["insurance-operator", "enrollments"],
+    queryFn: () => api<{ enrollments: any[] }>("/insurance-operator/enrollments"),
+  });
+}
+export function useDecideOperatorClaim() {
+  const qc = useQueryClient();
+  return useMutation({
+    // decision: approve (amountApprovedLkr? defaults to requested) |
+    // reject | more_info. Server allows only submitted/under_review/more_info_needed.
+    mutationFn: (input: { id: string; decision: "approve" | "reject" | "more_info"; amountApprovedLkr?: number; remarks?: string }) =>
+      api<{ claim: any }>(`/insurance-operator/claims/${input.id}/decision`, {
+        method: "POST",
+        body: { decision: input.decision, amountApprovedLkr: input.amountApprovedLkr, remarks: input.remarks },
+      }),
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "claims"] });
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "claim", id] });
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "dashboard"] });
+    },
+  });
+}
+export function usePayOperatorClaim() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Only approved claims. transactionRef REQUIRED by server.
+    mutationFn: (input: { id: string; amountApprovedLkr?: number; transactionRef: string }) =>
+      api<{ claim: any }>(`/insurance-operator/claims/${input.id}/pay`, {
+        method: "POST",
+        body: { amountApprovedLkr: input.amountApprovedLkr, transactionRef: input.transactionRef },
+      }),
+    onSuccess: (_res, { id }) => {
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "claims"] });
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "claim", id] });
+      qc.invalidateQueries({ queryKey: ["insurance-operator", "dashboard"] });
+    },
+  });
+}

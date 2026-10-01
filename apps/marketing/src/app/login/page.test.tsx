@@ -10,6 +10,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams("port=doctor");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -21,7 +22,7 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => "/login",
-  useSearchParams: () => new URLSearchParams("port=doctor"),
+  useSearchParams: () => mockSearchParams,
   useParams: () => ({}),
 }));
 
@@ -71,6 +72,7 @@ describe("Unified LoginPage port RBAC", () => {
     mockLogout.mockReset();
     mockSetSession.mockReset();
     mockReplace.mockReset();
+    mockSearchParams = new URLSearchParams("port=doctor");
     currentUser = null;
   });
 
@@ -141,6 +143,36 @@ describe("Unified LoginPage port RBAC", () => {
     expect(
       screen.getByText(/switch to the "Facility" tab to sign in/i),
     ).toBeInTheDocument();
+  });
+
+  it("allows a hospital_admin on the Facility port to land on /hospital/dashboard", async () => {
+    mockSearchParams = new URLSearchParams("port=facility");
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({
+      id: "h1",
+      name: "Hospital Admin",
+      email: "admin@devhospital.lk",
+      role: "hospital_admin",
+    });
+
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText(/email or phone/i), "admin@devhospital.lk");
+    await user.type(screen.getByLabelText(/^password$/i), "DevPass#1234");
+    await user.click(
+      screen.getByRole("button", { name: /sign in to facility hub/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith({
+        email: "admin@devhospital.lk",
+        password: "DevPass#1234",
+      });
+    });
+    expect(mockLogout).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/hospital/dashboard");
+    });
   });
 
   it("surfaces a friendly error when login throws", async () => {

@@ -29,6 +29,10 @@ export function homeForRole(role: string | null | undefined): string {
     ? "/(doctor)"
     : role === "pharmacy"
     ? "/(pharmacist)"
+    : role === "laboratory"
+    ? "/(lab)"
+    : role === "insurance"
+    ? "/(operator)"
     : role === "caretaker"
     ? "/(caretaker)"
     : "/(app)";
@@ -45,6 +49,10 @@ function groupForRole(role: string | null | undefined): string {
     ? "(doctor)"
     : role === "pharmacy"
     ? "(pharmacist)"
+    : role === "laboratory"
+    ? "(lab)"
+    : role === "insurance"
+    ? "(operator)"
     : role === "caretaker"
     ? "(caretaker)"
     : "(app)";
@@ -124,7 +132,7 @@ export function useProtectedRoute(isReady: boolean = true) {
       if (
         current &&
         current !== expected &&
-        ["(app)", "(doctor)", "(admin)", "(caretaker)", "(pharmacist)"].includes(current)
+        ["(app)", "(doctor)", "(admin)", "(caretaker)", "(pharmacist)", "(lab)", "(operator)"].includes(current)
       ) {
         const home = homeForRole(role);
         const t = setTimeout(() => {

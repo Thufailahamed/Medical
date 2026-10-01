@@ -25,6 +25,7 @@ import {
   Heart,
   Stethoscope,
   Pill as PillIcon,
+  FlaskConical,
   ChevronLeft,
   IdCard,
   Search,
@@ -71,7 +72,7 @@ function ageFromDob(dob: string | null | undefined): number | null {
 
 const schema = z
   .object({
-    role: z.enum(["patient", "doctor", "hospital_staff", "pharmacy"]),
+    role: z.enum(["patient", "doctor", "hospital_staff", "pharmacy", "laboratory", "insurance"]),
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     phone: z.string().optional(),
@@ -165,7 +166,7 @@ export default function RegisterScreen() {
   const inviteData = invitePreview.data;
   const { colors, spacing, typography, radius, fontFamily, shadow, scheme } = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff" | "pharmacy">(
+  const [role, setRole] = useState<"patient" | "doctor" | "hospital_staff" | "pharmacy" | "laboratory" | "insurance">(
     inviteToken ? "hospital_staff" : "patient"
   );
   const [hospitalQuery, setHospitalQuery] = useState("");
@@ -303,6 +304,10 @@ export default function RegisterScreen() {
             ? "/(doctor)"
             : (data.role as string) === "pharmacy"
             ? "/(pharmacist)"
+            : (data.role as string) === "laboratory"
+            ? "/(lab)"
+            : (data.role as string) === "insurance"
+            ? "/(operator)"
             : "/(app)";
         router.replace(home as any);
       } else {
@@ -461,12 +466,14 @@ export default function RegisterScreen() {
         {/* Role selector — hidden for staff invites since role is forced to
             hospital_staff. The invite banner below stands in for it. */}
         {!inviteToken ? (
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: 28 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: 28 }}>
             {(
               [
                 { value: "patient", label: "Patient", hint: "Track my health", icon: User },
                 { value: "doctor", label: "Doctor", hint: "Run my practice", icon: Stethoscope },
                 { value: "pharmacy", label: "Pharmacy", hint: "Dispense prescriptions", icon: PillIcon },
+                { value: "laboratory", label: "Laboratory", hint: "Run lab collections", icon: FlaskConical },
+                { value: "insurance", label: "Insurance", hint: "Handle claims", icon: ShieldCheck },
               ] as const
             ).map(({ value, label, hint, icon: Icon }) => {
               const active = role === value;
@@ -487,7 +494,8 @@ export default function RegisterScreen() {
                   accessibilityLabel={`Register as ${label}`}
                   accessibilityState={{ selected: active }}
                   style={({ pressed }) => ({
-                    flex: 1,
+                    flexBasis: "31%",
+                    flexGrow: 1,
                     padding: 14,
                     borderRadius: 18,
                     borderCurve: "continuous",

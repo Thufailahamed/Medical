@@ -40,7 +40,18 @@ export async function api<T = any>(
   const { json, headers, base, ...rest } = init;
 
   const store = useAuthStore.getState();
-  const token = store.token;
+  const token =
+    store.token ??
+    (typeof window !== "undefined"
+      ? (() => {
+          try {
+            const raw = window.localStorage.getItem("healthcare-portal-auth");
+            return raw ? JSON.parse(raw)?.state?.token ?? null : null;
+          } catch {
+            return null;
+          }
+        })()
+      : null);
   const locale = store.locale;
   const hospitalId = store.activeHospitalId;
   const clinicId = store.activeClinicId;

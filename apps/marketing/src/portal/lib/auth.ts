@@ -12,6 +12,10 @@ import { patientPaths } from "@healthcare/shared/contracts";
 
 import { api, ApiError } from "./api";
 import { useAuthStore, type AuthUser, type Locale } from "@/portal/stores/auth";
+import {
+  useAuthStore as useHospitalAuthStore,
+  HOSPITAL_ROLES,
+} from "@/hospital/stores/auth";
 
 export interface LoginInput {
   email?: string;
@@ -83,6 +87,12 @@ export async function login(input: LoginInput): Promise<AuthUser> {
     user: ok.user,
     refreshToken: ok.session.refresh_token,
   });
+  if (HOSPITAL_ROLES.includes(ok.user.role as any)) {
+    useHospitalAuthStore.getState().setSession({
+      token: ok.session.access_token,
+      user: ok.user as any,
+    });
+  }
   return ok.user;
 }
 
@@ -106,6 +116,12 @@ export async function verifyMfaChallenge(input: {
     user: res.user,
     refreshToken: null,
   });
+  if (HOSPITAL_ROLES.includes(res.user.role as any)) {
+    useHospitalAuthStore.getState().setSession({
+      token: res.token,
+      user: res.user as any,
+    });
+  }
   return res.user;
 }
 
@@ -148,6 +164,12 @@ export async function verifyPhoneLogin(input: {
     user: res.user,
     refreshToken: res.session.refresh_token,
   });
+  if (HOSPITAL_ROLES.includes(res.user.role as any)) {
+    useHospitalAuthStore.getState().setSession({
+      token: res.session.access_token,
+      user: res.user as any,
+    });
+  }
   return res.user;
 }
 
@@ -207,6 +229,11 @@ export async function logout() {
     // Best-effort — clear local regardless.
   }
   useAuthStore.getState().logout();
+  try {
+    useHospitalAuthStore.getState().logout();
+  } catch {
+    // ignore
+  }
 }
 
 /** Push a new locale into the store + persist + tell the API. */
