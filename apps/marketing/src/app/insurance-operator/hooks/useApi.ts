@@ -143,6 +143,164 @@ export function useInsuranceOperatorEnrollments() {
   });
 }
 
+/* ─── Catalog: providers + plan drafts ─────────────────────────────── */
+
+export type InsuranceOperatorProvider = {
+  id: string;
+  operatorOrgId?: string;
+  slug: string;
+  name: string;
+  logoUrl?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  regulatorLicense?: string | null;
+  claimSettlementRatioPct?: number | null;
+  cashlessHospitalCount?: number | null;
+  websiteUrl?: string | null;
+  supportPhone?: string | null;
+  isPublished?: boolean | number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type InsuranceOperatorPlan = {
+  id: string;
+  providerId: string;
+  providerName?: string | null;
+  slug: string;
+  name: string;
+  planType: string;
+  coverageSummaryLkr: number;
+  coverageDetailsJson?: string | null;
+  monthlyPremiumLkr: number;
+  annualPremiumLkr: number;
+  annualDiscountPct?: number;
+  deductibleLkr?: number;
+  copayPct?: number;
+  coPaymentCapLkr?: number;
+  waitingPeriodDays?: number;
+  preExistingWaitingDays?: number;
+  networkHospitalCount?: number;
+  keyFeaturesJson?: string | null;
+  exclusionsJson?: string | null;
+  termMonths?: number;
+  isPublished?: boolean | number;
+  isFeatured?: boolean | number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export function useInsuranceOperatorProviders() {
+  return useQuery({
+    queryKey: qk.providers,
+    queryFn: () =>
+      api<{ providers: InsuranceOperatorProvider[] }>(
+        "/insurance-operator/providers",
+      ),
+  });
+}
+
+export function useInsuranceOperatorPlans() {
+  return useQuery({
+    queryKey: qk.plans,
+    queryFn: () =>
+      api<{ plans: InsuranceOperatorPlan[] }>("/insurance-operator/plans"),
+  });
+}
+
+export type ProviderDraftInput = {
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  tagline?: string;
+  description?: string;
+  regulatorLicense?: string;
+  claimSettlementRatioPct?: number;
+  cashlessHospitalCount?: number;
+  websiteUrl?: string;
+  supportPhone?: string;
+};
+
+export function useCreateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ProviderDraftInput) =>
+      api<{ provider: InsuranceOperatorProvider }>(
+        "/insurance-operator/providers",
+        { method: "POST", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.providers });
+      qc.invalidateQueries({ queryKey: qk.dashboard });
+    },
+  });
+}
+
+export function useUpdateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: ProviderDraftInput & { id: string }) =>
+      api<{ provider: InsuranceOperatorProvider }>(
+        `/insurance-operator/providers/${id}`,
+        { method: "PUT", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.providers });
+    },
+  });
+}
+
+export type PlanDraftInput = {
+  providerId: string;
+  slug: string;
+  name: string;
+  planType: string;
+  coverageSummaryLkr: number;
+  coverageDetailsJson?: string;
+  monthlyPremiumLkr: number;
+  annualPremiumLkr: number;
+  annualDiscountPct?: number;
+  deductibleLkr?: number;
+  copayPct?: number;
+  coPaymentCapLkr?: number;
+  waitingPeriodDays?: number;
+  preExistingWaitingDays?: number;
+  networkHospitalCount?: number;
+  keyFeaturesJson?: string;
+  exclusionsJson?: string;
+  termMonths?: number;
+  isFeatured?: boolean;
+};
+
+export function useCreatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PlanDraftInput) =>
+      api<{ plan: InsuranceOperatorPlan }>("/insurance-operator/plans", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.plans });
+      qc.invalidateQueries({ queryKey: qk.dashboard });
+    },
+  });
+}
+
+export function useUpdatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: Partial<PlanDraftInput> & { id: string }) =>
+      api<{ plan: InsuranceOperatorPlan }>(
+        `/insurance-operator/plans/${id}`,
+        { method: "PUT", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.plans });
+    },
+  });
+}
+
 function invalidateClaimQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["insurance-operator-claim"] });
   qc.invalidateQueries({ queryKey: ["insurance-operator-claims"] });

@@ -4,12 +4,14 @@ import Link from "next/link";
 import {
   ArrowRight,
   Banknote,
+  Building2,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
   FileText,
   Landmark,
+  Layers,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -308,13 +310,6 @@ export default function InsuranceOperatorDashboard() {
                 tone: "from-amber-500 to-orange-600 shadow-amber-500/30",
               },
               {
-                href: "/insurance-operator/claims?status=approved",
-                label: "Approved",
-                hint: `${stats?.approvedClaimsMtd ?? 0} this month`,
-                icon: CheckCircle2,
-                tone: "from-emerald-500 to-emerald-700 shadow-emerald-500/30",
-              },
-              {
                 href: "/insurance-operator/enrollments",
                 label: "Enrollments",
                 hint: `${stats?.activeEnrollments ?? 0} active`,
@@ -322,11 +317,18 @@ export default function InsuranceOperatorDashboard() {
                 tone: "from-sky-500 to-blue-600 shadow-sky-500/30",
               },
               {
-                href: "/insurance-operator/claims?status=more_info_needed",
-                label: "Needs info",
-                hint: "Awaiting claimant docs",
-                icon: FileText,
+                href: "/insurance-operator/plans",
+                label: "Plans",
+                hint: "Product catalog",
+                icon: Layers,
                 tone: "from-violet-500 to-purple-600 shadow-violet-500/30",
+              },
+              {
+                href: "/insurance-operator/providers",
+                label: "Providers",
+                hint: "Underwriting entities",
+                icon: Building2,
+                tone: "from-emerald-500 to-teal-600 shadow-emerald-500/30",
               },
             ]}
           />

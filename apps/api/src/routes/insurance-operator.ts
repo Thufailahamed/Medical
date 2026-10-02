@@ -461,6 +461,41 @@ operatorRouter.post("/claims/:id/pay", async (c) => {
   });
 });
 
+// ─── Provider + plan catalog (operator's own, incl. unpublished drafts) ───
+operatorRouter.get("/providers", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ providers: [] });
+  const rows = await db
+    .select()
+    .from(insuranceProviders)
+    .where(eq(insuranceProviders.operatorOrgId, org.id))
+    .orderBy(desc(insuranceProviders.createdAt));
+  return c.json({ providers: rows });
+});
+
+operatorRouter.get("/plans", async (c) => {
+  const db = c.get("db");
+  const userId = c.get("userId");
+  const org = await resolveOperatorOrg(db, userId);
+  if (!org) return c.json({ plans: [] });
+  const providerIds = await resolveProviderIds(db, org.id);
+  if (!providerIds.length) return c.json({ plans: [] });
+  const rows = await db
+    .select({
+      plan: insurancePlans,
+      providerName: insuranceProviders.name,
+    })
+    .from(insurancePlans)
+    .leftJoin(insuranceProviders, eq(insurancePlans.providerId, insuranceProviders.id))
+    .where(inArray(insurancePlans.providerId, providerIds))
+    .orderBy(desc(insurancePlans.createdAt));
+  return c.json({
+    plans: rows.map((r) => ({ ...r.plan, providerName: r.providerName })),
+  });
+});
+
 // ─── Provider drafts (operator creates, super_admin publishes) ───
 // Mirrors admin-insurance.ts validation via same Zod schemas, but forces
 // isPublished=false and scopes operatorOrgId to caller's org.

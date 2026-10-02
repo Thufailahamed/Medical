@@ -1,6 +1,8 @@
 import {
+  Building2,
   ClipboardCheck,
   LayoutDashboard,
+  Layers,
   ShieldCheck,
 } from "lucide-react";
 
@@ -22,6 +24,13 @@ export const INS_NAV_GROUPS: InsNavGroup[] = [
       { href: "/insurance-operator/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/insurance-operator/claims", label: "Claims Queue", icon: ClipboardCheck },
       { href: "/insurance-operator/enrollments", label: "Enrollments", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "Portfolio",
+    items: [
+      { href: "/insurance-operator/plans", label: "Plans", icon: Layers },
+      { href: "/insurance-operator/providers", label: "Providers", icon: Building2 },
     ],
   },
 ];

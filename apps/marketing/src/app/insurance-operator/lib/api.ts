@@ -48,4 +48,6 @@ export const qk = {
   claims: (status?: string) => ["insurance-operator-claims", status] as const,
   claim: (id: string) => ["insurance-operator-claim", id] as const,
   enrollments: ["insurance-operator-enrollments"] as const,
+  providers: ["insurance-operator-providers"] as const,
+  plans: ["insurance-operator-plans"] as const,
 };
